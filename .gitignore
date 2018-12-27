@@ -4,6 +4,9 @@
 #sqlite db files
 *.db
 
+#Intel C/C++ Compiler optimizer reports
+*.optrpt
+
 #Apple
 **/*.DS_Store
 
