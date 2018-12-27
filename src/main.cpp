@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2018-12-27.0"
+#define VERSION_STRING "SV2018-12-27.1"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -14,13 +14,29 @@
 #include <thread>
 #include <algorithm>
 #include <iostream>
+#include <csignal>
 
 #include <string.h>
 
 #include <uWS/uWS.h>
 #include <sqlite3.h>
 
-sqlite3 *splat_db;
+sqlite3 *splat_db = NULL;
+
+void signalHandler(int signum)
+{
+    std::cout << "Interrupt signal (" << signum << ") received.\n";
+
+    // cleanup and close up stuff here
+    // terminate program
+
+    if (splat_db != NULL)
+        sqlite3_close(splat_db);
+
+    std::cout << "FITSWebQL shutdown completed." << std::endl;
+
+    exit(signum);
+}
 
 int main(int argc, char *argv[])
 {
@@ -34,6 +50,9 @@ int main(int argc, char *argv[])
         sqlite3_close(splat_db);
         splat_db = NULL;
     }
+
+    // register signal SIGINT and signal handler
+    signal(SIGINT, signalHandler);
 
     std::vector<std::thread *> threads(MAX(std::thread::hardware_concurrency() / 2, 1));
     std::transform(threads.begin(), threads.end(), threads.begin(), [](std::thread *t) {
@@ -69,7 +88,7 @@ int main(int argc, char *argv[])
                 std::cout << "Failed to listen" << std::endl;
             }
 
-            std::cout << "Launching a uWS HTTP/WS thread" << std::endl;
+            std::cout << "Launching a uWS::HTTP/WS thread" << std::endl;
 
             h.run();
         });
@@ -81,6 +100,4 @@ int main(int argc, char *argv[])
 
     if (splat_db != NULL)
         sqlite3_close(splat_db);
-
-    std::cout << "FITSWebQL clean shutdown completed." << std::endl;
 }
