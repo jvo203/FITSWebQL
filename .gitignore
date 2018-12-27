@@ -1,0 +1,12 @@
+#emacs
+*~
+
+#sqlite db files
+*.db
+
+#Apple
+**/*.DS_Store
+
+#Microsoft Visual Code IDE
+/.vscode/
+
