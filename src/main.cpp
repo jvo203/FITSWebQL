@@ -85,10 +85,10 @@ int main(int argc, char *argv[])
             // with or without some kind of proxy inbetween
             if (!h.listen(8080, nullptr, uS::ListenOptions::REUSE_PORT))
             {
-                std::cout << "Failed to listen" << std::endl;
+                std::cout << "Failed to listen\n";
             }
 
-            std::cout << "Launching a uWS::HTTP/WS thread" << std::endl;
+            std::cout << "Launching a uWS::HTTP/WS thread\n";
 
             h.run();
         });
