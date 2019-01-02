@@ -6,10 +6,15 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2018-12-27.1"
+#define VERSION_STRING "SV2019-01-02.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 #include <thread>
 #include <algorithm>
@@ -38,6 +43,49 @@ void signalHandler(int signum)
     exit(signum);
 }
 
+//resource not found
+void http_not_found(uWS::HttpResponse *res)
+{
+    const std::string not_found = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
+    res->write(not_found.data(), not_found.length());
+    res->end(nullptr, 0);
+}
+
+void serve_file(uWS::HttpResponse *res, std::string uri)
+{
+    std::string resource = "htdocs" + uri;
+
+    //mmap a disk resource
+    int fd = -1;
+    void *buffer = NULL;
+
+    struct stat64 st;
+    stat64(resource.c_str(), &st);
+    long size = st.st_size;
+
+    fd = open(resource.c_str(), O_RDONLY);
+
+    if (fd != -1)
+    {
+        buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+        if (buffer != NULL)
+            res->end((const char *)buffer, size);
+        else
+        {
+            perror("error mapping a file");
+            http_not_found(res);
+        }
+
+        if (munmap(buffer, size) == -1)
+            perror("un-mapping error");
+
+        close(fd);
+    }
+    else
+        http_not_found(res);
+}
+
 int main(int argc, char *argv[])
 {
     std::cout << SERVER_STRING << " (" << VERSION_STRING << ")" << std::endl;
@@ -60,20 +108,23 @@ int main(int argc, char *argv[])
             uWS::Hub h;
 
             h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data, size_t, size_t) {
-                std::string url = req.getUrl().toString();
+                std::string uri = req.getUrl().toString();
 
-                std::cout << "HTTP request for " << url << std::endl;
+                std::cout << "HTTP request for " << uri << std::endl;
 
-                if (url == "/")
+                //root
+                if (uri == "/")
+                    return serve_file(res, "/test.html");
+
+                //FITSWebQL entry
+                if (uri.find("FITSWebQL.html") != std::string::npos)
                 {
                     const std::string s = "<h1>Hello " SERVER_STRING "!</h1>";
                     res->end(s.data(), s.length());
                     return;
                 }
 
-                //res->end(nullptr, 0);
-                const std::string not_found = "HTTP/1.1 404 Not Found\r\n\r\n";
-                res->write(not_found.data(), not_found.length());
+                return serve_file(res, uri);
             });
 
             h.onMessage([](uWS::WebSocket<uWS::SERVER> *ws, char *message, size_t length, uWS::OpCode opCode) {
