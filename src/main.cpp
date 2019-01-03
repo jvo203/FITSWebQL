@@ -23,6 +23,8 @@
 #include <string_view>
 #include <string.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <uWS/uWS.h>
 #include <sqlite3.h>
 
@@ -121,11 +123,27 @@ int main(int argc, char *argv[])
                 {
                     //get a position of '?'
                     size_t pos = uri.find("?");
-                    
+
                     if (pos != std::string::npos)
                     {
-                        std::string_view query = uri.substr(pos+1, std::string::npos);//passing only ? is OK.
-                        std::cout << "query: (" << query << ")" << std::endl ;
+                        std::string_view query = uri.substr(pos + 1, std::string::npos); //passing only ? is OK.
+                        std::cout << "query: (" << query << ")" << std::endl;
+
+                        std::vector<std::string> params;
+                        boost::split(params, query, [](char c) { return c == '&'; });
+
+                        for (auto const &s : params)
+                        {
+                            //find '='
+                            size_t pos = s.find("=");
+
+                            if (pos != std::string::npos)
+                            {
+                                std::string_view key = s.substr(0, pos);
+                                std::string_view value = s.substr(pos+1, std::string::npos);
+                                std::cout << "key: " << key << " value: " << value << std::endl;
+                            }
+                        }
 
                         res->end(query.data(), query.length());
                         return;
