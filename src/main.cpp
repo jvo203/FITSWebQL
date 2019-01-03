@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-02.0"
+#define VERSION_STRING "SV2019-01-03.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -46,9 +46,9 @@ void signalHandler(int signum)
 //resource not found
 void http_not_found(uWS::HttpResponse *res)
 {
-    const std::string not_found = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
+    const std::string not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
     res->write(not_found.data(), not_found.length());
-    res->end(nullptr, 0);
+    //res->end(nullptr, 0);
 }
 
 void serve_file(uWS::HttpResponse *res, std::string uri)
