@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <iostream>
 #include <csignal>
-
+#include <string_view>
 #include <string.h>
 
 #include <uWS/uWS.h>
@@ -119,9 +119,23 @@ int main(int argc, char *argv[])
                 //FITSWebQL entry
                 if (uri.find("FITSWebQL.html") != std::string::npos)
                 {
-                    const std::string s = "<h1>Hello " SERVER_STRING "!</h1>";
-                    res->end(s.data(), s.length());
-                    return;
+                    //get a position of '?'
+                    size_t pos = uri.find("?");
+                    
+                    if (pos != std::string::npos)
+                    {
+                        std::string_view query = uri.substr(pos+1, std::string::npos);//passing only ? is OK.
+                        std::cout << "query: (" << query << ")" << std::endl ;
+
+                        res->end(query.data(), query.length());
+                        return;
+                    }
+                    else
+                    {
+                        const std::string s = "<h1>Hello " SERVER_STRING "!</h1>";
+                        res->end(s.data(), s.length());
+                        return;
+                    }
                 }
 
                 return serve_file(res, uri);
