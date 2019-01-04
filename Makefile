@@ -1,4 +1,4 @@
-SRC = src/main.cpp
+SRC = src/main.cpp src/fits.cpp
 TARGET=fitswebql
 
 dev:

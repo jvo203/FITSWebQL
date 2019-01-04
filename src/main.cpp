@@ -6,7 +6,8 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-03.0"
+#define VERSION_STRING "SV2019-01-04.0"
+#define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -16,17 +17,25 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include <memory>
 #include <thread>
+#include <mutex>
 #include <algorithm>
 #include <iostream>
 #include <csignal>
 #include <string_view>
-#include <string.h>
+#include <string>
+#include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
 
 #include <uWS/uWS.h>
 #include <sqlite3.h>
+
+#include "fits.hpp"
+
+std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
+std::mutex fits_mutex;
 
 sqlite3 *splat_db = NULL;
 
@@ -50,12 +59,19 @@ void http_not_found(uWS::HttpResponse *res)
 {
     const std::string not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
     res->write(not_found.data(), not_found.length());
-    //res->end(nullptr, 0);
 }
 
 void serve_file(uWS::HttpResponse *res, std::string uri)
 {
     std::string resource = "htdocs" + uri;
+
+    //strip '?' from the requested file name
+    size_t pos = resource.find("?");
+
+    if (pos != std::string::npos)
+        resource = resource.substr(0, pos);
+
+    std::cout << "serving " << resource << std::endl;
 
     //mmap a disk resource
     int fd = -1;
@@ -86,6 +102,140 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
     }
     else
         http_not_found(res);
+}
+
+void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> datasets, bool composite, bool has_fits)
+{
+    std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
+    html.append("<link href=\"https://fonts.googleapis.com/css?family=Inconsolata\" rel=\"stylesheet\"/>\n");
+    html.append("<link href=\"https://fonts.googleapis.com/css?family=Lato\" rel=\"stylesheet\"/>\n");
+    html.append("<script src=\"https://d3js.org/d3.v4.min.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/reconnecting-websocket.js\"></script>\n");
+    html.append("<script src=\"//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/ra_dec_conversion.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/sylvester.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/shortcut.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/colourmaps.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/lz4.min.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/marchingsquares-isocontours.min.js\"></script>\n");
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/marchingsquares-isobands.min.js\"></script>\n");
+
+    //hevc wasm decoder
+    html.append("<script src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/hevc_" WASM_STRING ".js\"></script>\n");
+    html.append(R"(<script>
+        Module.onRuntimeInitialized = async _ => {
+            api = {                
+                hevc_init: Module.cwrap('hevc_init', '', []), 
+                hevc_destroy: Module.cwrap('hevc_destroy', '', []),                
+                hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
+            };                   
+        };
+        </script>)");
+
+    //bootstrap
+    html.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
+    html.append("<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\">\n");
+    html.append("<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js\"></script>\n");
+    html.append("<script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n");
+
+    //FITSWebQL main JavaScript + CSS
+    html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
+    html.append("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/fitswebql.css\"/>\n");
+
+    //HTML content
+    html.append("<title>FITSWebQL</title></head><body>\n");
+    html.append("<div id='votable' style='width: 0; height: 0;' data-va_count='" + std::to_string(datasets.size()) + "' ");
+
+    if (datasets.size() == 1)
+        html.append("data-datasetId='" + datasets[0] + "' ");
+    else
+    {
+        for (int i = 0; i < datasets.size(); i++)
+            html.append("data-datasetId" + std::to_string(i + 1) + "='" + datasets[i] + "' ");
+
+        if (composite && datasets.size() <= 3)
+            html.append("data-composite='1' ");
+    }
+
+    html.append("data-root-path='/" +
+                std::string("fitswebql") +
+                "/' data-server-version='" + VERSION_STRING + "' data-server-string='" + SERVER_STRING + "' data-server-mode='" + "SERVER" +
+                "' data-has-fits='" + std::to_string(has_fits) + "'></div>\n");
+
+#ifdef PRODUCTION
+    html.append(R"(<script>
+        var WS_SOCKET = 'wss://';
+        </script>)");
+#else
+    html.append(R"(<script>
+        var WS_SOCKET = 'ws://';
+        </script>)");
+#endif
+
+    //the page entry point
+    html.append(R"(<script>
+        const golden_ratio = 1.6180339887;
+        var ALMAWS = null ;
+        var wsVideo = null ;
+        var wsConn = null ;
+        var firstTime = true ;
+        var has_image = false ;         
+        var PROGRESS_VARIABLE = 0.0 ;
+        var PROGRESS_INFO = '' ;      
+        var RESTFRQ = 0.0 ;
+        var USER_SELFRQ = 0.0 ;
+        var USER_DELTAV = 0.0 ;
+        var ROOT_PATH = '/fitswebql/' ;
+        var idleResize = -1;
+        window.onresize = resizeMe;
+        window.onbeforeunload = function() {            
+            if(wsConn != null)
+            {
+                for(let i=0;i<va_count;i++)
+                    wsConn[i].close();
+            }
+
+            if(wsVideo != null)
+                wsVideo.close();
+        };
+        mainRenderer();
+    </script>)");
+
+    html.append("</body></html>\n");
+
+    res->end(html.data(), html.length());
+}
+
+void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
+{
+    bool has_fits = true;
+
+    for (auto const &data_id : datasets)
+    {
+        std::lock_guard<std::mutex> lock(fits_mutex);
+        auto item = DATASETS.find(data_id);
+
+        if (item == DATASETS.end())
+        {
+            //set has_fits to false and load the FITS dataset
+            has_fits = false;
+            std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+            DATASETS.insert(std::pair(data_id, fits));
+
+            //launch std::thread with fits
+        }
+        else
+        {
+            auto fits = item->second;
+
+            has_fits = has_fits && fits->has_data;
+            fits->update_timestamp();
+        }
+    }
+
+    std::cout << "has_fits: " << has_fits << std::endl;
+
+    return http_fits_response(res, datasets, composite, has_fits);
 }
 
 int main(int argc, char *argv[])
@@ -126,7 +276,15 @@ int main(int argc, char *argv[])
 
                     if (pos != std::string::npos)
                     {
-                        std::string_view query = uri.substr(pos + 1, std::string::npos); //passing only ? is OK.
+                        std::vector<std::string> datasets;
+                        std::string db, table, flux;
+                        bool composite = false;
+
+                        //using std::string for now as std::string_view is broken
+                        //in the Intel C++ compiler
+                        //LLVM CLANG works OK with std::string_view
+
+                        std::string query = uri.substr(pos + 1, std::string::npos);
                         std::cout << "query: (" << query << ")" << std::endl;
 
                         std::vector<std::string> params;
@@ -139,19 +297,47 @@ int main(int argc, char *argv[])
 
                             if (pos != std::string::npos)
                             {
-                                std::string_view key = s.substr(0, pos);
-                                std::string_view value = s.substr(pos+1, std::string::npos);
-                                std::cout << "key: " << key << " value: " << value << std::endl;
+                                std::string key = s.substr(0, pos);
+                                std::string value = s.substr(pos + 1, std::string::npos);
+
+                                if (key.find("dataset") != std::string::npos)
+                                    datasets.push_back(value);
+
+                                if (key == "db")
+                                    db = value;
+
+                                if (key == "table")
+                                    table = value;
+
+                                if (key == "flux")
+                                    flux = value;
+
+                                if (key == "view")
+                                {
+                                    if (value == "composite")
+                                        composite = true;
+                                }
                             }
                         }
 
-                        res->end(query.data(), query.length());
-                        return;
+                        std::cout << "db:" << db << ", table:" << table << ", composite:" << composite << ", flux:" << flux << ", ";
+                        for (auto const &dataset : datasets)
+                            std::cout << dataset << " ";
+                        std::cout << std::endl;
+
+                        if (datasets.size() == 0)
+                        {
+                            const std::string not_found = "ERROR: please specify at least one dataset in the URL parameters list.";
+                            res->end(not_found.data(), not_found.length());
+                            return;
+                        }
+                        else
+                            return execute_fits(res, db, table, datasets, composite, flux);
                     }
                     else
                     {
-                        const std::string s = "<h1>Hello " SERVER_STRING "!</h1>";
-                        res->end(s.data(), s.length());
+                        const std::string not_found = "ERROR: URL parameters not found.";
+                        res->end(not_found.data(), not_found.length());
                         return;
                     }
                 }
@@ -159,8 +345,22 @@ int main(int argc, char *argv[])
                 return serve_file(res, uri);
             });
 
+            h.onConnection([](uWS::WebSocket<uWS::SERVER> *ws, uWS::HttpRequest req) {
+                std::string url = req.getUrl().toString();
+                std::cout << "[µWS] onConnection URL(" << url << ")" << std::endl;
+            });
+
+            h.onDisconnection([](uWS::WebSocket<uWS::SERVER> *ws, int code, char *message, size_t length) {
+                std::string msg = std::string(message, length);
+                std::cout << "[µWS] onDisconnection " << msg << std::endl;
+            });
+
             h.onMessage([](uWS::WebSocket<uWS::SERVER> *ws, char *message, size_t length, uWS::OpCode opCode) {
-                ws->send(message, length, opCode);
+                //ws->send(message, length, opCode);
+
+                std::string msg = std::string(message, length);
+
+                std::cout << "[µWS] " << msg << std::endl;
             });
 
             // This makes use of the SO_REUSEPORT of the Linux kernel
