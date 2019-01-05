@@ -1,5 +1,5 @@
 #compilation target
-fitswebql
+./fitswebql
 
 #emacs
 *~
