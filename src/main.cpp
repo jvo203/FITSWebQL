@@ -88,7 +88,13 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
         buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
         if (buffer != NULL)
-            res->end((const char *)buffer, size);
+        {
+            const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(size) + "\r\n\r\n";
+
+            res->write(header.data(), header.length());
+            res->write((const char *)buffer, size);
+            res->write("\r\n\r\n", 4);
+        }
         else
         {
             perror("error mapping a file");
@@ -201,9 +207,13 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
         mainRenderer();
     </script>)");
 
-    html.append("</body></html>\n");
+    html.append("</body></html>");
 
-    res->end(html.data(), html.length());
+    const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(html.length()) + "\r\nContent-Type: text/html\r\n\r\n";
+
+    res->write(header.data(), header.length());
+    res->write(html.data(), html.length());
+    res->write("\r\n\r\n", 4);
 }
 
 void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
