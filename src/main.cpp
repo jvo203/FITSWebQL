@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-04.0"
+#define VERSION_STRING "SV2019-01-06.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -61,6 +61,24 @@ void http_not_found(uWS::HttpResponse *res)
     res->write(not_found.data(), not_found.length());
 }
 
+void write_status(uWS::HttpResponse *res, int code, std::string message)
+{
+    std::string status = "HTTP/1.1 " + std::to_string(code) + " " + message + "\r\n";
+    res->write(status.data(), status.length());
+}
+
+void write_content_length(uWS::HttpResponse *res, size_t length)
+{
+    std::string content_length = "Content-Length: " + std::to_string(length) + "\r\n";
+    res->write(content_length.data(), content_length.length());
+}
+
+void write_content_type(uWS::HttpResponse *res, std::string mime)
+{
+    std::string content_type = "Content-Type: " + mime + "\r\n";
+    res->write(content_type.data(), content_type.length());
+}
+
 void serve_file(uWS::HttpResponse *res, std::string uri)
 {
     std::string resource = "htdocs" + uri;
@@ -89,9 +107,36 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
 
         if (buffer != NULL)
         {
-            const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(size) + "\r\n\r\n";
+            //const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(size) + "\r\n\r\n";
+            //res->write(header.data(), header.length());
 
-            res->write(header.data(), header.length());
+            write_status(res, 200, "OK");
+            write_content_length(res, size);
+
+            //detect mime-types
+            size_t pos = resource.find_last_of(".");
+
+            if (pos != std::string::npos)
+            {
+                std::string ext = resource.substr(pos + 1, std::string::npos);
+
+                if (ext == "htm" || ext == "html")
+                    write_content_type(res, "text/html");
+
+                if (ext == "txt")
+                    write_content_type(res, "text/plain");
+
+                if (ext == "js")
+                    write_content_type(res, "application/javascript; charset=utf-8");
+
+                if (ext == "ico")
+                    write_content_type(res, "image/x-icon");
+
+                if (ext == "png")
+                    write_content_type(res, "image/png");
+            }
+
+            res->write("\r\n", 2);
             res->write((const char *)buffer, size);
             res->write("\r\n\r\n", 4);
         }
