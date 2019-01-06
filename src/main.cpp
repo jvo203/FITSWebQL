@@ -134,6 +134,36 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
 
                 if (ext == "png")
                     write_content_type(res, "image/png");
+
+                if (ext == "gif")
+                    write_content_type(res, "image/gif");
+
+                if (ext == "webp")
+                    write_content_type(res, "image/webp");
+
+                if (ext == "jpg" || ext == "jpeg")
+                    write_content_type(res, "image/jpeg");
+
+                if (ext == "bpg")
+                    write_content_type(res, "image/bpg");
+
+                if (ext == "mp4")
+                    write_content_type(res, "video/mp4");
+
+                if (ext == "hevc")
+                    write_content_type(res, "video/hevc");
+
+                if (ext == "css")
+                    write_content_type(res, "text/css");
+
+                if (ext == "pdf")
+                    write_content_type(res, "application/pdf");
+
+                if (ext == "svg")
+                    write_content_type(res, "image/svg+xml");
+
+                if (ext == "wasm")
+                    write_content_type(res, "application/wasm");
             }
 
             res->write("\r\n", 2);
@@ -181,7 +211,7 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
                 hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
             };                   
         };
-        </script>)");
+    </script>)");
 
     //bootstrap
     html.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
@@ -254,9 +284,9 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
 
     html.append("</body></html>");
 
-    const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(html.length()) + "\r\nContent-Type: text/html\r\n\r\n";
-
-    res->write(header.data(), header.length());
+    write_status(res, 200, "OK");
+    write_content_length(res, html.length());
+    res->write("\r\n", 2);
     res->write(html.data(), html.length());
     res->write("\r\n\r\n", 4);
 }
