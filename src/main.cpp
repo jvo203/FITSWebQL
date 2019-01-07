@@ -295,6 +295,8 @@ void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std
 {
     bool has_fits = true;
 
+    //get_jvo_db
+
     for (auto const &data_id : datasets)
     {
         std::lock_guard<std::mutex> lock(fits_mutex);
@@ -307,7 +309,9 @@ void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std
             std::shared_ptr<FITS> fits(new FITS(data_id, flux));
             DATASETS.insert(std::pair(data_id, fits));
 
-            //launch std::thread with fits
+            //get_jvo_path
+
+            //launch std::thread with fits            
         }
         else
         {
