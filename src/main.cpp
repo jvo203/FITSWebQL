@@ -6,36 +6,54 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-06.0"
+#define VERSION_STRING "SV2019-01-08.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+inline const char *check_null(const char *str)
+{
+    if (str != nullptr)
+        return str;
+    else
+        return "\"\"";
+};
+
 #include <sys/types.h>
+#include <pwd.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
 #include <memory>
 #include <thread>
-#include <mutex>
+#include <shared_mutex>
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <csignal>
 #include <string_view>
 #include <string>
+#include <map>
 #include <unordered_map>
+#include <chrono>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <uWS/uWS.h>
 #include <sqlite3.h>
+#include <curl/curl.h>
 
 #include "fits.hpp"
+#include "json.h"
+
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
-std::mutex fits_mutex;
+std::shared_mutex fits_mutex;
 
 sqlite3 *splat_db = NULL;
 
@@ -45,6 +63,8 @@ void signalHandler(int signum)
 
     // cleanup and close up stuff here
     // terminate program
+
+    curl_global_cleanup();
 
     if (splat_db != NULL)
         sqlite3_close(splat_db);
@@ -77,6 +97,129 @@ void write_content_type(uWS::HttpResponse *res, std::string mime)
 {
     std::string content_type = "Content-Type: " + mime + "\r\n";
     res->write(content_type.data(), content_type.length());
+}
+
+void write_key_value(uWS::HttpResponse *res, std::string key, std::string value)
+{
+    std::string content_type = key + ": " + value + "\r\n";
+    res->write(content_type.data(), content_type.length());
+}
+
+uintmax_t ComputeFileSize(const fs::path &pathToCheck)
+{
+    if (fs::exists(pathToCheck) &&
+        fs::is_regular_file(pathToCheck))
+    {
+        auto err = std::error_code{};
+        auto filesize = fs::file_size(pathToCheck, err);
+        if (filesize != static_cast<uintmax_t>(-1))
+            return filesize;
+    }
+
+    return static_cast<uintmax_t>(-1);
+}
+
+void get_directory(uWS::HttpResponse *res, std::string dir)
+{
+    std::cout << "scanning directory " << dir << std::endl;
+
+    fs::path pathToShow(dir);
+
+    std::map<std::string, std::string> entries;
+
+    if (fs::exists(pathToShow) && fs::is_directory(pathToShow))
+    {
+        for (const auto &entry : fs::directory_iterator(pathToShow))
+        {
+            auto filename = entry.path().filename();
+            auto timestamp = fs::last_write_time(entry);
+            time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
+            std::string last_modified = std::asctime(std::localtime(&cftime));
+            last_modified.pop_back();
+
+            if (fs::is_directory(entry.status()))
+            {
+                if (!boost::algorithm::starts_with(filename.string(), "."))
+                {
+                    char *encoded = json_encode_string(filename.c_str());
+
+                    std::string json = "{\"type\" : \"dir\", \"name\" : " + std::string(encoded) + ", \"last_modified\" : \"" + last_modified + "\"}";
+
+                    if (encoded != NULL)
+                        free(encoded);
+
+                    std::cout << json << std::endl;
+
+                    entries.insert(std::pair(filename, json));
+                }
+            }
+            else if (fs::is_regular_file(entry.status()))
+            {
+                //check the extensions .fits or .fits.gz
+                const std::string lower_filename = boost::algorithm::to_lower_copy(filename.string());
+
+                if (boost::algorithm::ends_with(lower_filename, ".fits") || boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+                {
+
+                    char *encoded = json_encode_string(filename.c_str());
+
+                    uintmax_t filesize = ComputeFileSize(entry);
+
+                    std::string json = "{\"type\" : \"file\", \"name\" : " + std::string(encoded) + ", \"size\" : " + std::to_string(filesize) + ", \"last_modified\" : \"" + last_modified + "\"}";
+
+                    if (encoded != NULL)
+                        free(encoded);
+
+                    std::cout << json << std::endl;
+
+                    entries.insert(std::pair(filename, json));
+                }
+            }
+        }
+    }
+
+    std::ostringstream json;
+
+    char *encoded = json_encode_string(check_null(dir.c_str()));
+
+    json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [";
+
+    if (encoded != NULL)
+        free(encoded);
+
+    if (entries.size() > 0)
+    {
+        for (auto const &entry : entries)
+        {
+            json << entry.second << ",";
+        }
+
+        //overwrite the the last ',' with a list closing character
+        json.seekp(-1, std::ios_base::end);
+    }
+
+    json << "]}";
+
+    write_status(res, 200, "OK");
+    write_content_length(res, json.tellp());
+    write_content_type(res, "application/json");
+    write_key_value(res, "Cache-Control", "no-cache");
+    write_key_value(res, "Cache-Control", "no-store");
+    write_key_value(res, "Pragma", "no-cache");
+    res->write("\r\n", 2);
+    res->write(json.str().c_str(), json.tellp());
+    res->write("\r\n\r\n", 4);
+}
+
+void get_home_directory(uWS::HttpResponse *res)
+{
+    struct passwd *passwdEnt = getpwuid(getuid());
+    std::string home = passwdEnt->pw_dir;
+
+    if (home != "")
+        return get_directory(res, home);
+    else
+        return http_not_found(res);
 }
 
 void serve_file(uWS::HttpResponse *res, std::string uri)
@@ -127,7 +270,7 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
                     write_content_type(res, "text/plain");
 
                 if (ext == "js")
-                    write_content_type(res, "application/javascript; charset=utf-8");
+                    write_content_type(res, "application/javascript");
 
                 if (ext == "ico")
                     write_content_type(res, "image/x-icon");
@@ -291,7 +434,7 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
     res->write("\r\n\r\n", 4);
 }
 
-void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
+void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
 {
     bool has_fits = true;
 
@@ -299,19 +442,23 @@ void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std
 
     for (auto const &data_id : datasets)
     {
-        std::lock_guard<std::mutex> lock(fits_mutex);
+        std::shared_lock<std::shared_mutex> lock(fits_mutex);
         auto item = DATASETS.find(data_id);
+        lock.unlock();
 
         if (item == DATASETS.end())
         {
             //set has_fits to false and load the FITS dataset
             has_fits = false;
             std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+
+            std::unique_lock<std::shared_mutex> lock(fits_mutex);
             DATASETS.insert(std::pair(data_id, fits));
+            lock.unlock();
 
             //get_jvo_path
 
-            //launch std::thread with fits            
+            //launch std::thread with fits
         }
         else
         {
@@ -329,6 +476,8 @@ void execute_fits(uWS::HttpResponse *res, std::string db, std::string table, std
 
 int main(int argc, char *argv[])
 {
+    curl_global_init(CURL_GLOBAL_ALL);
+
     std::cout << SERVER_STRING << " (" << VERSION_STRING << ")" << std::endl;
 
     int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
@@ -355,24 +504,21 @@ int main(int argc, char *argv[])
 
                 //root
                 if (uri == "/")
-                    return serve_file(res, "/test.html");
+#ifdef LOCAL
+                    return serve_file(res, "/local.html");
+#else
+                                                                                                     return serve_file(res, "/test.html");
+#endif
 
-                //FITSWebQL entry
-                if (uri.find("FITSWebQL.html") != std::string::npos)
+                if (uri.find("/get_directory") != std::string::npos)
                 {
+                    std::string dir;
+
                     //get a position of '?'
                     size_t pos = uri.find("?");
 
                     if (pos != std::string::npos)
                     {
-                        std::vector<std::string> datasets;
-                        std::string db, table, flux;
-                        bool composite = false;
-
-                        //using std::string for now as std::string_view is broken
-                        //in the Intel C++ compiler
-                        //LLVM CLANG works OK with std::string_view
-
                         std::string query = uri.substr(pos + 1, std::string::npos);
                         std::cout << "query: (" << query << ")" << std::endl;
 
@@ -389,8 +535,91 @@ int main(int argc, char *argv[])
                                 std::string key = s.substr(0, pos);
                                 std::string value = s.substr(pos + 1, std::string::npos);
 
+                                if (key == "dir")
+                                {
+                                    CURL *curl = curl_easy_init();
+
+                                    int curl_str_len = 0;
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+
+                                    dir = std::string(str);
+
+                                    curl_free(str);
+
+                                    curl_easy_cleanup(curl);
+                                }
+                            }
+                        }
+                    }
+
+                    if (dir != "")
+                        return get_directory(res, dir);
+                    else
+                        return get_home_directory(res);
+                }
+
+                //FITSWebQL entry
+                if (uri.find("FITSWebQL.html") != std::string::npos)
+                {
+                    //get a position of '?'
+                    size_t pos = uri.find("?");
+
+                    if (pos != std::string::npos)
+                    {
+                        std::vector<std::string> datasets;
+                        std::string dir, ext, db, table, flux;
+                        bool composite = false;
+
+                        //using std::string for now as std::string_view is broken
+                        //in the Intel C++ compiler
+                        //LLVM CLANG works OK with std::string_view
+
+                        std::string query = uri.substr(pos + 1, std::string::npos);
+                        std::cout << "query: (" << query << ")" << std::endl;
+
+                        std::vector<std::string> params;
+                        boost::split(params, query, [](char c) { return c == '&'; });
+
+                        CURL *curl = curl_easy_init();
+                        int curl_str_len = 0;
+
+                        for (auto const &s : params)
+                        {
+                            //find '='
+                            size_t pos = s.find("=");
+
+                            if (pos != std::string::npos)
+                            {
+                                std::string key = s.substr(0, pos);
+                                std::string value = s.substr(pos + 1, std::string::npos);
+
                                 if (key.find("dataset") != std::string::npos)
-                                    datasets.push_back(value);
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    datasets.push_back(std::string(str));
+                                    curl_free(str);
+                                }
+
+                                if (key.find("filename") != std::string::npos)
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    datasets.push_back(std::string(str));
+                                    curl_free(str);
+                                }
+
+                                if (key == "dir")
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    dir = std::string(str);
+                                    curl_free(str);
+                                }
+
+                                if (key == "ext")
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    ext = std::string(str);
+                                    curl_free(str);
+                                }
 
                                 if (key == "db")
                                     db = value;
@@ -409,7 +638,9 @@ int main(int argc, char *argv[])
                             }
                         }
 
-                        std::cout << "db:" << db << ", table:" << table << ", composite:" << composite << ", flux:" << flux << ", ";
+                        curl_easy_cleanup(curl);
+
+                        std::cout << "dir:" << dir << ", ext:" << ext << ", db:" << db << ", table:" << table << ", composite:" << composite << ", flux:" << flux << ", ";
                         for (auto const &dataset : datasets)
                             std::cout << dataset << " ";
                         std::cout << std::endl;
@@ -421,7 +652,7 @@ int main(int argc, char *argv[])
                             return;
                         }
                         else
-                            return execute_fits(res, db, table, datasets, composite, flux);
+                            return execute_fits(res, dir, ext, db, table, datasets, composite, flux);
                     }
                     else
                     {
