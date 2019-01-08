@@ -31,3 +31,8 @@ void FITS::update_timestamp()
     std::lock_guard<std::mutex> lock(fits_mutex);
     timestamp = std::time(nullptr);
 }
+
+void FITS::from_path(std::string path, bool is_compressed, std::string flux)
+{    
+    printf("loading %s from %s %s gzip compression\n", this->dataset_id.c_str(), path.c_str(), (is_compressed ? "with" : "without"));
+}

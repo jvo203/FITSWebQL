@@ -438,7 +438,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 {
     bool has_fits = true;
 
-    //get_jvo_db
+    //if db != "" get_jvo_db
 
     for (auto const &data_id : datasets)
     {
@@ -456,9 +456,19 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
             DATASETS.insert(std::pair(data_id, fits));
             lock.unlock();
 
-            //get_jvo_path
+            std::string path;
+            bool is_compressed = false;
 
-            //launch std::thread with fits
+            if (dir != "" && ext != "")
+                path = dir + "/" + data_id + "." + ext;
+            
+            if (boost::algorithm::to_lower_copy(ext) == "gz")
+                is_compressed = true;
+
+            //if psql != NULL && table != "" get_jvo_path
+
+            //load FITS data in a separate thread                    
+            std::thread (&FITS::from_path, fits, path, is_compressed, flux).detach() ;
         }
         else
         {
@@ -539,11 +549,8 @@ int main(int argc, char *argv[])
                                 {
                                     CURL *curl = curl_easy_init();
 
-                                    int curl_str_len = 0;
-                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
-
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
                                     dir = std::string(str);
-
                                     curl_free(str);
 
                                     curl_easy_cleanup(curl);
@@ -581,7 +588,6 @@ int main(int argc, char *argv[])
                         boost::split(params, query, [](char c) { return c == '&'; });
 
                         CURL *curl = curl_easy_init();
-                        int curl_str_len = 0;
 
                         for (auto const &s : params)
                         {
@@ -595,28 +601,28 @@ int main(int argc, char *argv[])
 
                                 if (key.find("dataset") != std::string::npos)
                                 {
-                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
                                     datasets.push_back(std::string(str));
                                     curl_free(str);
                                 }
 
                                 if (key.find("filename") != std::string::npos)
                                 {
-                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
                                     datasets.push_back(std::string(str));
                                     curl_free(str);
                                 }
 
                                 if (key == "dir")
                                 {
-                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
                                     dir = std::string(str);
                                     curl_free(str);
                                 }
 
                                 if (key == "ext")
                                 {
-                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), &curl_str_len);
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
                                     ext = std::string(str);
                                     curl_free(str);
                                 }
