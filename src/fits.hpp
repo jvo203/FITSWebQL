@@ -4,6 +4,9 @@
 #include <ctime>
 #include <mutex>
 
+#define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
+#define JVO_FITS_DB "alma"
+
 class FITS
 {
 public:
@@ -13,6 +16,7 @@ public:
 
 public:
   void update_timestamp();
+  void from_url(std::string url, std::string flux);
   void from_path(std::string path, bool is_compressed, std::string flux);
 
 public:

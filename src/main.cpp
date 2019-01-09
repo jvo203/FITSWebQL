@@ -49,9 +49,9 @@ inline const char *check_null(const char *str)
 #ifndef LOCAL
 #include <libpq-fe.h>
 
+#define FITSHOME "/home"
 #define JVO_HOST "localhost"
 #define JVO_USER "jvo"
-#define FITSHOME "/home"
 #endif
 
 #include "fits.hpp"
@@ -468,8 +468,8 @@ PGconn *jvo_db_connect(std::string db)
 
 std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std::string data_id)
 {
-    std::string path = std::string(FITSHOME) + "/" + db + "/";
-    
+    std::string path;
+
     std::string sql_str = "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
 
     PGresult *res = PQexec(jvo_db, sql_str.c_str());
@@ -477,6 +477,8 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std:
 
     if (PQresultStatus(res) == PGRES_TUPLES_OK)
     {
+        path = std::string(FITSHOME) + "/" + db + "/";
+
         size_t pos = table.find(".");
 
         if (pos == std::string::npos)
@@ -528,13 +530,24 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                 path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
-            bool is_compressed = false;
-            std::string lower_path = boost::algorithm::to_lower_copy(path);
-            if (boost::algorithm::ends_with(lower_path, ".gz"))
-                is_compressed = true;
+            if (path != "")
+            {
+                bool is_compressed = false;
+                std::string lower_path = boost::algorithm::to_lower_copy(path);
+                if (boost::algorithm::ends_with(lower_path, ".gz"))
+                    is_compressed = true;
 
-            //load FITS data in a separate thread
-            std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
+                //load FITS data in a separate thread
+                std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
+            }
+            else
+            {
+                //the last resort
+                std::string url = std::string("http://") + JVO_FITS_SERVER + ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB + "&table=cube&data_id=" + data_id + "_00_00_00";
+
+                //download FITS data from a URL in a separate thread
+                std::thread(&FITS::from_url, fits, url, flux).detach();
+            }
         }
         else
         {

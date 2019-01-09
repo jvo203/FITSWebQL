@@ -32,7 +32,12 @@ void FITS::update_timestamp()
     timestamp = std::time(nullptr);
 }
 
+void FITS::from_url(std::string url, std::string flux)
+{
+    printf("downloading %s from %s\n", this->dataset_id.c_str(), url.c_str());
+}
+
 void FITS::from_path(std::string path, bool is_compressed, std::string flux)
-{    
+{
     printf("loading %s from %s %s gzip compression\n", this->dataset_id.c_str(), path.c_str(), (is_compressed ? "with" : "without"));
 }
