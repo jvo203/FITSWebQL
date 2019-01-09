@@ -468,8 +468,8 @@ PGconn *jvo_db_connect(std::string db)
 
 std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std::string data_id)
 {
-    std::string path = FITSHOME + "/" + db + "/";
-
+    std::string path = std::string(FITSHOME) + "/" + db + "/";
+    
     std::string sql_str = "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
 
     PGresult *res = PQexec(jvo_db, sql_str.c_str());
