@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-08.0"
+#define VERSION_STRING "SV2019-01-09.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -131,6 +131,9 @@ void get_directory(uWS::HttpResponse *res, std::string dir)
     {
         for (const auto &entry : fs::directory_iterator(pathToShow))
         {
+            if (!fs::exists(entry))
+                continue;
+
             auto filename = entry.path().filename();
             auto timestamp = fs::last_write_time(entry);
             time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
@@ -461,14 +464,14 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
             if (dir != "" && ext != "")
                 path = dir + "/" + data_id + "." + ext;
-            
+
             if (boost::algorithm::to_lower_copy(ext) == "gz")
                 is_compressed = true;
 
             //if psql != NULL && table != "" get_jvo_path
 
-            //load FITS data in a separate thread                    
-            std::thread (&FITS::from_path, fits, path, is_compressed, flux).detach() ;
+            //load FITS data in a separate thread
+            std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
         }
         else
         {
