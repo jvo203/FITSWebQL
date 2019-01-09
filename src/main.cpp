@@ -46,6 +46,13 @@ inline const char *check_null(const char *str)
 #include <sqlite3.h>
 #include <curl/curl.h>
 
+#ifndef LOCAL
+#include <postgresql/libpq-fe.h>
+
+#define JVO_HOST "localhost"
+#define JVO_USER "jvo"
+#endif
+
 #include "fits.hpp"
 #include "json.h"
 
@@ -437,11 +444,56 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
     res->write("\r\n\r\n", 4);
 }
 
+#ifndef LOCAL
+PGconn *jvo_db_connect(std::string db)
+{
+    PGconn *jvo_db = NULL;
+
+    std::string conn_str = "dbname=" + db + " host=" + JVO_HOST + " user=" + JVO_USER;
+
+    jvo_db = PQconnectdb(conn_str.c_str());
+
+    if (PQstatus(jvo_db) != CONNECTION_OK)
+    {
+        fprintf(stderr, "PostgreSQL connection failed: %s\n", PQerrorMessage(jvo_db));
+        PQfinish(jvo_db);
+        jvo_db = NULL;
+    }
+    else
+        printf("PostgreSQL connection successful.\n");
+
+    return jvo_db;
+}
+
+std::string get_jvo_path(PGconn *jvo_db, std::string table, std::string data_id)
+{
+    std::string path;
+
+    std::string sql_str = "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
+
+    PGresult *res = PQexec(jvo_db, sql_str.c_str());
+    int status = PQresultStatus(res);
+
+    if (PQresultStatus(res) == PGRES_TUPLES_OK)
+    {
+        path = std::string((const char *)PQgetvalue(res, 0, 0));
+        PQclear(res);
+    }
+
+    return path;
+}
+#endif
+
 void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
 {
     bool has_fits = true;
 
-    //if db != "" get_jvo_db
+#ifndef LOCAL
+    PGconn *jvo_db = NULL;
+
+    if (db != "")
+        jvo_db = jvo_db_connect(db);
+#endif
 
     for (auto const &data_id : datasets)
     {
@@ -468,7 +520,10 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
             if (boost::algorithm::to_lower_copy(ext) == "gz")
                 is_compressed = true;
 
-            //if psql != NULL && table != "" get_jvo_path
+#ifndef LOCAL
+            if (jvo_db != NULL && table != "")
+                path = get_jvo_path(jvo_db, table, data_id);
+#endif
 
             //load FITS data in a separate thread
             std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
@@ -481,6 +536,11 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
             fits->update_timestamp();
         }
     }
+
+#ifndef LOCAL
+    if (jvo_db != NULL)
+        PQfinish(jvo_db);
+#endif
 
     std::cout << "has_fits: " << has_fits << std::endl;
 
