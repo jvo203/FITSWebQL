@@ -517,13 +517,14 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
             if (dir != "" && ext != "")
                 path = dir + "/" + data_id + "." + ext;
 
-            if (boost::algorithm::to_lower_copy(ext) == "gz")
-                is_compressed = true;
-
 #ifndef LOCAL
             if (jvo_db != NULL && table != "")
                 path = get_jvo_path(jvo_db, table, data_id);
 #endif
+
+            std::string lower_path = boost::algorithm::to_lower_copy(path);
+            if (boost::algorithm::ends_with(lower_path, ".gz"))
+                is_compressed = true;
 
             //load FITS data in a separate thread
             std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
