@@ -51,6 +51,7 @@ inline const char *check_null(const char *str)
 
 #define JVO_HOST "localhost"
 #define JVO_USER "jvo"
+#define FITSHOME "/home"
 #endif
 
 #include "fits.hpp"
@@ -465,9 +466,9 @@ PGconn *jvo_db_connect(std::string db)
     return jvo_db;
 }
 
-std::string get_jvo_path(PGconn *jvo_db, std::string table, std::string data_id)
+std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std::string data_id)
 {
-    std::string path;
+    std::string path = FITSHOME + "/" + db + "/";
 
     std::string sql_str = "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
 
@@ -476,7 +477,13 @@ std::string get_jvo_path(PGconn *jvo_db, std::string table, std::string data_id)
 
     if (PQresultStatus(res) == PGRES_TUPLES_OK)
     {
-        path = std::string((const char *)PQgetvalue(res, 0, 0));
+        size_t pos = table.find(".");
+
+        if (pos == std::string::npos)
+            path += std::string((const char *)PQgetvalue(res, 0, 0));
+        else
+            path += boost::algorithm::to_upper_copy(table.substr(0, pos)) + "/" + std::string((const char *)PQgetvalue(res, 0, 0));
+
         PQclear(res);
     }
 
@@ -512,16 +519,16 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
             lock.unlock();
 
             std::string path;
-            bool is_compressed = false;
 
             if (dir != "" && ext != "")
                 path = dir + "/" + data_id + "." + ext;
 
 #ifndef LOCAL
             if (jvo_db != NULL && table != "")
-                path = get_jvo_path(jvo_db, table, data_id);
+                path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
+            bool is_compressed = false;
             std::string lower_path = boost::algorithm::to_lower_copy(path);
             if (boost::algorithm::ends_with(lower_path, ".gz"))
                 is_compressed = true;
