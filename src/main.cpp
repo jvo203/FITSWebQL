@@ -47,7 +47,7 @@ inline const char *check_null(const char *str)
 #include <curl/curl.h>
 
 #ifndef LOCAL
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 #define JVO_HOST "localhost"
 #define JVO_USER "jvo"
