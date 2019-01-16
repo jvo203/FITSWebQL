@@ -16,8 +16,8 @@ public:
 
 public:
   void update_timestamp();
-  void from_url(std::string url, std::string flux);
-  void from_path(std::string path, bool is_compressed, std::string flux);
+  void from_url(std::string url, std::string flux, bool is_optical);
+  void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical);
 
 public:
   std::string dataset_id;

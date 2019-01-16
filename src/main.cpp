@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-09.0"
+#define VERSION_STRING "SV2019-01-16.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -339,7 +339,7 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
         http_not_found(res);
 }
 
-void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> datasets, bool composite, bool has_fits)
+void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> datasets, bool composite, bool is_optical, bool has_fits)
 {
     std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
     html.append("<link href=\"https://fonts.googleapis.com/css?family=Inconsolata\" rel=\"stylesheet\"/>\n");
@@ -395,7 +395,7 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
     html.append("data-root-path='/" +
                 std::string("fitswebql") +
                 "/' data-server-version='" + VERSION_STRING + "' data-server-string='" + SERVER_STRING + "' data-server-mode='" + "SERVER" +
-                "' data-has-fits='" + std::to_string(has_fits) + "'></div>\n");
+                "' data-has-fits='" + std::to_string(has_fits) + "' data-is-optical='" + std::to_string(is_optical) + "'></div>\n");
 
 #ifdef PRODUCTION
     html.append(R"(<script>
@@ -493,7 +493,7 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std:
 }
 #endif
 
-void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std::string db, std::string table, std::vector<std::string> datasets, bool composite, std::string flux)
+void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std::string db, std::string table, std::vector<std::string> datasets, bool composite, bool is_optical, std::string flux)
 {
     bool has_fits = true;
 
@@ -538,7 +538,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                     is_compressed = true;
 
                 //load FITS data in a separate thread
-                std::thread(&FITS::from_path, fits, path, is_compressed, flux).detach();
+                std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical).detach();
             }
             else
             {
@@ -546,7 +546,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                 std::string url = std::string("http://") + JVO_FITS_SERVER + ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB + "&table=cube&data_id=" + data_id + "_00_00_00";
 
                 //download FITS data from a URL in a separate thread
-                std::thread(&FITS::from_url, fits, url, flux).detach();
+                std::thread(&FITS::from_url, fits, url, flux, is_optical).detach();
             }
         }
         else
@@ -565,7 +565,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
     std::cout << "has_fits: " << has_fits << std::endl;
 
-    return http_fits_response(res, datasets, composite, has_fits);
+    return http_fits_response(res, datasets, composite, is_optical, has_fits);
 }
 
 int main(int argc, char *argv[])
@@ -660,6 +660,7 @@ int main(int argc, char *argv[])
                         std::vector<std::string> datasets;
                         std::string dir, ext, db, table, flux;
                         bool composite = false;
+                        bool optical = false;
 
                         //using std::string for now as std::string_view is broken
                         //in the Intel C++ compiler
@@ -724,13 +725,16 @@ int main(int argc, char *argv[])
                                 {
                                     if (value == "composite")
                                         composite = true;
+
+                                    if (value == "optical")
+                                        optical = true;
                                 }
                             }
                         }
 
                         curl_easy_cleanup(curl);
 
-                        std::cout << "dir:" << dir << ", ext:" << ext << ", db:" << db << ", table:" << table << ", composite:" << composite << ", flux:" << flux << ", ";
+                        std::cout << "dir:" << dir << ", ext:" << ext << ", db:" << db << ", table:" << table << ", composite:" << composite << ", optical:" << optical << ", flux:" << flux << ", ";
                         for (auto const &dataset : datasets)
                             std::cout << dataset << " ";
                         std::cout << std::endl;
@@ -742,7 +746,7 @@ int main(int argc, char *argv[])
                             return;
                         }
                         else
-                            return execute_fits(res, dir, ext, db, table, datasets, composite, flux);
+                            return execute_fits(res, dir, ext, db, table, datasets, composite, optical, flux);
                     }
                     else
                     {
