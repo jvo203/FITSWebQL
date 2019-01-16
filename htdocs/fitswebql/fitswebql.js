@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2018-12-27.5";
+	return "JS2019-01-15.0";
 }
 
 const wasm_supported = (() => {
@@ -1601,14 +1601,16 @@ function open_websocket_connection(datasetId, index) {
 						var white = dv.getFloat32(24, endianness);
 						var median = dv.getFloat32(28, endianness);
 						var sensitivity = dv.getFloat32(32, endianness);
+						var ratio_sensitivity = dv.getFloat32(36, endianness);
 
-						console.log("histogram refresh", min, max, median, sensitivity, black, white);
+						console.log("histogram refresh", min, max, median, sensitivity, ratio_sensitivity, black, white);
 
 						let fitsData = fitsContainer[index - 1];
 						console.log("min: ", fitsData.min, "-->", min);
 						console.log("max: ", fitsData.max, "-->", max);
 						console.log("median: ", fitsData.median, "-->", median);
 						console.log("sensitivity: ", fitsData.sensitivity, "-->", sensitivity);
+						console.log("ratio sensitivity: ", fitsData.ratio_sensitivity, "-->", ratio_sensitivity);
 						console.log("black: ", fitsData.black, "-->", black);
 						console.log("white: ", fitsData.white, "-->", white);
 
@@ -1616,10 +1618,11 @@ function open_websocket_connection(datasetId, index) {
 						fitsContainer[index - 1].max = max;
 						fitsContainer[index - 1].median = median;
 						fitsContainer[index - 1].sensitivity = sensitivity;
+						fitsContainer[index - 1].ratio_sensitivity = ratio_sensitivity;
 						fitsContainer[index - 1].black = black;
 						fitsContainer[index - 1].white = white;
 
-						var nbins = dv.getUint32(36, endianness);
+						var nbins = dv.getUint32(40, endianness);
 						var histogram = new Int32Array(received_msg, 44, nbins);
 						fitsContainer[index - 1].histogram = histogram;
 
@@ -2020,7 +2023,7 @@ function display_hourglass() {
 		.attr("x", (width - img_width) / 2)
 		.attr("y", (height - img_height) / 2)
 		//.attr("xlink:href", ROOT_PATH + "loading.gif")
-		.attr("xlink:href", "https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/loading.gif")		
+		.attr("xlink:href", "https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/loading.gif")
 		.attr("width", img_width)
 		.attr("height", img_height)
 		.attr("opacity", 1.0);
@@ -3929,7 +3932,7 @@ function get_flux_value_linear(value, black, white) {
 	return black + value * (white - black);
 }
 
-function get_flux_value_logistic(value, min, max, median, multiplier, sensitivity) {
+function get_flux_value_logistic(value, min, max, median, sensitivity) {
 	if (value == 0)
 		return min;
 
@@ -3939,7 +3942,7 @@ function get_flux_value_logistic(value, min, max, median, multiplier, sensitivit
 	return median - Math.log(1 / value - 1) / (6 * sensitivity);
 }
 
-function get_flux_value_ratio(value, max, black, multiplier, sensitivity) {
+function get_flux_value_ratio(value, max, black, sensitivity) {
 	if (value == 1)
 		return max;
 
@@ -3953,6 +3956,7 @@ function get_flux_value_square(value, black, white) {
 function get_flux(value, flux, black, white, median, multiplier, index) {
 	let fitsData = fitsContainer[index - 1];
 	let sensitivity = multiplier * fitsData.sensitivity;
+	let ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
 	var min = fitsData.min;
 	var max = fitsData.max;
 
@@ -3967,10 +3971,10 @@ function get_flux(value, flux, black, white, median, multiplier, index) {
 			return get_flux_value_log(value, black, white);
 			break;
 		case 'logistic':
-			return get_flux_value_logistic(value, min, max, median, multiplier, sensitivity);
+			return get_flux_value_logistic(value, min, max, median, sensitivity);
 			break;
 		case 'ratio':
-			return get_flux_value_ratio(value, max, black, multiplier, sensitivity);
+			return get_flux_value_ratio(value, max, black, ratio_sensitivity);
 			break;
 		case 'square':
 			return get_flux_value_square(value, black, white);
@@ -4014,7 +4018,7 @@ function get_flux_path_square(width, height, min, max, black, white, index) {
 
 function get_flux_path_ratio(width, height, min, max, black, multiplier, index) {
 	let fitsData = fitsContainer[index - 1];
-	var sensitivity = multiplier * fitsData.sensitivity;
+	var sensitivity = multiplier * fitsData.ratio_sensitivity;
 	var threshold = min + black / width * (max - min);
 
 	var path = "M0 " + (emStrokeWidth + height - 1) + " L" + black + " " + (emStrokeWidth + height - 1);
@@ -10516,6 +10520,26 @@ async*/ function mainRenderer() {
 
 	if (colourmap === null)
 		colourmap = "green";
+
+	//add a colourmap URL override
+	let pos = window.location.search.indexOf('colourmap=');
+	if (pos > 0) {
+		//extract the colourmap parameter
+		let params = window.location.search.substr(pos);
+		console.log("colourmap parameters:", params);
+
+		var result = {};
+		params.split("&").forEach(function (part) {
+			var item = part.split("=");
+			result[item[0]] = decodeURIComponent(item[1]);
+		});
+
+		var tmp = result["colourmap"];
+		if (tmp !== undefined)
+			colourmap = tmp;
+
+		console.log("colourmap:", result["colourmap"]);
+	}
 
 	if (localStorage.getItem("video_fps_control") === null) {
 		video_fps_control = "auto";
