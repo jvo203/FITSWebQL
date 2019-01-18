@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-16.0"
+#define VERSION_STRING "SV2019-01-18.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -723,10 +723,10 @@ int main(int argc, char *argv[])
 
                                 if (key == "view")
                                 {
-                                    if (value == "composite")
+                                    if (value.find("composite") != std::string::npos)
                                         composite = true;
 
-                                    if (value == "optical")
+                                    if (value.find("optical") != std::string::npos)
                                         optical = true;
                                 }
                             }
