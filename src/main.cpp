@@ -6,7 +6,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-01-18.0"
+#define VERSION_STRING "SV2019-01-24.0"
 #define WASM_STRING "WASM2018-12-17.0"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -36,6 +36,7 @@ inline const char *check_null(const char *str)
 #include <string_view>
 #include <string>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <chrono>
 
@@ -719,7 +720,18 @@ int main(int argc, char *argv[])
                                     table = value;
 
                                 if (key == "flux")
-                                    flux = value;
+				  {
+				    //validate the flux value
+				    std::set<std::string> valid_values;
+				    valid_values.insert("linear");
+				    valid_values.insert("logistic");
+				    valid_values.insert("ratio");
+				    valid_values.insert("square");
+				    valid_values.insert("legacy");				    
+
+				    if (valid_values.find(value) != valid_values.end())
+				      flux = value;
+				  }
 
                                 if (key == "view")
                                 {
@@ -734,6 +746,18 @@ int main(int argc, char *argv[])
 
                         curl_easy_cleanup(curl);
 
+			//sane defaults
+			{
+			  if (db.find("hsc") != std::string::npos)
+			    {
+			      optical = true;
+			      flux = "ratio";
+			    }
+
+			  if (table.find("fugin") != std::string::npos)
+			    flux = "logistic";
+			}
+			
                         std::cout << "dir:" << dir << ", ext:" << ext << ", db:" << db << ", table:" << table << ", composite:" << composite << ", optical:" << optical << ", flux:" << flux << ", ";
                         for (auto const &dataset : datasets)
                             std::cout << dataset << " ";
