@@ -110,21 +110,21 @@ function show_directory_contents(response) {
 			var ext = filename.substr(filename.lastIndexOf('.') + 1);
 			var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext);
 
-			var line_group = find_line_group(filename);
-			var line_group_str = null;
+			var group = find_group(filename);
+			var group_str = null;
 			var composite = false;
 
 			if (filename.indexOf("FGN_") > -1 && filename.indexOf("cube.fits") > -1)
 				composite = true;
 
-			if (line_group.length > 0) {
-				line_group_str = 'LINE GROUP:';
+			if (group.length > 0) {
+				group_str = 'GROUP:';
 
-				for (let i = 0; i < line_group.length; i++) {
-					let filename = line_group[i];
+				for (let i = 0; i < group.length; i++) {
+					let filename = group[i];
 					let name = filename.substr(0, filename.lastIndexOf('.'));
 
-					line_group_str += '\n' + filename;
+					group_str += '\n' + filename;
 					url += "&filename" + (i + 1) + "=" + encodeURIComponent(name);
 				}
 
@@ -141,7 +141,7 @@ function show_directory_contents(response) {
 			//var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext) + "&filename=" + encodeURIComponent(name) ;
 
 			var tmp = "goto_url('" + url.replace(/'/g, "\\'") + "')";
-			//var cmd = "find_line_group('" + filelist[i].name.replace(/'/g, "\\'") + "')" ;	    	    
+			//var cmd = "find_group('" + filelist[i].name.replace(/'/g, "\\'") + "')" ;	    	    
 
 			//style=\"color: inherit\"
 			$("#tbody").append($("<tr></tr>")
@@ -150,7 +150,7 @@ function show_directory_contents(response) {
 				//.attr("class", "danger")
 				.attr("onclick", tmp)
 				//.attr("onmouseenter", cmd)
-				.attr('title', line_group_str)
+				.attr('title', group_str)
 				.html("<td><p href=\"" + url + "\"><span class=\"glyphicon glyphicon-open-file\"></span>&nbsp;&nbsp;" + filelist[i].name + "</p></td><td>" + numeral(filelist[i].size).format('0.0 b') + "</td><td>" + filelist[i].last_modified + "</td>"));
 		}
 	}
@@ -191,11 +191,11 @@ function escapeRegExp(str) {
 	return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 }
 
-function find_line_group(name) {
+function find_group(name) {
 	if (filelist == null)
 		return [];
 
-	console.log('find_line_group:', name);
+	console.log('find_group:', name);
 
 	var matches = [];
 
