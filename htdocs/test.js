@@ -134,7 +134,7 @@ function show_directory_contents(response) {
 			else
 				url += "&filename=" + encodeURIComponent(name);
 
-			//enforce a tone mapping
+			//enforce tone mapping
 			url += "&flux=logistic";
 
 			//single-file URL
