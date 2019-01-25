@@ -1,153 +1,297 @@
-function pad(num, size) {
-    var s = num + "";
-    while (s.length < size) s = "0" + s;
-    return s;
-};
-
-function randomise_alma() {
-    var timestamp = new Date();
-    var Id = 500 + timestamp.getUTCMilliseconds();
-
-    var datasetId = "ALMA0101" + pad(Id.toString(), 4);
-    document.getElementById("datasetid").value = datasetId;
-
-    view_alma();
+function goto_url(url) {
+	window.location.href = url;
 }
 
-function view_alma() {
-    var datasetId = document.getElementById("datasetid").value.trim();
-    var db = document.getElementById("alma_db").value.trim();
-    var table = document.getElementById("alma_table").value.trim();
-
-    if (datasetId != "") {
-        var url = null;
-
-        url = "/fitswebql/FITSWebQL.html?" + "db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table) + "&datasetId=" + encodeURIComponent(datasetId);
-
-        window.location.href = url;
-    }
-    else
-        alert("no datasetId found !");
+function localStorage_read_lastdir(key) {
+	if (localStorage.getItem(key) === null)
+		return "";
+	else
+		return localStorage.getItem(key);
 }
 
-function view_hsc() {
-    var dataId = document.getElementById("hsc_dataid").value.trim();
+function show_directory_contents(response) {
+	$("#filesystem").remove();
+	$("#container").append($("<div></div>")
+		.attr("id", "filesystem"));
 
-    if (dataId == "") {
-        alert("no datasetId found !");
-        return;
-    }
+	let loc = response.location;
+	let dirs = loc.split('/');
 
-    var va_count = 0;
+	$("#filesystem").append($("<ul></ul>")
+		.attr("id", "breadcrumb")
+		//.css("position", "fixed")
+		.attr("class", "breadcrumb"));
 
-    var elems = document.getElementsByClassName("hsc_filter");
+	if (theme == 'bright')
+		$("#breadcrumb").css('background-color', 'darkgrey');
 
-    for (let i = 0; i < elems.length; i++) {
-        if (elems[i].checked)
-            va_count++;
-    }
+    /*$(window).scroll(function(){
+	$("#breadcrumb").css({"margin-top": ($(window).scrollTop()) + "px", "margin-left":($(window).scrollLeft()) + "px"});
+    });*/
 
-    if (va_count == 0) {
-        alert("no filter selected !");
-        return;
-    }
+	//navigation
+	var dir = "";
+	for (let i = 0; i < dirs.length; i++) {
+		if (dirs[i] != "")
+			dir += "/" + dirs[i];
 
-    console.log("va_count = ", va_count);
+		var cmd = "fetch_directory(\"" + dir + "\")";
 
-    var db = document.getElementById("hsc_db").value.trim();
-    var table = document.getElementById("hsc_table").value.trim();
-    var composite = false;
-    var optical = true;
+		$("#breadcrumb").append($("<li></li>")
+			.attr("class", "breadcrumb-item")
+			.append($("<a></a>")
+				.attr("onclick", cmd)
+				.css("cursor", "pointer")
+				.text(dirs[i])));
+	}
 
-    var url = "/fitswebql/FITSWebQL.html?db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table);
+	$('#breadcrumb').append($("<a></a>")
+		.attr("class", "btn btn-link")
+		.attr("onclick", "fetch_directory(\"\")")
+		.css("float", "right")
+		.html("<span class=\"glyphicon glyphicon-home\"></span><span style='font-size: 1.0em; padding: 0.5em'>HOME</span>"));
 
-    if (va_count == 1) {
-        for (let i = 0; i < elems.length; i++)
-            if (elems[i].checked)
-                url += "&datasetId=" + encodeURIComponent(dataId + "_" + elems[i].getAttribute("id").trim());
-    }
+	$("#filesystem").append($("<table></table>")
+		.attr("id", "files")
+		.attr("class", "table table-hover")
+		.html("<thead><tr style=\"color:inherit\"><th>name</th><th>size</th><th>last modified</th></tr></thead>"));
+	//class=\"danger\" style=\"color:black\"
 
-    if (va_count > 1) {
-        va_count = 0;
+	//contents
+	filelist = response.contents;
 
-        for (let i = 0; i < elems.length; i++)
-            if (elems[i].checked)
-                url += "&datasetId" + (++va_count) + "=" + encodeURIComponent(dataId + "_" + elems[i].getAttribute("id").trim());
+	$("#files").append($("<tbody></tbody>")
+		.attr("id", "tbody"));
 
-        if (va_count <= 3) {
-            composite = document.getElementById("hsc_composite").checked;
-        }
-    }
+	//add go up one step
+	if (loc != "/") {
+		dir = "";
+		for (let i = 0; i < dirs.length - 1; i++) {
+			if (dirs[i] != "")
+				dir += "/" + dirs[i];
+		}
 
-    var flux = document.getElementById("hsc_flux").value.trim();
-    url += "&flux=" + encodeURIComponent(flux);
+		if (dir == "")
+			dir = "/";
 
-    var colourmap = document.getElementById("hsc_colourmap").value.trim();
-    url += "&colourmap=" + encodeURIComponent(colourmap);
+		var cmd = "fetch_directory(\"" + dir + "\")";
 
-    if (composite && optical) {
-        url += "&view=composite,optical";
-    } else {
-        if (composite)
-            url += "&view=composite";
+		$("#tbody").append($("<tr></tr>")
+			.css("cursor", "pointer")
+			.attr("onclick", cmd)
+			.html("<td><span class=\"glyphicon glyphicon-level-up\"></span>&nbsp;&nbsp;" + ".." + "</td><td></td><td></td>"));
+	}
 
-        if (optical)
-            url += "&view=optical";
-    }
+	//list directories first
+	for (let i = 0; i < filelist.length; i++) {
+		if (filelist[i].type == "dir") {
+			var cmd;
 
-    window.location.href = url;
+			if (loc == "/")
+				cmd = "fetch_directory('" + loc + filelist[i].name.replace(/'/g, "\\'") + "')";
+			else
+				cmd = "fetch_directory('" + loc + '/' + filelist[i].name.replace(/'/g, "\\'") + "')";
 
+			//class=\"text-right\"
+			$("#tbody").append($("<tr></tr>")
+				.css("cursor", "pointer")
+				.attr("onclick", cmd)
+				.html("<td><span class=\"glyphicon glyphicon-folder-open\"></span>&nbsp;&nbsp;" + filelist[i].name + "</td><td></td><td>" + filelist[i].last_modified + "</td>"));
+		}
+	}
+
+	//then files
+	for (let i = 0; i < filelist.length; i++) {
+		if (filelist[i].type == "file") {
+			var path = loc;
+			var filename = filelist[i].name;
+
+			var name = filename.substr(0, filename.lastIndexOf('.'));
+			var ext = filename.substr(filename.lastIndexOf('.') + 1);
+			var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext);
+
+			var line_group = find_line_group(filename);
+			var line_group_str = null;
+			var composite = false;
+
+			if (filename.indexOf("FGN_") > -1 && filename.indexOf("cube.fits") > -1)
+				composite = true;
+
+			if (line_group.length > 0) {
+				line_group_str = 'LINE GROUP:';
+
+				for (let i = 0; i < line_group.length; i++) {
+					let filename = line_group[i];
+					let name = filename.substr(0, filename.lastIndexOf('.'));
+
+					line_group_str += '\n' + filename;
+					url += "&filename" + (i + 1) + "=" + encodeURIComponent(name);
+				}
+
+				if (composite)
+					url += "&view=composite";
+			}
+			else
+				url += "&filename=" + encodeURIComponent(name);
+
+			//enforce a tone mapping
+			url += "&flux=logistic";
+
+			//single-file URL
+			//var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext) + "&filename=" + encodeURIComponent(name) ;
+
+			var tmp = "goto_url('" + url.replace(/'/g, "\\'") + "')";
+			//var cmd = "find_line_group('" + filelist[i].name.replace(/'/g, "\\'") + "')" ;	    	    
+
+			//style=\"color: inherit\"
+			$("#tbody").append($("<tr></tr>")
+				.css("cursor", "pointer")
+				//.css("color", "black")
+				//.attr("class", "danger")
+				.attr("onclick", tmp)
+				//.attr("onmouseenter", cmd)
+				.attr('title', line_group_str)
+				.html("<td><p href=\"" + url + "\"><span class=\"glyphicon glyphicon-open-file\"></span>&nbsp;&nbsp;" + filelist[i].name + "</p></td><td>" + numeral(filelist[i].size).format('0.0 b') + "</td><td>" + filelist[i].last_modified + "</td>"));
+		}
+	}
+
+	$("#filesystem").append($("<br></br>"));
+
+	$("body").css("cursor", "default");
 }
 
-function view_nro45m() {
-    var va_count = 0;
+function fetch_directory(dir) {
+	$("body").css("cursor", "wait");
 
-    var elems = document.getElementsByClassName("datasetid");
+	var xmlhttp = new XMLHttpRequest();
 
-    for (let i = 0; i < elems.length; i++) {
-        if (elems[i].value.trim() != "")
-            va_count++;
-    }
+	var url = 'get_directory';
 
-    if (va_count == 0) {
-        alert("no datasetId found !");
-        return;
-    }
+	if (dir != "")
+		url += '?dir=' + encodeURIComponent(dir);
 
-    console.log("va_count = ", va_count);
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			//console.log(xmlhttp.responseText) ;
 
-    var db = document.getElementById("nro_db").value.trim();
-    var table = document.getElementById("nro_table").value.trim();
+			let response = JSON.parse(xmlhttp.responseText);
 
-    var url = "/fitswebql/FITSWebQL.html?db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table);
+			show_directory_contents(response);
 
-    if (va_count == 1) {
-        for (let i = 0; i < elems.length; i++)
-            if (elems[i].value.trim() != "")
-                url += "&datasetId=" + encodeURIComponent(elems[i].value.trim());
-    }
+			localStorage.setItem("lastdir", dir);
+		}
+	}
 
-    if (va_count > 1) {
-        va_count = 0;
+	xmlhttp.open("GET", url, true);
+	xmlhttp.timeout = 0;
+	xmlhttp.send();
+}
 
-        for (let i = 0; i < elems.length; i++)
-            if (elems[i].value.trim() != "")
-                url += "&datasetId" + (++va_count) + "=" + encodeURIComponent(elems[i].value.trim());
+function escapeRegExp(str) {
+	return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
 
-        if (va_count <= 3) {
-            var composite = document.getElementById("composite").checked;
+function find_line_group(name) {
+	if (filelist == null)
+		return [];
 
-            if (composite)
-                url += "&view=composite";
-        }
-    }
+	console.log('find_line_group:', name);
 
-    var flux = document.getElementById("nro_flux").value.trim();
+	var matches = [];
 
-    //enforce a tone mapping
-    //if(table == "fugin.fugin_meta")    
-    url += "&flux=" + encodeURIComponent(flux);
+	var pos = name.indexOf('_v');
 
-    //console.log(url) ;
-    window.location.href = url;
+	if (pos > 0) {
+		let str = name.substring(0, pos);
+
+		var pos2 = str.lastIndexOf('_');
+
+		if (pos2 > -1) {
+			let line = str.substring(pos2 + 1);
+			//console.log('LINE:', line) ;
+
+			let prefix = str.substring(0, pos2 + 1);
+			let postfix = name.substring(pos);
+			//console.log(prefix,postfix) ;
+
+			var patt = new RegExp(escapeRegExp(prefix) + '.*' + escapeRegExp(postfix));
+			//console.log(patt) ;	    
+
+			for (let i = 0; i < filelist.length; i++) {
+				if (filelist[i].type == "file") {
+					if (patt.test(filelist[i].name))
+						matches.push(filelist[i].name);
+				}
+			}
+		}
+
+		console.log(matches);
+	} else {
+		//detect tell-tale HSC file patterns
+		pos = name.indexOf('calexp-HSC');
+
+		if (pos == 0) {
+			//split by -, get a filter name
+			let tmp = name.split("-");
+
+			if (tmp.length == 5) {
+				let index = 2;
+				let filter = tmp[index];
+				//console.log(tmp, "filter:", filter);
+
+				let prefix = tmp[0] + "-" + tmp[1] + "-";
+				let postfix = "-" + tmp[3] + "-" + tmp[4];
+
+				//find matching filenames containing any filters
+				var patt = new RegExp(escapeRegExp(prefix) + '.*' + escapeRegExp(postfix));
+
+				for (let i = 0; i < filelist.length; i++) {
+					if (filelist[i].type == "file") {
+						if (patt.test(filelist[i].name))
+							matches.push(filelist[i].name);
+					}
+				}
+			}
+		}
+
+		console.log(matches);
+	}
+
+	return matches;
+}
+
+function main() {
+	filelist = null;
+
+	if (localStorage.getItem("ui_theme") === null)
+		theme = "dark";//default theme, needs to be aligned with the main FITSWebQL;  "dark" or "bright"
+	else
+		theme = localStorage.getItem("ui_theme");
+
+	if (theme == 'bright') {
+		$("body").css('background-color', 'white');
+		$("body").css('color', 'black');
+
+		try {
+			for (let i = 0; i < document.styleSheets.length; i++)
+				if (document.styleSheets[i].href.indexOf('fitswebql.css') > 0) {
+					let stylesheet = document.styleSheets[i];
+					console.log(document.styleSheets[i]);
+
+					if (stylesheet.cssRules) {
+						for (let j = 0; j < stylesheet.cssRules.length; j++)
+							if (stylesheet.cssRules[j].selectorText === '.modal-content')
+								stylesheet.deleteRule(j);
+					}
+
+					console.log(document.styleSheets[i]);
+				}
+		}
+		catch (e) {
+			console.log(e);
+		}
+	}
+
+	//fetch the home directory first
+	fetch_directory(localStorage_read_lastdir("lastdir"));
 }
