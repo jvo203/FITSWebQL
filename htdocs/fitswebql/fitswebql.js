@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-01-15.0";
+	return "JS2019-01-31.4";
 }
 
 const wasm_supported = (() => {
@@ -18,18 +18,12 @@ const wasm_supported = (() => {
 
 console.log(wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported");
 
-var generateUid = function () {
-	function S4() {
-		return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-	}
-
-	var st = ((new Date).getTime().toString(16)).slice(0, 11) + (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1, 2);
-
-	return (S4() + S4() + S4() + S4() + S4() + st);
-}
-
 Array.prototype.rotate = function (n) {
 	return this.slice(n, this.length).concat(this.slice(0, n));
+}
+
+function clamp(value, min, max) {
+	return Math.min(Math.max(min, value), max)
 }
 
 function round(value, precision, mode) {
@@ -147,7 +141,7 @@ function get_screen_scale(x) {
 	return Math.floor(0.9 * x);
 }
 
-function get_image_scale_previous(width, height, img_width, img_height) {
+function get_image_scale_square(width, height, img_width, img_height) {
 	var screen_dimension = get_screen_scale(Math.min(width, height));
 	var image_dimension = Math.max(img_width, img_height);
 
@@ -156,7 +150,7 @@ function get_image_scale_previous(width, height, img_width, img_height) {
 
 function get_image_scale(width, height, img_width, img_height) {
 	if (img_width == img_height)
-		return get_image_scale_previous(width, height, img_width, img_height);
+		return get_image_scale_square(width, height, img_width, img_height);
 
 	if (img_height < img_width) {
 		var screen_dimension = 0.9 * height;
@@ -669,17 +663,17 @@ function replot_y_axis() {
 
 	let fitsData = fitsContainer[va_count - 1];
 
-	var bunit;
+	var bunit = '';
 	if (fitsData.BUNIT != '') {
 		bunit = fitsData.BUNIT.trim();
 
 		if (intensity_mode == "integrated" && has_velocity_info)
 			bunit += '•km/s';
-	}
-	else
-		bunit = 'N/A';
 
-	d3.select("#ylabel").text(yLabel + ' ' + fitsData.BTYPE.trim() + " [" + bunit + "]");
+		bunit = "[" + bunit + "]";
+	}
+
+	d3.select("#ylabel").text(yLabel + ' ' + fitsData.BTYPE.trim() + " " + bunit);
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
@@ -748,9 +742,20 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 		setup_viewports();
 
+		try {
+			display_scale_info();
+		}
+		catch (err) {
+		};
+
 		display_legend();
 
-		display_gridlines();
+		try {
+			display_cd_gridlines();
+		}
+		catch (err) {
+			display_gridlines();
+		};
 
 		display_beam();
 
@@ -760,6 +765,10 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 	}
 	else {
 		if (!composite_view) {
+			if (zoom_dims != null)
+				if (zoom_dims.view != null)
+					image_bounding_dims = zoom_dims.view;
+
 			//place the image onto the main canvas
 			var c = document.getElementById('HTMLCanvas' + index);
 			var width = c.width;
@@ -853,6 +862,12 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 				console.log(imageContainer);
 
+				try {
+					display_scale_info();
+				}
+				catch (err) {
+				};
+
 				display_rgb_legend();
 
 				setup_3d_view();
@@ -863,7 +878,12 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 		hide_hourglass();
 
-		display_gridlines();
+		try {
+			display_cd_gridlines();
+		}
+		catch (err) {
+			display_gridlines();
+		};
 
 		display_beam();
 	}
@@ -953,6 +973,42 @@ function process_viewport_canvas(viewportCanvas, index) {
 
 	viewport_count++;
 
+	if (va_count > 1 && !composite_view) {
+		console.log("refresh_viewport for index:", index);
+
+		if (viewport_count == va_count) {
+			//hide_hourglass();
+			end_blink();
+		}
+
+		if (dragging || moving)
+			return;
+
+		//place the viewport onto the image tile
+		var c = document.getElementById('HTMLCanvas' + index);
+		var width = c.width;
+		var height = c.height;
+		var ctx = c.getContext("2d");
+
+		ctx.mozImageSmoothingEnabled = false;
+		ctx.webkitImageSmoothingEnabled = false;
+		ctx.msImageSmoothingEnabled = false;
+		ctx.imageSmoothingEnabled = false;
+		//ctx.globalAlpha=0.9;
+
+		let elem = d3.select("#image_rectangle" + index);
+		let img_width = elem.attr("width");
+		let img_height = elem.attr("height");
+
+		let image_position = get_image_position(index, width, height);
+		let posx = image_position.posx;
+		let posy = image_position.posy;
+
+		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+
+		return;
+	}
+
 	if (viewport_count == va_count) {
 		//place the viewport onto the ZOOM Canvas
 		var c = document.getElementById("ZOOMCanvas");
@@ -1018,7 +1074,7 @@ function process_viewport_canvas(viewportCanvas, index) {
 	}
 }
 
-function process_viewport(w, h, bytes, stride, alpha, index) {
+function process_viewport(width, height, w, h, bytes, stride, alpha, index) {
 	if (streaming)
 		return;
 
@@ -1030,15 +1086,38 @@ function process_viewport(w, h, bytes, stride, alpha, index) {
 	viewportCanvas.style.visibility = "hidden";
 	var context = viewportCanvas.getContext('2d');
 
-	viewportCanvas.width = w;
-	viewportCanvas.height = h;
+	viewportCanvas.width = width;
+	viewportCanvas.height = height;
 	console.log(viewportCanvas.width, viewportCanvas.height);
 
 	viewport_count++;
 
+	var buffer = bytes;
+	var _w = w;
+	var _h = h;
+	var _stride = stride;
+
+	if (width < height) {
+		//re-arrange the bytes array
+		buffer = new Uint8Array(w * h);
+
+		let dst_offset = 0;
+
+		for (var j = 0; j < h; j++) {
+			let offset = j * stride;
+
+			for (var i = 0; i < w; i++)
+				buffer[dst_offset++] = bytes[offset++];
+		}
+
+		_w = width;
+		_h = height;
+		_stride = width;
+	};
+
 	if (!composite_view) {
-		let imageData = context.createImageData(w, h);
-		apply_colourmap(imageData, colourmap, bytes, w, h, stride, alpha);
+		let imageData = context.createImageData(width, height);
+		apply_colourmap(imageData, colourmap, buffer, _w, _h, _stride, alpha);
 		context.putImageData(imageData, 0, 0);
 	}
 	else {
@@ -1055,7 +1134,7 @@ function process_viewport(w, h, bytes, stride, alpha, index) {
 			compositeViewportImageData = ctx.createImageData(compositeViewportCanvas.width, compositeViewportCanvas.height);
 		}
 
-		add_composite_channel(bytes, w, h, stride, alpha, compositeViewportImageData, index - 1);
+		add_composite_channel(buffer, _w, _h, _stride, alpha, compositeViewportImageData, index - 1);
 
 		if (viewport_count == va_count) {
 			if (compositeViewportCanvas != null && compositeViewportImageData != null) {
@@ -1064,6 +1143,42 @@ function process_viewport(w, h, bytes, stride, alpha, index) {
 				viewportCanvas = compositeViewportCanvas;
 			}
 		}
+	}
+
+	if (va_count > 1 && !composite_view) {
+		console.log("refresh_viewport for index:", index);
+
+		if (viewport_count == va_count) {
+			//hide_hourglass();
+			end_blink();
+		}
+
+		if (dragging || moving)
+			return;
+
+		//place the viewport onto the image tile
+		var c = document.getElementById('HTMLCanvas' + index);
+		var width = c.width;
+		var height = c.height;
+		var ctx = c.getContext("2d");
+
+		ctx.mozImageSmoothingEnabled = false;
+		ctx.webkitImageSmoothingEnabled = false;
+		ctx.msImageSmoothingEnabled = false;
+		ctx.imageSmoothingEnabled = false;
+		//ctx.globalAlpha=0.9;
+
+		let elem = d3.select("#image_rectangle" + index);
+		let img_width = elem.attr("width");
+		let img_height = elem.attr("height");
+
+		let image_position = get_image_position(index, width, height);
+		let posx = image_position.posx;
+		let posy = image_position.posy;
+
+		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+
+		return;
 	}
 
 	if (viewport_count == va_count) {
@@ -1370,7 +1485,7 @@ function open_websocket_connection(datasetId, index) {
 
 							for (let i = 0; i < no_frames; i++) {
 								decoder.processFrame(frames[i], function () {
-									process_viewport(decoder.frameBuffer.format.displayWidth,
+									process_viewport(width, height, decoder.frameBuffer.format.displayWidth,
 										decoder.frameBuffer.format.displayHeight,
 										decoder.frameBuffer.y.bytes,
 										decoder.frameBuffer.y.stride,
@@ -1428,7 +1543,7 @@ function open_websocket_connection(datasetId, index) {
 
 										//WASM buffers have changed, need to refresh the ImageData.data buffer
 										var len = img.width * img.height * 4;
-										var data = new Uint8ClampedArray(Module.HEAPU8.buffer, videoFrame.ptr, len);
+										var data = new Uint8ClampedArray(Module.HEAPU8.buffer, canvas_ptr, len);
 										for (let i = 0; i < len; i++)
 											data[i] = 0;
 										img = new ImageData(data, img.width, img.height);
@@ -2031,7 +2146,7 @@ function display_hourglass() {
 
 function hide_hourglass() {
 	try {
-		d3.select('#hourglass').remove();
+		d3.selectAll('#hourglass').remove();
 	}
 	catch (e) { };
 }
@@ -2047,13 +2162,209 @@ function copy_coordinates(e) {
 	e.preventDefault();
 }
 
+// Returns the inverse of matrix `M`.
+function matrix_invert(M) {
+	// I use Guassian Elimination to calculate the inverse:
+	// (1) 'augment' the matrix (left) by the identity (on the right)
+	// (2) Turn the matrix on the left into the identity by elemetry row ops
+	// (3) The matrix on the right is the inverse (was the identity matrix)
+	// There are 3 elemtary row ops: (I combine b and c in my code)
+	// (a) Swap 2 rows
+	// (b) Multiply a row by a scalar
+	// (c) Add 2 rows
+
+	//if the matrix isn't square: exit (error)
+	if (M.length !== M[0].length) { return; }
+
+	//create the identity matrix (I), and a copy (C) of the original
+	var i = 0, ii = 0, j = 0, dim = M.length, e = 0, t = 0;
+	var I = [], C = [];
+	for (i = 0; i < dim; i += 1) {
+		// Create the row
+		I[I.length] = [];
+		C[C.length] = [];
+		for (j = 0; j < dim; j += 1) {
+
+			//if we're on the diagonal, put a 1 (for identity)
+			if (i == j) { I[i][j] = 1; }
+			else { I[i][j] = 0; }
+
+			// Also, make the copy of the original
+			C[i][j] = M[i][j];
+		}
+	}
+
+	// Perform elementary row operations
+	for (i = 0; i < dim; i += 1) {
+		// get the element e on the diagonal
+		e = C[i][i];
+
+		// if we have a 0 on the diagonal (we'll need to swap with a lower row)
+		if (e == 0) {
+			//look through every row below the i'th row
+			for (ii = i + 1; ii < dim; ii += 1) {
+				//if the ii'th row has a non-0 in the i'th col
+				if (C[ii][i] != 0) {
+					//it would make the diagonal have a non-0 so swap it
+					for (j = 0; j < dim; j++) {
+						e = C[i][j];       //temp store i'th row
+						C[i][j] = C[ii][j];//replace i'th row by ii'th
+						C[ii][j] = e;      //repace ii'th by temp
+						e = I[i][j];       //temp store i'th row
+						I[i][j] = I[ii][j];//replace i'th row by ii'th
+						I[ii][j] = e;      //repace ii'th by temp
+					}
+					//don't bother checking other rows since we've swapped
+					break;
+				}
+			}
+			//get the new diagonal
+			e = C[i][i];
+			//if it's still 0, not invertable (error)
+			if (e == 0) { return }
+		}
+
+		// Scale this row down by e (so we have a 1 on the diagonal)
+		for (j = 0; j < dim; j++) {
+			C[i][j] = C[i][j] / e; //apply to original matrix
+			I[i][j] = I[i][j] / e; //apply to identity
+		}
+
+		// Subtract this row (scaled appropriately for each row) from ALL of
+		// the other rows so that there will be 0's in this column in the
+		// rows above and below this one
+		for (ii = 0; ii < dim; ii++) {
+			// Only apply to other rows (we want a 1 on the diagonal)
+			if (ii == i) { continue; }
+
+			// We want to change this element to 0
+			e = C[ii][i];
+
+			// Subtract (the row above(or below) scaled by e) from (the
+			// current row) but start at the i'th column and assume all the
+			// stuff left of diagonal is 0 (which it should be if we made this
+			// algorithm correctly)
+			for (j = 0; j < dim; j++) {
+				C[ii][j] -= e * C[i][j]; //apply to original matrix
+				I[ii][j] -= e * I[i][j]; //apply to identity
+			}
+		}
+	}
+
+	//we've done all operations, C should be the identity
+	//matrix I should be the inverse:
+	return I;
+}
+
+function inverse_CD_matrix(arcx, arcy) {
+	let fitsData = fitsContainer[va_count - 1];
+
+	if (fitsData == null)
+		return;
+
+	//convert from arc seconds to radians
+	var dx = (arcx / 86400.0) * 2 * pi;//[s]
+	var dy = (arcy / 3600.0) / toDegrees;//["]
+
+	var CRPIX1 = fitsData.CRPIX1;
+	var CRPIX2 = fitsData.CRPIX2;
+
+	//convert to radians
+	var CRVAL1 = fitsData.CRVAL1 / toDegrees;
+	var CRVAL2 = fitsData.CRVAL2 / toDegrees;
+
+	var RA = CRVAL1 + dx;
+	var DEC = CRVAL2 + dy;
+
+	//console.log(RadiansPrintHMS(CRVAL1), RadiansPrintHMS(RA)) ;
+	//console.log(RadiansPrintDMS(CRVAL2), RadiansPrintDMS(DEC)) ;
+
+	var y = (1 - Math.tan(CRVAL2) * Math.cos(dx) / Math.tan(DEC)) / (Math.tan(CRVAL2) + Math.cos(dx) / Math.tan(DEC));
+	var x = Math.tan(dx) * Math.cos(CRVAL2) * (1 - y * Math.tan(CRVAL2));
+
+	//convert from radians to degrees
+	x = x * toDegrees;
+	y = y * toDegrees;
+
+	console.log("inverse: x = ", x, "y = ", y);
+
+	var CD1_1 = fitsData.CD1_1;
+	var CD1_2 = fitsData.CD1_2;
+	var CD2_1 = fitsData.CD2_1;
+	var CD2_2 = fitsData.CD2_2;
+
+	//convert the North/East rotation angle from radians to degrees
+	var theta = Math.atan(CD1_2 / CD1_1) * toDegrees;
+
+	var M = [[CD1_1, CD1_2], [CD2_1, CD2_2]];
+	var invM = matrix_invert(M);
+
+	var DC1_1 = invM[0][0];
+	var DC1_2 = invM[0][1];
+	var DC2_1 = invM[1][0];
+	var DC2_2 = invM[1][1];
+
+	var DX = DC1_1 * x + DC1_2 * y;
+	var DY = DC2_1 * x + DC2_2 * y;
+
+	var gridScale = new Array(DX / fitsData.width, Math.sign(CD2_2) * Math.abs(DY) / fitsData.height, theta);
+
+	return gridScale;
+}
+
+function CD_matrix(X, Y) {
+	let fitsData = fitsContainer[va_count - 1];
+
+	if (fitsData == null)
+		return;
+
+	var CRPIX1 = fitsData.CRPIX1;
+	var CRPIX2 = fitsData.CRPIX2;
+
+	var CRVAL1 = fitsData.CRVAL1;
+	var CRVAL2 = fitsData.CRVAL2;
+
+	//console.log(CRPIX1, CRVAL1, CRPIX2, CRVAL2) ;
+
+	//convert to radians
+	CRVAL1 = CRVAL1 / toDegrees;
+	CRVAL2 = CRVAL2 / toDegrees;
+
+	var CD1_1 = fitsData.CD1_1;
+	var CD1_2 = fitsData.CD1_2;
+	var CD2_1 = fitsData.CD2_1;
+	var CD2_2 = fitsData.CD2_2;
+
+	var x = CD1_1 * (X - CRPIX1) + CD1_2 * (Y - CRPIX2);
+	var y = CD2_1 * (X - CRPIX1) + CD2_2 * (Y - CRPIX2);
+
+	//convert to radians
+	x = x / toDegrees;
+	y = y / toDegrees;
+
+	//console.log("x: ", x, "y: ", y, "X: ", X, "Y: ", Y) ;
+
+	var a = Math.atan((x / Math.cos(CRVAL2)) / (1 - y * Math.tan(CRVAL2)));
+	var ra = a + CRVAL1;
+	var dec = Math.atan((y + Math.tan(CRVAL2)) * Math.cos(a) / (1 - y * Math.tan(CRVAL2)));
+
+	var newradec = new Array(ra, dec);
+
+	//console.log(RadiansPrintHMS(ra), RadiansPrintDMS(dec)) ;
+
+	return newradec;
+}
+
 function x2ra(x) {
 	let fitsData = fitsContainer[va_count - 1];
 
 	if (fitsData == null)
 		return "";
-	else
+
+	if (fitsData.CDELT1 != null)
 		return RadiansPrintHMS((fitsData.CRVAL1 + (x - fitsData.CRPIX1) * fitsData.CDELT1) / toDegrees);
+	else
+		throw "CDELT1 is not available";
 };
 
 function x2glon(x) {
@@ -2061,8 +2372,11 @@ function x2glon(x) {
 
 	if (fitsData == null)
 		return "";
-	else
+
+	if (fitsData.CDELT1 != null)
 		return RadiansPrintDMS((fitsData.CRVAL1 + (x - fitsData.CRPIX1) * fitsData.CDELT1) / toDegrees);
+	else
+		throw "CDELT1 is not available";
 };
 
 function y2dec(y) {
@@ -2070,9 +2384,157 @@ function y2dec(y) {
 
 	if (fitsData == null)
 		return "";
-	else
+
+	if (fitsData.CDELT2 != null)
 		return RadiansPrintDMS((fitsData.CRVAL2 + (fitsData.height - y - fitsData.CRPIX2) * fitsData.CDELT2) / toDegrees);
+	else
+		throw "CDELT2 is not available";
 };
+
+function display_scale_info() {
+	let fitsData = fitsContainer[va_count - 1];
+
+	if (fitsData == null)
+		return;
+
+	if (fitsData.depth > 1)
+		return;
+
+	var elem = d3.select("#image_rectangle");
+	var img_width = parseFloat(elem.attr("width"));
+	var img_height = parseFloat(elem.attr("height"));
+	var img_x = parseFloat(elem.attr("x"));
+	var img_y = parseFloat(elem.attr("y"));
+	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+	var scale = imageCanvas.height / image_bounding_dims.height;
+
+	//scale
+	var gridScale = inverse_CD_matrix(10, 60);
+
+	for (let i = 0; i < gridScale.length; i++)
+		if (isNaN(gridScale[i]))
+			throw "NaN gridScale";
+
+	var svg = d3.select("#BackgroundSVG");
+	var width = parseFloat(svg.attr("width"));
+	var height = parseFloat(svg.attr("height"));
+
+	var defs = svg.append("defs");
+
+	defs.append("marker")
+		.attr("id", "head")
+		.attr("orient", "auto")
+		.attr("markerWidth", (emStrokeWidth))
+		.attr("markerHeight", (0.5 * emFontSize))
+		.attr("refX", 0)
+		.attr("refY", (0.5 * emFontSize / 2))
+		.append("path")
+		.style("stroke-width", 1)
+		.attr("d", "M0,0 V" + 0.5 * emFontSize);
+
+	defs.append("marker")
+		.attr("id", "arrow")
+		.attr("viewBox", "0 -5 10 10")
+		.attr("refX", 5)
+		.attr("refY", 0)
+		.attr("markerWidth", 0.67 * emFontSize)
+		.attr("markerHeight", 0.67 * emFontSize)
+		.attr("orient", "auto")
+		.append("path")
+		.style("stroke-width", 1)
+		.style("fill", "none")
+		.attr("d", "M-5,-5 L5,0 L-5,5");
+
+	//vertical scale
+	var L = Math.abs(gridScale[1]) * scale * img_height;
+	var X = 1 * emFontSize;
+	if (composite_view)
+		X += img_x + img_width;
+	//var Y = L + img_y;//1.75 * emFontSize;
+	var Y = img_y + img_height;
+
+	var vert = svg.append("g")
+		.attr("id", "verticalScale");
+
+	vert.append("path")
+		.attr("marker-end", "url(#head)")
+		.attr("marker-start", "url(#head)")
+		.style("stroke-width", (emStrokeWidth))
+		.style("fill", "none")
+		.attr("d", "M" + X + "," + Y + " L" + X + "," + (Y - L));
+
+	vert.append("text")
+		.attr("x", (X + emFontSize))
+		.attr("y", (Y - L / 2 + emFontSize / 3))
+		.attr("font-family", "Monospace")
+		.attr("font-size", "1.0em")
+		.attr("text-anchor", "middle")
+		.attr("stroke", "none")
+		.text("60\"");
+
+	//N-E compass
+	var L = 3 * emFontSize;//*Math.sign(gridScale[0]) ;
+	var X = 0.02 * width + L + 1 * emFontSize;
+	if (composite_view)
+		X += img_x + img_width;
+	//var Y = 0.01*width + L + emFontSize;
+	//var Y = L + img_y;//Math.max(Y - 1.5 * emFontSize, 0.01 * width + L + emFontSize);
+
+	//rotation
+	var compass = svg.append("g")
+		.attr("id", "compass")
+		.attr("transform", 'rotate(' + gridScale[2] * Math.sign(gridScale[0]) + ' ' + X + ' ' + Y + ')');
+
+	var east = compass.append("g")
+		.attr("id", "east");
+
+	east.append("path")
+		.attr("marker-end", "url(#arrow)")
+		.style("stroke-width", (emStrokeWidth))
+		.style("fill", "none")
+		.attr("d", "M" + X + "," + Y + " L" + (X + L * Math.sign(gridScale[0])) + "," + Y);
+
+	east.append("text")
+		.attr("x", (X + L * Math.sign(gridScale[0]) + Math.sign(gridScale[0]) * emFontSize / 2))
+		.attr("y", (Y + emFontSize / 2.5))
+		.attr("font-family", "Monospace")
+		.attr("font-size", "1.0em")
+		.attr("text-anchor", "middle")
+		.attr("stroke", "none")
+		.text("E");
+
+	var north = compass.append("g")
+		.attr("id", "north");
+
+	L *= Math.sign(gridScale[1]);
+
+	north.append("path")
+		.attr("marker-end", "url(#arrow)")
+		.style("stroke-width", (emStrokeWidth))
+		.style("fill", "none")
+		.attr("d", "M" + X + "," + Y + " L" + X + "," + (Y - L));
+
+	if (L > 0)
+		north.append("text")
+			.attr("x", (X))
+			.attr("y", (Y - L - emFontSize / 4))
+			.attr("font-family", "Monospace")
+			.attr("font-size", "1.1em")
+			.attr("text-anchor", "middle")
+			.attr("stroke", "none")
+			.text("N");
+	else
+		north.append("text")
+			.attr("x", (X))
+			.attr("y", (Y - L + emFontSize))
+			.attr("font-family", "Monospace")
+			.attr("font-size", "1.0em")
+			.attr("text-anchor", "middle")
+			.attr("stroke", "none")
+			.text("N");
+}
+
 
 function display_gridlines() {
 	if (va_count > 1 && !composite_view)
@@ -2118,14 +2580,12 @@ function display_gridlines() {
 	var y_offset = parseFloat(elem.attr("y"));
 
 	var x = d3.scaleLinear()
-		.range([x_offset, x_offset + width])
+		.range([x_offset, x_offset + width - 1])
 		.domain([0, 1]);
-	//.domain([image_bounding_dims.x1, image_bounding_dims.x1 + image_bounding_dims.width-1]);
 
 	var y = d3.scaleLinear()
-		.range([y_offset + height, y_offset])
+		.range([y_offset + height - 1, y_offset])
 		.domain([1, 0]);
-	//.domain([image_bounding_dims.y1, image_bounding_dims.y1 + image_bounding_dims.height-1]);    
 
 	var svg = d3.select("#BackgroundSVG");
 
@@ -2141,6 +2601,11 @@ function display_gridlines() {
 		strokeColour = 'gray';
 	}
 
+	if (colourmap == "greyscale" || colourmap == "negative") {
+		fillColour = "#C4A000";
+		strokeColour = fillColour;
+	}
+
 	// Add the X Axis
 	if (fitsData.depth > 1) {
 		var xAxis = d3.axisBottom(x)
@@ -2154,11 +2619,16 @@ function display_gridlines() {
 				var tmp = image_bounding_dims.x1 + d * (image_bounding_dims.width - 1);
 				var orig_x = tmp * fitsData.width / imageCanvas.width;
 
-				if (fitsData.CTYPE1.indexOf("RA") > -1)
-					return x2ra(orig_x);
+				try {
+					if (fitsData.CTYPE1.indexOf("RA") > -1)
+						return x2ra(orig_x);
 
-				if (fitsData.CTYPE1.indexOf("GLON") > -1)
-					return x2glon(orig_x);
+					if (fitsData.CTYPE1.indexOf("GLON") > -1)
+						return x2glon(orig_x);
+				}
+				catch (err) {
+					console.log(err);
+				}
 
 				return "";
 			});
@@ -2168,13 +2638,14 @@ function display_gridlines() {
 			.attr("id", "ra_axis")
 			.style("fill", fillColour)
 			.style("stroke", strokeColour)
-			.style("stroke-width", 0.5)
+			.style("stroke-width", 1.0)
 			.attr("opacity", 1.0)
 			.attr("transform", "translate(0," + (y_offset) + ")")
 			.call(xAxis)
 			.selectAll("text")
 			.attr("y", 0)
 			.attr("x", 0)
+			.style("fill", fillColour)
 			.attr("dx", "-1.0em")
 			.attr("dy", "1.0em")
 			.attr("transform", "rotate(-45)")
@@ -2192,11 +2663,16 @@ function display_gridlines() {
 				var tmp = image_bounding_dims.x1 + d * (image_bounding_dims.width - 1);
 				var orig_x = tmp * fitsData.width / imageCanvas.width;
 
-				if (fitsData.CTYPE1.indexOf("RA") > -1)
-					return x2ra(orig_x);
+				try {
+					if (fitsData.CTYPE1.indexOf("RA") > -1)
+						return x2ra(orig_x);
 
-				if (fitsData.CTYPE1.indexOf("GLON") > -1)
-					return x2glon(orig_x);
+					if (fitsData.CTYPE1.indexOf("GLON") > -1)
+						return x2glon(orig_x);
+				}
+				catch (err) {
+					console.log(err);
+				}
 
 				return "";
 			});
@@ -2206,13 +2682,14 @@ function display_gridlines() {
 			.attr("id", "ra_axis")
 			.style("fill", fillColour)
 			.style("stroke", strokeColour)
-			.style("stroke-width", 0.5)
+			.style("stroke-width", 1.0)
 			.attr("opacity", 1.0)
 			.attr("transform", "translate(0," + (height + y_offset) + ")")
 			.call(xAxis)
 			.selectAll("text")
 			.attr("y", 0)
 			.attr("x", 0)
+			.style("fill", fillColour)
 			//.attr("dx", ".35em")
 			.attr("dy", ".35em")
 			.attr("transform", "rotate(-45)")
@@ -2220,69 +2697,394 @@ function display_gridlines() {
 	}
 
 	// Add the Y Axis
-	var yAxis = d3.axisRight(y)
-		.tickSize(width)
-		.tickFormat(function (d) {
-			if (d == 0.0 || d == 1.0)
-				return "";
-
-			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-			var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-			var tmp = image_bounding_dims.y1 + d * (image_bounding_dims.height - 1);
-			var orig_y = tmp * fitsData.height / imageCanvas.height;
-			return y2dec(orig_y);
-		});
-
 	if (!composite_view) {
+		var yAxis = d3.axisRight(y)
+			.tickSize(width)
+			.tickFormat(function (d) {
+				if (d == 0.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var tmp = image_bounding_dims.y1 + d * (image_bounding_dims.height - 1);
+				var orig_y = tmp * fitsData.height / imageCanvas.height;
+
+				try {
+					return y2dec(orig_y);
+				}
+				catch (err) {
+					console.log(err);
+				}
+
+				return "";
+			});
+
 		svg.append("g")
 			.attr("class", "gridlines")
 			.attr("id", "dec_axis")
 			.style("fill", fillColour)
 			.style("stroke", strokeColour)
-			.style("stroke-width", 0.5)
+			.style("stroke-width", 1.0)
 			.attr("opacity", 1.0)
 			.attr("transform", "translate(" + (x_offset) + ",0)")
 			.call(yAxis)
 			.selectAll("text")
 			.attr("y", 0)
 			.attr("x", 0)
+			.style("fill", fillColour)
 			.attr("dx", "-.35em")
 			//.attr("dy", "-0.35em")
 			//.attr("transform", "rotate(-45)")
 			.style("text-anchor", "end");//was end, dx -.35, dy 0
 	}
 	else {
+		var yAxis = d3.axisLeft(y)
+			.tickSize(width)
+			.tickFormat(function (d) {
+				if (d == 0.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var tmp = image_bounding_dims.y1 + d * (image_bounding_dims.height - 1);
+				var orig_y = tmp * fitsData.height / imageCanvas.height;
+
+				try {
+					return y2dec(orig_y);
+				}
+				catch (err) {
+					console.log(err);
+				}
+
+				return "";
+			});
+
 		svg.append("g")
 			.attr("class", "gridlines")
 			.attr("id", "dec_axis")
 			.style("fill", fillColour)
 			.style("stroke", strokeColour)
-			.style("stroke-width", 0.5)
+			.style("stroke-width", 1.0)
 			.attr("opacity", 1.0)
-			.attr("transform", "translate(" + (x_offset) + ",0)")
+			.attr("transform", "translate(" + (width + x_offset) + ",0)")
 			.call(yAxis)
 			.selectAll("text")
 			.attr("y", 0)
 			.attr("x", 0)
+			.style("fill", fillColour)
 			.attr("dx", ".35em")
 			//.attr("dy", "-0.35em")
 			//.attr("transform", "rotate(-45)")
 			.style("text-anchor", "start");//was end, dx -.35, dy 0
 	}
 
-	//displayGridlines = true ;
-	var htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
-	d3.select("#displayGridlines").html(htmlStr);
+	if (va_count == 1 || composite_view) {
+		var htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
+		d3.select("#displayGridlines").html(htmlStr);
 
-	var elem = d3.select("#gridlines");
-	if (displayGridlines)
-		elem.attr("opacity", 1);
-	else
-		elem.attr("opacity", 0);
+		var elem = d3.select("#gridlines");
+		if (displayGridlines)
+			elem.attr("opacity", 1);
+		else
+			elem.attr("opacity", 0);
+	}
+}
+
+function display_cd_gridlines() {
+	if (va_count > 1 && !composite_view)
+		return;
+
+	let fitsData = fitsContainer[va_count - 1];
+
+	if (fitsData == null)
+		return;
+
+	//scale
+	var gridScale = inverse_CD_matrix(10, 60);
+	var angle = gridScale[2] * Math.sign(gridScale[0]);
+
+	var label_angle = -45;
+
+	if (Math.sign(angle) != 0)
+		label_angle *= Math.sign(angle);
+
+	for (let i = 0; i < gridScale.length; i++)
+		if (isNaN(gridScale[i]))
+			throw "CD matrix is not available";
+
+	if (fitsData.CTYPE1.indexOf("RA") < 0 && fitsData.CTYPE1.indexOf("GLON")) {
+		d3.select("#displayGridlines")
+			.style("font-style", "italic")
+			.style('cursor', 'not-allowed')
+			.style("display", "none")
+			.attr("disabled", "disabled");
+		return;
+	}
+
+	if (fitsData.CTYPE2.indexOf("DEC") < 0 && fitsData.CTYPE2.indexOf("GLAT") < 0) {
+		d3.select("#displayGridlines")
+			.style("font-style", "italic")
+			.style('cursor', 'not-allowed')
+			.style("display", "none")
+			.attr("disabled", "disabled");
+		return;
+	}
+
+	if (!has_image)
+		return;
+
+	try {
+		d3.select("#gridlines").remove();
+	}
+	catch (e) {
+	}
+
+	var elem = d3.select("#image_rectangle");
+	var width = parseFloat(elem.attr("width"));
+	var height = parseFloat(elem.attr("height"));
+
+	var x_offset = parseFloat(elem.attr("x"));
+	var y_offset = parseFloat(elem.attr("y"));
+
+	var x = d3.scaleLinear()
+		.range([0, width - 1])
+		.domain([-1, 1]);
+
+	var y = d3.scaleLinear()
+		.range([height - 1, 0])
+		.domain([1, -1]);
+
+	var svg = d3.select("#BackgroundSVG");
+
+	svg = svg.append("g")
+		.attr("id", "gridlines")
+		.attr("opacity", 1.0);
+
+	let fillColour = 'white';
+	let strokeColour = 'white';
+
+	if (theme == 'bright') {
+		fillColour = 'gray';
+		strokeColour = 'gray';
+	}
+
+	if (colourmap == "greyscale" || colourmap == "negative") {
+		fillColour = "#C4A000";
+		strokeColour = fillColour;
+	}
+
+	// Add the X Axis
+	if (fitsData.depth > 1) {
+		var xAxis = d3.axisBottom(x)
+			.tickSize(height)
+			.tickFormat(function (d) {
+				if (d == -1.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+
+				var dx = d * Math.cos(angle / toDegrees);
+				var dy = d * Math.sin(angle / toDegrees);
+
+				//convert dx, dy to a 0 .. 1 range
+				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
+				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
+
+				var orig_x = tmpx * fitsData.width / imageCanvas.width;
+				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					return RadiansPrintHMS(radec[0]);
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					return RadiansPrintDMS(radec[0]);
+
+				return "";
+			});
+
+		svg.append("g")
+			.attr("class", "gridlines")
+			.attr("id", "ra_axis")
+			.style("fill", fillColour)
+			.style("stroke", strokeColour)
+			.style("stroke-width", 1.0)
+			.attr("opacity", 1.0)
+			.attr("transform", "translate(" + (x_offset) + "," + (y_offset) + ")" + ' rotate(' + angle + ' ' + (width / 2) + ' ' + (height / 2) + ')')
+			.call(xAxis)
+			.selectAll("text")
+			.attr("y", 0)
+			.attr("x", 0)
+			.style("fill", fillColour)
+			//.attr("dx", "-1.0em")
+			//.attr("dy", "1.0em")
+			.attr("transform", "rotate(" + label_angle + ")")
+			.style("text-anchor", "middle");
+	}
+	else {
+		var xAxis = d3.axisTop(x)
+			.tickSize(height)
+			.tickFormat(function (d) {
+				if (d == -1.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+
+				var dx = d * Math.cos(angle / toDegrees);
+				var dy = d * Math.sin(angle / toDegrees);
+
+				//convert dx, dy to a 0 .. 1 range
+				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
+				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
+
+				var orig_x = tmpx * fitsData.width / imageCanvas.width;
+				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					return RadiansPrintHMS(radec[0]);
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					return RadiansPrintDMS(radec[0]);
+
+				return "";
+			});
+
+		svg.append("g")
+			.attr("class", "gridlines")
+			.attr("id", "ra_axis")
+			.style("fill", fillColour)
+			.style("stroke", strokeColour)
+			.style("stroke-width", 1.0)
+			.attr("opacity", 1.0)
+			.attr("transform", "translate(" + (x_offset) + "," + (height + y_offset) + ")" + ' rotate(' + angle + ' ' + (width / 2) + ' ' + (- height / 2) + ')')
+			.call(xAxis)
+			.selectAll("text")
+			.attr("y", 0)
+			.attr("x", 0)
+			.style("fill", fillColour)
+			//.attr("dx", ".35em")
+			//.attr("dy", ".35em")			
+			.attr("transform", "rotate(" + label_angle + ")")
+			.style("text-anchor", "middle");
+	}
+
+	// Add the Y Axis
+	if (!composite_view) {
+		var yAxis = d3.axisRight(y)
+			.tickSize(width)
+			.tickFormat(function (d) {
+				if (d == -1.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+
+				var dx = d * Math.sin(angle / toDegrees);
+				var dy = d * Math.cos(angle / toDegrees);
+
+				//convert dx, dy to a 0 .. 1 range
+				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
+				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
+
+				var orig_x = tmpx * fitsData.width / imageCanvas.width;
+				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					return RadiansPrintDMS(radec[1]);
+				else return "";
+			});
+
+		svg.append("g")
+			.attr("class", "gridlines")
+			.attr("id", "dec_axis")
+			.style("fill", fillColour)
+			.style("stroke", strokeColour)
+			.style("stroke-width", 1.0)
+			.attr("opacity", 1.0)
+			.attr("transform", " translate(" + (x_offset) + "," + (y_offset) + ")" + ' rotate(' + angle + ' ' + (width / 2) + ' ' + (height / 2) + ')')
+			.call(yAxis)
+			.selectAll("text")
+			.attr("y", 0)
+			.attr("x", 0)
+			.style("fill", fillColour)
+			.attr("dx", "-.35em")
+			//.attr("dy", "-0.35em")
+			.style("text-anchor", "end");//was end, dx -.35, dy 0
+	}
+	else {
+		var yAxis = d3.axisLeft(y)
+			.tickSize(width)
+			.tickFormat(function (d) {
+				if (d == -1.0 || d == 1.0)
+					return "";
+
+				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+
+				var dx = d * Math.sin(angle / toDegrees);
+				var dy = d * Math.cos(angle / toDegrees);
+
+				//convert dx, dy to a 0 .. 1 range
+				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
+				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
+
+				var orig_x = tmpx * fitsData.width / imageCanvas.width;
+				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					return RadiansPrintDMS(radec[1]);
+				else return "";
+			});
+
+		svg.append("g")
+			.attr("class", "gridlines")
+			.attr("id", "dec_axis")
+			.style("fill", fillColour)
+			.style("stroke", strokeColour)
+			.style("stroke-width", 1.0)
+			.attr("opacity", 1.0)
+			.attr("transform", " translate(" + (width + x_offset) + "," + (y_offset) + ")" + ' rotate(' + angle + ' ' + (- width / 2) + ' ' + (height / 2) + ')')
+			.call(yAxis)
+			.selectAll("text")
+			.attr("y", 0)
+			.attr("x", 0)
+			.style("fill", fillColour)
+			.attr("dx", ".35em")
+			//.attr("dy", "-0.35em")
+			//.attr("transform", "rotate(-45)")
+			.style("text-anchor", "start");//was end, dx -.35, dy 0
+	}
+
+	if (va_count == 1 || composite_view) {
+		var htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
+		d3.select("#displayGridlines").html(htmlStr);
+
+		var elem = d3.select("#gridlines");
+		if (displayGridlines)
+			elem.attr("opacity", 1);
+		else
+			elem.attr("opacity", 0);
+	}
 }
 
 function display_beam() {
 	if (va_count > 1 && !composite_view)
+		return;
+
+	if (optical_view)
 		return;
 
 	let fitsData = fitsContainer[va_count - 1];
@@ -2439,8 +3241,6 @@ function zoom_beam() {
 
 	if (fitsData.BMIN > 0.0 && fitsData.BMAJ > 0.0) {
 		var svg = d3.select("#BackSVG");
-		var width = parseFloat(svg.attr("width"));
-		var height = parseFloat(svg.attr("height"));
 
 		var opacity = displayBeam ? 1 : 0;
 
@@ -2668,9 +3468,20 @@ function display_dataset_info() {
 		.attr("id", "information");
 
 	var object = fitsData.OBJECT;
+	var filter = fitsData.FILTER.trim().toUpperCase();
 
 	if (object == '')
 		object = 'OBJECT N/A';
+	else {
+		//object = object.replace('_' + filter, '');//filter names are inconsistent!!!
+
+		if (filter != "") {
+			var pos = object.lastIndexOf('_');
+
+			if (pos >= 0)
+				object = object.substr(0, pos);
+		}
+	}
 
 	var line = '';
 
@@ -3638,6 +4449,10 @@ function change_colourmap(index, recursive) {
 	}
 	else
 		if (!composite_view) {
+			if (zoom_dims != null)
+				if (zoom_dims.view != null)
+					image_bounding_dims = zoom_dims.view;
+
 			//place the image onto the main canvas
 			var c = document.getElementById('HTMLCanvas' + index);
 			var width = c.width;
@@ -4792,9 +5607,13 @@ function display_histogram(index) {
 		var imageTag = document.getElementById('imageTag#' + index);
 
 		let line = fitsData.LINE.trim();
+		let filter = fitsData.FILTER.trim();
 
 		if (line != "")
 			imageTag.innerHTML = plain2chem(line, true);
+
+		if (filter != "")
+			imageTag.innerHTML = filter;
 	}
 
 	redraw_histogram(index);
@@ -4869,55 +5688,6 @@ function setup_3d_view() {
 
 	if (va_count > 1 && composite_view)
 		position = (width + rect_width) / 2 + 2 * emFontSize;
-
-	//add a 3D View button    
-    /*{
-	svg.append("g")
-	    .attr("id", "experimental3D")
-	    .style("opacity", 0.0)//0.7
-	    .append("foreignObject")
-	    .attr("x", position)
-	//.attr("y", ((height + rect_height)/2-1*emFontSize))//3*
-	    .attr("y", (height - 10*emFontSize))
-	    .attr("width", 10*emFontSize)
-	    .attr("height", 5*emFontSize)	
-	    .append("xhtml:div")	
-	    .attr("id", "Div3D")    
-	    .attr("class", "container-fluid")	
-	    .append("button")
-	    .attr("type", "button")	
-	    .attr("class", "btn btn-primary btn-md")	
-	    .on("click", function() {init_surface();})
-	    .html("3D View") ;
-    }
-
-    if(experimental)
-    {
-	d3.select("#experimental3D").style("opacity", 0.7) ;
-	d3.select("#Div3D").style("display", "block") ;
-    }
-    else
-    {
-	d3.select("#experimental3D").style("opacity", 0.0) ;
-	d3.select("#Div3D").style("display", "none") ;
-    } ;*/
-
-	//add a Contour View button
-    /*svg.append("g")
-	.style("opacity", 0.7)
-	.append("foreignObject")
-	.attr("x", ((width - rect_width)/2-10*emFontSize))
-	.attr("y", ((height + rect_height)/2-11*emFontSize))//3*
-	.attr("width", 10*emFontSize)
-	.attr("height", 5*emFontSize)	
-	.append("xhtml:div")	
-	.attr("id", "conrecDiv")    
-	.attr("class", "container-fluid")	
-	.append("button")
-	.attr("type", "button")	
-	.attr("class", "btn btn-primary btn-md")	
-	.on("click", function() { fetch_contours(datasetId) ;})
-	.html("CONREC") ;*/
 }
 
 function dragstart() {
@@ -5365,15 +6135,15 @@ function setup_axes() {
 	if (intensity_mode == "mean")
 		yLabel = "Mean";
 
-	var bunit;
+	var bunit = '';
 	if (fitsData.BUNIT != '') {
 		bunit = fitsData.BUNIT.trim();
 
 		if (intensity_mode == "integrated" && has_velocity_info)
 			bunit += '•km/s';
+
+		bunit = "[" + bunit + "]";
 	}
-	else
-		bunit = 'N/A';
 
 	svg.append("text")
 		.attr("id", "ylabel")
@@ -5386,7 +6156,7 @@ function setup_axes() {
 		//.style("opacity", 0.7)
 		.attr("stroke", "none")
 		.attr("transform", "rotate(-90)")
-		.text(yLabel + ' ' + fitsData.BTYPE.trim() + " [" + bunit + "]");
+		.text(yLabel + ' ' + fitsData.BTYPE.trim() + " " + bunit);
 
 	// Add the Y Axis
 	svg.append("g")
@@ -6245,6 +7015,7 @@ function swap_viewports() {
 
 function fits_subregion_start() {
 	if (freqdrag) return;
+	if (optical_view) return;
 
 	clearTimeout(idleMouse);
 	moving = true;
@@ -6285,6 +7056,7 @@ function fits_subregion_start() {
 
 function fits_subregion_drag() {
 	if (freqdrag) return;
+	if (optical_view) return;
 
 	console.log("fits_subregion_drag");
 
@@ -6331,6 +7103,7 @@ function fits_subregion_drag() {
 
 function fits_subregion_end() {
 	if (freqdrag) return;
+	if (optical_view) return;
 
 	console.log("fits_subregion_end");
 
@@ -6432,12 +7205,20 @@ function add_line_label(index) {
 		return;
 
 	let line = fitsData.LINE.trim();
+	let filter = fitsData.FILTER.trim();
 
 	if (line == "")
 		//line = "line #" + index ;
 		line = datasetId[index - 1];
 
-	console.log("SPECTRAL LINE:", line);
+	console.log("SPECTRAL LINE:", line, "FILTER:", filter);
+
+	var label;
+
+	if (filter == "")
+		label = plain2chem(line, false);
+	else
+		label = filter;
 
 	if (imageContainer[index - 1] == null)
 		return;
@@ -6467,7 +7248,7 @@ function add_line_label(index) {
 		.attr("height", 2 * emFontSize)
 		.append("xhtml:div")
 		.attr("id", "line_display")
-		.html('<p style="text-align: center;font-size:1.5em; font-family: Inconsolata; font-weight: bold">' + plain2chem(line, false) + '</p>');
+		.html('<p style="text-align: center;font-size:1.5em; font-family: Inconsolata; font-weight: bold">' + label + '</p>');
 };
 
 function display_composite_legend() {
@@ -6486,9 +7267,14 @@ function display_composite_legend() {
 
 		let fitsData = fitsContainer[index];
 		let line = fitsData.LINE.trim();
+		let filter = fitsData.FILTER.trim();
 
-		if (line == "")
-			line = "line-" + (index + 1);
+		if (filter != "")
+			line = filter;
+		else {
+			if (line == "")
+				line = "line-" + (index + 1);
+		}
 
 		//<canvas id="LEG' + line + '" style="width:2em;height:1em;display:inline-block"></canvas>
 
@@ -6500,7 +7286,7 @@ function display_composite_legend() {
 			//strSelect += '<br><hr width="66%">' ;
 			strSelect += '<br><br>';
 
-		strLegend += '<div><div id="DIV' + line + '" style="width:5em;height:1em;display:inline-block"><img id="IMG' + line + '" src="" alt="linedash" width="100%" height="100%"></div><span style="font-size:100%; font-family:Inconsolata; color:' + colours[index] + ';">&nbsp■&nbsp</span><span style="font-size:100%; font-family:Helvetica; font-weight:bold; nocolor:' + colours[index] + ';">' + plain2chem(line, false) + '</span>&nbsp;' + strSelect + '</div>';
+		strLegend += '<div><div id="DIV' + line + '" style="width:5em;height:1em;display:inline-block"><img id="IMG' + line + '" src="" alt="linedash" width="100%" height="100%"></div><span style="font-size:100%; font-family:Inconsolata; color:' + colours[index] + ';">&nbsp;■&nbsp;</span><span style="font-size:100%; font-family:Helvetica; font-weight:bold; nocolor:' + colours[index] + ';">' + plain2chem(line, false) + '</span>&nbsp;' + strSelect + '</div>';
 	}
 
 	strLegend += '</div>';
@@ -6531,9 +7317,14 @@ function display_composite_legend() {
 	for (let index = 0; index < va_count; index++) {
 		let fitsData = fitsContainer[index];
 		let line = fitsData.LINE.trim();
+		let filter = fitsData.FILTER.trim();
 
-		if (line == "")
-			line = "line-" + (index + 1);
+		if (filter != "")
+			line = filter;
+		else {
+			if (line == "")
+				line = "line-" + (index + 1);
+		}
 
 		let lineCanvas = document.createElement('canvas');
 		lineCanvas.style.visibility = "hidden";
@@ -6577,6 +7368,15 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 	}
 	catch (e) { };
 
+	var zoom = d3.zoom()
+		.scaleExtent([1, 40])
+		.on("zoom", tiles_zoomed);
+
+	var drag = d3.drag()
+		.on("start", tiles_dragstarted)
+		.on("drag", tiles_dragmove)
+		.on("end", tiles_dragended);
+
 	var svg = d3.select("#FrontSVG");
 
 	//svg image rectangle for zooming-in
@@ -6589,6 +7389,8 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 		.attr("height", img_height)
 		.style('cursor', 'pointer')//'crosshair')//'none' to mask Chrome latency
 		.attr("opacity", 0.0)
+		.call(drag)
+		.call(zoom)
 		.on("click", function () {
 			if (isLocal) {
 				//parse window.location to get the value of filename<index>
@@ -6638,9 +7440,11 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			}
 		})
 		.on("mouseenter", function () {
+			hide_navigation_bar();
 			console.log("switching active view to", d3.select(this).attr("id"));
 
 			d3.select(this).moveToFront();
+			dragging = false;
 
 			var imageElements = document.getElementsByClassName("image_rectangle");
 
@@ -6652,7 +7456,130 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 
 				d3.select("#HTMLCanvas" + idx).style('z-index', i + 1);
 			}
+
+			var fitsData = fitsContainer[index - 1];
+
+			if (fitsData == null)
+				return;
+
+			if (imageContainer[index - 1] == null)
+				return;
+
+			let image_bounding_dims = imageContainer[index - 1].image_bounding_dims;
+
+			if (zoom_dims == null) {
+				zoom_dims = {
+					x1: image_bounding_dims.x1, y1: image_bounding_dims.y1, width: image_bounding_dims.width, height: image_bounding_dims.height, x0: image_bounding_dims.x1 + 0.5 * (image_bounding_dims.width - 1), y0: image_bounding_dims.y1 + 0.5 * (image_bounding_dims.height - 1),
+					rx: 0.5,
+					ry: 0.5,
+					view: null,
+					prev_view: null
+				};
+			}
+		})
+		.on("mouseleave", function () {
+			clearTimeout(idleMouse);
+
+			if (!d3.event.shiftKey)
+				windowLeft = true;
+
+			if (xradec != null) {
+				let fitsData = fitsContainer[va_count - 1];
+
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					d3.select("#ra").text(RadiansPrintHMS(xradec[0]));
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					d3.select("#ra").text(RadiansPrintDMS(xradec[0]));
+
+				d3.select("#dec").text(RadiansPrintDMS(xradec[1]));
+			}
+		})
+		.on("mousemove", function () {
+			//moving = true;
+			windowLeft = false;
+
+			if (zoom_dims == null)
+				return;
+
+			try {
+				var offset = d3.mouse(this);
+			}
+			catch (e) {
+				console.log(e);
+				return;
+			}
+
+			if (isNaN(offset[0]) || isNaN(offset[1]))
+				return;
+
+			mouse_position = { x: offset[0], y: offset[1] };
+
+			var fitsData = fitsContainer[index - 1];
+
+			if (fitsData == null)
+				return;
+
+			if (imageContainer[index - 1] == null)
+				return;
+
+			var imageCanvas = imageContainer[index - 1].imageCanvas;
+			var image_bounding_dims = imageContainer[index - 1].image_bounding_dims;
+
+			if (zoom_dims.view != null)
+				image_bounding_dims = zoom_dims.view;
+
+			if (dragging) {
+				var dx = d3.event.dx;
+				var dy = d3.event.dy;
+
+				dx *= image_bounding_dims.width / d3.select(this).attr("width");
+				dy *= image_bounding_dims.height / d3.select(this).attr("height");
+
+				image_bounding_dims.x1 = clamp(image_bounding_dims.x1 - dx, 0, imageCanvas.width - 1 - image_bounding_dims.width);
+				image_bounding_dims.y1 = clamp(image_bounding_dims.y1 - dy, 0, imageCanvas.height - 1 - image_bounding_dims.height);
+			}
+
+			var rx = (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width");
+			var ry = (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height");
+			var x = image_bounding_dims.x1 + rx * (image_bounding_dims.width - 1);
+			var y = image_bounding_dims.y1 + ry * (image_bounding_dims.height - 1);
+
+			zoom_dims.x0 = x;
+			zoom_dims.y0 = y;
+			zoom_dims.rx = rx;
+			zoom_dims.ry = ry;
+			//zoom_dims.view = { x1: image_bounding_dims.x1, y1: image_bounding_dims.y1, width: image_bounding_dims.width, height: image_bounding_dims.height };
+
+			var orig_x = x * fitsData.width / imageCanvas.width;
+			var orig_y = y * fitsData.height / imageCanvas.height;
+
+			try {
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					d3.select("#ra").text(x2ra(orig_x));
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					d3.select("#ra").text(x2glon(orig_x));
+
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					d3.select("#dec").text(y2dec(orig_y));
+			}
+			catch (err) {
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					d3.select("#ra").text(RadiansPrintHMS(radec[0]));
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					d3.select("#ra").text(RadiansPrintDMS(radec[0]));
+
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					d3.select("#dec").text(RadiansPrintDMS(radec[1]));
+			}
 		});
+
+	zoom.scaleTo(rect, zoom_scale);
 }
 
 function setup_image_selection() {
@@ -7051,21 +7978,35 @@ function setup_image_selection() {
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
 			var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-			var imageDataCopy = imageContainer[va_count - 1].imageDataCopy;
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
 			var orig_x = x * fitsData.width / imageCanvas.width;
 			var orig_y = y * fitsData.height / imageCanvas.height;
 
-			if (fitsData.CTYPE1.indexOf("RA") > -1)
-				d3.select("#ra").text(x2ra(orig_x));
+			try {
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					d3.select("#ra").text(x2ra(orig_x));
 
-			if (fitsData.CTYPE1.indexOf("GLON") > -1)
-				d3.select("#ra").text(x2glon(orig_x));
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					d3.select("#ra").text(x2glon(orig_x));
 
-			if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
-				d3.select("#dec").text(y2dec(orig_y));
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					d3.select("#dec").text(y2dec(orig_y));
+			}
+			catch (err) {
+				//use the CD scale matrix
+				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
+
+				if (fitsData.CTYPE1.indexOf("RA") > -1)
+					d3.select("#ra").text(RadiansPrintHMS(radec[0]));
+
+				if (fitsData.CTYPE1.indexOf("GLON") > -1)
+					d3.select("#ra").text(RadiansPrintDMS(radec[0]));
+
+				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1)
+					d3.select("#dec").text(RadiansPrintDMS(radec[1]));
+			}
 
 			//for each image
 			var pixelText = '';
@@ -7629,13 +8570,27 @@ function fetch_spectrum(datasetId, index, add_timestamp) {
 			if (index == va_count)
 				display_dataset_info();
 
+			if (va_count == 1 || composite_view) {
+				try {
+					if (index == va_count)
+						display_scale_info();
+				}
+				catch (err) {
+				};
+			};
+
 			display_histogram(index);
 
 			display_preferences(index);
 
 			display_legend();
 
-			display_gridlines();
+			try {
+				display_cd_gridlines();
+			}
+			catch (err) {
+				display_gridlines();
+			};
 
 			display_beam();
 
@@ -7734,6 +8689,125 @@ function fetch_contours(datasetId) {
 	xmlhttp.send();
 };
 
+function refresh_tiles(index) {
+	if (zoom_scale < 1)
+		return;
+
+	if (zoom_dims == null)
+		return;
+
+	if (zoom_dims.view == null)
+		return;
+
+	let image_bounding_dims = zoom_dims.view;
+
+	if (imageContainer[index - 1] == null)
+		return;
+
+	let imageCanvas = imageContainer[index - 1].imageCanvas;
+
+	var c = document.getElementById('HTMLCanvas' + index);
+	var width = c.width;
+	var height = c.height;
+	var ctx = c.getContext("2d");
+
+	ctx.mozImageSmoothingEnabled = false;
+	ctx.webkitImageSmoothingEnabled = false;
+	ctx.msImageSmoothingEnabled = false;
+	ctx.imageSmoothingEnabled = false;
+	//ctx.globalAlpha=0.9;
+
+	var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
+	scale = 2.0 * scale / va_count;
+
+	var img_width = scale * image_bounding_dims.width;
+	var img_height = scale * image_bounding_dims.height;
+
+	let image_position = get_image_position(index, width, height);
+	let posx = image_position.posx;
+	let posy = image_position.posy;
+
+	ctx.drawImage(imageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+}
+
+function tiles_dragstarted() {
+	console.log("drag started");
+
+	d3.select(this).style('cursor', 'move');
+
+	dragging = true;
+}
+
+function tiles_dragended() {
+	console.log("drag ended");
+
+	d3.select(this).style('cursor', 'pointer');
+
+	dragging = false;
+}
+
+function tiles_dragmove() {
+	console.log("drag move");
+
+	var elem = d3.select(this);
+	var onMouseMoveFunc = elem.on("mousemove");
+	elem.each(onMouseMoveFunc);
+
+	for (let i = 1; i <= va_count; i++)
+		refresh_tiles(i);
+
+	clearTimeout(idleMouse);
+	idleMouse = setTimeout(tileTimeout, 250);
+}
+
+function tiles_zoomed() {
+	console.log("scale: " + d3.event.transform.k);
+	zoom_scale = d3.event.transform.k;
+	moving = true;
+
+	if (zoom_dims == null)
+		return;
+
+	//rescale the image
+	let width = zoom_dims.width;
+	let height = zoom_dims.height;
+
+	let new_width = width / zoom_scale;
+	let new_height = height / zoom_scale;
+
+	let x0 = zoom_dims.x0;
+	let y0 = zoom_dims.y0;
+	let rx = zoom_dims.rx;
+	let ry = zoom_dims.ry;
+	let new_x1 = clamp(x0 - rx * new_width, 0, zoom_dims.width - 1 - new_width);
+	let new_y1 = clamp(y0 - ry * new_height, 0, zoom_dims.height - 1 - new_height);
+
+	zoom_dims.view = { x1: new_x1, y1: new_y1, width: new_width, height: new_height };
+	/*zoom_dims.view.x1 = new_x1;
+	zoom_dims.view.y1 = new_y1;
+	zoom_dims.view.width = new_width;
+	zoom_dims.view.height = new_height;*/
+
+	console.log("zoom_dims:", zoom_dims);
+
+	for (let i = 1; i <= va_count; i++) {
+		refresh_tiles(i);
+
+		clearTimeout(idleMouse);
+		idleMouse = setTimeout(tileTimeout, 250);
+
+		//keep zoom scale in sync across all images
+		try {
+			var elem = d3.select("#image_rectangle" + i);
+			elem.node().__zoom.k = zoom_scale;
+		} catch (e) { };
+	}
+
+	var tmp = d3.select(this);
+	var onMouseMoveFunc = tmp.on("mousemove");
+	tmp.each(onMouseMoveFunc);
+}
+
 function zoomed() {
 	console.log("scale: " + d3.event.transform.k);
 	zoom_scale = d3.event.transform.k;
@@ -7821,6 +8895,115 @@ function videoTimeout(freq) {
 
 		wsConn[0].send('[video] ' + strRequest + '&timestamp=' + performance.now());
 	};
+}
+
+function blink() {
+	if (stop_blinking)
+		return;
+
+	d3.select("#ping")
+		.transition()
+		.duration(250)
+		.attr("opacity", 0.0)
+		.transition()
+		.duration(250)
+		.attr("opacity", 1.0)
+		.on("end", blink);
+}
+
+function end_blink() {
+	stop_blinking = true;
+}
+
+function tileTimeout() {
+	console.log("tile inactive event");
+
+	moving = false;
+
+	if (zoom_dims == null) {
+		console.log("tileTimeout: zoom_dims == null");
+		return;
+	}
+
+	if (zoom_dims.view == null) {
+		console.log("tileTimeout: zoom_dims.view == null");
+		return;
+	}
+
+	let image_bounding_dims = zoom_dims.view;
+
+	if (mousedown || streaming || dragging) {
+		console.log("tileTimeout: mousedown:", mousedown, "streaming:", streaming, "dragging:", dragging);
+		return;
+	}
+
+	//do nothing if the view has not changed
+	if (zoom_dims.prev_view != null) {
+		let previous = zoom_dims.prev_view;
+
+		if (image_bounding_dims.x1 == previous.x1 && image_bounding_dims.y1 == previous.y1 && image_bounding_dims.width == previous.width && image_bounding_dims.height == previous.height) {
+			console.log("tileTimeout: zoom_dims.view == zoom_dims.prev_view");
+			console.log("previous:", previous, "view:", image_bounding_dims);
+			return;
+		}
+	}
+
+	zoom_dims.prev_view = { x1: image_bounding_dims.x1, y1: image_bounding_dims.y1, width: image_bounding_dims.width, height: image_bounding_dims.height };
+
+	viewport_count = 0;
+	sent_seq_id++;
+
+	var request_images = true;
+
+	for (let index = 0; index < va_count; index++) {
+		let img_width = image_bounding_dims.width;
+		let img_height = image_bounding_dims.height;
+
+		let elem = d3.select("#image_rectangle" + (index + 1));
+		let view_width = elem.attr("width");
+		let view_height = elem.attr("height");
+
+		let view_pixels = view_width * view_height;
+		let img_pixels = img_width * img_height;
+
+		console.log("viewport: " + view_width + "x" + view_height + " image: " + img_width + "x" + img_height + "view pixels: " + view_pixels + " img pixels: " + img_pixels);
+
+		let image = true;
+		let beam = "square";
+
+		if (img_pixels >= view_pixels)
+			image = false;
+
+		request_images = request_images && image;
+
+		//convert zoom_dims.view into real FITS coordinates of each dataset
+		var fitsData = fitsContainer[index];
+
+		if (fitsData == null)
+			continue;
+
+		if (imageContainer[index] == null)
+			continue;
+
+		var imageCanvas = imageContainer[index].imageCanvas;
+
+		let x1 = image_bounding_dims.x1 * fitsData.width / imageCanvas.width;
+		let y1 = (fitsData.height - 1) - image_bounding_dims.y1 * fitsData.height / imageCanvas.height;
+		let x2 = (image_bounding_dims.x1 + image_bounding_dims.width - 1) * fitsData.width / imageCanvas.width;
+		let y2 = (fitsData.height - 1) - (image_bounding_dims.y1 + image_bounding_dims.height - 1) * fitsData.height / imageCanvas.height;
+
+		var strRequest = 'x1=' + clamp(Math.round(x1), 0, fitsData.width - 1) + '&y1=' + clamp(Math.round(y2), 0, fitsData.height - 1) + '&x2=' + clamp(Math.round(x2), 0, fitsData.width - 1) + '&y2=' + clamp(Math.round(y1), 0, fitsData.height - 1) + '&image=' + (image ? 'true' : 'false') + '&beam=' + beam + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id + '&timestamp=' + performance.now();
+
+		console.log(strRequest);
+
+		wsConn[index].send('[spectrum] ' + strRequest);
+	}
+
+	if (request_images) {
+		//display_hourglass();
+		stop_blinking = false;
+		blink();
+	}
 }
 
 function imageTimeout() {
@@ -8394,127 +9577,129 @@ function display_menu() {
 		.attr("class", "dropdown-menu");
 
 	//SPLATALOGUE
-	var splatMenu = mainUL.append("li")
-		.attr("class", "dropdown");
+	if (!optical_view) {
+		var splatMenu = mainUL.append("li")
+			.attr("class", "dropdown");
 
-	splatMenu.append("a")
-		.attr("class", "dropdown-toggle")
-		.attr("data-toggle", "dropdown")
-		.style('cursor', 'pointer')
-		.html('Splatalogue <span class="caret"></span>');
+		splatMenu.append("a")
+			.attr("class", "dropdown-toggle")
+			.attr("data-toggle", "dropdown")
+			.style('cursor', 'pointer')
+			.html('Splatalogue <span class="caret"></span>');
 
-	var splatDropdown = splatMenu.append("ul")
-		.attr("class", "dropdown-menu");
+		var splatDropdown = splatMenu.append("ul")
+			.attr("class", "dropdown-menu");
 
-	splatDropdown.append("li")
-		.append("a")
-		.html('<label>intensity cutoff < <span id="intVal">' + displayIntensity.toFixed(1) + '</span> <input id="intensity" class="slider" type="range" min="-10" max="0" step="0.1" value="' + displayIntensity + '" onmousemove="javascript:change_intensity_threshold(false);" onchange="javascript:change_intensity_threshold(true);"/></label>');
+		splatDropdown.append("li")
+			.append("a")
+			.html('<label>intensity cutoff < <span id="intVal">' + displayIntensity.toFixed(1) + '</span> <input id="intensity" class="slider" type="range" min="-10" max="0" step="0.1" value="' + displayIntensity + '" onmousemove="javascript:change_intensity_threshold(false);" onchange="javascript:change_intensity_threshold(true);"/></label>');
 
-	var htmlStr;
+		var htmlStr;
 
-	htmlStr = displayCDMS ? '<span class="glyphicon glyphicon-check"></span> CDMS' : '<span class="glyphicon glyphicon-unchecked"></span> CDMS';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayCDMS = !displayCDMS;
-			localStorage_write_boolean("displayCDMS", displayCDMS);
-			var htmlStr = displayCDMS ? '<span class="glyphicon glyphicon-check"></span> CDMS' : '<span class="glyphicon glyphicon-unchecked"></span> CDMS';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayCDMS ? '<span class="glyphicon glyphicon-check"></span> CDMS' : '<span class="glyphicon glyphicon-unchecked"></span> CDMS';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayCDMS = !displayCDMS;
+				localStorage_write_boolean("displayCDMS", displayCDMS);
+				var htmlStr = displayCDMS ? '<span class="glyphicon glyphicon-check"></span> CDMS' : '<span class="glyphicon glyphicon-unchecked"></span> CDMS';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayJPL ? '<span class="glyphicon glyphicon-check"></span> JPL' : '<span class="glyphicon glyphicon-unchecked"></span> JPL';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayJPL = !displayJPL;
-			localStorage_write_boolean("displayJPL", displayJPL);
-			var htmlStr = displayJPL ? '<span class="glyphicon glyphicon-check"></span> JPL' : '<span class="glyphicon glyphicon-unchecked"></span> JPL';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayJPL ? '<span class="glyphicon glyphicon-check"></span> JPL' : '<span class="glyphicon glyphicon-unchecked"></span> JPL';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayJPL = !displayJPL;
+				localStorage_write_boolean("displayJPL", displayJPL);
+				var htmlStr = displayJPL ? '<span class="glyphicon glyphicon-check"></span> JPL' : '<span class="glyphicon glyphicon-unchecked"></span> JPL';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayLovas ? '<span class="glyphicon glyphicon-check"></span> Lovas' : '<span class="glyphicon glyphicon-unchecked"></span> Lovas';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayLovas = !displayLovas;
-			localStorage_write_boolean("displayLovas", displayLovas);
-			var htmlStr = displayLovas ? '<span class="glyphicon glyphicon-check"></span> Lovas' : '<span class="glyphicon glyphicon-unchecked"></span> Lovas';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayLovas ? '<span class="glyphicon glyphicon-check"></span> Lovas' : '<span class="glyphicon glyphicon-unchecked"></span> Lovas';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayLovas = !displayLovas;
+				localStorage_write_boolean("displayLovas", displayLovas);
+				var htmlStr = displayLovas ? '<span class="glyphicon glyphicon-check"></span> Lovas' : '<span class="glyphicon glyphicon-unchecked"></span> Lovas';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayOSU ? '<span class="glyphicon glyphicon-check"></span> OSU' : '<span class="glyphicon glyphicon-unchecked"></span> OSU';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayOSU = !displayOSU;
-			localStorage_write_boolean("displayOSU", displayOSU);
-			var htmlStr = displayOSU ? '<span class="glyphicon glyphicon-check"></span> OSU' : '<span class="glyphicon glyphicon-unchecked"></span> OSU';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayOSU ? '<span class="glyphicon glyphicon-check"></span> OSU' : '<span class="glyphicon glyphicon-unchecked"></span> OSU';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayOSU = !displayOSU;
+				localStorage_write_boolean("displayOSU", displayOSU);
+				var htmlStr = displayOSU ? '<span class="glyphicon glyphicon-check"></span> OSU' : '<span class="glyphicon glyphicon-unchecked"></span> OSU';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayRecomb ? '<span class="glyphicon glyphicon-check"></span> Recomb' : '<span class="glyphicon glyphicon-unchecked"></span> Recomb';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayRecomb = !displayRecomb;
-			localStorage_write_boolean("displayRecomb", displayRecomb);
-			var htmlStr = displayRecomb ? '<span class="glyphicon glyphicon-check"></span> Recomb' : '<span class="glyphicon glyphicon-unchecked"></span> Recomb';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayRecomb ? '<span class="glyphicon glyphicon-check"></span> Recomb' : '<span class="glyphicon glyphicon-unchecked"></span> Recomb';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayRecomb = !displayRecomb;
+				localStorage_write_boolean("displayRecomb", displayRecomb);
+				var htmlStr = displayRecomb ? '<span class="glyphicon glyphicon-check"></span> Recomb' : '<span class="glyphicon glyphicon-unchecked"></span> Recomb';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displaySLAIM ? '<span class="glyphicon glyphicon-check"></span> SLAIM' : '<span class="glyphicon glyphicon-unchecked"></span> SLAIM';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displaySLAIM = !displaySLAIM;
-			localStorage_write_boolean("displaySLAIM", displaySLAIM);
-			var htmlStr = displaySLAIM ? '<span class="glyphicon glyphicon-check"></span> SLAIM' : '<span class="glyphicon glyphicon-unchecked"></span> SLAIM';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displaySLAIM ? '<span class="glyphicon glyphicon-check"></span> SLAIM' : '<span class="glyphicon glyphicon-unchecked"></span> SLAIM';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displaySLAIM = !displaySLAIM;
+				localStorage_write_boolean("displaySLAIM", displaySLAIM);
+				var htmlStr = displaySLAIM ? '<span class="glyphicon glyphicon-check"></span> SLAIM' : '<span class="glyphicon glyphicon-unchecked"></span> SLAIM';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayTopModel ? '<span class="glyphicon glyphicon-check"></span> TopModel' : '<span class="glyphicon glyphicon-unchecked"></span> TopModel';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayTopModel = !displayTopModel;
-			localStorage_write_boolean("displayTopModel", displayTopModel);
-			var htmlStr = displayTopModel ? '<span class="glyphicon glyphicon-check"></span> TopModel' : '<span class="glyphicon glyphicon-unchecked"></span> TopModel';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayTopModel ? '<span class="glyphicon glyphicon-check"></span> TopModel' : '<span class="glyphicon glyphicon-unchecked"></span> TopModel';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayTopModel = !displayTopModel;
+				localStorage_write_boolean("displayTopModel", displayTopModel);
+				var htmlStr = displayTopModel ? '<span class="glyphicon glyphicon-check"></span> TopModel' : '<span class="glyphicon glyphicon-unchecked"></span> TopModel';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
 
-	htmlStr = displayToyaMA ? '<span class="glyphicon glyphicon-check"></span> ToyaMA' : '<span class="glyphicon glyphicon-unchecked"></span> ToyaMA';
-	splatDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayToyaMA = !displayToyaMA;
-			localStorage_write_boolean("displayToyaMA", displayToyaMA);
-			var htmlStr = displayToyaMA ? '<span class="glyphicon glyphicon-check"></span> ToyaMA' : '<span class="glyphicon glyphicon-unchecked"></span> ToyaMA';
-			d3.select(this).html(htmlStr);
-			display_molecules();
-		})
-		.html(htmlStr);
+		htmlStr = displayToyaMA ? '<span class="glyphicon glyphicon-check"></span> ToyaMA' : '<span class="glyphicon glyphicon-unchecked"></span> ToyaMA';
+		splatDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayToyaMA = !displayToyaMA;
+				localStorage_write_boolean("displayToyaMA", displayToyaMA);
+				var htmlStr = displayToyaMA ? '<span class="glyphicon glyphicon-check"></span> ToyaMA' : '<span class="glyphicon glyphicon-unchecked"></span> ToyaMA';
+				d3.select(this).html(htmlStr);
+				display_molecules();
+			})
+			.html(htmlStr);
+	}
 
 	//VIEW
 	var viewMenu = mainUL.append("li")
@@ -8530,16 +9715,17 @@ function display_menu() {
 		.attr("class", "dropdown-menu");
 
 	if (has_webgl) {
-		var htmlStr = '<span class="glyphicon glyphicon-eye-open"></span> 3D surface';
-		viewDropdown.append("li")
-			.append("a")
-			.style('cursor', 'pointer')
-			.on("click", function () {/*experimental = !experimental;
-				      localStorage_write_boolean("experimental", experimental) ;*/
-				init_surface();
+		if (va_count == 1 || composite_view) {
+			var htmlStr = '<span class="glyphicon glyphicon-eye-open"></span> 3D surface';
+			viewDropdown.append("li")
+				.append("a")
+				.style('cursor', 'pointer')
+				.on("click", function () {
+					init_surface();
 
-			})
-			.html(htmlStr);
+				})
+				.html(htmlStr);
+		}
 	}
 	else {
 		viewDropdown.append("li")
@@ -8548,23 +9734,6 @@ function display_menu() {
 			.style("font-style", "italic")
 			.style('cursor', 'not-allowed')
 			.html('<span class="glyphicon glyphicon-eye-close"></span> WebGL not enabled, disabling 3D surface');
-	}
-
-	//if(experimental)
-	if (false) {
-		var htmlStr = '<span class="glyphicon glyphicon-facetime-video"></span> FITS cube video';
-		viewDropdown.append("li")
-			.append("a")
-			.style('cursor', 'pointer')
-			.on("click", function () {/*experimental = !experimental;
-					localStorage_write_boolean("experimental", experimental) ;*/
-				//init_h265_video();
-				//init_h264_video();
-				//init_h264_media();
-				stream_h264();
-
-			})
-			.html(htmlStr);
 	}
 
 	if (va_count > 1 && va_count <= 3) {
@@ -8578,155 +9747,171 @@ function display_menu() {
 				var htmlStr = composite_view ? '<span class="glyphicon glyphicon-check"></span> RGB composite mode' : '<span class="glyphicon glyphicon-unchecked"></span> RGB composite mode';
 				d3.select(this).html(htmlStr);
 
-				var loc = window.location.href.replace("&view=composite", "");
+				var new_loc = window.location.href.replace("&view=", "&dummy=");
 
-				if (composite_view)
-					window.location.replace(loc + "&view=composite");
-				else
-					window.location.replace(loc);
+				if (composite_view && optical_view)
+					new_loc += "&view=composite,optical";
+				else {
+					if (composite_view)
+						new_loc += "&view=composite";
+
+					if (optical_view)
+						new_loc += "&view=optical";
+				}
+
+				window.location.replace(new_loc);
 			})
 			.html(htmlStr);
 	}
 
-	htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines';
-	viewDropdown.append("li")
-		.append("a")
-		.attr("id", "displayContours")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayContours = !displayContours;
-			var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines';
-			d3.select(this).html(htmlStr);
-			//var elem = d3.selectAll("#contourPlot");
+	if (va_count == 1 || composite_view) {
+		htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines';
+		viewDropdown.append("li")
+			.append("a")
+			.attr("id", "displayContours")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayContours = !displayContours;
+				var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines';
+				d3.select(this).html(htmlStr);
+				//var elem = d3.selectAll("#contourPlot");
 
-			if (displayContours) {
-				d3.select('#contour_control_li').style("display", "block");
-			}
-			else {
-				d3.select('#contour_control_li').style("display", "none");
-			}
+				if (displayContours) {
+					d3.select('#contour_control_li').style("display", "block");
+				}
+				else {
+					d3.select('#contour_control_li').style("display", "none");
+				}
 
-			if (displayContours) {
-				document.getElementById("ContourSVG").style.display = "block";
-				//elem.attr("opacity",1);
+				if (displayContours) {
+					document.getElementById("ContourSVG").style.display = "block";
+					//elem.attr("opacity",1);
 
-				//if(document.getElementById('contourPlot') == null)
-				if (!has_contours)
-					update_contours();
-			}
-			else {
-				document.getElementById("ContourSVG").style.display = "none";
-				//elem.attr("opacity",0);
-			}
-		})
-		.html(htmlStr);
+					//if(document.getElementById('contourPlot') == null)
+					if (!has_contours)
+						update_contours();
+				}
+				else {
+					document.getElementById("ContourSVG").style.display = "none";
+					//elem.attr("opacity",0);
+				}
+			})
+			.html(htmlStr);
+	}
 
-	htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
-	viewDropdown.append("li")
-		.append("a")
-		.attr("id", "displayGridlines")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayGridlines = !displayGridlines;
-			localStorage_write_boolean("displayGridlines", displayGridlines);
-			var htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
-			d3.select(this).html(htmlStr);
-			var elem = d3.select("#gridlines");
-			if (displayGridlines)
-				elem.attr("opacity", 1);
-			else
-				elem.attr("opacity", 0);
-		})
-		.html(htmlStr);
-
-	htmlStr = displayLegend ? '<span class="glyphicon glyphicon-check"></span> image legend' : '<span class="glyphicon glyphicon-unchecked"></span> image legend';
-	viewDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayLegend = !displayLegend;
-			var htmlStr = displayLegend ? '<span class="glyphicon glyphicon-check"></span> image legend' : '<span class="glyphicon glyphicon-unchecked"></span> image legend';
-			d3.select(this).html(htmlStr);
-
-			if (va_count == 1) {
-				var elem = d3.select("#legend");
-
-				if (displayLegend)
+	if (va_count == 1 || composite_view) {
+		htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
+		viewDropdown.append("li")
+			.append("a")
+			.attr("id", "displayGridlines")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayGridlines = !displayGridlines;
+				localStorage_write_boolean("displayGridlines", displayGridlines);
+				var htmlStr = displayGridlines ? '<span class="glyphicon glyphicon-check"></span> lon/lat grid lines' : '<span class="glyphicon glyphicon-unchecked"></span> lon/lat grid lines';
+				d3.select(this).html(htmlStr);
+				var elem = d3.select("#gridlines");
+				if (displayGridlines)
 					elem.attr("opacity", 1);
 				else
 					elem.attr("opacity", 0);
-			}
-			else {
-				for (let index = 1; index <= va_count; index++) {
-					var elem = d3.select("#legend" + index);
+			})
+			.html(htmlStr);
+
+		htmlStr = displayLegend ? '<span class="glyphicon glyphicon-check"></span> image legend' : '<span class="glyphicon glyphicon-unchecked"></span> image legend';
+		viewDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayLegend = !displayLegend;
+				localStorage_write_boolean("displayLegend", displayLegend);
+				var htmlStr = displayLegend ? '<span class="glyphicon glyphicon-check"></span> image legend' : '<span class="glyphicon glyphicon-unchecked"></span> image legend';
+				d3.select(this).html(htmlStr);
+
+				if (va_count == 1) {
+					var elem = d3.select("#legend");
 
 					if (displayLegend)
 						elem.attr("opacity", 1);
 					else
 						elem.attr("opacity", 0);
 				}
-			}
-		})
-		.html(htmlStr);
+				else {
+					for (let index = 1; index <= va_count; index++) {
+						var elem = d3.select("#legend" + index);
 
-	htmlStr = displayMolecules ? '<span class="glyphicon glyphicon-check"></span> spectral lines' : '<span class="glyphicon glyphicon-unchecked"></span> spectral lines';
-	viewDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayMolecules = !displayMolecules;
-			var htmlStr = displayMolecules ? '<span class="glyphicon glyphicon-check"></span> spectral lines' : '<span class="glyphicon glyphicon-unchecked"></span> spectral lines';
-			d3.select(this).html(htmlStr);
-			var elem = d3.select("#molecules");
-			if (displayMolecules)
-				elem.attr("opacity", 1);
-			else
-				elem.attr("opacity", 0);
-		})
-		.html(htmlStr);
+						if (displayLegend)
+							elem.attr("opacity", 1);
+						else
+							elem.attr("opacity", 0);
+					}
+				}
+			})
+			.html(htmlStr);
+	}
 
-	htmlStr = displaySpectrum ? '<span class="glyphicon glyphicon-check"></span> spectrum' : '<span class="glyphicon glyphicon-unchecked"></span> spectrum';
-	viewDropdown.append("li")
-		.append("a")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displaySpectrum = !displaySpectrum;
-			var htmlStr = displaySpectrum ? '<span class="glyphicon glyphicon-check"></span> spectrum' : '<span class="glyphicon glyphicon-unchecked"></span> spectrum';
-			d3.select(this).html(htmlStr);
-			var elem = document.getElementById("SpectrumCanvas");
-			if (displaySpectrum) {
-				elem.style.display = "block";
-				d3.select("#yaxis").attr("opacity", 1);
-				d3.select("#ylabel").attr("opacity", 1);
-			}
-			else {
-				elem.style.display = "none";
-				d3.select("#yaxis").attr("opacity", 0);
-				d3.select("#ylabel").attr("opacity", 0);
-			}
-		})
-		.html(htmlStr);
+	if (!optical_view) {
+		htmlStr = displayMolecules ? '<span class="glyphicon glyphicon-check"></span> spectral lines' : '<span class="glyphicon glyphicon-unchecked"></span> spectral lines';
+		viewDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displayMolecules = !displayMolecules;
+				var htmlStr = displayMolecules ? '<span class="glyphicon glyphicon-check"></span> spectral lines' : '<span class="glyphicon glyphicon-unchecked"></span> spectral lines';
+				d3.select(this).html(htmlStr);
+				var elem = d3.select("#molecules");
+				if (displayMolecules)
+					elem.attr("opacity", 1);
+				else
+					elem.attr("opacity", 0);
+			})
+			.html(htmlStr);
 
-	htmlStr = displayBeam ? '<span class="glyphicon glyphicon-check"></span> telescope beam' : '<span class="glyphicon glyphicon-unchecked"></span> telescope beam';
-	viewDropdown.append("li")
-		.append("a")
-		.attr("id", "displayBeam")
-		.style('cursor', 'pointer')
-		.on("click", function () {
-			displayBeam = !displayBeam;
-			var htmlStr = displayBeam ? '<span class="glyphicon glyphicon-check"></span> telescope beam' : '<span class="glyphicon glyphicon-unchecked"></span> telescope beam';
-			d3.select(this).html(htmlStr);
+		htmlStr = displaySpectrum ? '<span class="glyphicon glyphicon-check"></span> spectrum' : '<span class="glyphicon glyphicon-unchecked"></span> spectrum';
+		viewDropdown.append("li")
+			.append("a")
+			.style('cursor', 'pointer')
+			.on("click", function () {
+				displaySpectrum = !displaySpectrum;
+				var htmlStr = displaySpectrum ? '<span class="glyphicon glyphicon-check"></span> spectrum' : '<span class="glyphicon glyphicon-unchecked"></span> spectrum';
+				d3.select(this).html(htmlStr);
+				var elem = document.getElementById("SpectrumCanvas");
+				if (displaySpectrum) {
+					elem.style.display = "block";
+					d3.select("#yaxis").attr("opacity", 1);
+					d3.select("#ylabel").attr("opacity", 1);
+				}
+				else {
+					elem.style.display = "none";
+					d3.select("#yaxis").attr("opacity", 0);
+					d3.select("#ylabel").attr("opacity", 0);
+				}
+			})
+			.html(htmlStr);
 
-			if (displayBeam) {
-				d3.select("#beam").attr("opacity", 1);
-				d3.select("#zoomBeam").attr("opacity", 1);
-			}
-			else {
-				d3.select("#beam").attr("opacity", 0);
-				d3.select("#zoomBeam").attr("opacity", 0);
-			}
-		})
-		.html(htmlStr);
+		if (va_count == 1 || composite_view) {
+			htmlStr = displayBeam ? '<span class="glyphicon glyphicon-check"></span> telescope beam' : '<span class="glyphicon glyphicon-unchecked"></span> telescope beam';
+			viewDropdown.append("li")
+				.append("a")
+				.attr("id", "displayBeam")
+				.style('cursor', 'pointer')
+				.on("click", function () {
+					displayBeam = !displayBeam;
+					var htmlStr = displayBeam ? '<span class="glyphicon glyphicon-check"></span> telescope beam' : '<span class="glyphicon glyphicon-unchecked"></span> telescope beam';
+					d3.select(this).html(htmlStr);
+
+					if (displayBeam) {
+						d3.select("#beam").attr("opacity", 1);
+						d3.select("#zoomBeam").attr("opacity", 1);
+					}
+					else {
+						d3.select("#beam").attr("opacity", 0);
+						d3.select("#zoomBeam").attr("opacity", 0);
+					}
+				})
+				.html(htmlStr);
+		}
+	}
 
 	//HELP
 	var rightUL = main.append("ul")
@@ -9490,10 +10675,11 @@ function display_rgb_legend() {
 			.append('rect')
 			.attr("x", x)
 			.attr("y", function (d, i) { return (0.9 * height - (i + 1) * rectHeight); })
-			.attr("height", rectHeight)
+			.attr("height", (rectHeight + 1))
 			.attr("width", rectWidth)
-			.attr("stroke", strokeColour)
-			.attr("stroke-width", 0.1)
+			//.attr("stroke", strokeColour)
+			//.attr("stroke-width", 0.1)
+			.attr("stroke", "none")
 			//.attr('fill', function(d, i) { return pixel2rgba(1.0*d, index-1, 0.8);});
 			.attr('fill', function (d, i) { return interpolate_colourmap(d, rgb[index - 1], 0.8); });
 
@@ -9535,28 +10721,52 @@ function display_rgb_legend() {
 
 		let fitsData = fitsContainer[index - 1];
 
-		var bunit;
+		var bunit = '';
 		if (fitsData.BUNIT != '') {
 			bunit = fitsData.BUNIT.trim();
 
 			if (fitsData.depth > 1 && has_velocity_info)
 				bunit += '•km/s';
+
+			bunit = "[" + bunit + "]";
 		}
-		else
-			bunit = 'N/A';
 
 		let line = fitsData.LINE.trim();
+		let filter = fitsData.FILTER.trim();
 
-		if (line == "")
-			line = "line-" + index;
+		if (filter != "")
+			line = filter;
+		else {
+			if (line == "")
+				line = "line-" + index;
+		}
 
 		group.append("foreignObject")
 			.attr("x", (x + 0.0 * rectWidth))
 			.attr("y", 0.9 * height + 0.75 * emFontSize)
 			.attr("width", 5 * emFontSize)
-			.attr("height", 2 * emFontSize)
+			.attr("height", 3 * emFontSize)
 			.append("xhtml:div")
-			.html('<p style="text-align: left">' + plain2chem(line, false) + '&nbsp[' + bunit + ']</p>');
+			.html('<p style="text-align: left">' + plain2chem(line, false) + '&nbsp;' + bunit + '</p>');
+	}
+
+	if (va_count == 1) {
+		var elem = d3.select("#legend");
+
+		if (displayLegend)
+			elem.attr("opacity", 1);
+		else
+			elem.attr("opacity", 0);
+	}
+	else {
+		for (let index = 1; index <= va_count; index++) {
+			var elem = d3.select("#legend" + index);
+
+			if (displayLegend)
+				elem.attr("opacity", 1);
+			else
+				elem.attr("opacity", 0);
+		}
 	}
 }
 
@@ -9658,10 +10868,11 @@ function display_legend() {
 		.append('rect')
 		.attr("x", x)
 		.attr("y", function (d, i) { return (0.9 * height - (i + 1) * rectHeight); })
-		.attr("height", rectHeight)
+		.attr("height", (rectHeight + 1))
 		.attr("width", rectWidth)
-		.attr("stroke", strokeColour)
-		.attr("stroke-width", 0.1)
+		//.attr("stroke", strokeColour)
+		//.attr("stroke-width", 0.1)
+		.attr("stroke", "none")
 		.attr('fill', function (d, i) { return interpolate_colourmap(d, colourmap, 1.0); });
 
 	var colourScale = d3.scaleLinear()
@@ -9702,15 +10913,15 @@ function display_legend() {
 
 	let fitsData = fitsContainer[va_count - 1];
 
-	var bunit;
+	var bunit = '';
 	if (fitsData.BUNIT != '') {
 		bunit = fitsData.BUNIT.trim();
 
 		if (fitsData.depth > 1 && has_velocity_info)
 			bunit += '•km/s';
+
+		bunit = "[" + bunit + "]";
 	}
-	else
-		bunit = 'N/A';
 
 	group.append("text")
 		.attr("id", "colourlabel")
@@ -9721,28 +10932,26 @@ function display_legend() {
 		.attr("text-anchor", "middle")
 		.attr("stroke", "none")
 		.attr("opacity", 0.8)
-		.text("[" + bunit + "]");
+		.text(bunit);
 
-	//add a close button
-    /*var svg = d3.select("#FrontSVG") ;    
-    svg.append("foreignObject")
-	.attr("id", "legendButton")
-	.attr("x", x-1.5*emFontSize)
-	.attr("y", 0.1*height-0.5*emFontSize)
-	.attr("width", 2*emFontSize)
-	.attr("height", 2*emFontSize)
-	.attr("opacity", 1.0)
-	.append("xhtml:div")
-	.attr("id", "legendClose")
-	.attr("class", "container-fluid")	
-	.append("button")
-	.attr("class", "btn btn-default btn-xs")	
-	.on("click", function() {
-	    var legend = d3.select("#legend");
-	    var opacity = legend.attr("opacity") ;	    
-	    legend.attr("opacity",1-opacity);
-	})	
-	.html("×") ;*/
+	if (va_count == 1) {
+		var elem = d3.select("#legend");
+
+		if (displayLegend)
+			elem.attr("opacity", 1);
+		else
+			elem.attr("opacity", 0);
+	}
+	else {
+		for (let index = 1; index <= va_count; index++) {
+			var elem = d3.select("#legend" + index);
+
+			if (displayLegend)
+				elem.attr("opacity", 1);
+			else
+				elem.attr("opacity", 0);
+		}
+	}
 }
 
 function get_slope_from_multiplier(value) {
@@ -9828,197 +11037,9 @@ function localStorage_write_boolean(key, value) {
 function transpose(m) { return zeroFill(m.reduce(function (m, r) { return Math.max(m, r.length) }, 0)).map(function (r, i) { return zeroFill(m.length).map(function (c, j) { return m[j][i] }) }) } function zeroFill(n) { return new Array(n + 1).join("0").split("").map(Number) };
 
 function contour_surface() {
-	//return contour_surface_conrec() ;
 	//return contour_surface_marching_squares() ;
 	return contour_surface_webworker();
 };
-
-function contour_surface_conrec() {
-	if (va_count > 1 && !composite_view)
-		return;
-
-	has_contours = false;
-
-	try {
-		d3.select('#contourPlot').remove();
-	}
-	catch (e) { };
-
-	var data = [];
-
-	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-	var imageDataCopy = imageContainer[va_count - 1].imageDataCopy;
-	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-
-	if (composite_view) {
-		imageCanvas = compositeCanvas;
-		imageDataCopy = compositeImageData.data;
-	}
-
-	let min_value = 255;
-	let max_value = 0;
-
-	//for(var h=0;h<image_bounding_dims.height;h++)
-	for (var h = image_bounding_dims.height - 1; h >= 0; h--) {
-		var row = [];
-
-		var xcoord = image_bounding_dims.x1;
-		var ycoord = image_bounding_dims.y1 + h;
-		var pixel = 4 * (ycoord * imageCanvas.width + xcoord);
-
-		for (var w = 0; w < image_bounding_dims.width; w++) {
-			//var z = imageDataCopy[pixel];	    
-			var r = imageDataCopy[pixel];
-			var g = imageDataCopy[pixel + 1];
-			var b = imageDataCopy[pixel + 2];
-			var z = (r + g + b) / 3;
-			pixel += 4;
-
-			if (z < min_value)
-				min_value = z;
-
-			if (z > max_value)
-				max_value = z;
-
-			row.push(z);
-		}
-
-		data.push(row);
-	}
-
-	//need to transpose the data
-	data = transpose(data);
-
-	//console.log(data);
-
-	// Add a "cliff edge" to force contour lines to close along the border.
-    /*var cliff = -1000;
-    data.push(d3.range(data[0].length).map(function() { return cliff; }));
-    data.unshift(d3.range(data[0].length).map(function() { return cliff; }));
-    data.forEach(function(d) {
-	d.push(cliff);
-	d.unshift(cliff);
-    });*/
-
-	//console.log("min_pixel:", min_pixel, "max_pixel:", max_pixel) ;
-	console.log("min_value:", min_value, "max_value:", max_value);
-
-	var xs = d3.range(0, data.length);
-	var ys = d3.range(0, data[0].length);
-
-	var contours = parseInt(document.getElementById('contour_lines').value) + 1;
-	var step = (max_value - min_value) / contours;
-	var zs = d3.range(min_value + step, max_value, step);
-
-	console.log(xs);
-	console.log(ys);
-	console.log(zs);
-
-	var c = new Conrec;
-
-	c.contour(data, 0, xs.length - 1, 0, ys.length - 1, xs, ys, zs.length, zs);
-
-	console.log(c.contourList());
-
-	//return ;
-
-    /*var data = [[0, 1, 0], [1, 2, 1], [0, 1, 0]];
-    var data = [[1, 1, 1], [1, 0, 1], [0, 2, 0]];
-    var c = new Conrec;
-    c.contour(data, 0, 2, 0, 2, [1, 2, 3], [1, 2, 3], 3, [0, 1, 2]);*/
-
-	var elem = d3.select("#image_rectangle");
-	var width = parseFloat(elem.attr("width"));
-	var height = parseFloat(elem.attr("height"));
-
-	var x = d3.scaleLinear()
-		.range([0, width])
-		.domain([0, data.length]);
-
-	var y = d3.scaleLinear()
-		.range([height, 0])
-		.domain([0, data[0].length]);
-
-	var colours = d3.scaleLinear()
-		.domain([min_value, max_value])
-		.range(["#fff", "red"]);
-
-	displayContours = true;
-	var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines';
-	d3.select("#displayContours").html(htmlStr);
-
-	d3.select("#BackgroundSVG").append("svg")
-		.attr("id", "contourPlot")
-		.attr("x", elem.attr("x"))
-		.attr("y", elem.attr("y"))
-		.attr("width", width)
-		.attr("height", height)
-		.selectAll("path")
-		.data(c.contourList())
-		.enter().append("path")
-		//.style("fill",function(d) { return colours(d.level);})
-		.style("fill", "none")
-		.style("stroke", "black")
-		.attr("opacity", 0.5)
-		.attr("d", d3.line()
-			.x(function (d) { return x(d.x); })
-			.y(function (d) { return y(d.y); }));
-
-	//HTML5 Canvas API
-    /*
-    {
-	var elem = d3.select("#image_rectangle") ;    
-	var width = parseFloat(elem.attr("width"));
-	var height = parseFloat(elem.attr("height"));
-
-	var x_offset = parseFloat(elem.attr("x"));
-	var y_offset = parseFloat(elem.attr("y"));
-	
-	var x = d3.scaleLinear()
-	    .range([x_offset+0, x_offset+width])
-	    .domain([0, data.length]) ;
-	
-	var y = d3.scaleLinear()
-	    .range([y_offset+height, y_offset+0])
-	    .domain([0, data[0].length]) ;
-
-	var canvas = document.getElementById("ContourCanvas") ;
-	var ctx = canvas.getContext('2d') ;
-
-	var width = canvas.width ;
-	var height = canvas.height ;
-	ctx.clearRect(0, 0, width, height);
-	
-	var paths = c.contourList();	
-		    
-	for(var i=0;i<paths.length;i++)
-	{
-	    var path = paths[i];
-	    //console.log(path, path.length) ;
-
-	    var xCoord = x(path[0].x) ;
-	    var yCoord = y(path[0].y) ;
-	    
-	    ctx.beginPath();
-	    ctx.moveTo(xCoord,yCoord) ;	    	        	    
-
-	    for(var j=1;j<path.length;j++)
-	    {
-		var xCoord = x(path[j].x);
-		var yCoord = y(path[j].y);				    
-		ctx.lineTo(xCoord,yCoord) ;
-	    }
-
-	    ctx.strokeStyle = "rgba(0,0,0,0.5)" ;//black
-	    ctx.lineWidth = 0.5;
-		    
-	    ctx.stroke();	    
-	    ctx.closePath();
-	}		    	
-    }*/
-
-	has_contours = true;
-}
 
 function contour_surface_marching_squares() {
 	if (va_count > 1 && !composite_view)
@@ -10078,15 +11099,10 @@ function contour_surface_marching_squares() {
 	//console.log("min_pixel:", min_pixel, "max_pixel:", max_pixel) ;
 	console.log("min_value:", min_value, "max_value:", max_value);
 
-	var xs = d3.range(0, data[0].length);
-	var ys = d3.range(0, data.length);
-
 	var contours = parseInt(document.getElementById('contour_lines').value) + 1;
 	var step = (max_value - min_value) / contours;
 	var zs = d3.range(min_value + step, max_value, step);
 
-	console.log(xs);
-	console.log(ys);
 	console.log(zs);
 
 	var isoBands = [];
@@ -10108,12 +11124,12 @@ function contour_surface_marching_squares() {
 	var height = parseFloat(elem.attr("height"));
 
 	var x = d3.scaleLinear()
-		.range([0, width])
-		.domain([0, data[0].length]);
+		.range([0, width - 1])
+		.domain([0, data[0].length - 1]);
 
 	var y = d3.scaleLinear()
-		.range([height, 0])
-		.domain([0, data.length]);
+		.range([height, 1])
+		.domain([0, data.length - 1]);
 
 	var colours = d3.scaleLinear()
 		.domain([min_value, max_value])
@@ -10229,20 +11245,11 @@ function contour_surface_webworker() {
 	//console.log("min_pixel:", min_pixel, "max_pixel:", max_pixel) ;
 	console.log("min_value:", min_value, "max_value:", max_value);
 
-	var xs = d3.range(0, data[0].length);
-	var ys = d3.range(0, data.length);
-
 	var contours = parseInt(document.getElementById('contour_lines').value) + 1;
 	var step = (max_value - min_value) / contours;
 	var zs = d3.range(min_value + step, max_value, step);
-	//var zs = d3.range(min_value, max_value+step, step);
-    /*var zs = [] ;
-    for(var i=min_value; i<max_value+step; i += step)
-	zs.push(i) ;*/
 
-	console.log(xs);
-	console.log(ys);
-	console.log(zs);
+	console.log("zs:", zs);
 
 	var completed_levels = 0;
 	//parallel isoBands    
@@ -10265,12 +11272,12 @@ function contour_surface_webworker() {
 			var height = parseFloat(elem.attr("height"));
 
 			var x = d3.scaleLinear()
-				.range([0, width])
-				.domain([0, data[0].length]);
+				.range([0, width - 1])
+				.domain([0, data[0].length - 1]);
 
 			var y = d3.scaleLinear()
-				.range([height, 0])
-				.domain([0, data.length]);
+				.range([height, 1])
+				.domain([0, data.length - 1]);
 
 			var colours = d3.scaleLinear()
 				.domain([min_value, max_value])
@@ -10313,15 +11320,6 @@ function contour_surface_webworker() {
 	};
 
 	has_contours = true;
-}
-
-function contour_surface_test() {
-	var data = [[0, 1, 0], [1, 2, 1], [0, 1, 0]];
-	var c = new Conrec;
-	c.contour(data, 0, 2, 0, 2, [1, 2, 3], [1, 2, 3], 3, [0, 1, 2]);
-	// c.contours will now contain vectors in the form of doubly-linked lists.
-	// c.contourList() will return an array of vectors in the form of arrays.
-	console.log(c.contourList());
 }
 
 function test_webgl_support() {
@@ -10427,9 +11425,6 @@ function enable_3d_view() {
 }
 
 async*/ function mainRenderer() {
-    /*sessionID = generateUid() ;
-    console.log("sessionID:", sessionID) ;*/
-
 	try {
 		enable_3d_view();
 	}
@@ -10551,6 +11546,9 @@ async*/ function mainRenderer() {
 	composite_view = (parseInt(votable.getAttribute('data-composite')) == 1) ? true : false;
 	console.log("composite view:", composite_view);
 
+	optical_view = (votable.getAttribute('data-is-optical') == "true");
+	console.log("optical view:", optical_view);
+
 	if (firstTime) {
 		fps = 60;//target fps; 60 is OK in Chrome but a bit laggish in Firefox
 		fpsInterval = 1000 / fps;
@@ -10608,6 +11606,7 @@ async*/ function mainRenderer() {
 		image_stack = [];
 		video_stack = [];
 		viewport_zoom_settings = null;
+		zoom_dims = null;
 		zoom_location = 'lower';
 		zoom_scale = 25;
 		xradec = null;
@@ -10655,7 +11654,7 @@ async*/ function mainRenderer() {
 		last_spectrum = null;
 
 		displayContours = false;
-		displayLegend = true;
+		displayLegend = localStorage_read_boolean("displayLegend", true);
 		displayMolecules = true;
 		displaySpectrum = true;
 		//displayGridlines = false ;
@@ -10724,6 +11723,9 @@ async*/ function mainRenderer() {
 			console.log('LINE GROUP:', datasetId);
 
 			//datasetId = votable.getAttribute('data-datasetId1') ;
+
+			if (!composite_view)
+				zoom_scale = 1;
 		}
 
 		var rect = document.getElementById('mainDiv').getBoundingClientRect();
