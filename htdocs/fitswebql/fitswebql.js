@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-01-31.4";
+	return "JS2019-02-04.4";
 }
 
 const wasm_supported = (() => {
@@ -796,6 +796,11 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 			add_line_label(index);
 
 			setup_image_selection_index(index, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+
+			//trigger a tileTimeout
+			if (zoom_dims != null)
+				if (zoom_dims.view != null)
+					tileTimeout(true);
 		}
 		else
 		//add a channel to the RGB composite image
@@ -981,7 +986,7 @@ function process_viewport_canvas(viewportCanvas, index) {
 			end_blink();
 		}
 
-		if (dragging || moving)
+		if ((recv_seq_id < sent_seq_id) || dragging || moving)
 			return;
 
 		//place the viewport onto the image tile
@@ -996,9 +1001,14 @@ function process_viewport_canvas(viewportCanvas, index) {
 		ctx.imageSmoothingEnabled = false;
 		//ctx.globalAlpha=0.9;
 
-		let elem = d3.select("#image_rectangle" + index);
-		let img_width = elem.attr("width");
-		let img_height = elem.attr("height");
+		let img_width = 0, img_height = 0;
+		try {
+			let elem = d3.select("#image_rectangle" + index);
+			img_width = elem.attr("width");
+			img_height = elem.attr("height");
+		} catch (err) {
+			return;
+		}
 
 		let image_position = get_image_position(index, width, height);
 		let posx = image_position.posx;
@@ -1074,7 +1084,7 @@ function process_viewport_canvas(viewportCanvas, index) {
 	}
 }
 
-function process_viewport(width, height, w, h, bytes, stride, alpha, index) {
+function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap_dims = true) {
 	if (streaming)
 		return;
 
@@ -1097,7 +1107,7 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index) {
 	var _h = h;
 	var _stride = stride;
 
-	if (width < height) {
+	if (width < height && swap_dims) {
 		//re-arrange the bytes array
 		buffer = new Uint8Array(w * h);
 
@@ -1153,7 +1163,7 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index) {
 			end_blink();
 		}
 
-		if (dragging || moving)
+		if ((recv_seq_id < sent_seq_id) || dragging || moving)
 			return;
 
 		//place the viewport onto the image tile
@@ -1168,9 +1178,14 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index) {
 		ctx.imageSmoothingEnabled = false;
 		//ctx.globalAlpha=0.9;
 
-		let elem = d3.select("#image_rectangle" + index);
-		let img_width = elem.attr("width");
-		let img_height = elem.attr("height");
+		let img_width = 0, img_height = 0;
+		try {
+			let elem = d3.select("#image_rectangle" + index);
+			img_width = elem.attr("width");
+			img_height = elem.attr("height");
+		} catch (err) {
+			return;
+		}
 
 		let image_position = get_image_position(index, width, height);
 		let posx = image_position.posx;
@@ -1368,7 +1383,7 @@ function open_websocket_connection(datasetId, index) {
 					var dv = new DataView(received_msg);
 
 					latency = performance.now() - dv.getFloat32(0, endianness);
-					//console.log("[ws] latency = " + latency.toFixed(1) + " [ms]") ;
+					//console.log("[ws] latency = " + latency.toFixed(1) + " [ms]") ;					
 					recv_seq_id = dv.getUint32(4, endianness);
 					var type = dv.getUint32(8, endianness);
 
@@ -1386,50 +1401,6 @@ function open_websocket_connection(datasetId, index) {
 							spectrum_stack[index - 1].push({ spectrum: spectrum, id: recv_seq_id });
 							console.log("index:", index, "spectrum_stack length:", spectrum_stack[index - 1].length);
 						};
-
-						//handle spectrum display here ??? (Safari had problems with the event loop)
-						/*try {
-							let go_ahead = true ;
-							let new_seq_id = 0 ;
-							
-							for(let index=0;index<va_count;index++)
-							{
-								let len = spectrum_stack[index].length ;
-								
-								if(len > 0)
-								{
-								let id = spectrum_stack[index][len-1].id ;			
-					
-								if(id <= last_seq_id)
-									go_ahead = false ;
-								else
-									new_seq_id = Math.max(new_seq_id, id) ;
-								}
-								else
-								go_ahead = false ;
-							}
-					
-							if(go_ahead)
-							{
-								last_seq_id = new_seq_id ;
-								console.log("last_seq_id:", last_seq_id) ;
-					
-								//pop all <va_count> spectrum stacks
-								var data = [] ;
-					
-								for(let index=0;index<va_count;index++)
-								data.push(spectrum_stack[index].pop().spectrum) ;
-								
-								plot_spectrum(data) ;
-								replot_y_axis() ;
-					
-								last_spectrum = data ;
-							}		
-							
-							}
-							catch (e) {
-							console.log(e) ;
-							}*/
 
 						return;
 					}
@@ -1594,7 +1565,7 @@ function open_websocket_connection(datasetId, index) {
 									api.hevc_destroy();
 								} catch (e) { };
 
-								process_viewport(width, height, bytes, width, alpha, index);
+								process_viewport(width, height, width, height, bytes, width, alpha, index, false);
 
 								Module._free(bytes_ptr);
 							}
@@ -4519,6 +4490,13 @@ function change_colourmap(index, recursive) {
 				change_colourmap(i, false);
 			}
 	}
+
+	//trigger a tileTimeout
+	if (recursive) {
+		if (zoom_dims != null)
+			if (zoom_dims.view != null)
+				tileTimeout(true);
+	}
 }
 
 function add_histogram_line(g, pos, width, height, offset, info, position, addLine, index) {
@@ -7370,12 +7348,63 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 
 	var zoom = d3.zoom()
 		.scaleExtent([1, 40])
-		.on("zoom", tiles_zoomed);
+		.on("zoom", tiles_zoom)
+		.on("end", tiles_zoomended);
 
 	var drag = d3.drag()
 		.on("start", tiles_dragstarted)
 		.on("drag", tiles_dragmove)
 		.on("end", tiles_dragended);
+
+	//set up the spectrum rendering loop
+	function update_spectrum() {
+
+		if (!windowLeft)
+			requestAnimationFrame(update_spectrum);
+
+		//spectrum
+		try {
+			let go_ahead = true;
+			let new_seq_id = 0;
+
+			for (let index = 0; index < va_count; index++) {
+				let len = spectrum_stack[index].length;
+
+				if (len > 0) {
+					let id = spectrum_stack[index][len - 1].id;
+
+					if (id <= last_seq_id)
+						go_ahead = false;
+					else
+						new_seq_id = Math.max(new_seq_id, id);
+				}
+				else
+					go_ahead = false;
+			}
+
+			if (go_ahead) {
+				last_seq_id = new_seq_id;
+				console.log("last_seq_id:", last_seq_id);
+
+				//pop all <va_count> spectrum stacks
+				var data = [];
+
+				for (let index = 0; index < va_count; index++) {
+					data.push(spectrum_stack[index].pop().spectrum);
+					spectrum_stack[index] = [];
+				}
+
+				plot_spectrum(data);
+				replot_y_axis();
+
+				last_spectrum = data;
+			}
+
+		}
+		catch (e) {
+			console.log(e);
+		}
+	}
 
 	var svg = d3.select("#FrontSVG");
 
@@ -7446,6 +7475,14 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			d3.select(this).moveToFront();
 			dragging = false;
 
+			windowLeft = false;
+
+			spectrum_stack = new Array(va_count);
+			for (let i = 0; i < va_count; i++)
+				spectrum_stack[i] = [];
+
+			requestAnimationFrame(update_spectrum);
+
 			var imageElements = document.getElementsByClassName("image_rectangle");
 
 			for (let i = 0; i < imageElements.length; i++) {
@@ -7478,10 +7515,11 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			}
 		})
 		.on("mouseleave", function () {
-			clearTimeout(idleMouse);
+			windowLeft = true;
 
-			if (!d3.event.shiftKey)
-				windowLeft = true;
+			spectrum_stack = new Array(va_count);
+			for (let i = 0; i < va_count; i++)
+				spectrum_stack[i] = [];
 
 			if (xradec != null) {
 				let fitsData = fitsContainer[va_count - 1];
@@ -8744,6 +8782,9 @@ function tiles_dragended() {
 	d3.select(this).style('cursor', 'pointer');
 
 	dragging = false;
+
+	//do not wait, call tileTimeout immediately
+	tileTimeout();
 }
 
 function tiles_dragmove() {
@@ -8753,14 +8794,21 @@ function tiles_dragmove() {
 	var onMouseMoveFunc = elem.on("mousemove");
 	elem.each(onMouseMoveFunc);
 
-	for (let i = 1; i <= va_count; i++)
-		refresh_tiles(i);
-
-	clearTimeout(idleMouse);
-	idleMouse = setTimeout(tileTimeout, 250);
+	for (let i = 1; i <= va_count; i++) {
+		requestAnimationFrame(function () {
+			refresh_tiles(i);
+		});
+	}
 }
 
-function tiles_zoomed() {
+function tiles_zoomended() {
+	console.log("zoom end");
+
+	//do not wait, call tileTimeout immediately
+	tileTimeout();
+}
+
+function tiles_zoom() {
 	console.log("scale: " + d3.event.transform.k);
 	zoom_scale = d3.event.transform.k;
 	moving = true;
@@ -8783,18 +8831,13 @@ function tiles_zoomed() {
 	let new_y1 = clamp(y0 - ry * new_height, 0, zoom_dims.height - 1 - new_height);
 
 	zoom_dims.view = { x1: new_x1, y1: new_y1, width: new_width, height: new_height };
-	/*zoom_dims.view.x1 = new_x1;
-	zoom_dims.view.y1 = new_y1;
-	zoom_dims.view.width = new_width;
-	zoom_dims.view.height = new_height;*/
 
 	console.log("zoom_dims:", zoom_dims);
 
 	for (let i = 1; i <= va_count; i++) {
-		refresh_tiles(i);
-
-		clearTimeout(idleMouse);
-		idleMouse = setTimeout(tileTimeout, 250);
+		requestAnimationFrame(function () {
+			refresh_tiles(i);
+		});
 
 		//keep zoom scale in sync across all images
 		try {
@@ -8915,7 +8958,7 @@ function end_blink() {
 	stop_blinking = true;
 }
 
-function tileTimeout() {
+function tileTimeout(force = false) {
 	console.log("tile inactive event");
 
 	moving = false;
@@ -8938,7 +8981,7 @@ function tileTimeout() {
 	}
 
 	//do nothing if the view has not changed
-	if (zoom_dims.prev_view != null) {
+	if (!force && zoom_dims.prev_view != null) {
 		let previous = zoom_dims.prev_view;
 
 		if (image_bounding_dims.x1 == previous.x1 && image_bounding_dims.y1 == previous.y1 && image_bounding_dims.width == previous.width && image_bounding_dims.height == previous.height) {
@@ -8959,9 +9002,14 @@ function tileTimeout() {
 		let img_width = image_bounding_dims.width;
 		let img_height = image_bounding_dims.height;
 
-		let elem = d3.select("#image_rectangle" + (index + 1));
-		let view_width = elem.attr("width");
-		let view_height = elem.attr("height");
+		let view_width = 0, view_height = 0;
+		try {
+			let elem = d3.select("#image_rectangle" + (index + 1));
+			view_width = elem.attr("width");
+			view_height = elem.attr("height");
+		} catch (err) {
+			continue;
+		}
 
 		let view_pixels = view_width * view_height;
 		let img_pixels = img_width * img_height;
