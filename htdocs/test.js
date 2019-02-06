@@ -1,297 +1,153 @@
-function goto_url(url) {
-	window.location.href = url;
+function pad(num, size) {
+    var s = num + "";
+    while (s.length < size) s = "0" + s;
+    return s;
+};
+
+function randomise_alma() {
+    var timestamp = new Date();
+    var Id = 500 + timestamp.getUTCMilliseconds();
+
+    var datasetId = "ALMA0101" + pad(Id.toString(), 4);
+    document.getElementById("datasetid").value = datasetId;
+
+    view_alma();
 }
 
-function localStorage_read_lastdir(key) {
-	if (localStorage.getItem(key) === null)
-		return "";
-	else
-		return localStorage.getItem(key);
+function view_alma() {
+    var datasetId = document.getElementById("datasetid").value.trim();
+    var db = document.getElementById("alma_db").value.trim();
+    var table = document.getElementById("alma_table").value.trim();
+
+    if (datasetId != "") {
+        var url = null;
+
+        url = "/fitswebql/FITSWebQL.html?" + "db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table) + "&datasetId=" + encodeURIComponent(datasetId);
+
+        window.location.href = url;
+    }
+    else
+        alert("no datasetId found !");
 }
 
-function show_directory_contents(response) {
-	$("#filesystem").remove();
-	$("#container").append($("<div></div>")
-		.attr("id", "filesystem"));
+function view_hsc() {
+    var dataId = document.getElementById("hsc_dataid").value.trim();
 
-	let loc = response.location;
-	let dirs = loc.split('/');
+    if (dataId == "") {
+        alert("no datasetId found !");
+        return;
+    }
 
-	$("#filesystem").append($("<ul></ul>")
-		.attr("id", "breadcrumb")
-		//.css("position", "fixed")
-		.attr("class", "breadcrumb"));
+    var va_count = 0;
 
-	if (theme == 'bright')
-		$("#breadcrumb").css('background-color', 'darkgrey');
+    var elems = document.getElementsByClassName("hsc_filter");
 
-    /*$(window).scroll(function(){
-	$("#breadcrumb").css({"margin-top": ($(window).scrollTop()) + "px", "margin-left":($(window).scrollLeft()) + "px"});
-    });*/
+    for (let i = 0; i < elems.length; i++) {
+        if (elems[i].checked)
+            va_count++;
+    }
 
-	//navigation
-	var dir = "";
-	for (let i = 0; i < dirs.length; i++) {
-		if (dirs[i] != "")
-			dir += "/" + dirs[i];
+    if (va_count == 0) {
+        alert("no filter selected !");
+        return;
+    }
 
-		var cmd = "fetch_directory(\"" + dir + "\")";
+    console.log("va_count = ", va_count);
 
-		$("#breadcrumb").append($("<li></li>")
-			.attr("class", "breadcrumb-item")
-			.append($("<a></a>")
-				.attr("onclick", cmd)
-				.css("cursor", "pointer")
-				.text(dirs[i])));
-	}
+    var db = document.getElementById("hsc_db").value.trim();
+    var table = document.getElementById("hsc_table").value.trim();
+    var composite = false;
+    var optical = true;
 
-	$('#breadcrumb').append($("<a></a>")
-		.attr("class", "btn btn-link")
-		.attr("onclick", "fetch_directory(\"\")")
-		.css("float", "right")
-		.html("<span class=\"glyphicon glyphicon-home\"></span><span style='font-size: 1.0em; padding: 0.5em'>HOME</span>"));
+    var url = "/fitswebql/FITSWebQL.html?db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table);
 
-	$("#filesystem").append($("<table></table>")
-		.attr("id", "files")
-		.attr("class", "table table-hover")
-		.html("<thead><tr style=\"color:inherit\"><th>name</th><th>size</th><th>last modified</th></tr></thead>"));
-	//class=\"danger\" style=\"color:black\"
+    if (va_count == 1) {
+        for (let i = 0; i < elems.length; i++)
+            if (elems[i].checked)
+                url += "&datasetId=" + encodeURIComponent(dataId + "_" + elems[i].getAttribute("id").trim());
+    }
 
-	//contents
-	filelist = response.contents;
+    if (va_count > 1) {
+        va_count = 0;
 
-	$("#files").append($("<tbody></tbody>")
-		.attr("id", "tbody"));
+        for (let i = 0; i < elems.length; i++)
+            if (elems[i].checked)
+                url += "&datasetId" + (++va_count) + "=" + encodeURIComponent(dataId + "_" + elems[i].getAttribute("id").trim());
 
-	//add go up one step
-	if (loc != "/") {
-		dir = "";
-		for (let i = 0; i < dirs.length - 1; i++) {
-			if (dirs[i] != "")
-				dir += "/" + dirs[i];
-		}
+        if (va_count <= 3) {
+            composite = document.getElementById("hsc_composite").checked;
+        }
+    }
 
-		if (dir == "")
-			dir = "/";
+    var flux = document.getElementById("hsc_flux").value.trim();
+    url += "&flux=" + encodeURIComponent(flux);
 
-		var cmd = "fetch_directory(\"" + dir + "\")";
+    var colourmap = document.getElementById("hsc_colourmap").value.trim();
+    url += "&colourmap=" + encodeURIComponent(colourmap);
 
-		$("#tbody").append($("<tr></tr>")
-			.css("cursor", "pointer")
-			.attr("onclick", cmd)
-			.html("<td><span class=\"glyphicon glyphicon-level-up\"></span>&nbsp;&nbsp;" + ".." + "</td><td></td><td></td>"));
-	}
+    if (composite && optical) {
+        url += "&view=composite,optical";
+    } else {
+        if (composite)
+            url += "&view=composite";
 
-	//list directories first
-	for (let i = 0; i < filelist.length; i++) {
-		if (filelist[i].type == "dir") {
-			var cmd;
+        if (optical)
+            url += "&view=optical";
+    }
 
-			if (loc == "/")
-				cmd = "fetch_directory('" + loc + filelist[i].name.replace(/'/g, "\\'") + "')";
-			else
-				cmd = "fetch_directory('" + loc + '/' + filelist[i].name.replace(/'/g, "\\'") + "')";
+    window.location.href = url;
 
-			//class=\"text-right\"
-			$("#tbody").append($("<tr></tr>")
-				.css("cursor", "pointer")
-				.attr("onclick", cmd)
-				.html("<td><span class=\"glyphicon glyphicon-folder-open\"></span>&nbsp;&nbsp;" + filelist[i].name + "</td><td></td><td>" + filelist[i].last_modified + "</td>"));
-		}
-	}
-
-	//then files
-	for (let i = 0; i < filelist.length; i++) {
-		if (filelist[i].type == "file") {
-			var path = loc;
-			var filename = filelist[i].name;
-
-			var name = filename.substr(0, filename.lastIndexOf('.'));
-			var ext = filename.substr(filename.lastIndexOf('.') + 1);
-			var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext);
-
-			var group = find_group(filename);
-			var group_str = null;
-			var composite = false;
-
-			if (filename.indexOf("FGN_") > -1 && filename.indexOf("cube.fits") > -1)
-				composite = true;
-
-			if (group.length > 0) {
-				group_str = 'GROUP:';
-
-				for (let i = 0; i < group.length; i++) {
-					let filename = group[i];
-					let name = filename.substr(0, filename.lastIndexOf('.'));
-
-					group_str += '\n' + filename;
-					url += "&filename" + (i + 1) + "=" + encodeURIComponent(name);
-				}
-
-				if (composite)
-					url += "&view=composite";
-			}
-			else
-				url += "&filename=" + encodeURIComponent(name);
-
-			//enforce tone mapping
-			url += "&flux=logistic";
-
-			//single-file URL
-			//var url = "/fitswebql/FITSWebQL.html?dir=" + encodeURIComponent(path) + "&ext=" + encodeURIComponent(ext) + "&filename=" + encodeURIComponent(name) ;
-
-			var tmp = "goto_url('" + url.replace(/'/g, "\\'") + "')";
-			//var cmd = "find_group('" + filelist[i].name.replace(/'/g, "\\'") + "')" ;	    	    
-
-			//style=\"color: inherit\"
-			$("#tbody").append($("<tr></tr>")
-				.css("cursor", "pointer")
-				//.css("color", "black")
-				//.attr("class", "danger")
-				.attr("onclick", tmp)
-				//.attr("onmouseenter", cmd)
-				.attr('title', group_str)
-				.html("<td><p href=\"" + url + "\"><span class=\"glyphicon glyphicon-open-file\"></span>&nbsp;&nbsp;" + filelist[i].name + "</p></td><td>" + numeral(filelist[i].size).format('0.0 b') + "</td><td>" + filelist[i].last_modified + "</td>"));
-		}
-	}
-
-	$("#filesystem").append($("<br></br>"));
-
-	$("body").css("cursor", "default");
 }
 
-function fetch_directory(dir) {
-	$("body").css("cursor", "wait");
+function view_nro45m() {
+    var va_count = 0;
 
-	var xmlhttp = new XMLHttpRequest();
+    var elems = document.getElementsByClassName("datasetid");
 
-	var url = 'get_directory';
+    for (let i = 0; i < elems.length; i++) {
+        if (elems[i].value.trim() != "")
+            va_count++;
+    }
 
-	if (dir != "")
-		url += '?dir=' + encodeURIComponent(dir);
+    if (va_count == 0) {
+        alert("no datasetId found !");
+        return;
+    }
 
-	xmlhttp.onreadystatechange = function () {
-		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-			//console.log(xmlhttp.responseText) ;
+    console.log("va_count = ", va_count);
 
-			let response = JSON.parse(xmlhttp.responseText);
+    var db = document.getElementById("nro_db").value.trim();
+    var table = document.getElementById("nro_table").value.trim();
 
-			show_directory_contents(response);
+    var url = "/fitswebql/FITSWebQL.html?db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table);
 
-			localStorage.setItem("lastdir", dir);
-		}
-	}
+    if (va_count == 1) {
+        for (let i = 0; i < elems.length; i++)
+            if (elems[i].value.trim() != "")
+                url += "&datasetId=" + encodeURIComponent(elems[i].value.trim());
+    }
 
-	xmlhttp.open("GET", url, true);
-	xmlhttp.timeout = 0;
-	xmlhttp.send();
-}
+    if (va_count > 1) {
+        va_count = 0;
 
-function escapeRegExp(str) {
-	return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-}
+        for (let i = 0; i < elems.length; i++)
+            if (elems[i].value.trim() != "")
+                url += "&datasetId" + (++va_count) + "=" + encodeURIComponent(elems[i].value.trim());
 
-function find_group(name) {
-	if (filelist == null)
-		return [];
+        if (va_count <= 3) {
+            var composite = document.getElementById("composite").checked;
 
-	console.log('find_group:', name);
+            if (composite)
+                url += "&view=composite";
+        }
+    }
 
-	var matches = [];
+    var flux = document.getElementById("nro_flux").value.trim();
 
-	var pos = name.indexOf('_v');
+    //enforce a tone mapping
+    //if(table == "fugin.fugin_meta")    
+    url += "&flux=" + encodeURIComponent(flux);
 
-	if (pos > 0) {
-		let str = name.substring(0, pos);
-
-		var pos2 = str.lastIndexOf('_');
-
-		if (pos2 > -1) {
-			let line = str.substring(pos2 + 1);
-			//console.log('LINE:', line) ;
-
-			let prefix = str.substring(0, pos2 + 1);
-			let postfix = name.substring(pos);
-			//console.log(prefix,postfix) ;
-
-			var patt = new RegExp(escapeRegExp(prefix) + '.*' + escapeRegExp(postfix));
-			//console.log(patt) ;	    
-
-			for (let i = 0; i < filelist.length; i++) {
-				if (filelist[i].type == "file") {
-					if (patt.test(filelist[i].name))
-						matches.push(filelist[i].name);
-				}
-			}
-		}
-
-		console.log(matches);
-	} else {
-		//detect tell-tale HSC file patterns
-		pos = name.indexOf('calexp-HSC');
-
-		if (pos == 0) {
-			//split by -, get a filter name
-			let tmp = name.split("-");
-
-			if (tmp.length == 5) {
-				let index = 2;
-				let filter = tmp[index];
-				//console.log(tmp, "filter:", filter);
-
-				let prefix = tmp[0] + "-" + tmp[1] + "-";
-				let postfix = "-" + tmp[3] + "-" + tmp[4];
-
-				//find matching filenames containing any filters
-				var patt = new RegExp(escapeRegExp(prefix) + '.*' + escapeRegExp(postfix));
-
-				for (let i = 0; i < filelist.length; i++) {
-					if (filelist[i].type == "file") {
-						if (patt.test(filelist[i].name))
-							matches.push(filelist[i].name);
-					}
-				}
-			}
-		}
-
-		console.log(matches);
-	}
-
-	return matches;
-}
-
-function main() {
-	filelist = null;
-
-	if (localStorage.getItem("ui_theme") === null)
-		theme = "dark";//default theme, needs to be aligned with the main FITSWebQL;  "dark" or "bright"
-	else
-		theme = localStorage.getItem("ui_theme");
-
-	if (theme == 'bright') {
-		$("body").css('background-color', 'white');
-		$("body").css('color', 'black');
-
-		try {
-			for (let i = 0; i < document.styleSheets.length; i++)
-				if (document.styleSheets[i].href.indexOf('fitswebql.css') > 0) {
-					let stylesheet = document.styleSheets[i];
-					console.log(document.styleSheets[i]);
-
-					if (stylesheet.cssRules) {
-						for (let j = 0; j < stylesheet.cssRules.length; j++)
-							if (stylesheet.cssRules[j].selectorText === '.modal-content')
-								stylesheet.deleteRule(j);
-					}
-
-					console.log(document.styleSheets[i]);
-				}
-		}
-		catch (e) {
-			console.log(e);
-		}
-	}
-
-	//fetch the home directory first
-	fetch_directory(localStorage_read_lastdir("lastdir"));
+    //console.log(url) ;
+    window.location.href = url;
 }

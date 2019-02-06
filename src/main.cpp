@@ -663,7 +663,8 @@ int main(int argc, char *argv[])
                         bool optical = false;
 
                         //using std::string for now as std::string_view is broken
-                        //in the Intel C++ compiler
+                        //in the Intel C++ compiler v19 Update 1
+                        //(works OK with v19 Update 2, which cannot be installed on CentOS 6)
                         //LLVM CLANG works OK with std::string_view
 
                         std::string query = uri.substr(pos + 1, std::string::npos);
@@ -719,18 +720,18 @@ int main(int argc, char *argv[])
                                     table = value;
 
                                 if (key == "flux")
-				  {
-				    //validate the flux value
-				    std::set<std::string> valid_values;
-				    valid_values.insert("linear");
-				    valid_values.insert("logistic");
-				    valid_values.insert("ratio");
-				    valid_values.insert("square");
-				    valid_values.insert("legacy");				    
+                                {
+                                    //validate the flux value
+                                    std::set<std::string> valid_values;
+                                    valid_values.insert("linear");
+                                    valid_values.insert("logistic");
+                                    valid_values.insert("ratio");
+                                    valid_values.insert("square");
+                                    valid_values.insert("legacy");
 
-				    if (valid_values.find(value) != valid_values.end())
-				      flux = value;
-				  }
+                                    if (valid_values.find(value) != valid_values.end())
+                                        flux = value;
+                                }
 
                                 if (key == "view")
                                 {
@@ -745,18 +746,18 @@ int main(int argc, char *argv[])
 
                         curl_easy_cleanup(curl);
 
-			//sane defaults
-			{
-			  if (db.find("hsc") != std::string::npos)
-			    {
-			      optical = true;
-			      flux = "ratio";
-			    }
+                        //sane defaults
+                        {
+                            if (db.find("hsc") != std::string::npos)
+                            {
+                                optical = true;
+                                flux = "ratio";
+                            }
 
-			  if (table.find("fugin") != std::string::npos)
-			    flux = "logistic";
-			}
-			
+                            if (table.find("fugin") != std::string::npos)
+                                flux = "logistic";
+                        }
+
                         std::cout << "dir:" << dir << ", ext:" << ext << ", db:" << db << ", table:" << table << ", composite:" << composite << ", optical:" << optical << ", flux:" << flux << ", ";
                         for (auto const &dataset : datasets)
                             std::cout << dataset << " ";
