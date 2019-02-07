@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-02-05.2";
+	return "JS2019-02-07.2";
 }
 
 const wasm_supported = (() => {
@@ -785,6 +785,14 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 			if (va_count == 2)
 				scale = 0.8 * scale;
+			else if (va_count == 4)
+				scale = 0.6 * scale;
+			else if (va_count == 5)
+				scale = 0.5 * scale;
+			else if (va_count == 6)
+				scale = 0.45 * scale;
+			else if (va_count == 7)
+				scale = 0.45 * scale;
 			else
 				scale = 2 * scale / va_count;
 
@@ -795,7 +803,19 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 			let posx = image_position.posx;
 			let posy = image_position.posy;
 
-			ctx.drawImage(imageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+			ctx.drawImage(imageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+
+			//add a bounding box			
+			if (theme == 'bright')
+				ctx.strokeStyle = "white";
+			else
+				ctx.strokeStyle = "black";
+
+			ctx.lineWidth = 2;
+
+			ctx.rect(Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+			ctx.stroke();
+			//end of a bounding box
 
 			add_line_label(index);
 
@@ -1018,7 +1038,19 @@ function process_viewport_canvas(viewportCanvas, index) {
 		let posx = image_position.posx;
 		let posy = image_position.posy;
 
-		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+
+		//add a bounding box			
+		if (theme == 'bright')
+			ctx.strokeStyle = "white";
+		else
+			ctx.strokeStyle = "black";
+
+		ctx.lineWidth = 2;
+
+		ctx.rect(Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+		ctx.stroke();
+		//end of a bounding box
 
 		return;
 	}
@@ -1195,7 +1227,19 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 		let posx = image_position.posx;
 		let posy = image_position.posy;
 
-		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+		ctx.drawImage(viewportCanvas, 0, 0, viewportCanvas.width, viewportCanvas.height, Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+
+		//add a bounding box			
+		if (theme == 'bright')
+			ctx.strokeStyle = "white";
+		else
+			ctx.strokeStyle = "black";
+
+		ctx.lineWidth = 2;
+
+		ctx.rect(Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+		ctx.stroke();
+		//end of a bounding box
 
 		return;
 	}
@@ -4443,6 +4487,14 @@ function change_colourmap(index, recursive) {
 
 			if (va_count == 2)
 				scale = 0.8 * scale;
+			else if (va_count == 4)
+				scale = 0.6 * scale;
+			else if (va_count == 5)
+				scale = 0.5 * scale;
+			else if (va_count == 6)
+				scale = 0.45 * scale;
+			else if (va_count == 7)
+				scale = 0.45 * scale;
 			else
 				scale = 2 * scale / va_count;
 
@@ -7109,11 +7161,7 @@ function fits_subregion_end() {
     d3.select("#image_rectangle").each( onMouseMoveFunc );*/
 }
 
-function get_image_position(index, width, height) {
-    /*let t = index / (va_count + 1) ;	   
-      let posx = t * width ;
-      let posy = t * height ;*/
-
+function get_diagonal_image_position(index, width, height) {
 	let basex = width / 2;
 	let basey = height / 2;
 	let t = index / (va_count + 1);
@@ -7124,6 +7172,180 @@ function get_image_position(index, width, height) {
 	var image_position = { posx: posx, posy: posy };
 
 	return image_position;
+}
+
+function get_square_image_position_4(index, width, height) {
+	let offset_x = 0, offset_y = 0;
+
+	if (width >= height)
+		offset_x = 0.025 * width;
+	else
+		offset_y = 0.025 * height;
+
+	if (index == 1)
+		return { posx: width / 4 - offset_x, posy: height / 4 - offset_y };
+
+	if (index == 2)
+		return { posx: width - width / 4 - offset_x, posy: height / 4 + offset_y };
+
+	if (index == 3)
+		return { posx: width / 4 + offset_x, posy: height - height / 4 - offset_y };
+
+	if (index == 4)
+		return { posx: width - width / 4 + offset_x, posy: height - height / 4 + offset_y };
+
+	return { posx: width / 2, posy: height / 2 };
+}
+
+function get_diagonal_image_position_4(index, width, height) {
+	//the diagonal line to the left
+	if (index < 3) {
+		let basex = width / 4;
+		let basey = height / 2;
+
+		let t = index / (va_count - 3 + 1);
+		t = 2 * t - 1;
+		let posx = basex + t * 0.5 * width / 2;
+		let posy = basey + t * height / 2;
+
+		return { posx: posx, posy: posy };
+	}
+
+	//the diagonal line to the right
+	let basex = width - width / 4;
+	let basey = height / 2;
+
+	let t = (index - 2) / (va_count - 3 + 1);
+	t = 2 * t - 1;
+	let posx = basex + t * 0.5 * width / 2;
+	let posy = basey + t * height / 2;
+
+	return { posx: posx, posy: posy };
+}
+
+function get_image_position_5(index, width, height) {
+	if (index < 5)
+		return get_square_image_position_4(index, width, height);
+	else
+		return { posx: width / 2, posy: height / 2 };
+}
+
+function get_horizontal_image_position_6(index, width, height) {
+	let offset_x = 0, offset_y = 0;
+
+	offset_x = 0.025 * width;
+	offset_y = 0.025 * height;
+
+	if (index == 1)
+		return { posx: width / 4 - offset_x, posy: height / 4 };
+
+	if (index == 2)
+		return { posx: width / 2 - offset_x, posy: height / 4 + offset_y };
+
+	if (index == 3)
+		return { posx: 3 * width / 4 - offset_x, posy: height / 4 };
+
+	if (index == 4)
+		return { posx: width / 4 + offset_x, posy: height - height / 4 };
+
+	if (index == 5)
+		return { posx: width / 2 + offset_x, posy: height - height / 4 - offset_y };
+
+	if (index == 6)
+		return { posx: 3 * width / 4 + offset_x, posy: height - height / 4 };
+
+	return { posx: width / 2, posy: height / 2 };
+}
+
+
+function get_vertical_image_position_6(index, width, height) {
+	let offset_x = 0, offset_y = 0;
+
+	offset_x = 0.025 * width;
+	offset_y = 0.025 * height;
+
+	if (index == 1)
+		return { posx: width / 4, posy: height / 4 - offset_y };
+
+	if (index == 2)
+		return { posx: width - width / 4, posy: height / 4 + offset_y };
+
+	if (index == 3)
+		return { posx: width / 4 + offset_x, posy: height / 2 - offset_y };
+
+	if (index == 4)
+		return { posx: width - width / 4 - offset_x, posy: height / 2 + offset_y };
+
+	if (index == 5)
+		return { posx: width / 4, posy: height - height / 4 - offset_y };
+
+	if (index == 6)
+		return { posx: width - width / 4, posy: height - height / 4 + offset_y };
+
+	return { posx: width / 2, posy: height / 2 };
+}
+
+function get_image_position_6(index, width, height) {
+	if (width >= height)
+		return get_horizontal_image_position_6(index, width, height);
+	else
+		return get_vertical_image_position_6(index, width, height);
+}
+
+function get_diagonal_image_position_7(index, width, height) {
+	//the middle diagonal
+	if (index <= 3) {
+		let basex = width / 2;
+		let basey = height / 2;
+		let t = index / 4;
+		t = 2 * t - 1;
+		let posx = basex + t * width / 3;
+		let posy = basey - t * height / 2;
+
+		return { posx: posx, posy: posy };
+	}
+
+	//the left diagonal
+	if (index <= 5) {
+		let basex = width / 3.5;
+		let basey = height / 3.5;
+		let t = (index - 3) / 4;
+		t = 2 * t - 1;
+		let posx = basex + t * width / 3;
+		let posy = basey - t * height / 2;
+
+		return { posx: posx, posy: posy };
+	}
+
+	//the right diagonal
+	if (index <= 7) {
+		let basex = width - width / 8;
+		let basey = height - height / 2;
+		let t = (index - 5) / 4;
+		t = 2 * t - 1;
+		let posx = basex + t * width / 3;
+		let posy = basey - t * height / 2;
+
+		return { posx: posx, posy: posy };
+	}
+
+	return { posx: width / 2, posy: height / 2 };
+}
+
+function get_image_position(index, width, height) {
+	if (va_count <= 4)
+		return get_diagonal_image_position(index, width, height);
+
+	if (va_count == 5)
+		return get_image_position_5(index, width, height);
+
+	if (va_count == 6)
+		return get_image_position_6(index, width, height);
+
+	if (va_count == 7)
+		return get_diagonal_image_position_7(index, width, height);
+
+	return get_diagonal_image_position(index, width, height);
 }
 
 function isNumeric(obj) {
@@ -7218,6 +7440,14 @@ function add_line_label(index) {
 
 	if (va_count == 2)
 		scale = 0.8 * scale;
+	else if (va_count == 4)
+		scale = 0.6 * scale;
+	else if (va_count == 5)
+		scale = 0.5 * scale;
+	else if (va_count == 6)
+		scale = 0.45 * scale;
+	else if (va_count == 7)
+		scale = 0.45 * scale;
 	else
 		scale = 2 * scale / va_count;
 
@@ -7230,6 +7460,14 @@ function add_line_label(index) {
 
 	var svg = d3.select("#BackSVG");
 
+	let fontColour = 'gray';//white
+
+	if (theme == 'bright')
+		fontColour = 'gray';
+
+	if (colourmap == "greyscale" || colourmap == "negative")
+		fontColour = "#C4A000";
+
 	svg.append("foreignObject")
 		.attr("x", (posx - img_width / 2))
 		.attr("y", (posy - img_height / 2 - 1.75 * emFontSize))
@@ -7237,7 +7475,7 @@ function add_line_label(index) {
 		.attr("height", 2 * emFontSize)
 		.append("xhtml:div")
 		.attr("id", "line_display")
-		.html('<p style="text-align: center;font-size:1.5em; font-family: Inconsolata; font-weight: bold">' + label + '</p>');
+		.html('<p style="text-align: center; font-size:1.5em; font-family: Inconsolata; font-weight: bold; color:' + fontColour + '">' + label + '</p>');
 };
 
 function display_composite_legend() {
@@ -7551,8 +7789,10 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			if (zoom_dims == null)
 				return;
 
+			var offset;
+
 			try {
-				var offset = d3.mouse(this);
+				offset = d3.mouse(this);
 			}
 			catch (e) {
 				console.log(e);
@@ -7869,8 +8109,10 @@ function setup_image_selection() {
 
 			requestAnimationFrame(update_spectrum);
 
+			var offset;
+
 			try {
-				var offset = d3.mouse(this);
+				offset = d3.mouse(this);
 			}
 			catch (e) {
 				console.log(e);
@@ -8011,8 +8253,10 @@ function setup_image_selection() {
 			d3.select("#" + zoom_location + "Cross").attr("opacity", 0.75);
 			d3.select("#" + zoom_location + "Beam").attr("opacity", 0.75);
 
+			var offset;
+
 			try {
-				var offset = d3.mouse(this);
+				offset = d3.mouse(this);
 			}
 			catch (e) {
 				console.log(e);
@@ -8779,7 +9023,19 @@ function refresh_tiles(index) {
 	let posx = image_position.posx;
 	let posy = image_position.posy;
 
-	ctx.drawImage(imageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, posx - img_width / 2, posy - img_height / 2, img_width, img_height);
+	ctx.drawImage(imageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+
+	//add a bounding box			
+	if (theme == 'bright')
+		ctx.strokeStyle = "white";
+	else
+		ctx.strokeStyle = "black";
+
+	ctx.lineWidth = 2;
+
+	ctx.rect(Math.round(posx - img_width / 2), Math.round(posy - img_height / 2), Math.round(img_width), Math.round(img_height));
+	ctx.stroke();
+	//end of a bounding box
 }
 
 function tiles_dragstarted() {
