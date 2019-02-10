@@ -580,7 +580,7 @@ int main(int argc, char *argv[])
         splat_db = NULL;
     }
     struct passwd *passwdEnt = getpwuid(getuid());
-    std::string home_dir = passwdEnt->pw_dir;
+    home_dir = passwdEnt->pw_dir;
 
     // register signal SIGINT and signal handler
     signal(SIGINT, signalHandler);
