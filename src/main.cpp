@@ -6,8 +6,8 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-02-05.0"
-#define WASM_STRING "WASM2018-12-17.0"
+#define VERSION_STRING "SV2019-02-10.0"
+#define WASM_STRING "WASM2019-02-08.1"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -63,7 +63,7 @@ namespace fs = std::experimental::filesystem;
 
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
-
+std::string home_dir;
 sqlite3 *splat_db = NULL;
 
 void signalHandler(int signum)
@@ -225,11 +225,8 @@ void get_directory(uWS::HttpResponse *res, std::string dir)
 
 void get_home_directory(uWS::HttpResponse *res)
 {
-    struct passwd *passwdEnt = getpwuid(getuid());
-    std::string home = passwdEnt->pw_dir;
-
-    if (home != "")
-        return get_directory(res, home);
+    if (home_dir != "")
+        return get_directory(res, home_dir);
     else
         return http_not_found(res);
 }
@@ -582,6 +579,8 @@ int main(int argc, char *argv[])
         sqlite3_close(splat_db);
         splat_db = NULL;
     }
+    struct passwd *passwdEnt = getpwuid(getuid());
+    std::string home_dir = passwdEnt->pw_dir;
 
     // register signal SIGINT and signal handler
     signal(SIGINT, signalHandler);
