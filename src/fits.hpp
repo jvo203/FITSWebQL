@@ -7,6 +7,9 @@
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
 
+#define FITS_CHUNK_LENGTH 2880
+#define FITS_LINE_LENGTH 80
+
 class FITS
 {
 public:
@@ -28,4 +31,5 @@ private:
   std::string data_id;
   std::string flux;
   std::time_t timestamp;
+  size_t fits_file_size;
 };

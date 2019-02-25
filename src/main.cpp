@@ -5,8 +5,9 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+#define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-02-10.0"
+#define VERSION_STRING "SV2019-02-25.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -64,6 +65,7 @@ namespace fs = std::experimental::filesystem;
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
 std::string home_dir;
+int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
 void signalHandler(int signum)
@@ -585,6 +587,22 @@ int main(int argc, char *argv[])
     // register signal SIGINT and signal handler
     signal(SIGINT, signalHandler);
 
+    //parse local command-line options
+    if (argc > 2)
+    {
+        for (int i = 1; i < argc - 1; i++)
+        {
+            const char *key = argv[i];
+            const char *value = argv[i + 1];
+
+            if (!strcmp(key, "--port"))
+                server_port = atoi(value);
+
+            if (!strcmp(key, "--home"))
+                home_dir = std::string(value);
+        }
+    }
+
     std::vector<std::thread *> threads(MAX(std::thread::hardware_concurrency() / 2, 1));
     std::transform(threads.begin(), threads.end(), threads.begin(), [](std::thread *t) {
         return new std::thread([]() {
@@ -803,7 +821,7 @@ int main(int argc, char *argv[])
             // This makes use of the SO_REUSEPORT of the Linux kernel
             // Other solutions include listening to one port per thread
             // with or without some kind of proxy inbetween
-            if (!h.listen(8080, nullptr, uS::ListenOptions::REUSE_PORT))
+            if (!h.listen(server_port, nullptr, uS::ListenOptions::REUSE_PORT))
             {
                 std::cout << "Failed to listen\n";
             }
