@@ -3,6 +3,7 @@
 #include <string>
 #include <ctime>
 #include <mutex>
+#include <zlib.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
@@ -29,7 +30,11 @@ public:
 
 private:
   std::string data_id;
+  char *header;
   std::string flux;
   std::time_t timestamp;
-  size_t fits_file_size;
+  int fits_file_desc;
+  gzFile compressed_fits_stream;
+  off_t fits_file_size;
+  bool gz_compressed;
 };
