@@ -17,6 +17,8 @@ FITS::FITS()
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->fitschan = (AstFitsChan *)AST__NULL;
+    this->wcsinfo = (AstFrameSet *)AST__NULL;
 }
 
 FITS::FITS(std::string id, std::string flux)
@@ -33,6 +35,8 @@ FITS::FITS(std::string id, std::string flux)
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->fitschan = (AstFitsChan *)AST__NULL;
+    this->wcsinfo = (AstFrameSet *)AST__NULL;
 }
 
 FITS::~FITS()
@@ -44,6 +48,12 @@ FITS::~FITS()
 
     if (compressed_fits_stream != NULL)
         gzclose(compressed_fits_stream);
+
+    if (wcsinfo != AST__NULL)
+        wcsinfo = (AstFrameSet *)astAnnul(wcsinfo);
+
+    if (fitschan != AST__NULL)
+        fitschan = (AstFitsChan *)astAnnul(fitschan);
 
     if (header != NULL)
         free(header);
@@ -141,7 +151,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         for (offset = no_hu * FITS_CHUNK_LENGTH; offset < (no_hu + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
         {
             strncpy(hdrLine, header + offset, FITS_LINE_LENGTH);
-            printf("%s\n", hdrLine);
+            //printf("%s\n", hdrLine);
 
             if (strncmp(hdrLine, "END       ", 10) == 0)
                 end = true;
@@ -154,7 +164,36 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
     header[offset] = '\0';
 
+    //set up the AST library
+    this->fitschan = astFitsChan(NULL, NULL, "");
+    astPutCards(this->fitschan, this->header);
+    this->wcsinfo = (AstFrameSet *)astRead(this->fitschan);
+
+    if (!astOK)
+    {
+        //<an error occurred (a message will have been issued)>
+    }
+    else if (wcsinfo == AST__NULL)
+    {
+        //<there was no WCS information present>
+    }
+    else if (strcmp(astGetC(wcsinfo, "Class"), "FrameSet"))
+    {
+        //<something unexpected was read (i.e. not a FrameSet)>
+    }
+    else
+    {
+        //<WCS information was read OK>
+        astShow(this->wcsinfo);
+    }
+
     void *buffer = NULL;
 
     this->timestamp = std::time(nullptr);
+
+    if (this->fitschan != AST__NULL)
+        astUnlock(this->fitschan, 0);
+
+    if (this->wcsinfo != AST__NULL)
+        astUnlock(this->wcsinfo, 0);
 }

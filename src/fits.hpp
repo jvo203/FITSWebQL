@@ -5,6 +5,11 @@
 #include <mutex>
 #include <zlib.h>
 
+extern "C"
+{
+#include <ast.h>
+}
+
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
 
@@ -31,6 +36,8 @@ public:
 private:
   std::string data_id;
   char *header;
+  AstFitsChan *fitschan;
+  AstFrameSet *wcsinfo;
   std::string flux;
   std::time_t timestamp;
   int fits_file_desc;
