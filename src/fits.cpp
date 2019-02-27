@@ -11,14 +11,13 @@ FITS::FITS()
     std::cout << this->dataset_id << "::default constructor." << std::endl;
 
     this->has_data = false;
+    this->has_wcs = false;
     this->timestamp = std::time(nullptr);
     this->fits_file_desc = -1;
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
-    this->fitschan = (AstFitsChan *)AST__NULL;
-    this->wcsinfo = (AstFrameSet *)AST__NULL;
 }
 
 FITS::FITS(std::string id, std::string flux)
@@ -29,14 +28,13 @@ FITS::FITS(std::string id, std::string flux)
     this->data_id = id + "_00_00_00";
     this->flux = flux;
     this->has_data = false;
+    this->has_wcs = false;
     this->timestamp = std::time(nullptr);
     this->fits_file_desc = -1;
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
-    this->fitschan = (AstFitsChan *)AST__NULL;
-    this->wcsinfo = (AstFrameSet *)AST__NULL;
 }
 
 FITS::~FITS()
@@ -48,12 +46,6 @@ FITS::~FITS()
 
     if (compressed_fits_stream != NULL)
         gzclose(compressed_fits_stream);
-
-    if (wcsinfo != AST__NULL)
-        wcsinfo = (AstFrameSet *)astAnnul(wcsinfo);
-
-    if (fitschan != AST__NULL)
-        fitschan = (AstFitsChan *)astAnnul(fitschan);
 
     if (header != NULL)
         free(header);
@@ -146,7 +138,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             bytes_read = read(this->fits_file_desc, header + offset, FITS_CHUNK_LENGTH);
 
         if (bytes_read != FITS_CHUNK_LENGTH)
+        {
             fprintf(stderr, "CRITICAL: read less than %zd bytes from the FITS header\n", bytes_read);
+            return;
+        }
 
         for (offset = no_hu * FITS_CHUNK_LENGTH; offset < (no_hu + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
         {
@@ -164,36 +159,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
     header[offset] = '\0';
 
-    //set up the AST library
-    this->fitschan = astFitsChan(NULL, NULL, "");
-    astPutCards(this->fitschan, this->header);
-    this->wcsinfo = (AstFrameSet *)astRead(this->fitschan);
-
-    if (!astOK)
-    {
-        //<an error occurred (a message will have been issued)>
-    }
-    else if (wcsinfo == AST__NULL)
-    {
-        //<there was no WCS information present>
-    }
-    else if (strcmp(astGetC(wcsinfo, "Class"), "FrameSet"))
-    {
-        //<something unexpected was read (i.e. not a FrameSet)>
-    }
-    else
-    {
-        //<WCS information was read OK>
-        astShow(this->wcsinfo);
-    }
-
     void *buffer = NULL;
 
     this->timestamp = std::time(nullptr);
-
-    if (this->fitschan != AST__NULL)
-        astUnlock(this->fitschan, 0);
-
-    if (this->wcsinfo != AST__NULL)
-        astUnlock(this->wcsinfo, 0);
 }

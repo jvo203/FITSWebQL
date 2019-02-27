@@ -1,6 +1,6 @@
 SRC = src/main.cpp src/fits.cpp src/json.c
 INC = -I/usr/include/postgresql
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lpq -luWS -lssl -lz -lnuma -lpthread `ast_link`
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lpq -luWS -lssl -lz -lnuma -lpthread
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 TARGET=fitswebql
 
