@@ -393,44 +393,12 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     printf("%s::reading FITS header...\n", dataset_id.c_str());
 
     int no_hu = 0;
-    bool end = false;    
     size_t total_size = 1;
     size_t offset = 0;
 
-    while (!end)
+    while (naxis == 0)
     {
-        //fread FITS_CHUNK_LENGTH from fd into header+offset
-        header = (char *)realloc(header, offset + FITS_CHUNK_LENGTH + 1); //an extra space for the ending NULL
-
-        if (header == NULL)
-            fprintf(stderr, "CRITICAL: could not (re)allocate FITS header\n");
-
-        ssize_t bytes_read = 0;
-
-        if (is_compressed)
-            bytes_read = gzread(this->compressed_fits_stream, header + offset, FITS_CHUNK_LENGTH);
-        else
-            bytes_read = read(this->fits_file_desc, header + offset, FITS_CHUNK_LENGTH);
-
-        if (bytes_read != FITS_CHUNK_LENGTH)
-        {
-            fprintf(stderr, "CRITICAL: read less than %zd bytes from the FITS header\n", bytes_read);
-            return;
-        }
-
-        end = this->process_fits_header_unit(header + offset);
-
-        offset += FITS_CHUNK_LENGTH;
-        no_hu++;
-    }
-
-    printf("%s::FITS HEADER END.\n", dataset_id.c_str());
-
-    //try again, there may be an image extension
-    if (naxis == 0)
-    {
-        printf("%s::<no WCS info found, trying an image extension>\n", dataset_id.c_str());
-        end = false;
+        bool end = false;
 
         while (!end)
         {
@@ -458,9 +426,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             offset += FITS_CHUNK_LENGTH;
             no_hu++;
         }
-    }
 
-    printf("%s::FITS HEADER END.\n", dataset_id.c_str());
+        printf("%s::FITS HEADER END.\n", dataset_id.c_str());
+    }
 
     header[offset] = '\0';
     this->has_header = true;
