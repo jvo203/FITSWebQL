@@ -3,6 +3,7 @@
 #include <string>
 #include <ctime>
 #include <mutex>
+#include <string.h>
 #include <zlib.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
@@ -23,15 +24,70 @@ public:
   void from_url(std::string url, std::string flux, bool is_optical);
   void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical);
 
+private:
+  void defaults();
+  bool process_fits_header_unit(const char *buf);
+
 public:
   std::string dataset_id;
+  long width;
+  long height;
+  long depth;
+  int bitpix;
+  int naxis;
+  int naxes[4] ;
+  long polarisation;
+  std::string btype;
+  std::string bunit;
+  float bscale;
+  float bzero;
+  float ignrval;
+  double crval1;
+  double cdelt1;
+  double crpix1;
+  std::string cunit1;
+  std::string ctype1;
+  double crval2;
+  double cdelt2;
+  double crpix2;
+  std::string cunit2;
+  std::string ctype2;
+  double crval3;
+  double cdelt3;
+  double crpix3;
+  std::string cunit3;
+  std::string ctype3;
+  double frame_multiplier;
+  double cd1_1;
+  double cd1_2;
+  double cd2_1;
+  double cd2_2;
+  double bmaj;
+  double bmin;
+  double bpa;
+  double restfrq;
+  double obsra;
+  double obsdec;
+  float datamin;
+  float datamax;
+  std::string line;
+  std::string filter;
+  std::string specsys;
+  std::string timesys;
+  std::string object;
+  std::string date_obs;
+
+  //extras
+  bool has_header;
   bool has_data;
-  bool has_wcs;
+  bool has_frequency;
+  bool has_velocity;
+  bool is_optical;
   std::mutex fits_mutex;
 
 private:
   std::string data_id;
-  char *header;  
+  char *header;
   std::string flux;
   std::time_t timestamp;
   int fits_file_desc;
