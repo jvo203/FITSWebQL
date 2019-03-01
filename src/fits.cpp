@@ -435,6 +435,12 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
     //printf("%s\n", header);
 
+    if (bitpix != -32)
+    {
+        printf("unsupported bitpix(%d), FITS data will not be read.\n", bitpix);
+        return;
+    }
+
     void *buffer = NULL;
 
     this->timestamp = std::time(nullptr);

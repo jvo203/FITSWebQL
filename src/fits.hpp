@@ -6,6 +6,9 @@
 #include <string.h>
 #include <zlib.h>
 
+#include <zfparray2.h>
+#include <zfparray3.h>
+
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
 
@@ -30,13 +33,15 @@ private:
 
 public:
   std::string dataset_id;
+  std::string data_id;
+  std::string flux;
   long width;
   long height;
   long depth;
+  long polarisation;
   int bitpix;
   int naxis;
-  int naxes[4] ;
-  long polarisation;
+  int naxes[4];
   std::string btype;
   std::string bunit;
   float bscale;
@@ -86,9 +91,14 @@ public:
   std::mutex fits_mutex;
 
 private:
-  std::string data_id;
+  //FITS header
   char *header;
-  std::string flux;
+
+  //ZFP compressed arrays
+  zfp::array2f image;
+  zfp::array3f cube;
+
+  //housekeeping
   std::time_t timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;
