@@ -96,7 +96,7 @@ FITS::FITS()
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
-    this->header = NULL;    
+    this->header = NULL;
     this->defaults();
 }
 
@@ -112,7 +112,7 @@ FITS::FITS(std::string id, std::string flux)
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
-    this->header = NULL;        
+    this->header = NULL;
     this->defaults();
 }
 
@@ -437,13 +437,57 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
     if (bitpix != -32)
     {
-        printf("unsupported bitpix(%d), FITS data will not be read.\n", bitpix);
+        printf("%s::unsupported bitpix(%d), FITS data will not be read.\n", dataset_id.c_str(), bitpix);
+        return;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        printf("%s::incorrect dimensions (width:%ld, height:%ld)\n", dataset_id.c_str(), width, height);
         return;
     }
 
     //the data part starts at <offset>
 
-    void *buffer = NULL;
+    if (depth == 1)
+    {
+        //read/process the FITS plane (image) in parallel
+        //unless this is a compressed file, in which case
+        //the data can only be read sequentially
+
+        //load data into the buffer sequentially
+        if (is_compressed)
+        {
+            const size_t frame_size = width * height * abs(bitpix / 8);
+            char *buffer = (char *)malloc(frame_size);
+
+            if (buffer == NULL)
+            {
+                printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
+                return;
+            }
+
+            ssize_t bytes_read = gzread(this->compressed_fits_stream, buffer, frame_size);
+
+            if (bytes_read != frame_size)
+            {
+                fprintf(stderr, "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n", dataset_id.c_str(), bytes_read);
+                free(buffer);
+                return;
+            }
+            else
+                printf("%s::FITS data read OK.\n", dataset_id.c_str());
+
+            //use ispc to process the plane
+            //1. endianness
+            //2. fill-in the {pixels,mask}
+
+            //next put the pixels into zfp::array2 (OpenMP & mutable private views) plus a compressed mask (BitMagic)
+
+            //release the memory
+            free(buffer);
+        }
+    }
 
     this->timestamp = std::time(nullptr);
 }
