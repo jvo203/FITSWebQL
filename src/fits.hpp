@@ -98,7 +98,7 @@ private:
   char *header;
 
   //ZFP compressed arrays
-  std::optional<boost::variant<zfp::array2f, zfp::array3f>> data;
+  std::optional<boost::variant<zfp::array2f, zfp::array3f>> data;//using boost::variant for now as std::variant does not compile yet with the Intel C++ compiler
 
   //housekeeping
   std::time_t timestamp;
