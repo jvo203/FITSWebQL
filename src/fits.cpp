@@ -455,18 +455,18 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         //unless this is a compressed file, in which case
         //the data can only be read sequentially
 
+        const size_t frame_size = width * height * abs(bitpix / 8);
+        char *buffer = (char *)malloc(frame_size);
+
+        if (buffer == NULL)
+        {
+            printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
+            return;
+        }
+
         //load data into the buffer sequentially
         if (is_compressed)
         {
-            const size_t frame_size = width * height * abs(bitpix / 8);
-            char *buffer = (char *)malloc(frame_size);
-
-            if (buffer == NULL)
-            {
-                printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
-                return;
-            }
-
             ssize_t bytes_read = gzread(this->compressed_fits_stream, buffer, frame_size);
 
             if (bytes_read != frame_size)
@@ -480,13 +480,11 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
             //use ispc to process the plane
             //1. endianness
-            //2. fill-in the {pixels,mask}
-
-            //next put the pixels into zfp::array2 (OpenMP & mutable private views) plus a compressed mask (BitMagic)
-
-            //release the memory
-            free(buffer);
+            //2. fill-in the {pixels,mask}           
         }
+
+        //release the memory
+        free(buffer);
     }
 
     this->timestamp = std::time(nullptr);
