@@ -4,6 +4,9 @@
 #include <ctime>
 #include <mutex>
 #include <string.h>
+#include <optional>
+#include <variant>
+#include <boost/variant/variant.hpp>
 #include <zlib.h>
 
 #include <zfparray2.h>
@@ -95,8 +98,7 @@ private:
   char *header;
 
   //ZFP compressed arrays
-  zfp::array2f image;
-  zfp::array3f cube;
+  std::optional<boost::variant<zfp::array2f, zfp::array3f>> data;
 
   //housekeeping
   std::time_t timestamp;

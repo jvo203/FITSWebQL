@@ -96,7 +96,7 @@ FITS::FITS()
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
-    this->header = NULL;
+    this->header = NULL;    
     this->defaults();
 }
 
@@ -112,7 +112,7 @@ FITS::FITS(std::string id, std::string flux)
     this->compressed_fits_stream = NULL;
     this->fits_file_size = 0;
     this->gz_compressed = false;
-    this->header = NULL;
+    this->header = NULL;        
     this->defaults();
 }
 
@@ -440,6 +440,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         printf("unsupported bitpix(%d), FITS data will not be read.\n", bitpix);
         return;
     }
+
+    //the data part starts at <offset>
 
     void *buffer = NULL;
 
