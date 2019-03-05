@@ -10,8 +10,8 @@ dev:
 
 llvm:
 	ispc -g -O3 --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	clang++ -march=native -g -O3 -std=c++17 -fopenmp=libiomp5 -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -DHAVE_INLINE -DDEVELOPMENT -DLOCAL $(SRC) fits.o -o $(TARGET) $(LIBS) $(JEMALLOC)
+	clang++ -march=native -g -O3 -std=c++17 -fopenmp=libiomp5 -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -DHAVE_INLINE -DDEVELOPMENT -DLOCAL $(SRC) fits.o -o $(TARGET) $(LIBS) -L/opt/intel/ipp/lib/intel64 -lipps $(JEMALLOC)
 
 gcc:
 	ispc -g -O3 --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ -march=native -g -O3 -std=c++17 -fopenmp -funroll-loops -ftree-vectorize -DHAVE_INLINE -DDEVELOPMENT -DLOCAL $(SRC) fits.o -o $(TARGET) $(LIBS) $(JEMALLOC)
+	g++ -march=native -g -O3 -std=c++17 -fopenmp -funroll-loops -ftree-vectorize -DHAVE_INLINE -DDEVELOPMENT -DLOCAL $(SRC) fits.o -o $(TARGET) $(LIBS) -L/opt/intel/ipp/lib/intel64 -lipps $(JEMALLOC)
