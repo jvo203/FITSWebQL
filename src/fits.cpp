@@ -489,9 +489,26 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         //unless this is a compressed file, in which case
         //the data can only be read sequentially
 
-        //load data into the buffer sequentially
+        //use ispc to process the plane
+        //1. endianness
+        //2. fill-in {pixels,mask}
+
+        float pmin = FLT_MAX;
+        float pmax = -FLT_MAX;
+
+        //get pmin, pmax
+        int max_threads = omp_get_max_threads();
+
+        //keep the worksize within int32 limits
+        size_t max_work_size = 1024 * 1024 * 1024;
+        size_t work_size = MIN(total_size / max_threads, max_work_size);
+        int num_threads = total_size / work_size;
+
+        printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n", dataset_id.c_str(), total_size, work_size, num_threads);
+
         if (is_compressed)
         {
+            //load data into the buffer sequentially
             ssize_t bytes_read = gzread(this->compressed_fits_stream, pixels, frame_size);
 
             if (bytes_read != frame_size)
@@ -501,22 +518,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             }
             else
                 printf("%s::FITS data read OK.\n", dataset_id.c_str());
-
-            //use ispc to process the plane
-            //1. endianness
-            //2. fill-in the {pixels,mask}
-            float pmin = FLT_MAX;
-            float pmax = -FLT_MAX;
-
-            //get pmin, pmax
-            int max_threads = omp_get_max_threads();
-
-            //keep the worksize within int32 limits
-            size_t max_work_size = 1024 * 1024 * 1024;
-            size_t work_size = MIN(total_size / max_threads, max_work_size);
-            int num_threads = total_size / work_size;
-
-            printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n", dataset_id.c_str(), total_size, work_size, num_threads);
 
 #pragma omp parallel for reduction(min                   \
                                    : pmin) reduction(max \
@@ -531,13 +532,36 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
                 ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
             };
-
-            printf("%s::pmin = %f\tpmax = %f\n", dataset_id.c_str(), pmin, pmax);
         }
         else
         {
+            //load data into the buffer in parallel chunks
             //the data part starts at <offset>
+
+#pragma omp parallel for reduction(min                   \
+                                   : pmin) reduction(max \
+                                                     : pmax)
+            for (int tid = 0; tid < num_threads; tid++)
+            {
+                size_t work_size = total_size / num_threads;
+                size_t start = tid * work_size;
+
+                if (tid == num_threads - 1)
+                    work_size = total_size - start;
+
+                //parallel read (pread) at a specified offset
+                ssize_t bytes_read = pread(this->fits_file_desc, &(pixels[start]), work_size * sizeof(float), offset + start * sizeof(float));
+
+                if (bytes_read != work_size * sizeof(float))
+                {
+                    fprintf(stderr, "%s::CRITICAL only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
+                }
+                else
+                    ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
+            };
         }
+
+        printf("%s::pmin = %f\tpmax = %f\n", dataset_id.c_str(), pmin, pmax);
     }
 
     this->timestamp = std::time(nullptr);
