@@ -554,7 +554,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
                 if (bytes_read != work_size * sizeof(float))
                 {
-                    fprintf(stderr, "%s::CRITICAL only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
+                    fprintf(stderr, "%s::CRITICAL: only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
                 }
                 else
                     ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
