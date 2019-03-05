@@ -5,18 +5,22 @@
 #include <mutex>
 #include <string.h>
 #include <optional>
-#include <variant>
-#include <boost/variant/variant.hpp>
 #include <zlib.h>
 
 #include <zfparray2.h>
 #include <zfparray3.h>
+
+#include <ipps.h>
+#include <ipps_l.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
 
 #define FITS_CHUNK_LENGTH 2880
 #define FITS_LINE_LENGTH 80
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 class FITS
 {
@@ -96,9 +100,11 @@ public:
 private:
   //FITS header
   char *header;
+  Ipp32f *pixels;
+  Ipp8u *mask;
 
   //ZFP compressed arrays
-  std::optional<boost::variant<zfp::array2f, zfp::array3f>> data;//using boost::variant for now as std::variant does not compile yet with the Intel C++ compiler
+  std::optional<zfp::array3f> cube;
 
   //housekeeping
   std::time_t timestamp;

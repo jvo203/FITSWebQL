@@ -1,3 +1,4 @@
+#include "../fits.h"
 #include "fits.hpp"
 
 #include <iostream>
@@ -7,6 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <omp.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -97,6 +100,8 @@ FITS::FITS()
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->pixels = NULL;
+    this->mask = NULL;
     this->defaults();
 }
 
@@ -113,6 +118,8 @@ FITS::FITS(std::string id, std::string flux)
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->pixels = NULL;
+    this->mask = NULL;
     this->defaults();
 }
 
@@ -128,6 +135,12 @@ FITS::~FITS()
 
     if (header != NULL)
         free(header);
+
+    if (pixels != NULL)
+        ippsFree(pixels);
+
+    if (mask != NULL)
+        ippsFree(mask);
 }
 
 void FITS::defaults()
@@ -393,7 +406,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     printf("%s::reading FITS header...\n", dataset_id.c_str());
 
     int no_hu = 0;
-    size_t total_size = 1;
     size_t offset = 0;
 
     while (naxis == 0)
@@ -447,7 +459,29 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         return;
     }
 
-    //the data part starts at <offset>
+    const size_t total_size = width * height;
+    const size_t frame_size = total_size * abs(bitpix / 8);
+
+    if (frame_size != total_size * sizeof(float))
+    {
+        printf("%s::tital_size != frame_size, is the bitpix correct?\n", dataset_id.c_str());
+        return;
+    }
+
+    if (pixels != NULL)
+        ippsFree(pixels);
+
+    if (mask != NULL)
+        ippsFree(mask);
+
+    pixels = ippsMalloc_32f_L(total_size);
+    mask = ippsMalloc_8u_L(total_size);
+
+    if (pixels == NULL || mask == NULL)
+    {
+        printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
+        return;
+    }
 
     if (depth == 1)
     {
@@ -455,24 +489,14 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         //unless this is a compressed file, in which case
         //the data can only be read sequentially
 
-        const size_t frame_size = width * height * abs(bitpix / 8);
-        char *buffer = (char *)malloc(frame_size);
-
-        if (buffer == NULL)
-        {
-            printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
-            return;
-        }
-
         //load data into the buffer sequentially
         if (is_compressed)
         {
-            ssize_t bytes_read = gzread(this->compressed_fits_stream, buffer, frame_size);
+            ssize_t bytes_read = gzread(this->compressed_fits_stream, pixels, frame_size);
 
             if (bytes_read != frame_size)
             {
                 fprintf(stderr, "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n", dataset_id.c_str(), bytes_read);
-                free(buffer);
                 return;
             }
             else
@@ -480,11 +504,40 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
             //use ispc to process the plane
             //1. endianness
-            //2. fill-in the {pixels,mask}           
-        }
+            //2. fill-in the {pixels,mask}
+            float pmin = FLT_MAX;
+            float pmax = -FLT_MAX;
 
-        //release the memory
-        free(buffer);
+            //get pmin, pmax
+            int max_threads = omp_get_max_threads();
+
+            //keep the worksize within int32 limits
+            size_t max_work_size = 1024 * 1024 * 1024;
+            size_t work_size = MIN(total_size / max_threads, max_work_size);
+            int num_threads = total_size / work_size;
+
+            printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n", dataset_id.c_str(), total_size, work_size, num_threads);
+
+#pragma omp parallel for reduction(min                   \
+                                   : pmin) reduction(max \
+                                                     : pmax)
+            for (int tid = 0; tid < num_threads; tid++)
+            {
+                size_t work_size = total_size / num_threads;
+                size_t start = tid * work_size;
+
+                if (tid == num_threads - 1)
+                    work_size = total_size - start;
+
+                ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
+            };
+
+            printf("%s::pmin = %f\tpmax = %f\n", dataset_id.c_str(), pmin, pmax);
+        }
+        else
+        {
+            //the data part starts at <offset>
+        }
     }
 
     this->timestamp = std::time(nullptr);
