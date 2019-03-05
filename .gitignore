@@ -8,7 +8,7 @@
 *.db
 
 #ispc output files
-fits.*
+/fits.*
 
 #Intel C/C++ Compiler optimizer reports
 *.optrpt
