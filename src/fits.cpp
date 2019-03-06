@@ -9,6 +9,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <chrono>
+using std::chrono::steady_clock;
+
 #include <omp.h>
 
 #include <boost/algorithm/string.hpp>
@@ -102,6 +105,7 @@ FITS::FITS()
     this->header = NULL;
     this->pixels = NULL;
     this->mask = NULL;
+    this->cube = NULL;
     this->defaults();
 }
 
@@ -120,6 +124,7 @@ FITS::FITS(std::string id, std::string flux)
     this->header = NULL;
     this->pixels = NULL;
     this->mask = NULL;
+    this->cube = NULL;
     this->defaults();
 }
 
@@ -141,6 +146,9 @@ FITS::~FITS()
 
     if (mask != NULL)
         ippsFree(mask);
+
+    if (cube != NULL)
+        delete cube;
 }
 
 void FITS::defaults()
@@ -363,6 +371,8 @@ void FITS::from_url(std::string url, std::string flux, bool is_optical)
 
 void FITS::from_path(std::string path, bool is_compressed, std::string flux, bool is_optical)
 {
+    auto start_t = steady_clock::now();
+
     printf("loading %s from %s %s gzip compression\n", this->dataset_id.c_str(), path.c_str(), (is_compressed ? "with" : "without"));
 
     this->gz_compressed = is_compressed;
@@ -462,12 +472,12 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         return;
     }
 
-    const size_t total_size = width * height;
-    const size_t frame_size = total_size * abs(bitpix / 8);
+    const size_t plane_size = width * height;
+    const size_t frame_size = plane_size * abs(bitpix / 8);
 
-    if (frame_size != total_size * sizeof(float))
+    if (frame_size != plane_size * sizeof(float))
     {
-        printf("%s::tital_size != frame_size, is the bitpix correct?\n", dataset_id.c_str());
+        printf("%s::plane_size != frame_size, is the bitpix correct?\n", dataset_id.c_str());
         return;
     }
 
@@ -477,14 +487,16 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     if (mask != NULL)
         ippsFree(mask);
 
-    pixels = ippsMalloc_32f_L(total_size);
-    mask = ippsMalloc_8u_L(total_size);
+    pixels = ippsMalloc_32f_L(plane_size);
+    mask = ippsMalloc_8u_L(plane_size);
 
     if (pixels == NULL || mask == NULL)
     {
         printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
         return;
     }
+
+    std::atomic<bool> bSuccess = true;
 
     if (depth == 1)
     {
@@ -504,10 +516,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
         //keep the worksize within int32 limits
         size_t max_work_size = 1024 * 1024 * 1024;
-        size_t work_size = MIN(total_size / max_threads, max_work_size);
-        int num_threads = total_size / work_size;
+        size_t work_size = MIN(plane_size / max_threads, max_work_size);
+        int num_threads = plane_size / work_size;
 
-        printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n", dataset_id.c_str(), total_size, work_size, num_threads);
+        printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n", dataset_id.c_str(), plane_size, work_size, num_threads);
 
         if (is_compressed)
         {
@@ -522,16 +534,16 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             else
                 printf("%s::FITS data read OK.\n", dataset_id.c_str());
 
-#pragma omp parallel for reduction(min                   \
-                                   : pmin) reduction(max \
-                                                     : pmax)
+#pragma omp parallel for schedule(static) reduction(min                   \
+                                                    : pmin) reduction(max \
+                                                                      : pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
-                size_t work_size = total_size / num_threads;
+                size_t work_size = plane_size / num_threads;
                 size_t start = tid * work_size;
 
                 if (tid == num_threads - 1)
-                    work_size = total_size - start;
+                    work_size = plane_size - start;
 
                 ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
             };
@@ -541,16 +553,16 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             //load data into the buffer in parallel chunks
             //the data part starts at <offset>
 
-#pragma omp parallel for reduction(min                   \
-                                   : pmin) reduction(max \
-                                                     : pmax)
+#pragma omp parallel for schedule(dynamic) reduction(min                   \
+                                                     : pmin) reduction(max \
+                                                                       : pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
-                size_t work_size = total_size / num_threads;
+                size_t work_size = plane_size / num_threads;
                 size_t start = tid * work_size;
 
                 if (tid == num_threads - 1)
-                    work_size = total_size - start;
+                    work_size = plane_size - start;
 
                 //parallel read (pread) at a specified offset
                 ssize_t bytes_read = pread(this->fits_file_desc, &(pixels[start]), work_size * sizeof(float), offset + start * sizeof(float));
@@ -558,6 +570,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                 if (bytes_read != work_size * sizeof(float))
                 {
                     fprintf(stderr, "%s::CRITICAL: only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
+                    bSuccess = false;
                 }
                 else
                     ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
@@ -570,11 +583,135 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     else
     {
         printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+
+        //ZFP-compressed FITS cube
+        if (cube != NULL)
+            delete cube;
+
+        cube = new zfp::array3f(width, height, depth, 6); //8-bits per value
+        if (cube == NULL)
+        {
+            fprintf(stderr, "%s::error allocating a ZFP-compressed FITS data cube.\n", dataset_id.c_str());
+            return;
+        }
+        cube->flush_cache();
+
+        size_t zfp_size = cube->compressed_size();
+        size_t real_size = frame_size * depth;
+        printf("%s::compressed size: %zu bytes, real size: %zu bytes, ratio: %5.2f.\n", dataset_id.c_str(), zfp_size, real_size, float(real_size) / float(zfp_size));
+
+        //the rest of the variables
         frame_min.resize(depth, FLT_MAX);
         frame_max.resize(depth, -FLT_MAX);
+        mean_spectrum.resize(depth, 0.0f);
+        integrated_spectrum.resize(depth, 0.0f);
+
+        float pmin = FLT_MAX;
+        float pmax = -FLT_MAX;
+
+        int max_threads = omp_get_max_threads();
+
+        if (!is_compressed)
+        {
+            //pre-allocated floating-point read buffers
+            //to reduce RAM thrashing
+            std::vector<Ipp32f *> pixels_buf(max_threads);
+            std::vector<Ipp8u *> mask_buf(max_threads);
+
+            for (int i = 0; i < max_threads; i++)
+            {
+                pixels_buf[i] = ippsMalloc_32f_L(plane_size);
+                mask_buf[i] = ippsMalloc_8u_L(plane_size);
+            }
+
+//ZFP compressed array private_view requires blocks-of-4 scheduling for thread-safe mutable access
+#pragma omp parallel for schedule(dynamic, 4) reduction(min                   \
+                                                        : pmin) reduction(max \
+                                                                          : pmax)
+            for (size_t frame = 0; frame < depth; frame++)
+            {
+                int tid = omp_get_thread_num();
+                //printf("tid: %d, frame: %zu\n", tid, frame);
+
+                if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL)
+                {
+                    fprintf(stderr, "%s::<tid::%d>::problem allocating thread-local {pixels,buf} arrays.\n", dataset_id.c_str(), tid);
+                    bSuccess = false;
+                    continue;
+                }
+
+                //parallel read (pread) at a specified offset
+                ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid], frame_size, offset + frame_size * frame);
+
+                if (bytes_read != frame_size)
+                {
+                    fprintf(stderr, "%s::<tid::%d>::CRITICAL: only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), tid, bytes_read, frame_size);
+                    bSuccess = false;
+                }
+                else
+                {
+                    ispc::fits2float32((int32_t *)pixels_buf[tid], (uint8_t *)mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, pmin, pmax, plane_size);
+
+                    //pixels_buf[tid] now contains floating-point data
+                    //get a mutable private_view to a ZFP-compressed array
+                    zfp::array3f::private_view view(cube, 0, 0, frame, width, height, 1);
+                    //printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
+
+                    //fill-in the compressed array
+                    Ipp32f *thread_pixels = pixels_buf[tid];
+                    Ipp8u *thread_mask = mask_buf[tid];
+                    size_t view_offset = 0;
+                    for (int j = 0; j < height; j++)
+                        for (int i = 0; i < width; i++)
+                        {
+                            if (thread_mask[view_offset])
+                                view(i, j, 0) = thread_pixels[view_offset];
+                            else
+                                view(i, j, 0) = 0.0f;
+
+                            view_offset++;
+                        };
+
+                    // compress all private cached blocks to shared storage
+                    view.flush_cache();
+                }
+            }
+
+            //release memory
+            for (int i = 0; i < max_threads; i++)
+            {
+                if (pixels_buf[i] != NULL)
+                    ippsFree(pixels_buf[i]);
+
+                if (mask_buf[i] != NULL)
+                    ippsFree(mask_buf[i]);
+            }
+
+            //a test print-out of the cube (the middle  plane)
+            /*zfp::array3f::private_const_view view(cube);
+            for (int j = 0; j < height; j++)
+            {
+                for (int i = 0; i < width; i++)
+                    printf("%f\t", view(i, j, depth / 2));
+                printf("\n");
+            }*/
+        }
+        else
+        {
+            printf("%s::gz-compressed depth > 1 not supported yet.\n", dataset_id.c_str());
+        }
+
+        dmin = pmin;
+        dmax = pmax;
     }
 
-    printf("%s::dmin = %f\tdmax = %f\n", dataset_id.c_str(), dmin, dmax);
+    auto end_t = steady_clock::now();
 
+    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("%s::<success:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax, elapsedMilliseconds);
+
+    this->has_data = bSuccess ? true : false;
     this->timestamp = std::time(nullptr);
 }

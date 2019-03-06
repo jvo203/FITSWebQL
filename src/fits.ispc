@@ -32,8 +32,8 @@ export void fits2float32(uniform int src[], uniform unsigned int8 mask[], unifor
             vmin = min(vmin, tmp) ;
             vmax = max(vmax, tmp) ;
 
-            src[i] = tmp ;
-            mask[i] = 255;
+            src[i] = intbits(tmp) ;
+            mask[i] = 255;            
         }
         else
         {

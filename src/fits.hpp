@@ -2,6 +2,7 @@
 
 #include <string>
 #include <ctime>
+#include <atomic>
 #include <mutex>
 #include <string.h>
 #include <optional>
@@ -92,10 +93,11 @@ public:
   //values derived from the FITS data
   float dmin, dmax;
   std::vector<float> frame_min, frame_max;
+  std::vector<float> mean_spectrum, integrated_spectrum;
 
   //extras
-  bool has_header;
-  bool has_data;
+  std::atomic<bool> has_header;
+  std::atomic<bool> has_data;
   bool has_frequency;
   bool has_velocity;
   bool is_optical;
@@ -108,7 +110,7 @@ private:
   Ipp8u *mask;
 
   //ZFP compressed arrays
-  std::optional<zfp::array3f> cube;
+  zfp::array3f *cube;
 
   //housekeeping
   std::time_t timestamp;
