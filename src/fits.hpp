@@ -10,8 +10,7 @@
 #include <zfparray2.h>
 #include <zfparray3.h>
 
-#include <ipps.h>
-#include <ipps_l.h>
+#include <ipp.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
