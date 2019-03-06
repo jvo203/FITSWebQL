@@ -188,6 +188,9 @@ void FITS::defaults()
     has_frequency = false;
     has_velocity = false;
     is_optical = false;
+
+    dmin = -FLT_MAX;
+    dmax = FLT_MAX;
 }
 
 void FITS::update_timestamp()
@@ -453,9 +456,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         return;
     }
 
-    if (width <= 0 || height <= 0)
+    if (width <= 0 || height <= 0 || depth <= 0)
     {
-        printf("%s::incorrect dimensions (width:%ld, height:%ld)\n", dataset_id.c_str(), width, height);
+        printf("%s::incorrect dimensions (width:%ld, height:%ld, depth:%ld)\n", dataset_id.c_str(), width, height, depth);
         return;
     }
 
@@ -561,8 +564,17 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             };
         }
 
-        printf("%s::pmin = %f\tpmax = %f\n", dataset_id.c_str(), pmin, pmax);
+        dmin = pmin;
+        dmax = pmax;
     }
+    else
+    {
+        printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+        frame_min.resize(depth, FLT_MAX);
+        frame_max.resize(depth, -FLT_MAX);
+    }
+
+    printf("%s::dmin = %f\tdmax = %f\n", dataset_id.c_str(), dmin, dmax);
 
     this->timestamp = std::time(nullptr);
 }

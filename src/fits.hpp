@@ -5,6 +5,7 @@
 #include <mutex>
 #include <string.h>
 #include <optional>
+#include <vector>
 #include <zlib.h>
 
 #include <zfparray2.h>
@@ -87,6 +88,10 @@ public:
   std::string timesys;
   std::string object;
   std::string date_obs;
+
+  //values derived from the FITS data
+  float dmin, dmax;
+  std::vector<float> frame_min, frame_max;
 
   //extras
   bool has_header;

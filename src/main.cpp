@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-05.0"
+#define VERSION_STRING "SV2019-03-06.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
