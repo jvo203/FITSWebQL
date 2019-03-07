@@ -588,7 +588,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         if (cube != NULL)
             delete cube;
 
-        cube = new zfp::array3f(width, height, depth, 6, NULL, 0);//(6, 8 bits per value)
+        cube = new zfp::array3f(width, height, depth, 4, NULL, 0); //(#bits per value)
 
         if (cube == NULL)
         {
@@ -619,10 +619,23 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             std::vector<Ipp32f *> pixels_buf(max_threads);
             std::vector<Ipp8u *> mask_buf(max_threads);
 
+            //OpenMP per-thread {pixels,mask}
+            std::vector<Ipp32f *> omp_pixels(max_threads);
+            std::vector<Ipp8u *> omp_mask(max_threads);
+
             for (int i = 0; i < max_threads; i++)
             {
                 pixels_buf[i] = ippsMalloc_32f_L(plane_size);
                 mask_buf[i] = ippsMalloc_8u_L(plane_size);
+
+                omp_pixels[i] = ippsMalloc_32f_L(plane_size);
+                if (omp_pixels[i] != NULL)
+                    for (size_t j = 0; j < plane_size; j++)
+                        omp_pixels[i][j] = 0.0f;
+
+                omp_mask[i] = ippsMalloc_8u_L(plane_size);
+                if (omp_mask[i] != NULL)
+                    memset(omp_mask[i], 0, plane_size);
             }
 
 //ZFP compressed array private_view requires blocks-of-4 scheduling for thread-safe mutable access
@@ -634,7 +647,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                 int tid = omp_get_thread_num();
                 //printf("tid: %d, frame: %zu\n", tid, frame);
 
-                if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL)
+                if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL || omp_pixels[tid] == NULL || omp_mask[tid] == NULL)
                 {
                     fprintf(stderr, "%s::<tid::%d>::problem allocating thread-local {pixels,buf} arrays.\n", dataset_id.c_str(), tid);
                     bSuccess = false;
@@ -651,12 +664,33 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                 }
                 else
                 {
-                    ispc::fits2float32((int32_t *)pixels_buf[tid], (uint8_t *)mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, pmin, pmax, plane_size);
+                    float fmin = FLT_MAX;
+                    float fmax = -FLT_MAX;
+                    float mean = 0.0f;
+                    float integrated = 0.0f;
+
+                    float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+
+                    ispc::make_image_spectrumF32((int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin, fmax, mean, integrated, plane_size);
+
+                    pmin = MIN(pmin, fmin);
+                    pmax = MAX(pmax, fmax);
+                    frame_min[frame] = fmin;
+                    frame_max[frame] = fmax;
+                    mean_spectrum[frame] = mean;
+                    integrated_spectrum[frame] = integrated;
 
                     //pixels_buf[tid] now contains floating-point data
                     //get a mutable private_view to a ZFP-compressed array
                     zfp::array3f::private_view view(cube, 0, 0, frame, width, height, 1);
                     //printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
+
+                    if (frame == depth / 2)
+                    {
+                        for (int i = 0; i < 10; i++)
+                            printf("%f\t", pixels_buf[tid][i]);
+                        printf("\n+++++++++++++++++++++++\n");
+                    }
 
                     //fill-in the compressed array
                     Ipp32f *thread_pixels = pixels_buf[tid];
@@ -675,6 +709,52 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
                     // compress all private cached blocks to shared storage
                     view.flush_cache();
+
+                    if (frame == depth / 2)
+                    {
+                        for (int i = 0; i < 10; i++)
+                            printf("%f\t", pixels_buf[tid][i]);
+                        printf("\n+++++++++++++++++++++++\n");
+
+                        for (int i = 0; i < 10; i++)
+                            printf("%f\t", (double)view(i, 0, 0));
+                        printf("\n+++++++++++++++++++++++\n");
+                    }
+                }
+            }
+
+            printf("FMIN/FMAX\tSPECTRUM\n");
+            for (int i = 0; i < depth; i++)
+                printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i], mean_spectrum[i], integrated_spectrum[i]);
+            printf("\n");
+
+            //join omp_{pixel,mask}
+            memset(mask, 0, plane_size);
+            for (size_t i = 0; i < plane_size; i++)
+                pixels[i] = 0.0f;
+
+            float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+
+            //keep the worksize within int32 limits
+            size_t max_work_size = 1024 * 1024 * 1024;
+            size_t work_size = MIN(plane_size / max_threads, max_work_size);
+            int num_threads = plane_size / work_size;
+
+            for (int i = 0; i < max_threads; i++)
+            {
+                float *pixels_tid = omp_pixels[i];
+                unsigned char *mask_tid = omp_mask[i];
+
+#pragma omp parallel for
+                for (int tid = 0; tid < num_threads; tid++)
+                {
+                    size_t work_size = plane_size / num_threads;
+                    size_t start = tid * work_size;
+
+                    if (tid == num_threads - 1)
+                        work_size = plane_size - start;
+
+                    ispc::join_pixels_masks(&(pixels[start]), &(pixels_tid[start]), &(mask[start]), &(mask_tid[start]), _cdelt3, work_size);
                 }
             }
 
@@ -686,16 +766,19 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
                 if (mask_buf[i] != NULL)
                     ippsFree(mask_buf[i]);
+
+                if (omp_pixels[i] != NULL)
+                    ippsFree(omp_pixels[i]);
+
+                if (omp_mask[i] != NULL)
+                    ippsFree(omp_mask[i]);
             }
 
             //a test print-out of the cube (the middle  plane)
-            /*zfp::array3f::private_const_view view(cube);
-            for (int j = 0; j < height; j++)
-            {
-                for (int i = 0; i < width; i++)
-                    printf("%f\t", view(i, j, depth / 2));
-                printf("\n");
-            }*/
+            zfp::array3f::private_const_view view(cube);
+            for (int i = 0; i < 10; i++)
+                printf("%f\t", (double)view(i, 0, depth / 2));
+            printf("\n+++++++++++++++++++++++\n");
         }
         else
         {
@@ -711,7 +794,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-    printf("%s::<success:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax, elapsedMilliseconds);
+    printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax, elapsedMilliseconds);
 
     this->has_data = bSuccess ? true : false;
     this->timestamp = std::time(nullptr);

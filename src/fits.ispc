@@ -16,32 +16,93 @@ uint32_t bswap32(uint32_t u)
   return ((u&0xFF)<<24) | (((u>>8)&0xFF)<<16) | (((u>>16)&0xFF)<<8) | (((u>>24)&0xFF)<<0);
 }
 
-export void fits2float32(uniform int src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float& rmin, uniform float& rmax, uniform unsigned int size)
+export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float& rmin, uniform float& rmax, uniform unsigned int size)
 {    
-    varying float vmin = rmin ;
-    varying float vmax = rmax ;
+  varying float vmin = rmin ;
+  varying float vmax = rmax ;
 
-    foreach(i=0 ... size)
+  foreach(i=0 ... size)
     {
-        //in-place endian conversion, rebase the pixels
-        float tmp = bzero + bscale * floatbits(bswap32(src[i]));        
+      //in-place endian conversion, rebase the pixels
+      float tmp = bzero + bscale * floatbits(bswap32(src[i]));        
 
-        //next the min/max values & the mask
-        cif(!(isnan(tmp) || isinf(tmp)) && (tmp > ignrval) && (tmp >= datamin) && (tmp <= datamax))
+      //next the min/max values & the mask
+      cif(!(isnan(tmp) || isinf(tmp)) && (tmp > ignrval) && (tmp >= datamin) && (tmp <= datamax))
         {
-            vmin = min(vmin, tmp) ;
-            vmax = max(vmax, tmp) ;
+	  vmin = min(vmin, tmp) ;
+	  vmax = max(vmax, tmp) ;
 
-            src[i] = intbits(tmp) ;
-            mask[i] = 255;            
+	  src[i] = intbits(tmp) ;
+	  mask[i] = 255;            
         }
-        else
+      else
         {
-            src[i] = 0x7ff80000; // quiet NaN        
-            mask[i] = 0;
+	  src[i] = 0x7ff80000; // quiet NaN        
+	  mask[i] = 0;
         }
     }
 
-    rmin = reduce_min(vmin) ;
-    rmax = reduce_max(vmax) ;
+  rmin = reduce_min(vmin) ;
+  rmax = reduce_max(vmax) ;
+} ;
+
+export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
+{  
+  varying float partial_sum = 0.0f ;
+  varying unsigned int64 partial_count = 0 ;
+
+  varying float partial_min = frame_min ;
+  varying float partial_max = frame_max ;
+
+  foreach(i=0 ... total_size)
+    {
+      float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;      
+      
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax) ;
+
+      //alternative coherent if
+      cif (!nan)
+	{
+	  src[i] = intbits(tmp) ;
+	  mask[i] = 255;
+	  dst_pixels[i] += tmp ;
+	  dst_mask[i] = 255 ;
+	  partial_sum += tmp ;
+	  partial_count += 1 ;
+	  partial_min = min(partial_min, tmp);
+	  partial_max = max(partial_max, tmp);
+	}
+      else
+        {
+	  src[i] = 0x7ff80000; // quiet NaN        
+	  mask[i] = 0;
+        }
+    } ;
+
+  uniform float sum = reduce_add(partial_sum) ;
+  uniform int64 count = reduce_add(partial_count) ;
+
+  if(count > 0)
+    {
+      
+      mean = sum / (float) count ;
+      integrated = sum * cdelt3 ;
+    }
+  else
+    {
+      mean = 0.0f ;
+      integrated = 0.0f ;
+    }
+
+  frame_min = reduce_min(partial_min);
+  frame_max = reduce_max(partial_max);  
+} ;
+
+export void join_pixels_masks(uniform float pixels[], uniform float pixels_tid[], uniform unsigned int8 mask[], uniform unsigned int8 mask_tid[], uniform float cdelt3, uniform unsigned int size)
+{
+  foreach(i=0 ... size)
+    {
+      pixels[i] += pixels_tid[i] * cdelt3 ;
+      mask[i] |= mask_tid[i] ;
+    } ;
 } ;

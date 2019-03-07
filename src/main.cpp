@@ -695,7 +695,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::vector<std::thread *> threads(MAX(std::thread::hardware_concurrency() / 2, 1));
+    int no_threads = MIN(MAX(std::thread::hardware_concurrency() / 2, 1), 4);
+    std::vector<std::thread *> threads(no_threads);
     std::transform(threads.begin(), threads.end(), threads.begin(), [](std::thread *t) {
         return new std::thread([]() {
             uWS::Hub h;
