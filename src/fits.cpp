@@ -588,14 +588,15 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         if (cube != NULL)
             delete cube;
 
-        cube = new zfp::array3f(width, height, depth, 6); //8-bits per value
+        cube = new zfp::array3f(width, height, depth, 6, NULL, 0);//(6, 8 bits per value)
+
         if (cube == NULL)
         {
             fprintf(stderr, "%s::error allocating a ZFP-compressed FITS data cube.\n", dataset_id.c_str());
             return;
         }
-        cube->flush_cache();
 
+        cube->flush_cache();
         size_t zfp_size = cube->compressed_size();
         size_t real_size = frame_size * depth;
         printf("%s::compressed size: %zu bytes, real size: %zu bytes, ratio: %5.2f.\n", dataset_id.c_str(), zfp_size, real_size, float(real_size) / float(zfp_size));
