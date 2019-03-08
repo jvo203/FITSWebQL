@@ -2,6 +2,7 @@
 #include "fits.hpp"
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <cfloat>
 #include <math.h>
@@ -627,6 +628,11 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         mean_spectrum.resize(depth, 0.0f);
         integrated_spectrum.resize(depth, 0.0f);
 
+        //prepare the main image/mask
+        memset(mask, 0, plane_size);
+        for (size_t i = 0; i < plane_size; i++)
+            pixels[i] = 0.0f;
+
         float pmin = FLT_MAX;
         float pmax = -FLT_MAX;
 
@@ -743,16 +749,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                 }
             }
 
-            printf("FMIN/FMAX\tSPECTRUM\n");
-            for (int i = 0; i < depth; i++)
-                printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i], mean_spectrum[i], integrated_spectrum[i]);
-            printf("\n");
-
             //join omp_{pixel,mask}
-            memset(mask, 0, plane_size);
-            for (size_t i = 0; i < plane_size; i++)
-                pixels[i] = 0.0f;
-
             float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
 
             //keep the worksize within int32 limits
@@ -804,40 +801,103 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         {
             printf("%s::gz-compressed depth > 1: work-in-progress.\n", dataset_id.c_str());
 
-            //ZFP requires blocks-of-4 processing
-            for (size_t k = 0; k < depth; k += 4)
+#pragma omp parallel num_threads(no_omp_threads)
             {
-                //create a mutable private view starting at k, with a maximum depth of 4
-                size_t start_k = k;
-                size_t end_k = MIN(k + 4, depth);
-                size_t depth_k = end_k - start_k;
-
-                zfp::array3f::private_view view(cube, 0, 0, k, width, height, depth_k);
-                printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view.size_x(), view.size_y(), view.size_z());
-
-                for (size_t frame = start_k; frame < end_k; frame++)
+#pragma omp single
                 {
-                    printf("k: %zu\tframe: %zu\n", k, frame);
-
-                    //allocate {pixel_buf, mask_buf}
-                    std::unique_ptr<Ipp32f, decltype(Ipp32fFree)> pixels_buf(ippsMalloc_32f_L(plane_size), Ipp32fFree);
-                    std::unique_ptr<Ipp8u, decltype(Ipp8uFree)> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
-
-                    if (pixels_buf == NULL || mask_buf == NULL)
+                    //ZFP requires blocks-of-4 processing
+                    for (size_t k = 0; k < depth; k += 4)
                     {
-                        printf("%s::cannot malloc memory for {pixels,mask} buffers.\n", dataset_id.c_str());
-                        bSuccess = false;
-                        break;
-                    }
+                        //create a mutable private view starting at k, with a maximum depth of 4
+                        size_t start_k = k;
+                        size_t end_k = MIN(k + 4, depth);
+                        size_t depth_k = end_k - start_k;
 
-                    //the main body
-                    //...
+                        std::shared_ptr<zfp::array3f::private_view> view(new zfp::array3f::private_view(cube, 0, 0, k, width, height, depth_k));
+                        //zfp::array3f::private_view view(cube, 0, 0, k, width, height, depth_k);
+                        printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view->size_x(), view->size_y(), view->size_z());
+
+                        for (size_t frame = start_k; frame < end_k; frame++)
+                        {
+                            printf("k: %zu\tframe: %zu\n", k, frame);
+
+                            //allocate {pixel_buf, mask_buf}
+                            std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), Ipp32fFree);
+                            std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
+                            //std::unique_ptr<Ipp32f, decltype(Ipp32fFree)> pixels_buf(ippsMalloc_32f_L(plane_size), Ipp32fFree);
+                            //std::unique_ptr<Ipp8u, decltype(Ipp8uFree)> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
+
+                            if (pixels_buf.get() == NULL || mask_buf.get() == NULL)
+                            {
+                                printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} buffers.\n", dataset_id.c_str());
+                                bSuccess = false;
+                                break;
+                            }
+
+                            //load data into the buffer sequentially
+                            ssize_t bytes_read = gzread(this->compressed_fits_stream, pixels_buf.get(), frame_size);
+
+                            if (bytes_read != frame_size)
+                            {
+                                fprintf(stderr, "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n", dataset_id.c_str(), bytes_read);
+                                bSuccess = false;
+                                break;
+                            }
+
+                            //process the buffer
+                            float fmin = FLT_MAX;
+                            float fmax = -FLT_MAX;
+                            float mean = 0.0f;
+                            float integrated = 0.0f;
+
+                            float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+
+                            ispc::make_image_spectrumF32((int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale, ignrval, datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean, integrated, plane_size);
+
+                            pmin = MIN(pmin, fmin);
+                            pmax = MAX(pmax, fmax);
+                            frame_min[frame] = fmin;
+                            frame_max[frame] = fmax;
+                            mean_spectrum[frame] = mean;
+                            integrated_spectrum[frame] = integrated;
+
+//lastly ZFP-compress in an OpenMP task
+#pragma omp task
+                            {
+                                printf("OpenMP<task::frame:%zu>::started.\n", frame);
+
+                                //fill-in the compressed array
+                                Ipp32f *thread_pixels = pixels_buf.get();
+                                Ipp8u *thread_mask = mask_buf.get();
+                                size_t view_offset = 0;
+                                for (int j = 0; j < height; j++)
+                                    for (int i = 0; i < width; i++)
+                                    {
+                                        if (thread_mask[view_offset])
+                                            (*view)(i, j, frame - start_k) = thread_pixels[view_offset];
+                                        else
+                                            (*view)(i, j, frame - start_k) = 0.0f;
+
+                                        view_offset++;
+                                    };
+
+                                // compress all private cached blocks to shared storage
+                                view->flush_cache();
+                                printf("OpenMP<task::frame:%zu>::finished.\n", frame);
+                            }
+                        }
+                    }
                 }
             }
         }
 
         dmin = pmin;
         dmax = pmax;
+
+        printf("FMIN/FMAX\tSPECTRUM\n");
+        for (int i = 0; i < depth; i++)
+            printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i], mean_spectrum[i], integrated_spectrum[i]);
+        printf("\n");
     }
 
     auto end_t = steady_clock::now();
