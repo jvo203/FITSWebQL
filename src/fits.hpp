@@ -32,8 +32,8 @@ public:
 
 public:
   void update_timestamp();
-  void from_url(std::string url, std::string flux, bool is_optical);
-  void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical);
+  void from_url(std::string url, std::string flux, bool is_optical, int va_count);
+  void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
 
 private:
   void defaults();

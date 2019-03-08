@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-07.0"
+#define VERSION_STRING "SV2019-03-08.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -502,6 +502,8 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
         jvo_db = jvo_db_connect(db);
 #endif
 
+    int va_count = datasets.size();
+
     for (auto const &data_id : datasets)
     {
         std::shared_lock<std::shared_mutex> lock(fits_mutex);
@@ -536,7 +538,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                     is_compressed = true;
 
                 //load FITS data in a separate thread
-                std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical).detach();
+                std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
             }
             else
             {
@@ -544,7 +546,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                 std::string url = std::string("http://") + JVO_FITS_SERVER + ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB + "&table=cube&data_id=" + data_id + "_00_00_00";
 
                 //download FITS data from a URL in a separate thread
-                std::thread(&FITS::from_url, fits, url, flux, is_optical).detach();
+                std::thread(&FITS::from_url, fits, url, flux, is_optical, va_count).detach();
             }
         }
         else

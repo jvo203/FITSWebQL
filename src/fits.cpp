@@ -364,16 +364,18 @@ bool FITS::process_fits_header_unit(const char *buf)
     return end;
 }
 
-void FITS::from_url(std::string url, std::string flux, bool is_optical)
+void FITS::from_url(std::string url, std::string flux, bool is_optical, int va_count)
 {
-    printf("downloading %s from %s\n", this->dataset_id.c_str(), url.c_str());
+    int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
+    printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n", this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 }
 
-void FITS::from_path(std::string path, bool is_compressed, std::string flux, bool is_optical)
+void FITS::from_path(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count)
 {
     auto start_t = steady_clock::now();
 
-    printf("loading %s from %s %s gzip compression\n", this->dataset_id.c_str(), path.c_str(), (is_compressed ? "with" : "without"));
+    int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
+    printf("loading %s from %s %s gzip compression, va_count = %d, no_omp_threads = %d\n", this->dataset_id.c_str(), path.c_str(), (is_compressed ? "with" : "without"), va_count, no_omp_threads);
 
     this->gz_compressed = is_compressed;
 
@@ -534,9 +536,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             else
                 printf("%s::FITS data read OK.\n", dataset_id.c_str());
 
-#pragma omp parallel for schedule(static) reduction(min                   \
-                                                    : pmin) reduction(max \
-                                                                      : pmax)
+#pragma omp parallel for schedule(static) num_threads(no_omp_threads) reduction(min                   \
+                                                                                : pmin) reduction(max \
+                                                                                                  : pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
                 size_t work_size = plane_size / num_threads;
@@ -553,9 +555,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             //load data into the buffer in parallel chunks
             //the data part starts at <offset>
 
-#pragma omp parallel for schedule(dynamic) reduction(min                   \
-                                                     : pmin) reduction(max \
-                                                                       : pmax)
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                   \
+                                                                                 : pmin) reduction(max \
+                                                                                                   : pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
                 size_t work_size = plane_size / num_threads;
@@ -639,9 +641,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             }
 
 //ZFP compressed array private_view requires blocks-of-4 scheduling for thread-safe mutable access
-#pragma omp parallel for schedule(dynamic, 4) reduction(min                   \
-                                                        : pmin) reduction(max \
-                                                                          : pmax)
+#pragma omp parallel for schedule(dynamic, 4) num_threads(no_omp_threads) reduction(min                   \
+                                                                                    : pmin) reduction(max \
+                                                                                                      : pmax)
             for (size_t frame = 0; frame < depth; frame++)
             {
                 int tid = omp_get_thread_num();
@@ -745,7 +747,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                 float *pixels_tid = omp_pixels[i];
                 unsigned char *mask_tid = omp_mask[i];
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(no_omp_threads)
                 for (int tid = 0; tid < num_threads; tid++)
                 {
                     size_t work_size = plane_size / num_threads;
@@ -783,6 +785,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         else
         {
             printf("%s::gz-compressed depth > 1 not supported yet.\n", dataset_id.c_str());
+            bSuccess = false;
         }
 
         dmin = pmin;
