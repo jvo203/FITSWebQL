@@ -817,6 +817,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                         //zfp::array3f::private_view view(cube, 0, 0, k, width, height, depth_k);
                         printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view->size_x(), view->size_y(), view->size_z());
 
+                        //std::vector<std::shared_ptr<>> pixels_buf,mask_buf (depth_k)
+                        //create private_view in the OpenMP task launched once every four frames
+                        //use the same construct for non-compressed FITS files
+
                         for (size_t frame = start_k; frame < end_k; frame++)
                         {
                             printf("k: %zu\tframe: %zu\n", k, frame);

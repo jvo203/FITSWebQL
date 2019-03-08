@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-08.0"
+#define VERSION_STRING "SV2019-03-09.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -42,6 +42,9 @@ inline const char *check_null(const char *str)
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/device/file.hpp>
 
 #include <uWS/uWS.h>
 #include <sqlite3.h>
@@ -82,6 +85,41 @@ void signalHandler(int signum)
     std::cout << "FITSWebQL shutdown completed." << std::endl;
 
     exit(signum);
+}
+
+bool isgz(const char *filename)
+{
+    //first, check that it exists
+    std::ifstream in(filename);
+    if (!in)
+    {
+        return false;
+    }
+    in.close();
+
+    /*
+    If the file is not .gz and we try
+    to read from it using boost's filtering_istream
+    classes, an exception will be thrown.
+    
+    Therefore, catching the exception tells
+    you the file is not .gz.
+  */
+    boost::iostreams::filtering_istream gzin;
+    gzin.push(boost::iostreams::gzip_compressor());
+    gzin.push(boost::iostreams::file_source(filename), std::ios_base::in | std::ios_base::binary);
+
+    char c;
+    try
+    {
+        gzin >> c;
+    }
+    catch (boost::iostreams::gzip_error &e)
+    {
+        gzin.pop();
+        return false;
+    }
+    return true;
 }
 
 //resource not found
@@ -532,10 +570,11 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
             if (path != "")
             {
-                bool is_compressed = false;
+                bool is_compressed = isgz(path.c_str());
+                /*bool is_compressed = false;
                 std::string lower_path = boost::algorithm::to_lower_copy(path);
                 if (boost::algorithm::ends_with(lower_path, ".gz"))
-                    is_compressed = true;
+                    is_compressed = true;*/
 
                 //load FITS data in a separate thread
                 std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
