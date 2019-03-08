@@ -16,6 +16,24 @@ using std::chrono::steady_clock;
 
 #include <boost/algorithm/string.hpp>
 
+auto Ipp32fFree = [](Ipp32f *p) {
+    static size_t counter = 0;
+    if (p != NULL)
+    {
+        printf("freeing <Ipp32f*>#%zu\t", counter++);
+        ippsFree(p);
+    }
+};
+
+auto Ipp8uFree = [](Ipp8u *p) {
+    static size_t counter = 0;
+    if (p != NULL)
+    {
+        printf("freeing <Ipp8u*>#%zu\t", counter++);
+        ippsFree(p);
+    }
+};
+
 void hdr_set_long_value(char *hdr, long value)
 {
     unsigned int len = sprintf(hdr, "%ld", value);
@@ -590,7 +608,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         if (cube != NULL)
             delete cube;
 
-        cube = new zfp::array3f(width, height, depth, 4, NULL, 0); //(#bits per value)
+        cube = new zfp::array3f(width, height, depth, 4, NULL); //(#bits per value)
 
         if (cube == NULL)
         {
@@ -784,8 +802,38 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         }
         else
         {
-            printf("%s::gz-compressed depth > 1 not supported yet.\n", dataset_id.c_str());
-            bSuccess = false;
+            printf("%s::gz-compressed depth > 1: work-in-progress.\n", dataset_id.c_str());
+
+            //ZFP requires blocks-of-4 processing
+            for (size_t k = 0; k < depth; k += 4)
+            {
+                //create a mutable private view starting at k, with a maximum depth of 4
+                size_t start_k = k;
+                size_t end_k = MIN(k + 4, depth);
+                size_t depth_k = end_k - start_k;
+
+                zfp::array3f::private_view view(cube, 0, 0, k, width, height, depth_k);
+                printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view.size_x(), view.size_y(), view.size_z());
+
+                for (size_t frame = start_k; frame < end_k; frame++)
+                {
+                    printf("k: %zu\tframe: %zu\n", k, frame);
+
+                    //allocate {pixel_buf, mask_buf}
+                    std::unique_ptr<Ipp32f, decltype(Ipp32fFree)> pixels_buf(ippsMalloc_32f_L(plane_size), Ipp32fFree);
+                    std::unique_ptr<Ipp8u, decltype(Ipp8uFree)> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
+
+                    if (pixels_buf == NULL || mask_buf == NULL)
+                    {
+                        printf("%s::cannot malloc memory for {pixels,mask} buffers.\n", dataset_id.c_str());
+                        bSuccess = false;
+                        break;
+                    }
+
+                    //the main body
+                    //...
+                }
+            }
         }
 
         dmin = pmin;
