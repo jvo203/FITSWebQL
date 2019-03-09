@@ -570,7 +570,11 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
             if (path != "")
             {
-                bool is_compressed = is_gz(path.c_str());               
+                //bool is_compressed = is_gz(path.c_str());
+                bool is_compressed = false;
+                std::string lower_path = boost::algorithm::to_lower_copy(path);
+                if (boost::algorithm::ends_with(lower_path, ".gz"))
+                    is_compressed = true;
 
                 //load FITS data in a separate thread
                 std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
