@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-09.1"
+#define VERSION_STRING "SV2019-03-09.2"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -87,39 +87,31 @@ void signalHandler(int signum)
     exit(signum);
 }
 
-bool is_gz(const char *filename)
+bool is_gzip(const char *filename)
 {
-    //first, check that it exists
-    std::ifstream in(filename);
-    if (!in)
-    {
-        return false;
-    }
-    in.close();
+    int fd = open(filename, O_RDONLY);
 
-    /*
-    If the file is not .gz and we try
-    to read from it using boost's filtering_istream
-    classes, an exception will be thrown.
-    
-    Therefore, catching the exception tells
-    you the file is not .gz.
-  */
-    boost::iostreams::filtering_istream gzin;
-    gzin.push(boost::iostreams::gzip_compressor());
-    gzin.push(boost::iostreams::file_source(filename), std::ios_base::in | std::ios_base::binary);
-
-    char c;
-    try
-    {
-        gzin >> c;
-    }
-    catch (boost::iostreams::gzip_error &e)
-    {
-        gzin.pop();
+    if (fd == -1)
         return false;
+
+    bool ok = true;
+    uint8_t header[10];
+
+    //try to read the first 10 bytes
+    ssize_t bytes_read = read(fd, header, 10);
+
+    //test for magick numbers and the deflate compression type
+    if (bytes_read == 10)
+    {
+        if (header[0] != 0x1f || header[1] != 0x8b || header[2] != 0x08)
+            ok = false;
     }
-    return true;
+    else
+        ok = false;
+
+    close(fd);
+
+    return ok;
 }
 
 //resource not found
@@ -570,11 +562,11 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
             if (path != "")
             {
-                //bool is_compressed = is_gz(path.c_str());
-                bool is_compressed = false;
+                bool is_compressed = is_gzip(path.c_str());
+                /*bool is_compressed = false;
                 std::string lower_path = boost::algorithm::to_lower_copy(path);
                 if (boost::algorithm::ends_with(lower_path, ".gz"))
-                    is_compressed = true;
+                    is_compressed = true;*/
 
                 //load FITS data in a separate thread
                 std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
