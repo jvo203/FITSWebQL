@@ -665,13 +665,18 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             }
 
 //ZFP compressed array private_view requires blocks-of-4 scheduling for thread-safe mutable access
-#pragma omp parallel for schedule(dynamic, 4) num_threads(no_omp_threads) reduction(min                   \
-                                                                                    : pmin) reduction(max \
-                                                                                                      : pmax)
-            for (size_t frame = 0; frame < depth; frame++)
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                   \
+                                                                                 : pmin) reduction(max \
+                                                                                                   : pmax)
+
+            for (size_t k = 0; k < depth; k += 4)
             {
                 int tid = omp_get_thread_num();
-                //printf("tid: %d, frame: %zu\n", tid, frame);
+                //printf("tid: %d, k: %zu\n", tid, k);
+                //create a mutable private view starting at k, with a maximum depth of 4
+                size_t start_k = k;
+                size_t end_k = MIN(k + 4, depth);
+                size_t depth_k = end_k - start_k;
 
                 if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL || omp_pixels[tid] == NULL || omp_mask[tid] == NULL)
                 {
@@ -680,73 +685,67 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                     continue;
                 }
 
-                //parallel read (pread) at a specified offset
-                ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid], frame_size, offset + frame_size * frame);
+                //get a mutable private_view to a ZFP-compressed array
+                zfp::array3f::private_view view(cube, 0, 0, start_k, width, height, depth_k);
+                printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
 
-                if (bytes_read != frame_size)
+                for (size_t frame = start_k; frame < end_k; frame++)
                 {
-                    fprintf(stderr, "%s::<tid::%d>::CRITICAL: only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), tid, bytes_read, frame_size);
-                    bSuccess = false;
-                }
-                else
-                {
-                    float fmin = FLT_MAX;
-                    float fmax = -FLT_MAX;
-                    float mean = 0.0f;
-                    float integrated = 0.0f;
+                    printf("k: %zu\tframe: %zu\n", k, frame);
 
-                    float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+                    //parallel read (pread) at a specified offset
+                    ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid], frame_size, offset + frame_size * frame);
 
-                    ispc::make_image_spectrumF32((int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin, fmax, mean, integrated, plane_size);
-
-                    pmin = MIN(pmin, fmin);
-                    pmax = MAX(pmax, fmax);
-                    frame_min[frame] = fmin;
-                    frame_max[frame] = fmax;
-                    mean_spectrum[frame] = mean;
-                    integrated_spectrum[frame] = integrated;
-
-                    //pixels_buf[tid] now contains floating-point data
-                    //get a mutable private_view to a ZFP-compressed array
-                    zfp::array3f::private_view view(cube, 0, 0, frame, width, height, 1);
-                    //printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
-
-                    if (frame == depth / 2)
+                    if (bytes_read != frame_size)
                     {
-                        for (int i = 0; i < 10; i++)
-                            printf("%f\t", pixels_buf[tid][i]);
-                        printf("\n+++++++++++++++++++++++\n");
+                        fprintf(stderr, "%s::<tid::%d>::CRITICAL: only read %zd out of requested %zd bytes.\n", dataset_id.c_str(), tid, bytes_read, frame_size);
+                        bSuccess = false;
                     }
+                    else
+                    {
+                        float fmin = FLT_MAX;
+                        float fmax = -FLT_MAX;
+                        float mean = 0.0f;
+                        float integrated = 0.0f;
 
-                    //fill-in the compressed array
-                    Ipp32f *thread_pixels = pixels_buf[tid];
-                    Ipp8u *thread_mask = mask_buf[tid];
-                    size_t view_offset = 0;
-                    for (int j = 0; j < height; j++)
-                        for (int i = 0; i < width; i++)
+                        float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+
+                        ispc::make_image_spectrumF32((int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin, fmax, mean, integrated, plane_size);
+
+                        pmin = MIN(pmin, fmin);
+                        pmax = MAX(pmax, fmax);
+                        frame_min[frame] = fmin;
+                        frame_max[frame] = fmax;
+                        mean_spectrum[frame] = mean;
+                        integrated_spectrum[frame] = integrated;
+
+                        if (frame == depth / 2)
                         {
-                            if (thread_mask[view_offset])
-                                view(i, j, 0) = thread_pixels[view_offset];
-                            else
-                                view(i, j, 0) = 0.0f;
+                            for (int i = 0; i < 10; i++)
+                                printf("%f\t", pixels_buf[tid][i]);
+                            printf("\n+++++++++++++++++++++++\n");
+                        }
 
-                            view_offset++;
-                        };
+                        //pixels_buf[tid] now contains floating-point data
+                        //fill-in the compressed array
+                        Ipp32f *thread_pixels = pixels_buf[tid];
+                        Ipp8u *thread_mask = mask_buf[tid];
+                        size_t view_offset = 0;
+                        for (int j = 0; j < height; j++)
+                            for (int i = 0; i < width; i++)
+                            {
+                                if (thread_mask[view_offset])
+                                    view(i, j, frame - start_k) = thread_pixels[view_offset];
+                                else
+                                    view(i, j, frame - start_k) = 0.0f;
 
-                    // compress all private cached blocks to shared storage
-                    view.flush_cache();
-
-                    if (frame == depth / 2)
-                    {
-                        for (int i = 0; i < 10; i++)
-                            printf("%f\t", pixels_buf[tid][i]);
-                        printf("\n+++++++++++++++++++++++\n");
-
-                        for (int i = 0; i < 10; i++)
-                            printf("%f\t", (double)view(i, 0, 0));
-                        printf("\n+++++++++++++++++++++++\n");
+                                view_offset++;
+                            };
                     }
                 }
+
+                // compress all private cached blocks to shared storage
+                view.flush_cache();
             }
 
             //join omp_{pixel,mask}
