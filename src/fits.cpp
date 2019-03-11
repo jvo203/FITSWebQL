@@ -813,12 +813,12 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                         size_t end_k = MIN(k + 4, depth);
                         size_t depth_k = end_k - start_k;
 
-                        std::shared_ptr<zfp::array3f::private_view> view(new zfp::array3f::private_view(cube, 0, 0, k, width, height, depth_k));
-                        //zfp::array3f::private_view view(cube, 0, 0, k, width, height, depth_k);
-                        printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view->size_x(), view->size_y(), view->size_z());
-
                         //std::vector<std::shared_ptr<>> pixels_buf,mask_buf (depth_k)
+                        std::shared_ptr<std::vector<std::shared_ptr<Ipp32f>>> vec_pixels(new std::vector<std::shared_ptr<Ipp32f>>());
+                        std::shared_ptr<std::vector<std::shared_ptr<Ipp8u>>> vec_mask(new std::vector<std::shared_ptr<Ipp8u>>());
+
                         //create private_view in the OpenMP task launched once every four frames
+                        //then std::move the vectors into an OpenMP task
                         //use the same construct for non-compressed FITS files
 
                         for (size_t frame = start_k; frame < end_k; frame++)
@@ -865,30 +865,44 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                             mean_spectrum[frame] = mean;
                             integrated_spectrum[frame] = integrated;
 
+                            vec_pixels->push_back(pixels_buf);
+                            vec_mask->push_back(mask_buf);
+                        }
+
 //lastly ZFP-compress in an OpenMP task
 #pragma omp task
+                        {
+                            printf("OpenMP<task::start:%zu,depth::%zu>::started. vec_pixels::size():%zu,vec_mask::size():%zu\n", start_k, depth_k, vec_pixels->size(), vec_mask->size());
+
+                            if (depth_k != vec_pixels->size() || depth_k != vec_mask->size())
+                                bSuccess = false;
+                            else
                             {
-                                printf("OpenMP<task::frame:%zu>::started.\n", frame);
+                                zfp::array3f::private_view view(cube, 0, 0, start_k, width, height, depth_k);
+                                printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view.size_x(), view.size_y(), view.size_z());
 
-                                //fill-in the compressed array
-                                Ipp32f *thread_pixels = pixels_buf.get();
-                                Ipp8u *thread_mask = mask_buf.get();
-                                size_t view_offset = 0;
-                                for (int j = 0; j < height; j++)
-                                    for (int i = 0; i < width; i++)
-                                    {
-                                        if (thread_mask[view_offset])
-                                            (*view)(i, j, frame - start_k) = thread_pixels[view_offset];
-                                        else
-                                            (*view)(i, j, frame - start_k) = 0.0f;
+                                for (size_t frame = 0; frame < depth_k; frame++)
+                                {
+                                    //fill-in the compressed array
+                                    Ipp32f *thread_pixels = (*vec_pixels)[frame].get();
+                                    Ipp8u *thread_mask = (*vec_mask)[frame].get();
+                                    size_t view_offset = 0;
+                                    for (int j = 0; j < height; j++)
+                                        for (int i = 0; i < width; i++)
+                                        {
+                                            if (thread_mask[view_offset])
+                                                view(i, j, frame) = thread_pixels[view_offset];
+                                            else
+                                                view(i, j, frame) = 0.0f;
 
-                                        view_offset++;
-                                    };
+                                            view_offset++;
+                                        };
+                                }
 
                                 // compress all private cached blocks to shared storage
-                                view->flush_cache();
-                                printf("OpenMP<task::frame:%zu>::finished.\n", frame);
+                                view.flush_cache();
                             }
+                            printf("OpenMP<task::start:%zu>::finished.\n", start_k);
                         }
                     }
                 }
