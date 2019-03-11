@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-10.0"
+#define VERSION_STRING "SV2019-03-11.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -562,10 +562,11 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
 
             if (path != "")
             {
-                bool is_compressed = false;
+                bool is_compressed = is_gzip(path.c_str());
+                /*bool is_compressed = false;
                 std::string lower_path = boost::algorithm::to_lower_copy(path);
                 if (boost::algorithm::ends_with(lower_path, ".gz"))
-                    is_compressed = is_gzip(path.c_str());
+                    is_compressed = is_gzip(path.c_str());*/
 
                 //load FITS data in a separate thread
                 std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
