@@ -205,7 +205,7 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
         else
             json << ",";
 
-        //json-encode a molecule
+        //json-encode a spectral line
         char *encoded;
 
         //species
