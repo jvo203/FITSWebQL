@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-12.0"
+#define VERSION_STRING "SV2019-03-13.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -42,9 +42,6 @@ inline const char *check_null(const char *str)
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/device/file.hpp>
 
 #include <uWS/uWS.h>
 #include <sqlite3.h>
@@ -170,6 +167,8 @@ struct MolecularStream
 {
     bool first;
     uWS::HttpResponse *res;
+    z_stream strm;
+    FILE *fp;
 };
 
 static int
@@ -283,6 +282,21 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
     stream.first = true;
     stream.res = res;
 
+    /*unsigned char *in = DATA TO COMPRESS;
+
+    strm.zalloc = Z_NULL;
+strm.zfree = Z_NULL;
+strm.opaque = Z_NULL;
+strm.next_in = in;
+
+int windowsBits = 15;
+int GZIP_ENCODING = 16;
+
+deflateInit2 (&strm, Z_BEST_COMPRESSION, Z_DEFLATED,
+              windowBits | GZIP_ENCODING,
+              9,
+              Z_DEFAULT_STRATEGY));*/
+
     rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
 
     if (rc != SQLITE_OK)
@@ -291,6 +305,8 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
         sqlite3_free(zErrMsg);
         return http_internal_server_error(res);
     }
+
+    //deflateEnd (& strm);
 
     std::string chunk_data;
 

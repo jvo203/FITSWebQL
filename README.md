@@ -5,4 +5,4 @@ work-in-progress
 
 all Linux platforms: Intel IPP
 
-Ubuntu Linux: sudo apt-get install libboost-iostreams-dev
+(not needed anymore: Ubuntu Linux: sudo apt-get install libboost-iostreams-dev)

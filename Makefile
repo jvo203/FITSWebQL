@@ -2,7 +2,8 @@ SRC = src/main.cpp src/fits.cpp src/json.c
 INC = -I/usr/include/postgresql
 #-I/home/chris/uWebSockets/src -I/home/chris/uSockets-0.1.2/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DDEVELOPMENT -DLOCAL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lpq -luWS -lssl -lz -lzfp -lnuma -lpthread -lboost_iostreams
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lpq -luWS -lssl -lz -lzfp -lnuma -lpthread
+#-lboost_iostreams
 IPP = -L$($IPPROOT)/lib/intel64 -lippi -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 TARGET=fitswebql
