@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include <string>
 #include <ctime>
 #include <atomic>
@@ -23,6 +24,9 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#define EPSILON 1.0E-15
+#define FPzero(A) (fabs(A) <= EPSILON)
+
 class FITS
 {
 public:
@@ -34,9 +38,12 @@ public:
   void update_timestamp();
   void from_url(std::string url, std::string flux, bool is_optical, int va_count);
   void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
+  void get_frequency_range(double& freq_start, double& freq_end);
 
 private:
   void defaults();
+  void frame_reference_unit();
+  void frame_reference_type();  
   bool process_fits_header_unit(const char *buf);
 
 public:

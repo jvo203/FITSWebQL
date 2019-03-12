@@ -226,6 +226,119 @@ void FITS::update_timestamp()
     timestamp = std::time(nullptr);
 }
 
+void FITS::frame_reference_type()
+{
+    char *pos = NULL;
+    const char *_ctype3 = ctype3.c_str();
+
+    {
+        pos = (char *)strstr(_ctype3, "F");
+
+        if (pos != NULL)
+            has_frequency = true;
+    }
+
+    {
+        pos = (char *)strstr(_ctype3, "f");
+
+        if (pos != NULL)
+            has_frequency = true;
+    }
+
+    {
+        pos = (char *)strstr(_ctype3, "V");
+
+        if (pos != NULL)
+            has_velocity = true;
+    }
+
+    {
+        pos = (char *)strstr(_ctype3, "v");
+
+        if (pos != NULL)
+            has_velocity = true;
+    }
+};
+
+void FITS::frame_reference_unit()
+{
+    const char *_cunit3 = cunit3.c_str();
+
+    if (!strcasecmp(_cunit3, "Hz"))
+    {
+        has_frequency = true;
+        frame_multiplier = 1.0f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "kHz"))
+    {
+        has_frequency = true;
+        frame_multiplier = 1e3f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "MHz"))
+    {
+        has_frequency = true;
+        frame_multiplier = 1e6f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "GHz"))
+    {
+        has_frequency = true;
+        frame_multiplier = 1e9f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "THz"))
+    {
+        has_frequency = true;
+        frame_multiplier = 1e12f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "m/s"))
+    {
+        has_velocity = true;
+        frame_multiplier = 1.0f;
+        return;
+    };
+
+    if (!strcasecmp(_cunit3, "km/s"))
+    {
+        has_velocity = true;
+        frame_multiplier = 1e3f;
+        return;
+    };
+}
+
+void FITS::get_frequency_range(double &freq_start, double &freq_end)
+{
+    if (has_velocity)
+    {
+        double c = 299792458.0; //speed of light [m/s]
+
+        double v1 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (1.0 - crpix3);
+        double v2 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (double(depth) - crpix3);
+
+        double f1 = restfrq * sqrt((1.0 - v1 / c) / (1.0 + v1 / c));
+        double f2 = restfrq * sqrt((1.0 - v2 / c) / (1.0 + v2 / c));
+
+        freq_start = MIN(f1, f2) / 1.0E9; //[Hz -> GHz]
+        freq_end = MAX(f1, f2) / 1.0E9;   //[Hz -> GHz]
+    }
+    else if (has_frequency)
+    {
+        double f1 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (1.0 - crpix3);
+        double f2 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (double(depth) - crpix3);
+
+        freq_start = MIN(f1, f2) / 1.0E9; //[Hz -> GHz]
+        freq_end = MAX(f1, f2) / 1.0E9;   //[Hz -> GHz]
+    }
+}
+
 bool FITS::process_fits_header_unit(const char *buf)
 {
     char hdrLine[FITS_LINE_LENGTH + 1];
@@ -477,6 +590,14 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
     }
 
     header[offset] = '\0';
+
+    //test for frequency/velocity
+    frame_reference_unit();
+    frame_reference_type();
+
+    if (restfrq > 0.0)
+        has_frequency = true;
+
     this->has_header = true;
 
     //printf("%s\n", header);
@@ -687,11 +808,11 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 
                 //get a mutable private_view to a ZFP-compressed array
                 zfp::array3f::private_view view(cube, 0, 0, start_k, width, height, depth_k);
-                printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
+                //printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid, view.size_x(), view.size_y(), view.size_z());
 
                 for (size_t frame = start_k; frame < end_k; frame++)
                 {
-                    printf("k: %zu\tframe: %zu\n", k, frame);
+                    //printf("k: %zu\tframe: %zu\n", k, frame);
 
                     //parallel read (pread) at a specified offset
                     ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid], frame_size, offset + frame_size * frame);
@@ -718,13 +839,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                         frame_max[frame] = fmax;
                         mean_spectrum[frame] = mean;
                         integrated_spectrum[frame] = integrated;
-
-                        if (frame == depth / 2)
-                        {
-                            for (int i = 0; i < 10; i++)
-                                printf("%f\t", pixels_buf[tid][i]);
-                            printf("\n+++++++++++++++++++++++\n");
-                        }
 
                         //pixels_buf[tid] now contains floating-point data
                         //fill-in the compressed array
@@ -791,10 +905,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
             }
 
             //a test print-out of the cube (the middle  plane)
-            zfp::array3f::private_const_view view(cube);
+            /*zfp::array3f::private_const_view view(cube);
             for (int i = 0; i < 10; i++)
                 printf("%f\t", (double)view(i, 0, depth / 2));
-            printf("\n+++++++++++++++++++++++\n");
+            printf("\n+++++++++++++++++++++++\n");*/
         }
         else
         {
@@ -812,17 +926,15 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                         size_t end_k = MIN(k + 4, depth);
                         size_t depth_k = end_k - start_k;
 
-                        //std::vector<std::shared_ptr<>> pixels_buf,mask_buf (depth_k)
                         std::shared_ptr<std::vector<std::shared_ptr<Ipp32f>>> vec_pixels(new std::vector<std::shared_ptr<Ipp32f>>());
                         std::shared_ptr<std::vector<std::shared_ptr<Ipp8u>>> vec_mask(new std::vector<std::shared_ptr<Ipp8u>>());
 
                         //create private_view in the OpenMP task launched once every four frames
-                        //then std::move the vectors into an OpenMP task
                         //use the same construct for non-compressed FITS files
 
                         for (size_t frame = start_k; frame < end_k; frame++)
                         {
-                            printf("k: %zu\tframe: %zu\n", k, frame);
+                            //printf("k: %zu\tframe: %zu\n", k, frame);
 
                             //allocate {pixel_buf, mask_buf}
                             std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), Ipp32fFree);
@@ -871,14 +983,17 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
 //lastly ZFP-compress in an OpenMP task
 #pragma omp task
                         {
-                            printf("OpenMP<task::start:%zu,depth::%zu>::started. vec_pixels::size():%zu,vec_mask::size():%zu\n", start_k, depth_k, vec_pixels->size(), vec_mask->size());
+                            //printf("OpenMP<task::start:%zu,depth::%zu>::started. vec_pixels::size():%zu,vec_mask::size():%zu\n", start_k, depth_k, vec_pixels->size(), vec_mask->size());
 
                             if (depth_k != vec_pixels->size() || depth_k != vec_mask->size())
+                            {
+                                printf("%s::CRITICAL::depth_k != vec_pixels.size() || depth_k != vec_mask.size().\n", dataset_id.c_str());
                                 bSuccess = false;
+                            }
                             else
                             {
                                 zfp::array3f::private_view view(cube, 0, 0, start_k, width, height, depth_k);
-                                printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view.size_x(), view.size_y(), view.size_z());
+                                //printf("%s::start_k:%zu::view %d x %d x %d\n", dataset_id.c_str(), start_k, view.size_x(), view.size_y(), view.size_z());
 
                                 for (size_t frame = 0; frame < depth_k; frame++)
                                 {
@@ -901,7 +1016,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
                                 // compress all private cached blocks to shared storage
                                 view.flush_cache();
                             }
-                            printf("OpenMP<task::start:%zu>::finished.\n", start_k);
+                            //printf("OpenMP<task::start:%zu>::finished.\n", start_k);
                         }
                     }
                 }
@@ -911,10 +1026,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux, boo
         dmin = pmin;
         dmax = pmax;
 
-        printf("FMIN/FMAX\tSPECTRUM\n");
+        /*printf("FMIN/FMAX\tSPECTRUM\n");
         for (int i = 0; i < depth; i++)
             printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i], mean_spectrum[i], integrated_spectrum[i]);
-        printf("\n");
+        printf("\n");*/
     }
 
     auto end_t = steady_clock::now();

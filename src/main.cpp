@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-11.0"
+#define VERSION_STRING "SV2019-03-12.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 inline const char *check_null(const char *str)
@@ -121,6 +121,27 @@ void http_not_found(uWS::HttpResponse *res)
     res->write(not_found.data(), not_found.length());
 }
 
+//server error
+void http_internal_server_error(uWS::HttpResponse *res)
+{
+    const std::string server_error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+    res->write(server_error.data(), server_error.length());
+}
+
+//request accepted but not ready yet
+void http_accepted(uWS::HttpResponse *res)
+{
+    const std::string accepted = "HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n";
+    res->write(accepted.data(), accepted.length());
+}
+
+//functionality not implemented/not available
+void http_not_implemented(uWS::HttpResponse *res)
+{
+    const std::string not_implemented = "HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n";
+    res->write(not_implemented.data(), not_implemented.length());
+}
+
 void write_status(uWS::HttpResponse *res, int code, std::string message)
 {
     std::string status = "HTTP/1.1 " + std::to_string(code) + " " + message + "\r\n";
@@ -143,6 +164,155 @@ void write_key_value(uWS::HttpResponse *res, std::string key, std::string value)
 {
     std::string content_type = key + ": " + value + "\r\n";
     res->write(content_type.data(), content_type.length());
+}
+
+struct MolecularStream
+{
+    bool first;
+    uWS::HttpResponse *res;
+};
+
+static int
+sqlite_callback(void *userp, int argc, char **argv, char **azColName)
+{
+    MolecularStream *stream = (MolecularStream *)userp;
+    //static long counter = 0;
+    //printf("sqlite_callback: %ld, argc: %d\n", counter++, argc);
+
+    if (argc == 8)
+    {
+        /*printf("sqlite_callback::molecule:\t");
+        for (int i = 0; i < argc; i++)
+            printf("%s:%s\t", azColName[i], argv[i]);
+        printf("\n");*/
+
+        std::ostringstream json;
+
+        if (stream->first)
+        {
+            stream->first = false;
+
+            write_status(stream->res, 200, "OK");
+            write_content_type(stream->res, "application/json");
+            write_key_value(stream->res, "Transfer-Encoding", "chunked");
+            write_key_value(stream->res, "Cache-Control", "no-cache");
+            write_key_value(stream->res, "Cache-Control", "no-store");
+            write_key_value(stream->res, "Pragma", "no-cache");
+            stream->res->write("\r\n", 2);
+
+            json << "{\"molecules\" : [";
+        }
+        else
+            json << ",";
+
+        //json-encode a molecule
+        char *encoded;
+
+        //species
+        encoded = json_encode_string(check_null(argv[0]));
+        json << "{\"species\" : " << check_null(encoded) << ",";
+
+        if (encoded != NULL)
+            free(encoded);
+
+        //name
+        encoded = json_encode_string(check_null(argv[1]));
+        json << "\"name\" : " << check_null(encoded) << ",";
+        if (encoded != NULL)
+            free(encoded);
+
+        //frequency
+        json << "\"frequency\" : " << check_null(argv[2]) << ",";
+
+        //quantum numbers
+        encoded = json_encode_string(check_null(argv[3]));
+        json << "\"quantum\" : " << check_null(encoded) << ",";
+        if (encoded != NULL)
+            free(encoded);
+
+        //cdms_intensity
+        encoded = json_encode_string(check_null(argv[4]));
+        json << "\"cdms\" : " << check_null(encoded) << ",";
+        if (encoded != NULL)
+            free(encoded);
+
+        //lovas_intensity
+        encoded = json_encode_string(check_null(argv[5]));
+        json << "\"lovas\" : " << check_null(encoded) << ",";
+        if (encoded != NULL)
+            free(encoded);
+
+        //E_L
+        encoded = json_encode_string(check_null(argv[6]));
+        json << "\"E_L\" : " << check_null(encoded) << ",";
+        if (encoded != NULL)
+            free(encoded);
+
+        //linelist
+        encoded = json_encode_string(check_null(argv[7]));
+        json << "\"list\" : " << check_null(encoded) << "}";
+        if (encoded != NULL)
+            free(encoded);
+
+        //chunk header
+        std::ostringstream chunk;
+        chunk << std::hex << json.tellp() << "\r\n";
+        stream->res->write(chunk.str().c_str(), chunk.tellp());
+
+        //chunk contents
+        stream->res->write(json.str().c_str(), json.tellp());
+        stream->res->write("\r\n", 2);
+    }
+
+    return 0;
+}
+
+void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end)
+{
+    if (splat_db == NULL)
+        return http_internal_server_error(res);
+
+    char strSQL[256];
+    int rc;
+    char *zErrMsg = 0;
+
+    snprintf(strSQL, 256, "SELECT * FROM lines WHERE frequency>=%f AND frequency<=%f;", freq_start, freq_end);
+    printf("%s\n", strSQL);
+
+    struct MolecularStream stream;
+    stream.first = true;
+    stream.res = res;
+
+    rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+        return http_internal_server_error(res);
+    }
+
+    std::string chunk_data;
+
+    if (stream.first)
+        chunk_data = "{\"molecules\" : []}";
+    else
+        chunk_data = "]}";
+
+    {
+        std::ostringstream chunk;
+        chunk << std::hex << chunk_data.length() << "\r\n";
+        res->write(chunk.str().c_str(), chunk.tellp());
+    }
+
+    {
+        std::ostringstream chunk;
+        chunk << chunk_data << "\r\n";
+        res->write(chunk.str().c_str(), chunk.tellp());
+    }
+
+    //end of chunked transmission
+    res->write("0\r\n\r\n", 5);
 }
 
 uintmax_t ComputeFileSize(const fs::path &pathToCheck)
@@ -290,9 +460,6 @@ void serve_file(uWS::HttpResponse *res, std::string uri)
 
         if (buffer != NULL)
         {
-            //const std::string header = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(size) + "\r\n\r\n";
-            //res->write(header.data(), header.length());
-
             write_status(res, 200, "OK");
             write_content_length(res, size);
 
@@ -790,6 +957,101 @@ int main(int argc, char *argv[])
                         return get_directory(res, dir);
                     else
                         return get_home_directory(res);
+                }
+
+                if (uri.find("/get_molecules") != std::string::npos)
+                {
+                    //handle the accepted keywords
+                    bool gzip_accept = false;
+                    auto encoding = req.getHeader("accept-encoding");
+
+                    if (encoding)
+                    {
+                        std::string value = encoding.toString();
+                        size_t pos = value.find("gzip");
+
+                        if (pos != std::string::npos)
+                            gzip_accept = true;
+
+                        std::cout << "Accept-Encoding:" << value << "; gzip support " << (gzip_accept ? "" : "not ") << "found." << std::endl;
+                    }
+
+                    //get a position of '?'
+                    size_t pos = uri.find("?");
+
+                    if (pos != std::string::npos)
+                    {
+                        std::string datasetid;
+                        double freq_start = 0.0;
+                        double freq_end = 0.0;
+
+                        std::string query = uri.substr(pos + 1, std::string::npos);
+                        //std::cout << "query: (" << query << ")" << std::endl;
+
+                        std::vector<std::string> params;
+                        boost::split(params, query, [](char c) { return c == '&'; });
+
+                        CURL *curl = curl_easy_init();
+
+                        for (auto const &s : params)
+                        {
+                            //find '='
+                            size_t pos = s.find("=");
+
+                            if (pos != std::string::npos)
+                            {
+                                std::string key = s.substr(0, pos);
+                                std::string value = s.substr(pos + 1, std::string::npos);
+
+                                if (key.find("dataset") != std::string::npos)
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
+                                    datasetid = std::string(str);
+                                    curl_free(str);
+                                }
+
+                                if (key.find("freq_start") != std::string::npos)
+                                    freq_start = std::stod(value) / 1.0E9; //[Hz -> GHz]
+
+                                if (key.find("freq_end") != std::string::npos)
+                                    freq_end = std::stod(value) / 1.0E9; //[Hz -> GHz]
+                            }
+                        }
+
+                        curl_easy_cleanup(curl);
+
+                        if (FPzero(freq_start) || FPzero(freq_end))
+                        {
+                            //get the frequency range from the FITS header
+                            std::shared_lock<std::shared_mutex> lock(fits_mutex);
+                            auto item = DATASETS.find(datasetid);
+                            lock.unlock();
+
+                            if (item == DATASETS.end())
+                                return http_not_found(res);
+                            else
+                            {
+                                auto fits = item->second;
+
+                                if (!fits->has_header)
+                                    return http_accepted(res);
+
+                                if (fits->depth <= 1 || !fits->has_frequency)
+                                    return http_not_implemented(res);
+
+                                //extract the freq. range
+                                fits->get_frequency_range(freq_start, freq_end);
+                            }
+                        }
+
+                        //process the response
+                        std::cout << "get_molecules(" << datasetid << "," << freq_start << "GHz," << freq_end << "GHz)" << std::endl;
+
+                        if (!FPzero(freq_start) && !FPzero(freq_end))
+                            return stream_molecules(res, freq_start, freq_end);
+                        else
+                            return http_not_implemented(res);
+                    }
                 }
 
                 //FITSWebQL entry
