@@ -48,7 +48,6 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 #include <csignal>
 #include <string_view>
 #include <string>
@@ -326,7 +325,7 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
     return 0;
 }
 
-void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end, bool gzip)
+void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end, bool compress)
 {
     if (splat_db == NULL)
         return http_internal_server_error(res);
@@ -340,10 +339,10 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
 
     struct MolecularStream stream;
     stream.first = true;
-    stream.compress = gzip;
+    stream.compress = compress;
     stream.res = res;
 
-    if (gzip)
+    if (compress)
     {
         stream.z.zalloc = Z_NULL;
         stream.z.zfree = Z_NULL;
@@ -375,7 +374,7 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
     else
         chunk_data = "]}";
 
-    if (gzip)
+    if (compress)
     {
         stream.z.avail_in = chunk_data.length();
         stream.z.next_in = (unsigned char *)chunk_data.c_str();
@@ -402,7 +401,6 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
     }
     else
     {
-
         {
             std::ostringstream chunk;
             chunk << std::hex << chunk_data.length() << "\r\n";
@@ -1069,7 +1067,7 @@ int main(int argc, char *argv[])
                 if (uri.find("/get_molecules") != std::string::npos)
                 {
                     //handle the accepted keywords
-                    bool gzip = false;
+                    bool compress = false;
                     auto encoding = req.getHeader("accept-encoding");
 
                     if (encoding)
@@ -1078,9 +1076,9 @@ int main(int argc, char *argv[])
                         size_t pos = value.find("gzip"); //gzip or deflate
 
                         if (pos != std::string::npos)
-                            gzip = true;
+                            compress = true;
 
-                        std::cout << "Accept-Encoding:" << value << "; gzip support " << (gzip ? "" : "not ") << "found." << std::endl;
+                        std::cout << "Accept-Encoding:" << value << "; compression support " << (compress ? "" : "not ") << "found." << std::endl;
                     }
 
                     //get a position of '?'
@@ -1155,7 +1153,7 @@ int main(int argc, char *argv[])
                         std::cout << "get_molecules(" << datasetid << "," << freq_start << "GHz," << freq_end << "GHz)" << std::endl;
 
                         if (!FPzero(freq_start) && !FPzero(freq_end))
-                            return stream_molecules(res, freq_start, freq_end, gzip);
+                            return stream_molecules(res, freq_start, freq_end, compress);
                         else
                             return http_not_implemented(res);
                     }
