@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-13.1"
+#define VERSION_STRING "SV2019-03-13.2"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1062,6 +1062,69 @@ int main(int argc, char *argv[])
                         return get_directory(res, dir);
                     else
                         return get_home_directory(res);
+                }
+
+                if (uri.find("/get_spectrum") != std::string::npos)
+                {
+                    //get a position of '?'
+                    size_t pos = uri.find("?");
+
+                    if (pos != std::string::npos)
+                    {
+                        std::string datasetid;
+
+                        std::string query = uri.substr(pos + 1, std::string::npos);
+                        //std::cout << "query: (" << query << ")" << std::endl;
+
+                        std::vector<std::string> params;
+                        boost::split(params, query, [](char c) { return c == '&'; });
+
+                        CURL *curl = curl_easy_init();
+
+                        for (auto const &s : params)
+                        {
+                            //find '='
+                            size_t pos = s.find("=");
+
+                            if (pos != std::string::npos)
+                            {
+                                std::string key = s.substr(0, pos);
+                                std::string value = s.substr(pos + 1, std::string::npos);
+
+                                if (key.find("dataset") != std::string::npos)
+                                {
+                                    char *str = curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
+                                    datasetid = std::string(str);
+                                    curl_free(str);
+                                }
+                            }
+                        }
+
+                        curl_easy_cleanup(curl);
+
+                        //process the response
+                        std::cout << "get_spectrum(" << datasetid << ")" << std::endl;
+
+                        std::shared_lock<std::shared_mutex> lock(fits_mutex);
+                        auto item = DATASETS.find(datasetid);
+                        lock.unlock();
+
+                        if (item == DATASETS.end())
+                            return http_not_found(res);
+                        else
+                        {
+                            auto fits = item->second;
+
+                            if (!fits->has_data)
+                                return http_accepted(res);
+
+                            //make a json from the FITS header field
+                            //minus the histogram which might be shifted
+                            //onto the client browser side
+
+                            return http_not_implemented(res);
+                        }
+                    }
                 }
 
                 if (uri.find("/get_molecules") != std::string::npos)

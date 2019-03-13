@@ -11,7 +11,7 @@ function localStorage_read_lastdir(key) {
 
 function show_directory_contents(response) {
 	$("#filesystem").remove();
-	$("#container").append($("<div></div>")
+	$("#main").append($("<div></div>")
 		.attr("id", "filesystem"));
 
 	let loc = response.location;
