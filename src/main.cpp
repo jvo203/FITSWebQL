@@ -7,16 +7,34 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-03-13.0"
+#define VERSION_STRING "SV2019-03-13.1"
 #define WASM_STRING "WASM2019-02-08.1"
 
-inline const char *check_null(const char *str)
-{
-    if (str != nullptr)
-        return str;
-    else
-        return "\"\"";
-};
+#include <zlib.h>
+
+/* CHUNK is the size of the memory chunk used by the zlib routines. */
+
+#define CHUNK 0x4000
+#define windowBits 15
+#define GZIP_ENCODING 16
+
+/* The following macro calls a zlib routine and checks the return
+   value. If the return value ("status") is not OK, it prints an error
+   message and exits the program. Zlib's error statuses are all less
+   than zero. */
+
+#define CALL_ZLIB(x)                                            \
+    {                                                           \
+        int status;                                             \
+        status = x;                                             \
+        if (status < 0)                                         \
+        {                                                       \
+            fprintf(stderr,                                     \
+                    "%s:%d: %s returned a bad status of %d.\n", \
+                    __FILE__, __LINE__, #x, status);            \
+            /*exit(EXIT_FAILURE);*/                             \
+        }                                                       \
+    }
 
 #include <sys/types.h>
 #include <pwd.h>
@@ -30,6 +48,7 @@ inline const char *check_null(const char *str)
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 #include <csignal>
 #include <string_view>
 #include <string>
@@ -66,6 +85,14 @@ std::shared_mutex fits_mutex;
 std::string home_dir;
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
+
+inline const char *check_null(const char *str)
+{
+    if (str != nullptr)
+        return str;
+    else
+        return "\"\"";
+};
 
 void signalHandler(int signum)
 {
@@ -166,8 +193,10 @@ void write_key_value(uWS::HttpResponse *res, std::string key, std::string value)
 struct MolecularStream
 {
     bool first;
+    bool compress;
     uWS::HttpResponse *res;
-    z_stream strm;
+    z_stream z;
+    unsigned char out[CHUNK];
     FILE *fp;
 };
 
@@ -185,7 +214,7 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
             printf("%s:%s\t", azColName[i], argv[i]);
         printf("\n");*/
 
-        std::ostringstream json;
+        std::string json;
 
         if (stream->first)
         {
@@ -193,80 +222,115 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
 
             write_status(stream->res, 200, "OK");
             write_content_type(stream->res, "application/json");
+
+            if (stream->compress)
+                write_key_value(stream->res, "Content-Encoding", "gzip");
+
             write_key_value(stream->res, "Transfer-Encoding", "chunked");
+
             write_key_value(stream->res, "Cache-Control", "no-cache");
             write_key_value(stream->res, "Cache-Control", "no-store");
             write_key_value(stream->res, "Pragma", "no-cache");
             stream->res->write("\r\n", 2);
 
-            json << "{\"molecules\" : [";
+            json = "{\"molecules\" : [";
         }
         else
-            json << ",";
+            json = ",";
 
         //json-encode a spectral line
         char *encoded;
 
         //species
         encoded = json_encode_string(check_null(argv[0]));
-        json << "{\"species\" : " << check_null(encoded) << ",";
-
+        json += "{\"species\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //name
         encoded = json_encode_string(check_null(argv[1]));
-        json << "\"name\" : " << check_null(encoded) << ",";
+        json += "\"name\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //frequency
-        json << "\"frequency\" : " << check_null(argv[2]) << ",";
+        json += "\"frequency\" : " + std::string(check_null(argv[2])) + ",";
 
         //quantum numbers
         encoded = json_encode_string(check_null(argv[3]));
-        json << "\"quantum\" : " << check_null(encoded) << ",";
+        json += "\"quantum\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //cdms_intensity
         encoded = json_encode_string(check_null(argv[4]));
-        json << "\"cdms\" : " << check_null(encoded) << ",";
+        json += "\"cdms\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //lovas_intensity
         encoded = json_encode_string(check_null(argv[5]));
-        json << "\"lovas\" : " << check_null(encoded) << ",";
+        json += "\"lovas\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //E_L
         encoded = json_encode_string(check_null(argv[6]));
-        json << "\"E_L\" : " << check_null(encoded) << ",";
+        json += "\"E_L\" : " + std::string(check_null(encoded)) + ",";
         if (encoded != NULL)
             free(encoded);
 
         //linelist
         encoded = json_encode_string(check_null(argv[7]));
-        json << "\"list\" : " << check_null(encoded) << "}";
+        json += "\"list\" : " + std::string(check_null(encoded)) + "}";
         if (encoded != NULL)
             free(encoded);
 
-        //chunk header
-        std::ostringstream chunk;
-        chunk << std::hex << json.tellp() << "\r\n";
-        stream->res->write(chunk.str().c_str(), chunk.tellp());
+        //printf("%s\n", json.c_str());
 
-        //chunk contents
-        stream->res->write(json.str().c_str(), json.tellp());
-        stream->res->write("\r\n", 2);
+        if (stream->compress)
+        {
+            stream->z.avail_in = json.length();                // size of input
+            stream->z.next_in = (unsigned char *)json.c_str(); // input char array
+            stream->z.avail_out = CHUNK;                       // size of output
+            stream->z.next_out = stream->out;                  // output char array
+            CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
+            size_t have = CHUNK - stream->z.avail_out;
+
+            if (have > 0)
+            {
+                //printf("ZLIB avail_out: %zu\n", have);
+
+                if (stream->fp != NULL)
+                    fwrite(stream->out, have, 1, stream->fp);
+
+                //chunk header
+                std::ostringstream chunk;
+                chunk << std::hex << have << "\r\n";
+                stream->res->write(chunk.str().c_str(), chunk.tellp());
+
+                //chunk contents
+                stream->res->write((const char *)stream->out, have);
+                stream->res->write("\r\n", 2);
+            }
+        }
+        else
+        {
+            //chunk header
+            std::ostringstream chunk;
+            chunk << std::hex << json.length() << "\r\n";
+            stream->res->write(chunk.str().c_str(), chunk.tellp());
+
+            //chunk contents
+            stream->res->write(json.c_str(), json.length());
+            stream->res->write("\r\n", 2);
+        }
     }
 
     return 0;
 }
 
-void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end)
+void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end, bool gzip)
 {
     if (splat_db == NULL)
         return http_internal_server_error(res);
@@ -280,22 +344,26 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
 
     struct MolecularStream stream;
     stream.first = true;
+    stream.compress = gzip;
     stream.res = res;
 
-    /*unsigned char *in = DATA TO COMPRESS;
+    if (gzip)
+    {
+        stream.fp = fopen("test.txt.gz", "wb");
 
-    strm.zalloc = Z_NULL;
-strm.zfree = Z_NULL;
-strm.opaque = Z_NULL;
-strm.next_in = in;
+        stream.z.zalloc = Z_NULL;
+        stream.z.zfree = Z_NULL;
+        stream.z.opaque = Z_NULL;
+        stream.z.next_in = Z_NULL;
+        stream.z.avail_in = 0;
 
-int windowsBits = 15;
-int GZIP_ENCODING = 16;
+        CALL_ZLIB(deflateInit2(&stream.z, Z_BEST_COMPRESSION, Z_DEFLATED,
+                               windowBits | GZIP_ENCODING,
+                               9,
+                               Z_DEFAULT_STRATEGY));
 
-deflateInit2 (&strm, Z_BEST_COMPRESSION, Z_DEFLATED,
-              windowBits | GZIP_ENCODING,
-              9,
-              Z_DEFAULT_STRATEGY));*/
+        //CALL_ZLIB(deflateInit(&stream.z, 9));
+    }
 
     rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
 
@@ -306,8 +374,6 @@ deflateInit2 (&strm, Z_BEST_COMPRESSION, Z_DEFLATED,
         return http_internal_server_error(res);
     }
 
-    //deflateEnd (& strm);
-
     std::string chunk_data;
 
     if (stream.first)
@@ -315,20 +381,56 @@ deflateInit2 (&strm, Z_BEST_COMPRESSION, Z_DEFLATED,
     else
         chunk_data = "]}";
 
+    if (gzip)
     {
-        std::ostringstream chunk;
-        chunk << std::hex << chunk_data.length() << "\r\n";
-        res->write(chunk.str().c_str(), chunk.tellp());
-    }
+        stream.z.avail_in = chunk_data.length();
+        stream.z.next_in = (unsigned char *)chunk_data.c_str();
+        stream.z.avail_out = CHUNK;     // size of output
+        stream.z.next_out = stream.out; // output char array
+        CALL_ZLIB(deflate(&stream.z, Z_FINISH));
+        size_t have = CHUNK - stream.z.avail_out;
 
+        if (have > 0)
+        {
+            //printf("Z_FINISH avail_out: %zu\n", have);
+
+            if (stream.fp != NULL)
+            {
+                fwrite(stream.out, have, 1, stream.fp);
+                fclose(stream.fp);
+            }
+
+            //chunk header
+            std::ostringstream chunk;
+            chunk << std::hex << have << "\r\n";
+            stream.res->write(chunk.str().c_str(), chunk.tellp());
+
+            //chunk contents
+            stream.res->write((const char *)stream.out, have);
+            stream.res->write("\r\n", 2);
+        }
+
+        CALL_ZLIB(deflateEnd(&stream.z));
+    }
+    else
     {
-        std::ostringstream chunk;
-        chunk << chunk_data << "\r\n";
-        res->write(chunk.str().c_str(), chunk.tellp());
+
+        {
+            std::ostringstream chunk;
+            chunk << std::hex << chunk_data.length() << "\r\n";
+            res->write(chunk.str().c_str(), chunk.tellp());
+        }
+
+        {
+            std::ostringstream chunk;
+            chunk << chunk_data << "\r\n";
+            res->write(chunk.str().c_str(), chunk.tellp());
+        }
     }
 
     //end of chunked transmission
-    res->write("0\r\n\r\n", 5);
+    res->write("0\r\n", 3);
+    res->write("\r\n\r\n", 4);
 }
 
 uintmax_t ComputeFileSize(const fs::path &pathToCheck)
@@ -978,18 +1080,18 @@ int main(int argc, char *argv[])
                 if (uri.find("/get_molecules") != std::string::npos)
                 {
                     //handle the accepted keywords
-                    bool gzip_accept = false;
+                    bool gzip = false;
                     auto encoding = req.getHeader("accept-encoding");
 
                     if (encoding)
                     {
                         std::string value = encoding.toString();
-                        size_t pos = value.find("gzip");
+                        size_t pos = value.find("gzip"); //gzip or deflate
 
                         if (pos != std::string::npos)
-                            gzip_accept = true;
+                            gzip = true;
 
-                        std::cout << "Accept-Encoding:" << value << "; gzip support " << (gzip_accept ? "" : "not ") << "found." << std::endl;
+                        std::cout << "Accept-Encoding:" << value << "; gzip support " << (gzip ? "" : "not ") << "found." << std::endl;
                     }
 
                     //get a position of '?'
@@ -1064,7 +1166,7 @@ int main(int argc, char *argv[])
                         std::cout << "get_molecules(" << datasetid << "," << freq_start << "GHz," << freq_end << "GHz)" << std::endl;
 
                         if (!FPzero(freq_start) && !FPzero(freq_end))
-                            return stream_molecules(res, freq_start, freq_end);
+                            return stream_molecules(res, freq_start, freq_end, gzip);
                         else
                             return http_not_implemented(res);
                     }
