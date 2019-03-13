@@ -4,5 +4,3 @@ a cleaned-up C/C++ Supercomputer Edition of FITSWebQL, fusing the best elements 
 work-in-progress
 
 all Linux platforms: Intel IPP
-
-(not needed anymore: Ubuntu Linux: sudo apt-get install libboost-iostreams-dev)
