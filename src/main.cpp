@@ -197,7 +197,6 @@ struct MolecularStream
     uWS::HttpResponse *res;
     z_stream z;
     unsigned char out[CHUNK];
-    FILE *fp;
 };
 
 static int
@@ -301,9 +300,6 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
             {
                 //printf("ZLIB avail_out: %zu\n", have);
 
-                if (stream->fp != NULL)
-                    fwrite(stream->out, have, 1, stream->fp);
-
                 //chunk header
                 std::ostringstream chunk;
                 chunk << std::hex << have << "\r\n";
@@ -349,8 +345,6 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
 
     if (gzip)
     {
-        stream.fp = fopen("test.txt.gz", "wb");
-
         stream.z.zalloc = Z_NULL;
         stream.z.zfree = Z_NULL;
         stream.z.opaque = Z_NULL;
@@ -394,12 +388,6 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
         {
             //printf("Z_FINISH avail_out: %zu\n", have);
 
-            if (stream.fp != NULL)
-            {
-                fwrite(stream.out, have, 1, stream.fp);
-                fclose(stream.fp);
-            }
-
             //chunk header
             std::ostringstream chunk;
             chunk << std::hex << have << "\r\n";
@@ -428,8 +416,9 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
         }
     }
 
-    //end of chunked transmission
+    //end of chunked encoding
     res->write("0\r\n", 3);
+    //end of HTTP transmission
     res->write("\r\n\r\n", 4);
 }
 
