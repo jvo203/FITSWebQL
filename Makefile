@@ -23,7 +23,6 @@ llvm:
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	echo ${IPPROOT}
 	g++ -march=native -g -O3 -std=c++17 -fopenmp -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
 	
 #$(JEMALLOC)
