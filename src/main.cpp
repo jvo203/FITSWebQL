@@ -841,7 +841,7 @@ void execute_fits(uWS::HttpResponse *res, std::string dir, std::string ext, std:
                     is_compressed = is_gzip(path.c_str());*/
 
                 //load FITS data in a separate thread
-                std::thread(&FITS::from_path, fits, path, is_compressed, flux, is_optical, va_count).detach();
+                std::thread(&FITS::from_path_zfp_ipp, fits, path, is_compressed, flux, is_optical, va_count).detach();
             }
             else
             {

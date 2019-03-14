@@ -37,7 +37,8 @@ public:
 public:
   void update_timestamp();
   void from_url(std::string url, std::string flux, bool is_optical, int va_count);
-  void from_path(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
+  void from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
+  void from_path_zfp_ipp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
   void get_frequency_range(double& freq_start, double& freq_end);
 
 private:
