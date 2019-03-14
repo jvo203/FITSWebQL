@@ -27,6 +27,19 @@
 #define EPSILON 1.0E-15
 #define FPzero(A) (fabs(A) <= EPSILON)
 
+struct IppZfp
+{
+  IppZfp() : buffer(NULL), len(0), pEncState(NULL), _x(0), _y(0), _z(0) {}
+
+  void *buffer;
+  size_t len;
+  IppEncodeZfpState_32f *pEncState;
+  //dimensions padded to be a multiple of 4
+  size_t _x;
+  size_t _y;
+  size_t _z;
+};
+
 class FITS
 {
 public:
@@ -39,12 +52,12 @@ public:
   void from_url(std::string url, std::string flux, bool is_optical, int va_count);
   void from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
   void from_path_zfp_ipp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
-  void get_frequency_range(double& freq_start, double& freq_end);
+  void get_frequency_range(double &freq_start, double &freq_end);
 
 private:
   void defaults();
   void frame_reference_unit();
-  void frame_reference_type();  
+  void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
 
 public:
@@ -119,6 +132,9 @@ private:
 
   //ZFP compressed arrays
   zfp::array3f *cube;
+
+  //Intel IPP ZFP
+  std::optional<struct IppZfp> iCube;
 
   //housekeeping
   std::time_t timestamp;

@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include <chrono>
 using std::chrono::steady_clock;
@@ -168,6 +169,26 @@ FITS::~FITS()
 
     if (cube != NULL)
         delete cube;
+
+    if (iCube)
+    {
+        std::cout << this->dataset_id << "::destructor::iCube." << std::endl;
+
+        //release the Zfp state
+        if (iCube->pEncState != NULL)
+            ippsFree(iCube->pEncState);
+
+        //unmmap the stream buffer
+        if (iCube->buffer != NULL)
+        {
+            int ret = munmap(iCube->buffer, iCube->len);
+            if (!ret)
+                perror("FITS munmap::");
+
+            //what about truncating the underlying file?
+            //it needs to be done here
+        }
+    }
 }
 
 void FITS::defaults()
@@ -1266,6 +1287,23 @@ void FITS::from_path_zfp_ipp(std::string path, bool is_compressed, std::string f
     else
     {
         printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+
+        iCube = IppZfp();
+        iCube->_x = width + width % 4;
+        iCube->_y = height + height % 4;
+        iCube->_z = depth + depth % 4;
+
+        int encStateSize;
+        ippsEncodeZfpGetStateSize_32f(&encStateSize);
+        iCube->pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+
+        if (iCube->pEncState == NULL)
+        {
+            fprintf(stderr, "%s::error allocating a IppZfp state.\n", dataset_id.c_str());
+            return;
+        }
+        else
+            printf("%s::IppZfp::encoder state size: %d bytes.\n", dataset_id.c_str(), encStateSize);
 
         //ZFP-compressed FITS cube
         if (cube != NULL)
