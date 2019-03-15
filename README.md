@@ -3,4 +3,4 @@ a cleaned-up C/C++ Supercomputer Edition of FITSWebQL, fusing the best elements 
 
 work-in-progress
 
-all Linux platforms: Intel IPP
+all platforms: Intel IPP
