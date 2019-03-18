@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-03-04.0";
+	return "JS2019-03-18.2";
 }
 
 const wasm_supported = (() => {
@@ -445,6 +445,18 @@ function plot_spectrum(dataArray) {
 	let fitsData = fitsContainer[len - 1];
 	if (fitsData.depth <= 1)
 		return;
+
+	var elem = document.getElementById("SpectrumCanvas");
+	if (displaySpectrum) {
+		elem.style.display = "block";
+		d3.select("#yaxis").attr("opacity", 1);
+		d3.select("#ylabel").attr("opacity", 1);
+	}
+	else {
+		elem.style.display = "none";
+		d3.select("#yaxis").attr("opacity", 0);
+		d3.select("#ylabel").attr("opacity", 0);
+	}
 
 	var canvas = document.getElementById("SpectrumCanvas");
 	var ctx = canvas.getContext('2d');
@@ -8838,7 +8850,7 @@ function display_molecules() {
 
 	var group = svg.append("g")
 		.attr("id", "molecules")
-		.attr("opacity", 1.0);
+		.attr("opacity", 0.0);
 
 	//count the number of molecules
 	var num = 0;
@@ -8945,6 +8957,12 @@ function display_molecules() {
 	}
 
 	group.moveToBack();
+
+	var elem = d3.select("#molecules");
+	if (displayMolecules)
+		elem.attr("opacity", 1);
+	else
+		elem.attr("opacity", 0);
 }
 
 function fetch_spectral_lines(datasetId, freq_start, freq_end) {
@@ -10173,6 +10191,7 @@ function display_menu() {
 	//SPLATALOGUE
 	if (!optical_view) {
 		var splatMenu = mainUL.append("li")
+			.attr("id", "splatMenu")
 			.attr("class", "dropdown");
 
 		splatMenu.append("a")
@@ -10293,6 +10312,12 @@ function display_menu() {
 				display_molecules();
 			})
 			.html(htmlStr);
+
+		var elem = document.getElementById("splatMenu");
+		if (displayMolecules)
+			elem.style.display = "block";
+		else
+			elem.style.display = "none";
 	}
 
 	//VIEW
@@ -10310,7 +10335,7 @@ function display_menu() {
 
 	if (has_webgl) {
 		if (va_count == 1 || composite_view) {
-			var htmlStr = '<span class="glyphicon glyphicon-eye-open"></span> 3D surface';
+			var htmlStr = '<i class="material-icons">3d_rotation</i> 3D surface';
 			viewDropdown.append("li")
 				.append("a")
 				.style('cursor', 'pointer')
@@ -10451,6 +10476,7 @@ function display_menu() {
 			.style('cursor', 'pointer')
 			.on("click", function () {
 				displayMolecules = !displayMolecules;
+				localStorage_write_boolean("displayMolecules", displayMolecules);
 				var htmlStr = displayMolecules ? '<span class="glyphicon glyphicon-check"></span> spectral lines' : '<span class="glyphicon glyphicon-unchecked"></span> spectral lines';
 				d3.select(this).html(htmlStr);
 				var elem = d3.select("#molecules");
@@ -10458,6 +10484,12 @@ function display_menu() {
 					elem.attr("opacity", 1);
 				else
 					elem.attr("opacity", 0);
+
+				var elem = document.getElementById("splatMenu");
+				if (displayMolecules)
+					elem.style.display = "block";
+				else
+					elem.style.display = "none";
 			})
 			.html(htmlStr);
 
@@ -10467,6 +10499,7 @@ function display_menu() {
 			.style('cursor', 'pointer')
 			.on("click", function () {
 				displaySpectrum = !displaySpectrum;
+				localStorage_write_boolean("displaySpectrum", displaySpectrum);
 				var htmlStr = displaySpectrum ? '<span class="glyphicon glyphicon-check"></span> spectrum' : '<span class="glyphicon glyphicon-unchecked"></span> spectrum';
 				d3.select(this).html(htmlStr);
 				var elem = document.getElementById("SpectrumCanvas");
@@ -12258,9 +12291,8 @@ async*/ function mainRenderer() {
 
 		displayContours = false;
 		displayLegend = localStorage_read_boolean("displayLegend", true);
-		displayMolecules = true;
-		displaySpectrum = true;
-		//displayGridlines = false ;
+		displayMolecules = localStorage_read_boolean("displayMolecules", true);
+		displaySpectrum = localStorage_read_boolean("displaySpectrum", true);
 		displayGridlines = localStorage_read_boolean("displayGridlines", false);
 		displayBeam = false;
 
