@@ -110,10 +110,17 @@ protected:
         int stat = ftruncate64(fd, bytes);
         if (!stat)
         {
-          data = (uchar *)mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-          is_mmapped = true;
-          storage_size = bytes;
-          printf("zfp::array3::alloc<mmap OK>.\n");
+          void *buffer = mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+          if (buffer != MAP_FAILED)
+          {
+            data = (uchar *)buffer;
+            is_mmapped = true;
+            storage_size = bytes;
+            printf("zfp::array3::alloc<mmap OK>.\n");
+          }
+          else
+            perror("mmap");
         }
         else
         {
