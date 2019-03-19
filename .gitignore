@@ -19,3 +19,5 @@
 #Microsoft Visual Code IDE
 /.vscode/
 
+#ZFP build directory
+/zfp-0.5.4/build

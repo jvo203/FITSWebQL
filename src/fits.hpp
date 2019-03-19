@@ -10,13 +10,14 @@
 #include <vector>
 #include <zlib.h>
 
-#include <zfparray2.h>
 #include <zfparray3.h>
+//#include "array3fmmap.hpp"
 
 #include <ipp.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
+#define FITSCACHE "FITSCACHE"
 
 #define FITS_CHUNK_LENGTH 2880
 #define FITS_LINE_LENGTH 80
@@ -50,8 +51,7 @@ public:
 public:
   void update_timestamp();
   void from_url(std::string url, std::string flux, bool is_optical, int va_count);
-  void from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
-  void from_path_zfp_ipp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);
+  void from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);  
   void get_frequency_range(double &freq_start, double &freq_end);
 
 private:
@@ -132,6 +132,7 @@ private:
 
   //ZFP compressed arrays
   zfp::array3f *cube;
+  //array3fmmap *cube;
 
   //Intel IPP ZFP
   std::optional<struct IppZfp> iCube;
