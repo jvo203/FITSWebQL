@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <string>
 #include "zfparray.h"
 #include "zfpcodec.h"
 #include "zfp/cache.h"
@@ -28,10 +29,13 @@ public:
 
   // constructor of nx * ny * nz array using rate bits per value, at least
   // csize bytes of cache, and optionally initialized from flat array p
-  array3(uint nx, uint ny, uint nz, double rate, const Scalar* p = 0, size_t csize = 0) :
+  array3(uint nx, uint ny, uint nz, double rate, const Scalar* p = 0, size_t csize = 0, std::string _storage = std::string("")) :
     array(3, Codec::type),
     cache(lines(csize, nx, ny, nz))
   {
+    storage = _storage;
+    is_mmapped = false;
+    storage_size = 0;
     set_rate(rate);
     resize(nx, ny, nz, p == 0);
     if (p)

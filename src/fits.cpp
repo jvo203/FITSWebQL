@@ -751,9 +751,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         if (cube != NULL)
             delete cube;
 
-        std::string mmap_store = FITSCACHE + std::string("/") + boost::replace_all_copy(dataset_id, "/", "_") + std::string(".zfp");
-        printf("%s::mmap:%s\n", dataset_id.c_str(), mmap_store.c_str());
-        cube = new zfp::array3f(width, height, depth, 4, NULL); //(#bits per value)
+        std::string storage = FITSCACHE + std::string("/") + boost::replace_all_copy(dataset_id, "/", "_") + std::string(".zfp");
+        printf("%s::mmap:%s\n", dataset_id.c_str(), storage.c_str());
+        cube = new zfp::array3f(width, height, depth, 4, NULL, 0, storage); //(#bits per value)
         //cube = new array3fmmap(dataset_id, width, height, depth, 4, NULL); //(#bits per value)
 
         if (cube == NULL)
