@@ -224,7 +224,7 @@ void FITS::defaults()
     cdelt2 = NAN;
     crpix2 = 0.0;
     crval3 = 0.0;
-    cdelt3 = NAN;
+    cdelt3 = 1.0;
     crpix3 = 0.0;
     cd1_1 = NAN;
     cd1_2 = NAN;
@@ -235,7 +235,8 @@ void FITS::defaults()
     has_data = false;
     has_frequency = false;
     has_velocity = false;
-    is_optical = false;
+    is_optical = true;
+    is_xray = false;
 
     dmin = -FLT_MAX;
     dmax = FLT_MAX;
@@ -517,13 +518,13 @@ bool FITS::process_fits_header_unit(const char *buf)
     return end;
 }
 
-void FITS::from_url(std::string url, std::string flux, bool is_optical, int va_count)
+void FITS::from_url(std::string url, std::string flux, int va_count)
 {
     int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
     printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n", this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 }
 
-void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count)
+void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux, int va_count)
 {
     auto start_t = steady_clock::now();
 
@@ -615,6 +616,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     //test for frequency/velocity
     frame_reference_unit();
     frame_reference_type();
+
+    if (has_frequency || has_velocity)
+        is_optical = false;
 
     if (restfrq > 0.0)
         has_frequency = true;

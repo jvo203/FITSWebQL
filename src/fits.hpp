@@ -50,8 +50,8 @@ public:
 
 public:
   void update_timestamp();
-  void from_url(std::string url, std::string flux, bool is_optical, int va_count);
-  void from_path_zfp(std::string path, bool is_compressed, std::string flux, bool is_optical, int va_count);  
+  void from_url(std::string url, std::string flux, int va_count);
+  void from_path_zfp(std::string path, bool is_compressed, std::string flux, int va_count);  
   void get_frequency_range(double &freq_start, double &freq_end);
 
 private:
@@ -122,6 +122,7 @@ public:
   bool has_frequency;
   bool has_velocity;
   bool is_optical;
+  bool is_xray;
   std::mutex fits_mutex;
 
 private:
