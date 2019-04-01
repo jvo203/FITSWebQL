@@ -6309,7 +6309,7 @@ function setup_axes() {
 
 	if (optical_view) {
 		//i-axis label
-		var strILabel = "cube frame";
+		var strILabel = "cube frames";
 
 		svg.append("foreignObject")
 			.attr("x", (2 * range.xMin + 1.5 * emFontSize))
@@ -6320,7 +6320,7 @@ function setup_axes() {
 			.attr("id", "frequency_display")
 			.style("display", "inline-block")
 			.attr("class", "axis-label")
-			.html(strXLabel);
+			.html(strILabel);
 
 		// Add the X Axis
 		svg.append("g")
@@ -6507,7 +6507,7 @@ function setup_axes() {
 		.style("stroke", "gray")
 		.style("stroke-width", 1);
 
-	if (has_frequency_info || has_velocity_info)
+	if (has_frequency_info || has_velocity_info || optical_view)
 		group.append("rect")
 			.attr("id", "frequency")
 			.attr("x", range.xMin)
@@ -6943,7 +6943,11 @@ function x_axis_move(offset) {
 
 	console.log("RESTFRQ:", RESTFRQ);
 
+
 	var relvel = Einstein_relative_velocity(freq, RESTFRQ);
+
+	if (optical_view)
+		d3.select("#jvoText").text(Math.round(freq));
 
 	if (has_frequency_info)
 		d3.select("#jvoText").text((freq / 1.0e9).toPrecision(7) + " " + 'GHz' + ", " + relvel.toFixed(getVelocityPrecision()) + " km/s");
