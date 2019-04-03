@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-01.0"
+#define VERSION_STRING "SV2019-04-03.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -676,7 +676,7 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
 
     //FITSWebQL main JavaScript + CSS
     html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
-    html.append("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/fitswebql/fitswebql.css\"/>\n");
+    html.append("<link rel=\"stylesheet\" href=\"fitswebql.css?" VERSION_STRING "\"/>\n");
 
     //HTML content
     html.append("<title>FITSWebQL</title></head><body>\n");
