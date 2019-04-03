@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
 	<link rel="stylesheet" href="test.css" />
@@ -17,6 +17,58 @@
 
 	<div class="container">
 		<h1>WebQL TEST PAGE</h1>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h2>external URL</h2>
+			</div>
+			<div class="panel-body">
+				<div class="form-inline">
+
+					<div class="form-group">
+						<label for="url">URL:</label>
+						<input type="text" class="form-control" id="url" size="80"
+							value="https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits">
+						<!-- https://fits.gsfc.nasa.gov/samples/WFPC2ASSNu5780205bx.fits, https://fits.gsfc.nasa.gov/samples/UITfuv2582gc.fits -->
+					</div>
+
+					<button type="submit" class="btn btn-default" onclick="view_url()">Submit</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h2>AKARI</h2>
+			</div>
+			<div class="panel-body">
+				<div class="form-inline">
+
+					<div class="form-group">
+						<label for="akari_dataid">dataId:</label>
+						<input type="text" class="form-control" id="akari_dataid" value="AKAI013000001">
+					</div>
+
+					<div class="form-group">
+						<label for="akari_db">db:</label>
+						<input type="text" class="form-control" id="akari_db" size="5" value="akari">
+					</div>
+
+					<div class="form-group">
+						<label for="akari_table">table:</label>
+						<input type="text" class="form-control" id="akari_table" size="10" value="fis_image_v1">
+					</div>
+
+					<div class="form-group">
+						<label for="akari_colourmap">colourmap:</label>
+						<input type="text" class="form-control" id="akari_colourmap" size="5" value="red">
+					</div>
+
+					<button type="submit" class="btn btn-default" onclick="view_akari()">Submit</button>
+				</div>
+			</div>
+		</div>
+
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<h2>ALMA</h2>
@@ -26,7 +78,8 @@
 
 					<div class="form-group">
 						<label for="datasetid">datasetId:</label>
-						<input type="text" class="form-control" id="datasetid" value="ALMA01084695"><!-- ALMA01128274, ALMA01031054 -->
+						<input type="text" class="form-control" id="datasetid" value="ALMA01084695">
+						<!-- ALMA01128274, ALMA01031054 -->
 					</div>
 
 					<div class="form-group">
@@ -40,10 +93,12 @@
 					</div>
 
 					<button type="submit" class="btn btn-default" onclick="view_alma()">Submit</button>
-					<button type="submit" class="btn btn-default pull-right" onclick="randomise_alma()">Random sample</button>
+					<button type="submit" class="btn btn-default pull-right" onclick="randomise_alma()">Random
+						sample</button>
 				</div>
 			</div>
 		</div>
+
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<h2>HSC</h2>
@@ -114,7 +169,8 @@
 					<div class="form-group">
 						<div class="col-sm-10">
 							<div class="checkbox">
-								<label><input type="checkbox" id="hsc_composite"> RGB composite view (only valid for up to 3 entries)</label>
+								<label><input type="checkbox" id="hsc_composite"> RGB composite view (only valid for up
+									to 3 entries)</label>
 							</div>
 						</div>
 					</div>
@@ -136,11 +192,6 @@
 					</div>
 
 					<div class="form-group">
-						<label for="hsc_flux">flux:</label>
-						<input type="text" class="form-control" id="hsc_flux" size="5" value="ratio">
-					</div>
-
-					<div class="form-group">
 						<label for="hsc_colourmap">colourmap:</label>
 						<input type="text" class="form-control" id="hsc_colourmap" size="5" value="negative">
 					</div>
@@ -149,6 +200,40 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h2>MOIRCS</h2>
+			</div>
+			<div class="panel-body">
+				<div class="form-inline">
+
+					<div class="form-group">
+						<label for="moircs_dataid">dataId:</label>
+						<input type="text" class="form-control" id="moircs_dataid" size="25"
+							value="MCSM08535D4704B0400">
+					</div>
+
+					<div class="form-group">
+						<label for="moircs_db">db:</label>
+						<input type="text" class="form-control" id="moircs_db" size="5" value="moircs">
+					</div>
+
+					<div class="form-group">
+						<label for="moircs_table">table:</label>
+						<input type="text" class="form-control" id="moircs_table" size="10" value="mosaic_meta">
+					</div>
+
+					<div class="form-group">
+						<label for="moircs_colourmap">colourmap:</label>
+						<input type="text" class="form-control" id="moircs_colourmap" size="5" value="negative">
+					</div>
+
+					<button type="submit" class="btn btn-default" onclick="view_moircs()">Submit</button>
+				</div>
+			</div>
+		</div>
+
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<h2>NRO45M</h2>
@@ -181,7 +266,8 @@
 					<div class="form-group">
 						<div class="col-sm-offset-2 col-sm-10">
 							<div class="checkbox">
-								<label><input type="checkbox" id="composite"> RGB composite view (only valid for up to 3 entries)</label>
+								<label><input type="checkbox" id="composite"> RGB composite view (only valid for up to 3
+									entries)</label>
 							</div>
 						</div>
 					</div>
@@ -200,16 +286,45 @@
 						<input type="text" class="form-control" id="nro_table" size="15" value="fugin.fugin_meta">
 					</div>
 
-					<div class="form-group">
-						<label for="nro_flux">flux:</label>
-						<input type="text" class="form-control" id="nro_flux" size="5" value="logistic" disabled>
-					</div>
-
 					<button type="submit" class="btn btn-default" onclick="view_nro45m()">Submit</button>
 				</div>
 
 			</div>
 		</div>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h2>Suprime-Cam</h2>
+			</div>
+			<div class="panel-body">
+				<div class="form-inline">
+
+					<div class="form-group">
+						<label for="spcam_dataid">dataId:</label>
+						<input type="text" class="form-control" id="spcam_dataid" size="25"
+							value="SUPM139CB9FF03412700">
+					</div>
+
+					<div class="form-group">
+						<label for="spcam_db">db:</label>
+						<input type="text" class="form-control" id="spcam_db" size="5" value="spcam">
+					</div>
+
+					<div class="form-group">
+						<label for="spcam_table">table:</label>
+						<input type="text" class="form-control" id="spcam_table" size="10" value="mosaic_meta">
+					</div>
+
+					<div class="form-group">
+						<label for="spcam_colourmap">colourmap:</label>
+						<input type="text" class="form-control" id="spcam_colourmap" size="5" value="negative">
+					</div>
+
+					<button type="submit" class="btn btn-default" onclick="view_spcam()">Submit</button>
+				</div>
+			</div>
+		</div>
+
 	</div>
 </body>
 

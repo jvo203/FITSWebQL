@@ -14,6 +14,57 @@ function randomise_alma() {
     view_alma();
 }
 
+function view_akari() {
+    var dataId = document.getElementById("akari_dataid").value.trim();
+    var db = document.getElementById("akari_db").value.trim();
+    var table = document.getElementById("akari_table").value.trim();
+    var colourmap = document.getElementById("akari_colourmap").value.trim();
+
+    if (dataId != "") {
+        var url = null;
+
+        url = "/fitswebql/FITSWebQL.html?" + "db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table) + "&datasetId=" + encodeURIComponent(dataId) + "&colourmap=" + encodeURIComponent(colourmap);
+
+        window.location.href = url;
+    }
+    else
+        alert("no datasetId found !");
+}
+
+function view_moircs() {
+    var dataId = document.getElementById("moircs_dataid").value.trim();
+    var db = document.getElementById("moircs_db").value.trim();
+    var table = document.getElementById("moircs_table").value.trim();
+    var colourmap = document.getElementById("moircs_colourmap").value.trim();
+
+    if (dataId != "") {
+        var url = null;
+
+        url = "/fitswebql/FITSWebQL.html?" + "db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table) + "&datasetId=" + encodeURIComponent(dataId) + "&colourmap=" + encodeURIComponent(colourmap);
+
+        window.location.href = url;
+    }
+    else
+        alert("no datasetId found !");
+}
+
+function view_spcam() {
+    var dataId = document.getElementById("spcam_dataid").value.trim();
+    var db = document.getElementById("spcam_db").value.trim();
+    var table = document.getElementById("spcam_table").value.trim();
+    var colourmap = document.getElementById("spcam_colourmap").value.trim();
+
+    if (dataId != "") {
+        var url = null;
+
+        url = "/fitswebql/FITSWebQL.html?" + "db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table) + "&datasetId=" + encodeURIComponent(dataId) + "&colourmap=" + encodeURIComponent(colourmap);
+
+        window.location.href = url;
+    }
+    else
+        alert("no datasetId found !");
+}
+
 function view_alma() {
     var datasetId = document.getElementById("datasetid").value.trim();
     var db = document.getElementById("alma_db").value.trim();
@@ -28,6 +79,20 @@ function view_alma() {
     }
     else
         alert("no datasetId found !");
+}
+
+function view_url() {
+    var fits_url = document.getElementById("url").value.trim();
+
+    if (fits_url != "") {
+        var url = null;
+
+        url = "/fitswebql/FITSWebQL.html?" + "url=" + encodeURIComponent(fits_url);
+
+        window.location.href = url;
+    }
+    else
+        alert("no FITS URL found !");
 }
 
 function view_hsc() {
@@ -57,7 +122,6 @@ function view_hsc() {
     var db = document.getElementById("hsc_db").value.trim();
     var table = document.getElementById("hsc_table").value.trim();
     var composite = false;
-    var optical = true;
 
     var url = "/fitswebql/FITSWebQL.html?db=" + encodeURIComponent(db) + "&table=" + encodeURIComponent(table);
 
@@ -79,21 +143,12 @@ function view_hsc() {
         }
     }
 
-    var flux = document.getElementById("hsc_flux").value.trim();
-    url += "&flux=" + encodeURIComponent(flux);
-
     var colourmap = document.getElementById("hsc_colourmap").value.trim();
     url += "&colourmap=" + encodeURIComponent(colourmap);
 
-    if (composite && optical) {
-        url += "&view=composite,optical";
-    } else {
-        if (composite)
-            url += "&view=composite";
+    if (composite)
+        url += "&view=composite";
 
-        if (optical)
-            url += "&view=optical";
-    }
 
     window.location.href = url;
 
@@ -141,12 +196,6 @@ function view_nro45m() {
                 url += "&view=composite";
         }
     }
-
-    var flux = document.getElementById("nro_flux").value.trim();
-
-    //enforce a tone mapping
-    //if(table == "fugin.fugin_meta")    
-    url += "&flux=" + encodeURIComponent(flux);
 
     //console.log(url) ;
     window.location.href = url;
