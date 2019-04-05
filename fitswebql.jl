@@ -37,5 +37,7 @@ xt = @time dwt(sqdata, wt)
 println(size(xt))
 
 # wavelet packet transform
-# invalid keyword argument name "tree::BitVector" !!!
-wpt(sqdata, wt, tree::BitVector=maketree(sqdata, :full))
+# execution errors (GSL only supports double!!!)
+wt = wavelet(WT.db2, WT.Lifting)
+L = 4
+@time wpt(sqdata, wt, L)
