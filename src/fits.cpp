@@ -1196,12 +1196,20 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         median = fast_median(pixels, len);
 
         std::vector<Ipp32f> v(len);
-        Ipp32f medVal = NAN;
 
         //not very efficient but will do for tests
         //we should be using ippiCopy_ really!
-        for (size_t i = 0; i < len; ++i)
-            v[i] = pixels[i];
+        //for (size_t i = 0; i < len; ++i)
+        //    v[i] = pixels[i];
+
+        //ippiCopy does not seem to work??? what am I doing wrong?
+        /*IppiSize roiSize;
+        roiSize.width = width;
+        roiSize.height = height;
+        ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
+
+        memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+
         median = fast_median(v);
     }
 
