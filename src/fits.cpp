@@ -114,6 +114,7 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
 };
 
 //needs to be tested
+//Ipp32f median(std::vector<Ipp32f> &v)
 Ipp32f fast_median(Ipp32f *pSrc, size_t len)
 {
     std::vector<Ipp32f> v(len);
@@ -147,23 +148,6 @@ Ipp32f fast_median(Ipp32f *pSrc, size_t len)
     printf("fast_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
 
     return medVal;
-}
-
-Ipp32f median(std::vector<Ipp32f> &v)
-{
-    auto start_t = steady_clock::now();
-
-    size_t n = v.size() / 2;
-    nth_element(v.begin(), v.begin() + n, v.end());
-
-    auto end_t = steady_clock::now();
-
-    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
-    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-    printf("median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-
-    return v[n];
 }
 
 // it only works with data length given by int (not size_t)
@@ -1150,10 +1134,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
     printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax, elapsedMilliseconds);
 
-    //median only works for small images for now; needs to be parallelised
     if (bSuccess)
     {
-        //median = calculate_median(pixels, width, height);
+        //fast_median needs to be parallelised
         size_t len = size_t(width) * size_t(height);
         median = fast_median(pixels, len);
     }
