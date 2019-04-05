@@ -114,6 +114,61 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
 };
 
 //needs to be tested
+template <typename T = double, typename C>
+inline const T median(const C &the_container)
+{
+    std::vector<T> tmp_array(std::begin(the_container),
+                             std::end(the_container));
+    size_t n = tmp_array.size() / 2;
+    std::nth_element(tmp_array.begin(), tmp_array.begin() + n, tmp_array.end());
+
+    if (tmp_array.size() % 2)
+    {
+        return tmp_array[n];
+    }
+    else
+    {
+        // even sized vector -> average the two middle values
+        auto max_it = std::max_element(tmp_array.begin(), tmp_array.begin() + n);
+        return (*max_it + tmp_array[n]) / 2.0;
+    }
+}
+
+Ipp32f fast_median(std::vector<Ipp32f> &v)
+{
+    if (v.empty())
+    {
+        return 0.0f;
+    }
+
+    auto start_t = steady_clock::now();
+
+    Ipp32f medVal = NAN;
+
+    size_t n = v.size() / 2;
+    std::nth_element(v.begin(), v.begin() + n, v.end());
+
+    if (v.size() % 2)
+    {
+        medVal = v[n];
+    }
+    else
+    {
+        // even sized vector -> average the two middle values
+        auto max_it = std::max_element(v.begin(), v.begin() + n);
+        medVal = (*max_it + v[n]) / 2.0f;
+    }
+
+    auto end_t = steady_clock::now();
+
+    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("fast_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+
+    return medVal;
+}
+
 //Ipp32f median(std::vector<Ipp32f> &v)
 Ipp32f fast_median(Ipp32f *pSrc, size_t len)
 {
@@ -1139,6 +1194,15 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         //fast_median needs to be parallelised
         size_t len = size_t(width) * size_t(height);
         median = fast_median(pixels, len);
+
+        std::vector<Ipp32f> v(len);
+        Ipp32f medVal = NAN;
+
+        //not very efficient but will do for tests
+        //we should be using ippiCopy_ really!
+        for (size_t i = 0; i < len; ++i)
+            v[i] = pixels[i];
+        median = fast_median(v);
     }
 
     this->has_data = bSuccess ? true : false;
