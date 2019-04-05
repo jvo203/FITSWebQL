@@ -112,7 +112,7 @@ public:
   std::string date_obs;
 
   //values derived from the FITS data
-  float dmin, dmax;
+  float dmin, dmax, median;
   std::vector<float> frame_min, frame_max;
   std::vector<float> mean_spectrum, integrated_spectrum;
 
