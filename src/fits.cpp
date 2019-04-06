@@ -18,6 +18,11 @@ using std::chrono::steady_clock;
 
 #include <boost/algorithm/string.hpp>
 
+//Parallel STL
+#include "pstl/execution"
+#include "pstl/algorithm"
+#include "pstl/memory"
+
 auto Ipp32fFree = [](Ipp32f *p) {
     static size_t counter = 0;
     if (p != NULL)
@@ -113,9 +118,8 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
     return std::string(string);
 };
 
-//needs to be tested
 template <typename T = double, typename C>
-inline const T median(const C &the_container)
+inline const T stl_median(const C &the_container)
 {
     std::vector<T> tmp_array(std::begin(the_container),
                              std::end(the_container));
@@ -134,7 +138,42 @@ inline const T median(const C &the_container)
     }
 }
 
-Ipp32f fast_median(std::vector<Ipp32f> &v)
+Ipp32f stl_median_parallel(std::vector<Ipp32f> &v)
+{
+    if (v.empty())
+    {
+        return 0.0f;
+    }
+
+    auto start_t = steady_clock::now();
+
+    Ipp32f medVal = NAN;
+
+    size_t n = v.size() / 2;
+    std::nth_element(pstl::execution::par_unseq, v.begin(), v.begin() + n, v.end());
+
+    if (v.size() % 2)
+    {
+        medVal = v[n];
+    }
+    else
+    {
+        // even sized vector -> average the two middle values
+        auto max_it = std::max_element(pstl::execution::par_unseq, v.begin(), v.begin() + n);
+        medVal = (*max_it + v[n]) / 2.0f;
+    }
+
+    auto end_t = steady_clock::now();
+
+    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("stl_median_parallel::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+
+    return medVal;
+}
+
+Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
     if (v.empty())
     {
@@ -164,72 +203,7 @@ Ipp32f fast_median(std::vector<Ipp32f> &v)
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-    printf("fast_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-
-    return medVal;
-}
-
-//Ipp32f median(std::vector<Ipp32f> &v)
-Ipp32f fast_median(Ipp32f *pSrc, size_t len)
-{
-    std::vector<Ipp32f> v(len);
-    Ipp32f medVal = NAN;
-
-    for (size_t i = 0; i < len; ++i)
-        v[i] = pSrc[i]; //not very efficient but will do for tests
-
-    auto start_t = steady_clock::now();
-
-    size_t n = v.size() / 2;
-    std::nth_element(v.begin(), v.begin() + n, v.end());
-
-    Ipp32f vn = v[n];
-
-    if (v.size() % 2 == 1)
-    {
-        medVal = vn;
-    }
-    else
-    {
-        std::nth_element(v.begin(), v.begin() + n - 1, v.end());
-        medVal = 0.5 * (vn + v[n - 1]);
-    }
-
-    auto end_t = steady_clock::now();
-
-    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
-    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-    printf("fast_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-
-    return medVal;
-}
-
-// it only works with data length given by int (not size_t)
-// needs to be used as part of a median-of-median calculation (divide and conquer) ...
-Ipp32f calculate_median(Ipp32f *pSrc, int width, int height)
-{
-    auto start_t = steady_clock::now();
-
-    //a mask can also be used in ippiCopy
-
-    IppiSize roiSize;
-    roiSize.width = width;
-    roiSize.height = height;
-    size_t len = size_t(width) * size_t(height);
-
-    Ipp32f *pSrcSort = ippsMalloc_32f(len);
-    ippsCopy_32f(pSrc, pSrcSort, len); //ippsCopy_ to ippiCopy_
-    //ippiCopy_32f_C1R(pSrc, width, pSrcSort, width, roiSize);
-    ippsSortAscend_32f_I(pSrcSort, len);
-    Ipp32f medVal = pSrcSort[len / 2];
-
-    auto end_t = steady_clock::now();
-
-    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
-    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-    printf("calculate_median::<value = %f, elapsed time: %5.2f [ms]>\n", medVal, elapsedMilliseconds);
+    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
 
     return medVal;
 }
@@ -1191,16 +1165,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
     if (bSuccess)
     {
-        //fast_median needs to be parallelised
         size_t len = size_t(width) * size_t(height);
-        median = fast_median(pixels, len);
-
         std::vector<Ipp32f> v(len);
-
-        //not very efficient but will do for tests
-        //we should be using ippiCopy_ really!
-        //for (size_t i = 0; i < len; ++i)
-        //    v[i] = pixels[i];
+        memcpy(v.data(), pixels, len * sizeof(Ipp32f));
 
         //ippiCopy does not seem to work??? what am I doing wrong?
         /*IppiSize roiSize;
@@ -1208,9 +1175,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         roiSize.height = height;
         ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
 
-        memcpy(v.data(), pixels, len * sizeof(Ipp32f));
-
-        median = fast_median(v);
+        median = stl_median(v);
+        median = stl_median_parallel(v);
     }
 
     this->has_data = bSuccess ? true : false;
