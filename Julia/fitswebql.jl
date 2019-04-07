@@ -10,6 +10,7 @@ dir = "/home/chris/ダウンロード"
 file = "e20121211_0010500001_dp_sf_st_mos.fits"
 
 fitspath = string(dir, "/", file)
+fitspath = "/home/chris/NAO/SubaruWebQL/FITSCACHE/SUPM139C52520E922500.fits"
 println("FITS file:", fitspath)
 
 #fits = load(fitspath)

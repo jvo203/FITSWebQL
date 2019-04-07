@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-06.0"
+#define VERSION_STRING "SV2019-04-07.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -965,6 +965,12 @@ void ipp_init()
 
 int main(int argc, char *argv[])
 {
+#ifndef __INTEL_COMPILER
+    __gnu_parallel::_Settings s;
+    s.algorithm_strategy = __gnu_parallel::force_parallel;
+    __gnu_parallel::_Settings::set(s);
+#endif
+
     ipp_init();
     curl_global_init(CURL_GLOBAL_ALL);
 
