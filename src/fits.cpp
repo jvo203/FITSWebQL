@@ -2,6 +2,7 @@
 #include "fits.hpp"
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <cfloat>
@@ -175,8 +176,6 @@ void remove_nan(std::vector<Ipp32f> &v)
 
 Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
-    remove_nan(v);
-
     if (v.empty())
         return NAN;
 
@@ -279,26 +278,6 @@ FITS::~FITS()
 
     if (cube != NULL)
         delete cube;
-
-    if (iCube)
-    {
-        std::cout << this->dataset_id << "::destructor::iCube." << std::endl;
-
-        //release the Zfp state
-        if (iCube->pEncState != NULL)
-            ippsFree(iCube->pEncState);
-
-        //unmmap the stream buffer
-        if (iCube->buffer != NULL)
-        {
-            int ret = munmap(iCube->buffer, iCube->len);
-            if (!ret)
-                perror("FITS munmap::");
-
-            //what about truncating the underlying file?
-            //it needs to be done here
-        }
-    }
 }
 
 void FITS::defaults()
@@ -1198,25 +1177,62 @@ void FITS::image_statistics()
     roiSize.height = height;
     ippiCopy_32f_C1R(pixels, width * sizeof(Ipp32f), v.data(), width * sizeof(Ipp32f), roiSize);
 
-    //make a histogram
+    remove_nan(v);
 
-    //get a median
+    make_histogram(v, hist, NBINS, dmin, dmax);
+
     median = stl_median(v);
 }
 
-/*iCube = IppZfp();
-iCube->_x = width + width % 4;
-iCube->_y = height + height % 4;
-iCube->_z = depth + depth % 4;
-
-int encStateSize;
-ippsEncodeZfpGetStateSize_32f(&encStateSize);
-iCube->pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-
-if (iCube->pEncState == NULL)
+void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float pmin, float pmax)
 {
-    fprintf(stderr, "%s::error allocating a IppZfp state.\n", dataset_id.c_str());
-    return;
+    if (v.size() <= 1)
+        return;
+
+    auto start_t = steady_clock::now();
+
+    for (int i = 0; i < nbins; i++)
+        bins[i] = 0;
+
+    int max_threads = omp_get_max_threads();
+
+    //keep the worksize within int32 limits
+    size_t total_size = v.size();
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
+
+    printf("make_histogram::num_threads: %d\n", num_threads);
+
+#pragma omp parallel for
+    for (int tid = 0; tid < num_threads; tid++)
+    {
+        Ipp32u thread_hist[NBINS];
+
+        for (int i = 0; i < nbins; i++)
+            thread_hist[i] = 0;
+
+        size_t work_size = total_size / num_threads;
+        size_t start = tid * work_size;
+
+        if (tid == num_threads - 1)
+            work_size = total_size - start;
+
+        ispc::histogram((float *)&(v[start]), work_size, thread_hist, nbins, pmin, pmax);
+
+#pragma omp critical
+        {
+            IppStatus sts = ippsAdd_32u_I(thread_hist, bins, nbins);
+
+            if (sts != ippStsNoErr)
+                printf("%s\n", ippGetStatusString(sts));
+        };
+    };
+
+    auto end_t = steady_clock::now();
+
+    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("make_histogram::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 }
-else
-    printf("%s::IppZfp::encoder state size: %d bytes.\n", dataset_id.c_str(), encStateSize);*/

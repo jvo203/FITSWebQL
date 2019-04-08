@@ -106,3 +106,17 @@ export void join_pixels_masks(uniform float pixels[], uniform float pixels_tid[]
       mask[i] |= mask_tid[i] ;
     } ;
 } ;
+
+export void histogram(uniform float data[], uniform unsigned int size, uniform uint32_t hist[], uniform int nbins, uniform float pmin, uniform float pmax)
+{
+  foreach(i=0 ... size)
+    {
+      float tmp = (data[i] - pmin)/(pmax - pmin) ;
+
+      cif(!( isnan(tmp) || isinf(tmp) || (tmp < 0.0f) || (tmp > 1.0f) ))
+	    {	  
+	      int index = clamp((int) (tmp * nbins), 0, nbins-1) ;
+	      atomic_add_local(&hist[index], 1);
+	    } ;
+    } ;
+} ;
