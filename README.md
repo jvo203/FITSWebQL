@@ -6,4 +6,6 @@ Although Rust is certainly extremely stable, there are still some cases where C/
 # status
 work-in-progress
 
-all platforms: Intel IPP, Parallel STL, Intel TBB
+# requirements
+either Intel C/C++ version 19-or-higher (which bundles IPP, Parallel STL and TBB)
+or a recent gcc/clang++ with C++17-or-higher support plus a manual installation of a free Intel IPP
