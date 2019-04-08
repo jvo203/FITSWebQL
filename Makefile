@@ -17,7 +17,7 @@ dev:
 
 llvm:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	clang++ -march=native -g -O3 -std=c++17 -fopenmp=libiomp5 -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -D_GLIBCXX_PARALLEL $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
+	clang++ -march=native -g -O3 -std=c++17 -fopenmp=libiomp5 -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -D_GLIBCXX_PARALLEL $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
 	
 #$(JEMALLOC)
 
