@@ -1191,13 +1191,12 @@ void FITS::image_statistics()
 {
     size_t len = size_t(width) * size_t(height);
     std::vector<Ipp32f> v(len);
-    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+    //memcpy(v.data(), pixels, len * sizeof(Ipp32f));
 
-    //ippiCopy does not seem to work??? what am I doing wrong?
-    /*IppiSize roiSize;
-        roiSize.width = width;
-        roiSize.height = height;
-        ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
+    IppiSize roiSize;
+    roiSize.width = width;
+    roiSize.height = height;
+    ippiCopy_32f_C1R(pixels, width * sizeof(Ipp32f), v.data(), width * sizeof(Ipp32f), roiSize);
 
     //make a histogram
 
