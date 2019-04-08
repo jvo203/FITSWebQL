@@ -11,6 +11,13 @@ file = "e20121211_0010500001_dp_sf_st_mos.fits"
 
 fitspath = string(dir, "/", file)
 fitspath = "/home/chris/NAO/SubaruWebQL/FITSCACHE/SUPM139C52520E922500.fits"
+
+println(ARGS, "\targc:", size(ARGS)[1])
+
+if size(ARGS)[1] > 0
+    fitspath = ARGS[1]
+end
+
 println("FITS file:", fitspath)
 
 #fits = load(fitspath)
@@ -29,6 +36,7 @@ println("min,max:", range)
 med = @time median(data)
 println("median:", med)
 
+#=
 wt = wavelet(WT.cdf97, WT.Lifting)
 # a full wavelet transform
 #... array must be square/cube ...
@@ -42,3 +50,4 @@ println(size(xt))
 wt = wavelet(WT.db2, WT.Lifting)
 L = 4
 @time wpt(sqdata, wt, L)
+=#
