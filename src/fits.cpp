@@ -24,12 +24,6 @@ using std::chrono::steady_clock;
 #include "pstl/execution"
 #include "pstl/algorithm"
 #include "pstl/memory"
-#else
-//#include <parallel/execution>
-//#include <parallel/algorithm>
-/*#include <execution>
-#include <numeric>
-#include <algorithm>*/
 #endif
 
 auto Ipp32fFree = [](Ipp32f *p) {
@@ -179,7 +173,8 @@ void remove_nan(std::vector<Ipp32f> &v)
     printf("v: original length: %zu, after NAN/INFINITE pruning: %zu\n", n, v.size());
 }
 
-Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
+#ifdef __INTEL_COMPILER
+Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
     remove_nan(v);
 
@@ -194,11 +189,7 @@ Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
     Ipp32f medVal = NAN;
 
     size_t n = v.size() / 2;
-#ifdef __INTEL_COMPILER
     std::nth_element(pstl::execution::par_unseq, v.begin(), v.begin() + n, v.end());
-#else
-    __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
-#endif
 
     if (v.size() % 2)
     {
@@ -206,12 +197,8 @@ Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
     }
     else
     {
-// even sized vector -> average the two middle values
-#ifdef __INTEL_COMPILER
+        // even sized vector -> average the two middle values
         auto max_it = std::max_element(pstl::execution::par_unseq, v.begin(), v.begin() + n);
-#else
-        auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
-#endif
         medVal = (*max_it + v[n]) / 2.0f;
     }
 
@@ -220,15 +207,11 @@ Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-#ifdef __INTEL_COMPILER
     printf("parallel_stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-#else
-    printf("gnu_parallel_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-#endif
 
     return medVal;
 }
-
+#else
 Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
     remove_nan(v);
@@ -266,6 +249,7 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
     return medVal;
 }
+#endif
 
 FITS::FITS()
 {
@@ -1256,6 +1240,7 @@ void FITS::image_statistics()
 
     size_t len = size_t(width) * size_t(height);
     std::vector<Ipp32f> v(len);
+    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
 
     //ippiCopy does not seem to work??? what am I doing wrong?
     /*IppiSize roiSize;
@@ -1263,13 +1248,7 @@ void FITS::image_statistics()
         roiSize.height = height;
         ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
 
-    v.resize(len);
-    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
     median = stl_median(v);
-
-    v.resize(len);
-    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
-    median = parallel_stl_median(v);
 }
 
 /*iCube = IppZfp();
