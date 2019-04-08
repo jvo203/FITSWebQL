@@ -1189,7 +1189,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
 void FITS::image_statistics()
 {
-    size_t len = size_t(width) * size_t(height);
+    size_t len = width * height;
     std::vector<Ipp32f> v(len);
     //memcpy(v.data(), pixels, len * sizeof(Ipp32f));
 
