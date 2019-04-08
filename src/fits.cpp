@@ -147,16 +147,17 @@ inline const T stl_median(const C &the_container)
     }
 }
 
-size_t remove_nan(std::vector<Ipp32f> &v)
+void remove_nan(std::vector<Ipp32f> &v)
 {
     if (v.empty())
-        return 0;
+        return;
 
     size_t n = v.size();
     size_t v_end = n - 1;
 
-    //this does not leave an empty vector when all elements are NAN
-    //the first NAN remains...
+    // this does not leave an empty vector when all elements are NAN
+    // the first NAN remains...
+    // it's OK, the median-finding functions will deal with this border-line case
 
     //iterate through the vector, replacing NAN/INFINITE with valid numbers from the end
     for (size_t i = 0; i <= v_end; i++)
@@ -168,19 +169,14 @@ size_t remove_nan(std::vector<Ipp32f> &v)
                 v_end--;
 
             if (v_end <= i)
-            {
-                v.resize(v_end + 1);
-                printf("v: original length: %zu, after NAN/INFINITE n: %zu, v_end: %zu\n", n, v.size(), v_end);
-                return v_end + 1;
-            }
+                break;
             else
                 v[i] = v[v_end--];
         }
     }
 
     v.resize(v_end + 1);
-    printf("v: original length: %zu, after NAN/INFINITE n: %zu, v_end: %zu\n", n, v.size(), v_end);
-    return v_end + 1;
+    printf("v: original length: %zu, after NAN/INFINITE pruning: %zu\n", n, v.size());
 }
 
 Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
@@ -189,6 +185,9 @@ Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
 
     if (v.empty())
         return NAN;
+
+    if (v.size() == 1)
+        return v[0];
 
     auto start_t = steady_clock::now();
 
@@ -236,6 +235,9 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
     if (v.empty())
         return NAN;
+
+    if (v.size() == 1)
+        return v[0];
 
     auto start_t = steady_clock::now();
 
@@ -1235,7 +1237,7 @@ void FITS::image_statistics()
 
     // set some values:
     for (int i = 0; i < 10; i++)
-        myvector.push_back(NAN); // 0 1 2 3 4 5 6 7 8 9 or NAN
+        myvector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 or NAN
 
     for (int i = 0; i < 10; i++)
         myvector.push_back(NAN);
