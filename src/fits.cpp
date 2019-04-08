@@ -173,61 +173,26 @@ void remove_nan(std::vector<Ipp32f> &v)
     printf("v: original length: %zu, after NAN/INFINITE pruning: %zu\n", n, v.size());
 }
 
+Ipp32f stl_median(std::vector<Ipp32f> &v)
+{
+    remove_nan(v);
+
+    if (v.empty())
+        return NAN;
+
+    if (v.size() == 1)
+        return v[0];
+
+    auto start_t = steady_clock::now();
+
+    Ipp32f medVal = NAN;
+
+    size_t n = v.size() / 2;
 #ifdef __INTEL_COMPILER
-Ipp32f stl_median(std::vector<Ipp32f> &v)
-{
-    remove_nan(v);
-
-    if (v.empty())
-        return NAN;
-
-    if (v.size() == 1)
-        return v[0];
-
-    auto start_t = steady_clock::now();
-
-    Ipp32f medVal = NAN;
-
-    size_t n = v.size() / 2;
     std::nth_element(pstl::execution::par_unseq, v.begin(), v.begin() + n, v.end());
-
-    if (v.size() % 2)
-    {
-        medVal = v[n];
-    }
-    else
-    {
-        // even sized vector -> average the two middle values
-        auto max_it = std::max_element(pstl::execution::par_unseq, v.begin(), v.begin() + n);
-        medVal = (*max_it + v[n]) / 2.0f;
-    }
-
-    auto end_t = steady_clock::now();
-
-    double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
-    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-    printf("parallel_stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-
-    return medVal;
-}
 #else
-Ipp32f stl_median(std::vector<Ipp32f> &v)
-{
-    remove_nan(v);
-
-    if (v.empty())
-        return NAN;
-
-    if (v.size() == 1)
-        return v[0];
-
-    auto start_t = steady_clock::now();
-
-    Ipp32f medVal = NAN;
-
-    size_t n = v.size() / 2;
     std::nth_element(v.begin(), v.begin() + n, v.end());
+#endif
 
     if (v.size() % 2)
     {
@@ -235,8 +200,12 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     }
     else
     {
-        // even sized vector -> average the two middle values
+// even sized vector -> average the two middle values
+#ifdef __INTEL_COMPILER
+        auto max_it = std::max_element(pstl::execution::par_unseq, v.begin(), v.begin() + n);
+#else
         auto max_it = std::max_element(v.begin(), v.begin() + n);
+#endif
         medVal = (*max_it + v[n]) / 2.0f;
     }
 
@@ -245,11 +214,14 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
+#ifdef __INTEL_COMPILER
+    printf("parallel_stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+#else
     printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+#endif
 
     return medVal;
 }
-#endif
 
 FITS::FITS()
 {
@@ -1217,27 +1189,6 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
 void FITS::image_statistics()
 {
-    std::vector<float> myvector;
-
-    // set some values:
-    for (int i = 0; i < 10; i++)
-        myvector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 or NAN
-
-    for (int i = 0; i < 10; i++)
-        myvector.push_back(NAN);
-
-    std::random_shuffle(myvector.begin(), myvector.end());
-
-    for (int i = 0; i < myvector.size(); i++)
-        std::cout << myvector[i] << "\t";
-    std::cout << std::endl;
-
-    remove_nan(myvector);
-
-    for (int i = 0; i < myvector.size(); i++)
-        std::cout << myvector[i] << "\t";
-    std::cout << std::endl;
-
     size_t len = size_t(width) * size_t(height);
     std::vector<Ipp32f> v(len);
     memcpy(v.data(), pixels, len * sizeof(Ipp32f));
@@ -1248,6 +1199,9 @@ void FITS::image_statistics()
         roiSize.height = height;
         ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
 
+    //make a histogram
+
+    //get a median
     median = stl_median(v);
 }
 
