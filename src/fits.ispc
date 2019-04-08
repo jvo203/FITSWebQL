@@ -29,16 +29,16 @@ export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], unif
       //next the min/max values & the mask
       cif(!(isnan(tmp) || isinf(tmp)) && (tmp > ignrval) && (tmp >= datamin) && (tmp <= datamax))
         {
-	  vmin = min(vmin, tmp) ;
-	  vmax = max(vmax, tmp) ;
+	        vmin = min(vmin, tmp) ;
+	        vmax = max(vmax, tmp) ;
 
-	  src[i] = intbits(tmp) ;
-	  mask[i] = 255;            
+	        src[i] = intbits(tmp) ;
+	        mask[i] = 255;            
         }
       else
         {
-	  src[i] = 0x7ff80000; // quiet NaN        
-	  mask[i] = 0;
+	        src[i] = 0x7ff80000; // quiet NaN        
+	        mask[i] = 0;
         }
     }
 

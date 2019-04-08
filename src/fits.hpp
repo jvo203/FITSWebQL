@@ -59,6 +59,7 @@ private:
   void frame_reference_unit();
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
+  void image_statistics();
 
 public:
   std::string dataset_id;

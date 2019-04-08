@@ -965,12 +965,6 @@ void ipp_init()
 
 int main(int argc, char *argv[])
 {
-#ifndef __INTEL_COMPILER
-    __gnu_parallel::_Settings s;
-    s.algorithm_strategy = __gnu_parallel::force_parallel;
-    __gnu_parallel::_Settings::set(s);
-#endif
-
     ipp_init();
     curl_global_init(CURL_GLOBAL_ALL);
 

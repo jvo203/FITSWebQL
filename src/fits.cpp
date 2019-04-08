@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <cfloat>
+#include <cmath>
 #include <math.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -146,12 +147,48 @@ inline const T stl_median(const C &the_container)
     }
 }
 
-Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
+size_t remove_nan(std::vector<Ipp32f> &v)
 {
     if (v.empty())
+        return 0;
+
+    size_t n = v.size();
+    size_t v_end = n - 1;
+
+    //this does not leave an empty vector when all elements are NAN
+    //the first NAN remains...
+
+    //iterate through the vector, replacing NAN/INFINITE with valid numbers from the end
+    for (size_t i = 0; i <= v_end; i++)
     {
-        return 0.0f;
+        if (!std::isfinite(v[i]))
+        {
+            //replace it with a finite value from the end
+            while (v_end > i && !std::isfinite(v[v_end]))
+                v_end--;
+
+            if (v_end <= i)
+            {
+                v.resize(v_end + 1);
+                printf("v: original length: %zu, after NAN/INFINITE n: %zu, v_end: %zu\n", n, v.size(), v_end);
+                return v_end + 1;
+            }
+            else
+                v[i] = v[v_end--];
+        }
     }
+
+    v.resize(v_end + 1);
+    printf("v: original length: %zu, after NAN/INFINITE n: %zu, v_end: %zu\n", n, v.size(), v_end);
+    return v_end + 1;
+}
+
+Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
+{
+    remove_nan(v);
+
+    if (v.empty())
+        return NAN;
 
     auto start_t = steady_clock::now();
 
@@ -184,17 +221,21 @@ Ipp32f parallel_stl_median(std::vector<Ipp32f> &v)
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-    printf("stl_median_parallel::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+#ifdef __INTEL_COMPILER
+    printf("parallel_stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+#else
+    printf("gnu_parallel_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
+#endif
 
     return medVal;
 }
 
 Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
+    remove_nan(v);
+
     if (v.empty())
-    {
-        return 0.0f;
-    }
+        return NAN;
 
     auto start_t = steady_clock::now();
 
@@ -1181,24 +1222,52 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
     if (bSuccess)
     {
-        size_t len = size_t(width) * size_t(height);
-        std::vector<Ipp32f> v(len);
-        memcpy(v.data(), pixels, len * sizeof(Ipp32f));
-
-        //ippiCopy does not seem to work??? what am I doing wrong?
-        /*IppiSize roiSize;
-        roiSize.width = width;
-        roiSize.height = height;
-        ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
-
-        median = stl_median(v);
-
-        memcpy(v.data(), pixels, len * sizeof(Ipp32f));
-        median = parallel_stl_median(v);
+        image_statistics();
     }
 
     this->has_data = bSuccess ? true : false;
     this->timestamp = std::time(nullptr);
+}
+
+void FITS::image_statistics()
+{
+    std::vector<float> myvector;
+
+    // set some values:
+    for (int i = 0; i < 10; i++)
+        myvector.push_back(NAN); // 0 1 2 3 4 5 6 7 8 9 or NAN
+
+    for (int i = 0; i < 10; i++)
+        myvector.push_back(NAN);
+
+    std::random_shuffle(myvector.begin(), myvector.end());
+
+    for (int i = 0; i < myvector.size(); i++)
+        std::cout << myvector[i] << "\t";
+    std::cout << std::endl;
+
+    remove_nan(myvector);
+
+    for (int i = 0; i < myvector.size(); i++)
+        std::cout << myvector[i] << "\t";
+    std::cout << std::endl;
+
+    size_t len = size_t(width) * size_t(height);
+    std::vector<Ipp32f> v(len);
+
+    //ippiCopy does not seem to work??? what am I doing wrong?
+    /*IppiSize roiSize;
+        roiSize.width = width;
+        roiSize.height = height;
+        ippiCopy_32f_C1R(pixels, width, v.data(), width, roiSize);*/
+
+    v.resize(len);
+    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+    median = stl_median(v);
+
+    v.resize(len);
+    memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+    median = parallel_stl_median(v);
 }
 
 /*iCube = IppZfp();
