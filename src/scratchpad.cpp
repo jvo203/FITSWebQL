@@ -157,3 +157,23 @@ if (iCube)
         //it needs to be done here
     }
 }
+
+pmin = FLT_MAX;
+pmax = -FLT_MAX;
+
+if (this->depth == 1)
+{
+    pmin = dmin;
+    pmax = dmax;
+}
+else
+{
+    if (v.size() > 1)
+    {
+        auto i = std::minmax_element(v.begin(), v.end());
+        pmin = *i.first;
+        pmax = *i.second;
+    }
+};
+
+printf("%s::pixel_range<%f,%f>\n", dataset_id.c_str(), pmin, pmax);

@@ -62,21 +62,21 @@ export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 ma
 
       //alternative coherent if
       cif (!nan)
-	{
-	  src[i] = intbits(tmp) ;
-	  mask[i] = 255;
-	  dst_pixels[i] += tmp ;
-	  dst_mask[i] = 255 ;
-	  partial_sum += tmp ;
-	  partial_count += 1 ;
-	  partial_min = min(partial_min, tmp);
-	  partial_max = max(partial_max, tmp);
-	}
+	    {
+	      src[i] = intbits(tmp) ;
+	      mask[i] = 255;
+	      dst_pixels[i] += tmp ;
+	      dst_mask[i] = 255 ;
+	      partial_sum += tmp ;
+	      partial_count += 1 ;
+	      partial_min = min(partial_min, tmp);
+	      partial_max = max(partial_max, tmp);
+	    }
       else
-        {
-	  src[i] = 0x7ff80000; // quiet NaN        
-	  mask[i] = 0;
-        }
+      {
+	      src[i] = 0x7ff80000; // quiet NaN        
+	      mask[i] = 0;
+      }
     } ;
 
   uniform float sum = reduce_add(partial_sum) ;
@@ -98,13 +98,38 @@ export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 ma
   frame_max = reduce_max(partial_max);  
 } ;
 
-export void join_pixels_masks(uniform float pixels[], uniform float pixels_tid[], uniform unsigned int8 mask[], uniform unsigned int8 mask_tid[], uniform float cdelt3, uniform unsigned int size)
+export void join_pixels_masks(uniform float pixels[], uniform float pixels_tid[], uniform unsigned int8 mask[], uniform unsigned int8 mask_tid[], uniform unsigned int size)
 {
   foreach(i=0 ... size)
     {
-      pixels[i] += pixels_tid[i] * cdelt3 ;
+      pixels[i] += pixels_tid[i] ;//* cdelt3 ;
       mask[i] |= mask_tid[i] ;
     } ;
+} ;
+
+export void image_min_max(uniform float pixels[], uniform unsigned int8 mask[], uniform float cdelt3, uniform unsigned int size, uniform float& rmin, uniform float& rmax)
+{
+  varying float vmin = rmin ;
+  varying float vmax = rmax ;
+  
+  foreach(i=0 ... size)
+    {            
+	    cif(mask[i])	
+	    {
+        pixels[i] *= cdelt3 ;
+        float tmp = pixels[i] ;
+	      vmin = min(vmin, tmp) ;
+	      vmax = max(vmax, tmp) ;
+	    }
+      else
+      {
+        unsigned int tmp = 0x7ff80000; // quiet NaN
+        pixels[i] = floatbits(tmp);
+      }
+    } ;
+
+  rmin = reduce_min(vmin) ;
+  rmax = reduce_max(vmax) ;
 } ;
 
 export void histogram(uniform float data[], uniform unsigned int size, uniform uint32_t hist[], uniform int nbins, uniform float pmin, uniform float pmax)

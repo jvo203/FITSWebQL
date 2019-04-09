@@ -31,7 +31,7 @@ auto Ipp32fFree = [](Ipp32f *p) {
     static size_t counter = 0;
     if (p != NULL)
     {
-        printf("freeing <Ipp32f*>#%zu\t", counter++);
+        //printf("freeing <Ipp32f*>#%zu\t", counter++);
         ippsFree(p);
     }
 };
@@ -40,7 +40,7 @@ auto Ipp8uFree = [](Ipp8u *p) {
     static size_t counter = 0;
     if (p != NULL)
     {
-        printf("freeing <Ipp8u*>#%zu\t", counter++);
+        //printf("freeing <Ipp8u*>#%zu\t", counter++);
         ippsFree(p);
     }
 };
@@ -755,6 +755,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
     std::atomic<bool> bSuccess = true;
 
+    float _pmin = FLT_MAX;
+    float _pmax = -FLT_MAX;
+
     if (depth == 1)
     {
         //read/process the FITS plane (image) in parallel
@@ -764,9 +767,6 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         //use ispc to process the plane
         //1. endianness
         //2. fill-in {pixels,mask}
-
-        float pmin = FLT_MAX;
-        float pmax = -FLT_MAX;
 
         //get pmin, pmax
         int max_threads = omp_get_max_threads();
@@ -791,9 +791,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             else
                 printf("%s::FITS data read OK.\n", dataset_id.c_str());
 
-#pragma omp parallel for schedule(static) num_threads(no_omp_threads) reduction(min                   \
-                                                                                : pmin) reduction(max \
-                                                                                                  : pmax)
+#pragma omp parallel for schedule(static) num_threads(no_omp_threads) reduction(min                    \
+                                                                                : _pmin) reduction(max \
+                                                                                                   : _pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
                 size_t work_size = plane_size / num_threads;
@@ -802,7 +802,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                 if (tid == num_threads - 1)
                     work_size = plane_size - start;
 
-                ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
+                ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
             };
         }
         else
@@ -810,9 +810,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             //load data into the buffer in parallel chunks
             //the data part starts at <offset>
 
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                   \
-                                                                                 : pmin) reduction(max \
-                                                                                                   : pmax)
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                    \
+                                                                                 : _pmin) reduction(max \
+                                                                                                    : _pmax)
             for (int tid = 0; tid < num_threads; tid++)
             {
                 size_t work_size = plane_size / num_threads;
@@ -830,12 +830,12 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                     bSuccess = false;
                 }
                 else
-                    ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, pmin, pmax, work_size);
+                    ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
             };
         }
 
-        dmin = pmin;
-        dmax = pmax;
+        dmin = _pmin;
+        dmax = _pmax;
     }
     else
     {
@@ -872,9 +872,6 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         for (size_t i = 0; i < plane_size; i++)
             pixels[i] = 0.0f;
 
-        float pmin = FLT_MAX;
-        float pmax = -FLT_MAX;
-
         int max_threads = omp_get_max_threads();
 
         if (!is_compressed)
@@ -904,9 +901,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             }
 
 //ZFP compressed array private_view requires blocks-of-4 scheduling for thread-safe mutable access
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                   \
-                                                                                 : pmin) reduction(max \
-                                                                                                   : pmax)
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) reduction(min                    \
+                                                                                 : _pmin) reduction(max \
+                                                                                                    : _pmax)
 
             for (size_t k = 0; k < depth; k += 4)
             {
@@ -951,8 +948,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
                         ispc::make_image_spectrumF32((int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval, datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin, fmax, mean, integrated, plane_size);
 
-                        pmin = MIN(pmin, fmin);
-                        pmax = MAX(pmax, fmax);
+                        _pmin = MIN(_pmin, fmin);
+                        _pmax = MAX(_pmax, fmax);
                         frame_min[frame] = fmin;
                         frame_max[frame] = fmax;
                         mean_spectrum[frame] = mean;
@@ -981,7 +978,6 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             }
 
             //join omp_{pixel,mask}
-            float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
 
             //keep the worksize within int32 limits
             size_t max_work_size = 1024 * 1024 * 1024;
@@ -1002,7 +998,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                     if (tid == num_threads - 1)
                         work_size = plane_size - start;
 
-                    ispc::join_pixels_masks(&(pixels[start]), &(pixels_tid[start]), &(mask[start]), &(mask_tid[start]), _cdelt3, work_size);
+                    ispc::join_pixels_masks(&(pixels[start]), &(pixels_tid[start]), &(mask[start]), &(mask_tid[start]), work_size);
                 }
             }
 
@@ -1087,8 +1083,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
                             ispc::make_image_spectrumF32((int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale, ignrval, datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean, integrated, plane_size);
 
-                            pmin = MIN(pmin, fmin);
-                            pmax = MAX(pmax, fmax);
+                            _pmin = MIN(_pmin, fmin);
+                            _pmax = MAX(_pmax, fmax);
                             frame_min[frame] = fmin;
                             frame_max[frame] = fmax;
                             mean_spectrum[frame] = mean;
@@ -1141,8 +1137,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             }
         }
 
-        dmin = pmin;
-        dmax = pmax;
+        dmin = _pmin;
+        dmax = _pmax;
 
         /*printf("FMIN/FMAX\tSPECTRUM\n");
         for (int i = 0; i < depth; i++)
@@ -1168,6 +1164,45 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
 void FITS::image_statistics()
 {
+    float _pmin = FLT_MAX;
+    float _pmax = -FLT_MAX;
+
+    if (this->depth == 1)
+    {
+        _pmin = dmin;
+        _pmax = dmax;
+    }
+    else
+    {
+        float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
+
+        //use pixels/mask to get min/max
+        int max_threads = omp_get_max_threads();
+
+        //keep the worksize within int32 limits
+        size_t total_size = width * height;
+        size_t max_work_size = 1024 * 1024 * 1024;
+        size_t work_size = MIN(total_size / max_threads, max_work_size);
+        int num_threads = total_size / work_size;
+
+#pragma omp parallel for reduction(min                    \
+                                   : _pmin) reduction(max \
+                                                      : _pmax)
+        for (int tid = 0; tid < num_threads; tid++)
+        {
+            size_t work_size = total_size / num_threads;
+            size_t start = tid * work_size;
+
+            if (tid == num_threads - 1)
+                work_size = total_size - start;
+
+            //it also restores NaNs in the pixels array based on the mask
+            ispc::image_min_max(&(pixels[start]), &(mask[start]), _cdelt3, work_size, _pmin, _pmax);
+        };
+    };
+
+    printf("%s::pixel_range<%f,%f>\n", dataset_id.c_str(), _pmin, _pmax);
+
     size_t len = width * height;
     std::vector<Ipp32f> v(len);
     //memcpy(v.data(), pixels, len * sizeof(Ipp32f));
@@ -1179,7 +1214,7 @@ void FITS::image_statistics()
 
     remove_nan(v);
 
-    make_histogram(v, hist, NBINS, dmin, dmax);
+    make_histogram(v, hist, NBINS, _pmin, _pmax);
 
     median = stl_median(v);
 }
