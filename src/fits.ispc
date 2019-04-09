@@ -145,3 +145,43 @@ export void histogram(uniform float data[], uniform unsigned int size, uniform u
 	    } ;
     } ;
 } ;
+
+
+export void asymmetric_mad(uniform float data[], uniform unsigned int8 mask[], uniform unsigned int size, uniform float median, uniform int64& count, uniform float& mad, uniform int64& countP, uniform float& madP, uniform int64& countN, uniform float& madN)
+{
+  varying int vcount = count ;
+  varying float vmad = mad ;
+
+  varying int vcountP = countP ;
+  varying float vmadP = madP ;
+
+  varying int vcountN = countN ;
+  varying float vmadN = madN ;
+  
+  foreach(i=0 ... size)
+    {
+      float tmp = data[i] ;
+
+      //cif(!( isnan(tmp) || isinf(tmp) ))
+      cif(mask[i])
+	{
+	  vmad += abs(tmp - median) ;
+	  vcount++ ;
+
+	  vmadP += (tmp > median) ? (tmp - median) : 0.0f ;
+	  vcountP += (tmp > median) ? 1 : 0 ;
+
+	  vmadN += (tmp < median) ? (median - tmp) : 0.0f ;
+	  vcountN += (tmp < median) ? 1 : 0 ;
+	} ;
+    } ;
+
+  count = reduce_add(vcount) ;
+  mad = reduce_add(vmad) ;
+
+  countP = reduce_add(vcountP) ;
+  madP = reduce_add(vmadP) ;
+
+  countN = reduce_add(vcountN) ;
+  madN = reduce_add(vmadN) ;
+} ;

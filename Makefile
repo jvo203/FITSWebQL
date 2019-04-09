@@ -1,4 +1,4 @@
-SRC = src/main.cpp src/fits.cpp src/json.c
+SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c
 INC = -I/usr/include/postgresql
 #-I/home/chris/uWebSockets/src -I/home/chris/uSockets-0.1.2/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -D_GLIBCXX_PARALLEL -DDEVELOPMENT -DLOCAL

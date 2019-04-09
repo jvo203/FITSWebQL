@@ -30,6 +30,7 @@
 
 #define NBINS 1024
 
+int histogram_classifier(float* Slot) ;
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float pmins, float pmax);
 
 class FITS
@@ -109,7 +110,7 @@ public:
   std::vector<float> mean_spectrum, integrated_spectrum;
 
   //statistics
-  float median;
+  float min, max, median, mad, madN, madP, black, white, sensitivity;
   Ipp32u hist[NBINS];
 
   //extras

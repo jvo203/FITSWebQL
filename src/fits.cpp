@@ -329,7 +329,16 @@ void FITS::defaults()
 
     dmin = -FLT_MAX;
     dmax = FLT_MAX;
+
     median = NAN;
+    min = NAN;
+    max = NAN;
+    mad = NAN;
+    madN = NAN;
+    madP = NAN;
+    black = NAN;
+    white = NAN;
+    sensitivity = NAN;
 }
 
 void FITS::update_timestamp()
@@ -1164,6 +1173,14 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
 void FITS::image_statistics()
 {
+    int max_threads = omp_get_max_threads();
+
+    //keep the worksize within int32 limits
+    size_t total_size = width * height;
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
+
     float _pmin = FLT_MAX;
     float _pmax = -FLT_MAX;
 
@@ -1177,14 +1194,6 @@ void FITS::image_statistics()
         float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
 
         //use pixels/mask to get min/max
-        int max_threads = omp_get_max_threads();
-
-        //keep the worksize within int32 limits
-        size_t total_size = width * height;
-        size_t max_work_size = 1024 * 1024 * 1024;
-        size_t work_size = MIN(total_size / max_threads, max_work_size);
-        int num_threads = total_size / work_size;
-
 #pragma omp parallel for reduction(min                    \
                                    : _pmin) reduction(max \
                                                       : _pmax)
@@ -1217,6 +1226,108 @@ void FITS::image_statistics()
     make_histogram(v, hist, NBINS, _pmin, _pmax);
 
     median = stl_median(v);
+
+    float _mad = 0.0f;
+    int64_t _count = 0;
+
+    float _madP = 0.0f;
+    float _madN = 0.0f;
+    int64_t _countP = 0;
+    int64_t _countN = 0;
+
+#pragma omp parallel for reduction(+                                                                                                  \
+                                   : _mad) reduction(+                                                                                \
+                                                     : _count) reduction(+                                                            \
+                                                                         : _madP) reduction(+                                         \
+                                                                                            : _countP) reduction(+                    \
+                                                                                                                 : _madN) reduction(+ \
+                                                                                                                                    : _countN)
+    for (int tid = 0; tid < num_threads; tid++)
+    {
+        size_t work_size = total_size / num_threads;
+        size_t start = tid * work_size;
+
+        if (tid == num_threads - 1)
+            work_size = total_size - start;
+
+        //ispc::symmetric_mad(&(data[start]), &(mask[start]), work_size, median, count, mad) ;
+        ispc::asymmetric_mad(&(pixels[start]), &(mask[start]), work_size, median, _count, _mad, _countP, _madP, _countN, _madN);
+    };
+
+    if (_count > 0)
+        _mad /= float(_count);
+
+    if (_countP > 0)
+        _madP /= float(_countP);
+    else
+        _madP = _mad;
+
+    if (_countN > 0)
+        _madN /= float(_countN);
+    else
+        _madN = _mad;
+
+    float u = 7.5f; //0.5f ;
+    float _black = MAX(_pmin, median - u * _madN);
+    float _white = MIN(_pmax, median + u * _madP);
+    float _sensitivity = 1.0f / (_white - _black);
+
+    if (this->flux == "")
+    {
+        long cdf[NBINS];
+        float Slot[NBINS];
+
+        long total = hist[0];
+        cdf[0] = hist[0];
+
+        for (int i = 1; i < NBINS; i++)
+        {
+            cdf[i] = cdf[i - 1] + hist[i];
+            total += hist[i];
+        };
+
+        for (int i = 0; i < NBINS; i++)
+        {
+            Slot[i] = (float)cdf[i] / (float)total;
+        };
+
+        int tone_mapping_class = histogram_classifier(Slot);
+
+        switch (tone_mapping_class)
+        {
+        case 0:
+            this->flux = std::string("legacy");
+            break;
+
+        case 1:
+            this->flux = std::string("linear");
+            break;
+
+        case 2:
+            this->flux = std::string("logistic");
+            break;
+
+        case 3:
+            this->flux = std::string("ratio");
+            break;
+
+        case 4:
+            this->flux = std::string("square");
+            break;
+
+        default:
+            this->flux = std::string("legacy");
+        };
+    }
+
+    this->min = _pmin;
+    this->max = _pmax;
+    this->mad = _mad;
+    this->madN = _madN;
+    this->madP = _madP;
+    this->black = _black;
+    this->white = _white;
+    this->sensitivity = _sensitivity;
 }
 
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float pmin, float pmax)
