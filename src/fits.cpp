@@ -1250,7 +1250,6 @@ void FITS::image_statistics()
         if (tid == num_threads - 1)
             work_size = total_size - start;
 
-        //ispc::symmetric_mad(&(data[start]), &(mask[start]), work_size, median, count, mad) ;
         ispc::asymmetric_mad(&(pixels[start]), &(mask[start]), work_size, median, _count, _mad, _countP, _madP, _countN, _madN);
     };
 
