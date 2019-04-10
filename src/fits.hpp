@@ -30,7 +30,7 @@
 
 #define NBINS 1024
 
-int histogram_classifier(float* Slot) ;
+int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float pmins, float pmax);
 
 class FITS
@@ -45,9 +45,11 @@ public:
   void from_url(std::string url, std::string flux, int va_count);
   void from_path_zfp(std::string path, bool is_compressed, std::string flux, int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
+  void to_json(std::ostringstream &json);
 
 private:
   void defaults();
+  const char *check_null(const char *str);
   void frame_reference_unit();
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
@@ -103,6 +105,8 @@ public:
   std::string timesys;
   std::string object;
   std::string date_obs;
+  std::string beam_unit;
+  std::string beam_type;
 
   //values derived from the FITS data
   float dmin, dmax; //global data range
@@ -116,6 +120,7 @@ public:
   //extras
   std::atomic<bool> has_header;
   std::atomic<bool> has_data;
+  std::atomic<bool> has_error;
   bool has_frequency;
   bool has_velocity;
   bool is_optical;
@@ -125,6 +130,7 @@ public:
 private:
   //FITS header
   char *header;
+  size_t hdr_len;
   Ipp32f *pixels;
   Ipp8u *mask;
 

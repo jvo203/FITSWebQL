@@ -189,6 +189,30 @@ void write_key_value(uWS::HttpResponse *res, std::string key, std::string value)
     res->write(content_type.data(), content_type.length());
 }
 
+void get_spectrum(uWS::HttpResponse *res, std::shared_ptr<FITS> fits)
+{
+    std::ostringstream json;
+
+    fits->to_json(json);
+
+    if (json.tellp() > 0)
+    {
+        write_status(res, 200, "OK");
+        write_content_length(res, json.tellp());
+        write_content_type(res, "application/json");
+        write_key_value(res, "Cache-Control", "no-cache");
+        write_key_value(res, "Cache-Control", "no-store");
+        write_key_value(res, "Pragma", "no-cache");
+        res->write("\r\n", 2);
+        res->write(json.str().c_str(), json.tellp());
+        res->write("\r\n\r\n", 4);
+    }
+    else
+    {
+        return http_not_implemented(res);
+    }
+}
+
 struct MolecularStream
 {
     bool first;
@@ -1116,14 +1140,15 @@ int main(int argc, char *argv[])
                         {
                             auto fits = item->second;
 
-                            if (!fits->has_data)
-                                return http_accepted(res);
-
-                            //make a json from the FITS header field
-                            //minus the histogram which might be shifted
-                            //onto the client browser side
-
-                            return http_not_implemented(res);
+                            if (fits->has_error)
+                                return http_not_found(res);
+                            else
+                            {
+                                if (!fits->has_data)
+                                    return http_accepted(res);
+                                else
+                                    return get_spectrum(res, fits);
+                            }
                         }
                     }
                 }
@@ -1201,6 +1226,9 @@ int main(int argc, char *argv[])
                             else
                             {
                                 auto fits = item->second;
+
+                                if (fits->has_error)
+                                    return http_not_found(res);
 
                                 if (!fits->has_header)
                                     return http_accepted(res);

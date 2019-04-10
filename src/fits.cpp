@@ -1,7 +1,40 @@
 #include "../fits.h"
 #include "fits.hpp"
 
+#include "lz4.h"
+#include "lz4hc.h"
+#include "json.h"
+
+//base64 encoding with SSL
+#include <openssl/sha.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+
+char *base64(const unsigned char *input, int length)
+{
+    BIO *bmem, *b64;
+    BUF_MEM *bptr;
+
+    b64 = BIO_new(BIO_f_base64());
+    bmem = BIO_new(BIO_s_mem());
+    b64 = BIO_push(b64, bmem);
+    BIO_write(b64, input, length);
+    BIO_flush(b64);
+    BIO_get_mem_ptr(b64, &bptr);
+
+    char *buff = (char *)malloc(bptr->length);
+    memcpy(buff, bptr->data, bptr->length - 1);
+    buff[bptr->length - 1] = 0;
+
+    BIO_free_all(b64);
+
+    return buff;
+};
+
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -192,8 +225,8 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     }
     else
     {
-        // even sized vector -> average the two middle values     
-        auto max_it = std::max_element(v.begin(), v.begin() + n);       
+        // even sized vector -> average the two middle values
+        auto max_it = std::max_element(v.begin(), v.begin() + n);
         medVal = (*max_it + v[n]) / 2.0f;
     }
 
@@ -201,8 +234,8 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-   
-    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);   
+
+    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
 
     return medVal;
 }
@@ -217,6 +250,7 @@ FITS::FITS()
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->hdr_len = 0;
     this->pixels = NULL;
     this->mask = NULL;
     this->cube = NULL;
@@ -236,6 +270,7 @@ FITS::FITS(std::string id, std::string flux)
     this->fits_file_size = 0;
     this->gz_compressed = false;
     this->header = NULL;
+    this->hdr_len = 0;
     this->pixels = NULL;
     this->mask = NULL;
     this->cube = NULL;
@@ -307,6 +342,7 @@ void FITS::defaults()
     frame_multiplier = 1.0;
     has_header = false;
     has_data = false;
+    has_error = false;
     has_frequency = false;
     has_velocity = false;
     is_optical = true;
@@ -324,6 +360,9 @@ void FITS::defaults()
     black = NAN;
     white = NAN;
     sensitivity = NAN;
+
+    for (int i = 0; i < NBINS; i++)
+        hist[i] = 0;
 }
 
 void FITS::update_timestamp()
@@ -562,6 +601,12 @@ bool FITS::process_fits_header_unit(const char *buf)
         if (strncmp(hdrLine, "TIMESYS = ", 10) == 0)
             timesys = hdr_get_string_value(hdrLine + 10);
 
+        if (strncmp(hdrLine, "BUNIT   = ", 10) == 0)
+            beam_unit = hdr_get_string_value(hdrLine + 10);
+
+        if (strncmp(hdrLine, "BTYPE   = ", 10) == 0)
+            beam_type = hdr_get_string_value(hdrLine + 10);
+
         if (strncmp(hdrLine, "OBJECT  = ", 10) == 0)
             object = hdr_get_string_value_with_spaces(hdrLine + 10);
 
@@ -696,6 +741,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     }
 
     header[offset] = '\0';
+    this->hdr_len = offset;
 
     //test for frequency/velocity
     frame_reference_unit();
@@ -1150,6 +1196,12 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     if (bSuccess)
     {
         image_statistics();
+
+        printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f madN: %f black: %f white: %f sensitivity: %f flux: %s\n", dataset_id.c_str(), this->min, this->max, this->median, this->mad, this->madP, this->madN, this->black, this->white, this->sensitivity, this->flux.c_str());
+    }
+    else
+    {
+        this->has_error = true;
     }
 
     this->has_data = bSuccess ? true : false;
@@ -1365,4 +1417,164 @@ void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
     printf("make_histogram::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
+}
+
+inline const char *FITS::check_null(const char *str)
+{
+    if (str != nullptr)
+        return str;
+    else
+        return "\"\"";
+};
+
+void FITS::to_json(std::ostringstream &json)
+{
+    if (header == NULL || hdr_len == 0)
+        return;
+
+    Ipp8u *header_lz4 = NULL;
+    int compressed_size = 0;
+
+    //LZ4-compress the FITS header
+    int worst_size = LZ4_compressBound(hdr_len);
+
+    header_lz4 = ippsMalloc_8u_L(worst_size);
+
+    if (header_lz4 == NULL)
+        return;
+
+    //compress the header with LZ4
+    compressed_size = LZ4_compress_default((const char *)header, (char *)header_lz4, hdr_len, worst_size);
+    printf("FITS HEADER size %zu bytes, LZ4-compressed: %d bytes.\n", hdr_len, compressed_size);
+
+    char *encoded_header = NULL;
+    char *fits_header = base64((const unsigned char *)header_lz4, compressed_size);
+
+    ippsFree(header_lz4);
+
+    if (fits_header != NULL)
+    {
+        encoded_header = json_encode_string(fits_header);
+        free(fits_header);
+    };
+
+    json << "{";
+
+    //header
+    json << "\"HEADERSIZE\" : " << hdr_len << ",";
+    json << "\"HEADER\" : " << check_null(encoded_header) << ",";
+
+    if (encoded_header != NULL)
+        free(encoded_header);
+
+    //fields
+    json << "\"width\" : " << width << ",";
+    json << "\"height\" : " << height << ",";
+    json << "\"depth\" : " << depth << ",";
+    json << "\"polarisation\" : " << polarisation << ",";
+    json << "\"filesize\" : " << fits_file_size << ",";
+    json << "\"IGNRVAL\" : " << std::scientific << ignrval << ",";
+
+    if (std::isnan(cd1_1))
+        json << "\"CD1_1\" : null,";
+    else
+        json << "\"CD1_1\" : " << std::scientific << cd1_1 << ",";
+
+    if (std::isnan(cd1_2))
+        json << "\"CD1_2\" : null,";
+    else
+        json << "\"CD1_2\" : " << std::scientific << cd1_2 << ",";
+
+    if (std::isnan(cd2_1))
+        json << "\"CD2_1\" : null,";
+    else
+        json << "\"CD2_1\" : " << std::scientific << cd2_1 << ",";
+
+    if (std::isnan(cd2_2))
+        json << "\"CD2_2\" : null,";
+    else
+        json << "\"CD2_2\" : " << std::scientific << cd2_2 << ",";
+
+    json << "\"CRVAL1\" : " << std::scientific << crval1 << ",";
+
+    if (std::isnan(cdelt1))
+        json << "\"CDELT1\" : null,";
+    else
+        json << "\"CDELT1\" : " << std::scientific << cdelt1 << ",";
+
+    json << "\"CRPIX1\" : " << std::scientific << crpix1 << ",";
+    json << "\"CUNIT1\" : \"" << cunit1 << "\",";
+    json << "\"CTYPE1\" : \"" << ctype1 << "\",";
+    json << "\"CRVAL2\" : " << std::scientific << crval2 << ",";
+
+    if (std::isnan(cdelt2))
+        json << "\"CDELT2\" : null,";
+    else
+        json << "\"CDELT2\" : " << std::scientific << cdelt2 << ",";
+
+    json << "\"CRPIX2\" : " << std::scientific << crpix2 << ",";
+    json << "\"CUNIT2\" : \"" << cunit2 << "\",";
+    json << "\"CTYPE2\" : \"" << ctype2 << "\",";
+    json << "\"CRVAL3\" : " << std::scientific << crval3 << ",";
+    json << "\"CDELT3\" : " << std::scientific << cdelt3 << ",";
+    json << "\"CRPIX3\" : " << std::scientific << crpix3 << ",";
+    json << "\"CUNIT3\" : \"" << cunit3 << "\",";
+    json << "\"CTYPE3\" : \"" << ctype3 << "\",";
+    json << "\"BMAJ\" : " << std::scientific << bmaj << ",";
+    json << "\"BMIN\" : " << std::scientific << bmin << ",";
+    json << "\"BPA\" : " << std::scientific << bpa << ",";
+    json << "\"BUNIT\" : \"" << beam_unit << "\",";
+    json << "\"BTYPE\" : \"" << beam_type << "\",";
+    json << "\"SPECSYS\" : \"" << specsys << "\",";
+    json << "\"RESTFRQ\" : " << std::scientific << restfrq << ",";
+    json << "\"OBSRA\" : " << std::scientific << obsra << ",";
+    json << "\"OBSDEC\" : " << std::scientific << obsdec << ",";
+    json << "\"OBJECT\" : \"" << object << "\",";
+    json << "\"DATEOBS\" : \"" << date_obs << "\",";
+    json << "\"TIMESYS\" : \"" << timesys << "\",";
+    json << "\"LINE\" : \"" << line << "\",";
+    json << "\"FILTER\" : \"" << filter << "\",";
+
+    //needs this->has_data
+
+    //mean spectrum
+    if (mean_spectrum.size() > 0)
+    {
+        json << "\"mean_spectrum\" : [";
+
+        for (size_t i = 0; i < depth - 1; i++)
+            json << std::scientific << mean_spectrum[i] << ",";
+
+        json << std::scientific << mean_spectrum[depth - 1] << "],";
+    }
+    else
+        json << "\"mean_spectrum\" : [],";
+
+    //integrated spectrum
+    if (integrated_spectrum.size() > 0)
+    {
+        json << "\"integrated_spectrum\" : [";
+
+        for (size_t i = 0; i < depth - 1; i++)
+            json << std::scientific << integrated_spectrum[i] << ",";
+
+        json << std::scientific << integrated_spectrum[depth - 1] << "],";
+    }
+    else
+        json << "\"integrated_spectrum\" : [],";
+
+    //statistics
+    json << "\"min\" : " << std::scientific << min << ",";
+    json << "\"max\" : " << std::scientific << max << ",";
+    json << "\"median\" : " << std::scientific << median << ",";
+    json << "\"sensitivity\" : " << std::scientific << sensitivity << ",";
+    json << "\"black\" : " << std::scientific << black << ",";
+    json << "\"white\" : " << std::scientific << white << ",";
+    json << "\"flux\" : \"" << flux << "\",";
+
+    //histogram
+    json << "\"histogram\" : [";
+    for (size_t i = 0; i < NBINS - 1; i++)
+        json << hist[i] << ",";
+    json << hist[NBINS - 1] << "]}";
 }
