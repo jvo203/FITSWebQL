@@ -13,4 +13,4 @@ a compiler with support for _GLIBCXX_PARALLEL:
 
 * Intel C/C++ version 19-or-higher for the best performance (which bundles IPP)
 
-* or a recent gcc/clang++ with C++17-or-higher plus a manual installation of a free Intel IPP: https://software.intel.com/en-us/intel-ipp
+* or a recent gcc/clang++ with C++17-or-higher plus a manual installation of the free Intel IPP: https://software.intel.com/en-us/intel-ipp
