@@ -7,9 +7,9 @@ Although Rust is extremely stable there are still some cases where C/C++ outperf
 work-in-progress
 
 # requirements
-Intel Integrated Performance Primitives (IPP)
+1. Intel Integrated Performance Primitives (IPP): https://software.intel.com/en-us/intel-ipp
 
-a compiler with support for _GLIBCXX_PARALLEL:
+2. a compiler with support for _GLIBCXX_PARALLEL:
 
 * Intel C/C++ version 19-or-higher for the best performance (which bundles IPP)
 
