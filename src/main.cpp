@@ -1,5 +1,5 @@
-#define VERSION_MAJOR 4
-#define VERSION_MINOR 1
+#define VERSION_MAJOR 5
+#define VERSION_MINOR 0
 #define VERSION_SUB 0
 
 #define STR_HELPER(x) #x
@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-07.0"
+#define VERSION_STRING "SV2019-04-10.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>

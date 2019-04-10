@@ -20,13 +20,6 @@ using std::chrono::steady_clock;
 
 #include <boost/algorithm/string.hpp>
 
-//Parallel STL
-#ifdef __INTEL_COMPILER
-#include "pstl/execution"
-#include "pstl/algorithm"
-#include "pstl/memory"
-#endif
-
 auto Ipp32fFree = [](Ipp32f *p) {
     static size_t counter = 0;
     if (p != NULL)
@@ -199,12 +192,8 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     }
     else
     {
-        // even sized vector -> average the two middle values
-        //#ifdef __INTEL_COMPILER
-        //        auto max_it = std::max_element(pstl::execution::par_unseq, v.begin(), v.begin() + n);
-        //#else
-        auto max_it = std::max_element(v.begin(), v.begin() + n);
-        //#endif
+        // even sized vector -> average the two middle values     
+        auto max_it = std::max_element(v.begin(), v.begin() + n);       
         medVal = (*max_it + v[n]) / 2.0f;
     }
 
@@ -212,12 +201,8 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
     double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-    //#ifdef __INTEL_COMPILER
-    //    printf("parallel_stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-    //#else
-    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
-    //#endif
+   
+    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);   
 
     return medVal;
 }
