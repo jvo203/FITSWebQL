@@ -778,6 +778,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     this->processed_header = true;
     this->header_cv.notify_all();
     header_lck.unlock();
+    header_lck.release();
 
     //printf("%s\n", header);
 

@@ -220,6 +220,7 @@ struct MolecularStream
     uWS::HttpResponse *res;
     z_stream z;
     unsigned char out[CHUNK];
+    FILE *fp;
 };
 
 static int
@@ -314,24 +315,30 @@ sqlite_callback(void *userp, int argc, char **argv, char **azColName)
         {
             stream->z.avail_in = json.length();                // size of input
             stream->z.next_in = (unsigned char *)json.c_str(); // input char array
-            stream->z.avail_out = CHUNK;                       // size of output
-            stream->z.next_out = stream->out;                  // output char array
-            CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
-            size_t have = CHUNK - stream->z.avail_out;
 
-            if (have > 0)
+            do
             {
-                //printf("ZLIB avail_out: %zu\n", have);
+                stream->z.avail_out = CHUNK;      // size of output
+                stream->z.next_out = stream->out; // output char array
+                CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
+                size_t have = CHUNK - stream->z.avail_out;
 
-                //chunk header
-                std::ostringstream chunk;
-                chunk << std::hex << have << "\r\n";
-                stream->res->write(chunk.str().c_str(), chunk.tellp());
+                if (have > 0)
+                {
+                    //printf("ZLIB avail_out: %zu\n", have);
+                    if (stream->fp != NULL)
+                        fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
 
-                //chunk contents
-                stream->res->write((const char *)stream->out, have);
-                stream->res->write("\r\n", 2);
-            }
+                    //chunk header
+                    std::ostringstream chunk;
+                    chunk << std::hex << have << "\r\n";
+                    stream->res->write(chunk.str().c_str(), chunk.tellp());
+
+                    //chunk contents
+                    stream->res->write((const char *)stream->out, have);
+                    stream->res->write("\r\n", 2);
+                }
+            } while (stream->z.avail_out == 0);
         }
         else
         {
@@ -365,6 +372,7 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
     stream.first = true;
     stream.compress = compress;
     stream.res = res;
+    stream.fp = NULL; //fopen("molecules.txt.gz", "w");
 
     if (compress)
     {
@@ -378,8 +386,6 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
                                windowBits | GZIP_ENCODING,
                                9,
                                Z_DEFAULT_STRATEGY));
-
-        //CALL_ZLIB(deflateInit(&stream.z, 9));
     }
 
     rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
@@ -402,24 +408,30 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
     {
         stream.z.avail_in = chunk_data.length();
         stream.z.next_in = (unsigned char *)chunk_data.c_str();
-        stream.z.avail_out = CHUNK;     // size of output
-        stream.z.next_out = stream.out; // output char array
-        CALL_ZLIB(deflate(&stream.z, Z_FINISH));
-        size_t have = CHUNK - stream.z.avail_out;
 
-        if (have > 0)
+        do
         {
-            //printf("Z_FINISH avail_out: %zu\n", have);
+            stream.z.avail_out = CHUNK;     // size of output
+            stream.z.next_out = stream.out; // output char array
+            CALL_ZLIB(deflate(&stream.z, Z_FINISH));
+            size_t have = CHUNK - stream.z.avail_out;
 
-            //chunk header
-            std::ostringstream chunk;
-            chunk << std::hex << have << "\r\n";
-            stream.res->write(chunk.str().c_str(), chunk.tellp());
+            if (have > 0)
+            {
+                //printf("Z_FINISH avail_out: %zu\n", have);
+                if (stream.fp != NULL)
+                    fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
 
-            //chunk contents
-            stream.res->write((const char *)stream.out, have);
-            stream.res->write("\r\n", 2);
-        }
+                //chunk header
+                std::ostringstream chunk;
+                chunk << std::hex << have << "\r\n";
+                stream.res->write(chunk.str().c_str(), chunk.tellp());
+
+                //chunk contents
+                stream.res->write((const char *)stream.out, have);
+                stream.res->write("\r\n", 2);
+            }
+        } while (stream.z.avail_out == 0);
 
         CALL_ZLIB(deflateEnd(&stream.z));
     }
