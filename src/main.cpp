@@ -434,6 +434,9 @@ void stream_molecules(uWS::HttpResponse *res, double freq_start, double freq_end
         } while (stream.z.avail_out == 0);
 
         CALL_ZLIB(deflateEnd(&stream.z));
+
+        if (stream.fp != NULL)
+            fclose(stream.fp);
     }
     else
     {
