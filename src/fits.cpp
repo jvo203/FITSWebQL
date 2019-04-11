@@ -343,6 +343,8 @@ void FITS::defaults()
     has_header = false;
     has_data = false;
     has_error = false;
+    processed_header = false;
+    processed_data = false;
     has_frequency = false;
     has_velocity = false;
     is_optical = true;
@@ -655,6 +657,9 @@ void FITS::from_url(std::string url, std::string flux, int va_count)
 
 void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux, int va_count)
 {
+    std::unique_lock<std::mutex> header_lck(header_mtx);
+    std::unique_lock<std::mutex> data_lck(data_mtx);
+
     auto start_t = steady_clock::now();
 
     int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
@@ -674,6 +679,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         {
             printf("gzopen of '%s' failed: %s.\n", path.c_str(),
                    strerror(errno));
+            processed_header = true;
+            header_cv.notify_all();
+            processed_data = true;
+            data_cv.notify_all();
             return;
         }
     }
@@ -684,6 +693,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         if (fd == -1)
         {
             printf("error opening %s .", path.c_str());
+            processed_header = true;
+            header_cv.notify_all();
+            processed_data = true;
+            data_cv.notify_all();
             return;
         }
     }
@@ -698,6 +711,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     if (this->fits_file_size < FITS_CHUNK_LENGTH)
     {
         printf("error: FITS file size smaller than %d bytes.", FITS_CHUNK_LENGTH);
+        processed_header = true;
+        header_cv.notify_all();
+        processed_data = true;
+        data_cv.notify_all();
         return;
     }
 
@@ -728,6 +745,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             if (bytes_read != FITS_CHUNK_LENGTH)
             {
                 fprintf(stderr, "CRITICAL: read less than %zd bytes from the FITS header\n", bytes_read);
+                processed_header = true;
+                header_cv.notify_all();
+                processed_data = true;
+                data_cv.notify_all();
                 return;
             }
 
@@ -754,18 +775,25 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         has_frequency = true;
 
     this->has_header = true;
+    this->processed_header = true;
+    this->header_cv.notify_all();
+    header_lck.unlock();
 
     //printf("%s\n", header);
 
     if (bitpix != -32)
     {
         printf("%s::unsupported bitpix(%d), FITS data will not be read.\n", dataset_id.c_str(), bitpix);
+        processed_data = true;
+        data_cv.notify_all();
         return;
     }
 
     if (width <= 0 || height <= 0 || depth <= 0)
     {
         printf("%s::incorrect dimensions (width:%ld, height:%ld, depth:%ld)\n", dataset_id.c_str(), width, height, depth);
+        processed_data = true;
+        data_cv.notify_all();
         return;
     }
 
@@ -775,6 +803,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     if (frame_size != plane_size * sizeof(float))
     {
         printf("%s::plane_size != frame_size, is the bitpix correct?\n", dataset_id.c_str());
+        processed_data = true;
+        data_cv.notify_all();
         return;
     }
 
@@ -790,6 +820,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     if (pixels == NULL || mask == NULL)
     {
         printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
+        processed_data = true;
+        data_cv.notify_all();
         return;
     }
 
@@ -826,6 +858,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
             if (bytes_read != frame_size)
             {
                 fprintf(stderr, "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n", dataset_id.c_str(), bytes_read);
+                processed_data = true;
+                data_cv.notify_all();
                 return;
             }
             else
@@ -893,6 +927,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         if (cube == NULL)
         {
             fprintf(stderr, "%s::error allocating a ZFP-compressed FITS data cube.\n", dataset_id.c_str());
+            processed_data = true;
+            data_cv.notify_all();
             return;
         }
 
@@ -1205,6 +1241,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
     }
 
     this->has_data = bSuccess ? true : false;
+    this->processed_data = true;
+    this->data_cv.notify_all();
     this->timestamp = std::time(nullptr);
 }
 

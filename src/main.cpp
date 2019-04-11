@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-10.0"
+#define VERSION_STRING "SV2019-04-11.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1230,8 +1230,13 @@ int main(int argc, char *argv[])
                                 if (fits->has_error)
                                     return http_not_found(res);
 
+                                std::unique_lock<std::mutex> header_lck(fits->header_mtx);
+                                while (!fits->processed_header)
+                                    fits->header_cv.wait(header_lck);
+
                                 if (!fits->has_header)
-                                    return http_accepted(res);
+                                    //return http_accepted(res);
+                                    return http_not_found(res);
 
                                 if (fits->depth <= 1 || !fits->has_frequency)
                                     return http_not_implemented(res);

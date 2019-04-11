@@ -5,6 +5,7 @@
 #include <ctime>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 #include <string.h>
 #include <optional>
 #include <vector>
@@ -121,6 +122,12 @@ public:
   std::atomic<bool> has_header;
   std::atomic<bool> has_data;
   std::atomic<bool> has_error;
+  std::atomic<bool> processed_header;
+  std::atomic<bool> processed_data;
+  std::mutex header_mtx;
+  std::mutex data_mtx;
+  std::condition_variable header_cv;
+  std::condition_variable data_cv;
   bool has_frequency;
   bool has_velocity;
   bool is_optical;
