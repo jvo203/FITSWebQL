@@ -1144,8 +1144,13 @@ int main(int argc, char *argv[])
                                 return http_not_found(res);
                             else
                             {
+                                std::unique_lock<std::mutex> data_lck(fits->data_mtx);
+                                while (!fits->processed_data)
+                                    fits->data_cv.wait(data_lck);
+
                                 if (!fits->has_data)
-                                    return http_accepted(res);
+                                    //return http_accepted(res);
+                                    return http_not_found(res);
                                 else
                                     return get_spectrum(res, fits);
                             }
