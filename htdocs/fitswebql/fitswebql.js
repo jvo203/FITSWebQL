@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-04-03.0";
+	return "JS2019-04-12.0";
 }
 
 const wasm_supported = (() => {
@@ -9212,7 +9212,6 @@ function fetch_spectrum(datasetId, index, add_timestamp) {
 			}
 
 			if (!isLocal) {
-				//let filesize = fitsData.HEADERSIZE + 4 * fitsData.width*fitsData.height*fitsData.depth*fitsData.polarisation ;
 				let filesize = fitsData.filesize;
 				let strFileSize = numeral(filesize).format('0.0b');
 				d3.select("#FITS").html("full download (" + strFileSize + ")");
@@ -10753,7 +10752,7 @@ function show_welcome() {
 
 	headerDiv.append("h2")
 		.attr("align", "center")
-		.html('WELCOME TO FITSWEBQL <SUB><SMALL>26</SMALL></SUB>Fe');
+		.html('WELCOME TO FITSWEBQL SE');
 
 	var bodyDiv = contentDiv.append("div")
 		.attr("id", "modal-body")
@@ -10767,19 +10766,7 @@ function show_welcome() {
 
 	ul.append("li")
 		.attr("class", "list-group-item list-group-item-success")
-		.html('<h4>Server-side code changed from C/C++ to <a  href="https://www.rust-lang.org"><em>Rust</em></a></h4>');
-
-	ul.append("li")
-		.attr("class", "list-group-item list-group-item-success")
-		.html('<h4>Images encoded as <a  href="https://en.wikipedia.org/wiki/VP9"><em>Google VP9</em></a> keyframes</h4>');
-
-	ul.append("li")
-		.attr("class", "list-group-item list-group-item-success")
-		.html('<h4><a  href="https://en.wikipedia.org/wiki/High_Efficiency_Video_Coding"><em>HEVC</em></a> streaming video for FITS data cubes</h4>');
-
-	ul.append("li")
-		.attr("class", "list-group-item list-group-item-success")
-		.html('<h4><h4><a  href="https://en.wikipedia.org/wiki/WebAssembly"><em>WebAssembly</em></a>-accelerated HTML Video Canvas</h4>');
+		.html('<h4>Server-side code changed from Rust to C/C++ for extra performance</h4>');
 
 	let textColour = 'yellow';
 
@@ -10789,7 +10776,7 @@ function show_welcome() {
 	if (!isLocal) {
 		ul.append("li")
 			.attr("class", "list-group-item list-group-item-success")
-			.html('<h4>FITSWebQL Personal Edition (local desktop) on GitHub: <a href="https://github.com/jvo203/fits_web_ql"><em>fits_web_ql installation instructions</em></a></h4>');
+			.html('<h4>FITSWebQL SE source code on GitHub: <a href="https://github.com/jvo203/FITSWebQL"><em>https://github.com/jvo203/FITSWebQL</em></a></h4>');
 	}
 
 	bodyDiv.append("h3")
@@ -11156,11 +11143,28 @@ function setup_FITS_header_page() {
 
 function display_FITS_header(index) {
 	let fitsData = fitsContainer[index - 1];
-	let fitsHeader = fitsData.HEADER;
 
-	//probably there is no need for 'try' as the LZ4 decompressor has been removed
-	//decompression is now handled by the browser behind the scenes
 	try {
+		fitsHeader = new Uint8Array(window.atob(fitsData.HEADER.replace(/\s/g, '')).split("").map(function (c) {
+			return c.charCodeAt(0);
+		}));
+
+		var Buffer = require('buffer').Buffer;
+		var LZ4 = require('lz4');
+
+		var uncompressed = new Buffer(parseInt(fitsData.HEADERSIZE, 10));
+		uncompressedSize = LZ4.decodeBlock(new Buffer(fitsHeader), uncompressed);
+		uncompressed = uncompressed.slice(0, uncompressedSize);
+
+		try {
+			fitsHeader = String.fromCharCode.apply(null, uncompressed);
+		}
+		catch (err) {
+			fitsHeader = '';
+			for (var i = 0; i < uncompressed.length; i++)
+				fitsHeader += String.fromCharCode(uncompressed[i]);
+		};
+
 		var headerText = document.getElementById('headerText#' + index);
 		headerText.innerHTML = fitsHeader.trim().replace(/(.{80})/g, "$1<br>");
 
@@ -12366,7 +12370,7 @@ async*/ function mainRenderer() {
 		realtime_video = localStorage_read_boolean("realtime_video", true);
 		experimental = localStorage_read_boolean("experimental", false);
 		displayDownloadConfirmation = localStorage_read_boolean("displayDownloadConfirmation", true);
-		welcome = localStorage_read_boolean("welcome_v4", true);
+		welcome = localStorage_read_boolean("welcome_v5", true);
 
 		autoscale = true;
 		displayScalingHelp = localStorage_read_boolean("displayScalingHelp", true);
