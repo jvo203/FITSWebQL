@@ -11,6 +11,8 @@ work-in-progress
 
 2. a compiler with support for _GLIBCXX_PARALLEL:
 
-    * Intel C/C++ version 19-or-higher for the best performance (which bundles IPP)
+    * paid-for Intel C/C++ version 19-or-higher for the best performance (which bundles IPP)
 
-    * or a recent gcc/clang++ with C++17-or-higher plus a manual installation of the free Intel IPP: https://software.intel.com/en-us/intel-ipp
+    * alternatively a recent gcc/clang++ with C++17 plus a manual installation of the free Intel IPP: https://software.intel.com/en-us/intel-ipp
+
+3. an open-source Intel SPMD Program Compiler (ispc): https://ispc.github.io
