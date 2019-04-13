@@ -1,0 +1,18 @@
+<map id="bmsparsevec.h" name="bmsparsevec.h">
+<area shape="rect" id="node2" href="$bmsparsevec__algo_8h.html" title="Algorithms for sparse_vector&lt;&gt; " alt="" coords="699,80,839,107"/>
+<area shape="rect" id="node3" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="715,155,825,181"/>
+<area shape="rect" id="node4" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="151,155,261,181"/>
+<area shape="rect" id="node7" href="$svsample05_8cpp.html" title="Example: sparse_vector&lt;&gt; used for set 2 set remapping (theory of groups Image) " alt="" coords="1005,155,1119,181"/>
+<area shape="rect" id="node8" href="$svsample06_8cpp.html" title="Example: sparse_vector&lt;&gt; scan search (non&#45;ordered set functionality) " alt="" coords="1143,155,1258,181"/>
+<area shape="rect" id="node9" href="$bmsparsevec__serial_8h.html" title="Serialization for sparse_vector&lt;&gt; " alt="" coords="425,80,571,107"/>
+<area shape="rect" id="node11" href="$svsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; serialization. " alt="" coords="441,155,555,181"/>
+<area shape="rect" id="node12" href="$rscsample01_8cpp.html" title="Example: rsc_sparse_vector&lt;&gt; usage. " alt="" coords="5,155,127,181"/>
+<area shape="rect" id="node13" href="$bmsparsevec__compr_8h.html" title="Compressed sparse container rsc_sparse_vector&lt;&gt; for integer types. " alt="" coords="130,80,282,107"/>
+<area shape="rect" id="node14" href="$xsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; used for counting sort / historgam construction. " alt="" coords="965,80,1076,107"/>
+<area shape="rect" id="node15" href="$svsample01_8cpp.html" title="Example: sparse_vector&lt;&gt; container set values. " alt="" coords="1101,80,1215,107"/>
+<area shape="rect" id="node16" href="$svsample03_8cpp.html" title="Example: sparse_vector&lt;&gt; merge and fast extraction of content. " alt="" coords="1239,80,1354,107"/>
+<area shape="rect" id="node17" href="$svsample04_8cpp.html" title="Example: sparse_vector&lt;&gt; with NULL (unset) values. " alt="" coords="1378,80,1493,107"/>
+<area shape="rect" id="node5" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="580,155,691,181"/>
+<area shape="rect" id="node6" href="$strsvsample02_8cpp.html" title="Example: str_sparse_vector&lt;&gt; insertion sort example. " alt="" coords="850,155,981,181"/>
+<area shape="rect" id="node10" href="$strsvsample03_8cpp.html" title="strsvsample03.cpp" alt="" coords="286,155,417,181"/>
+</map>

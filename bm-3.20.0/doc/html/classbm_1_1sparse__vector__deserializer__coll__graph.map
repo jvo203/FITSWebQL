@@ -1,0 +1,6 @@
+<map id="bm::sparse_vector_deserializer&lt; SV &gt;" name="bm::sparse_vector_deserializer&lt; SV &gt;">
+<area shape="rect" id="node2" href="$classbm_1_1deserializer.html" title="bm::deserializer\&lt; typename\l SV::bvector_type, bm::decoder \&gt;" alt="" coords="23,228,241,269"/>
+<area shape="rect" id="node3" href="$classbm_1_1deseriaizer__base.html" title="bm::deseriaizer_base\l\&lt; bm::decoder \&gt;" alt="" coords="5,109,152,151"/>
+<area shape="rect" id="node4" href="$classbm_1_1deseriaizer__base.html" title="Base deserialization class. " alt="" coords="97,5,244,47"/>
+<area shape="rect" id="node5" href="$classbm_1_1deserializer.html" title="Deserializer for bit&#45;vector. " alt="" coords="177,109,325,151"/>
+</map>

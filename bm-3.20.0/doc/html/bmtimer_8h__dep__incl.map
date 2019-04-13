@@ -1,0 +1,11 @@
+<map id="bmtimer.h" name="bmtimer.h">
+<area shape="rect" id="node2" href="$sample11_8cpp.html" title="Example: bvector&lt;&gt; bit&#45;counting techniques analysis. " alt="" coords="5,80,108,107"/>
+<area shape="rect" id="node3" href="$sample12_8cpp.html" title="Example: bvector&lt;&gt; analysis of bit setting methods. " alt="" coords="132,80,235,107"/>
+<area shape="rect" id="node4" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="259,80,369,107"/>
+<area shape="rect" id="node5" href="$xsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; used for counting sort / historgam construction. " alt="" coords="393,80,504,107"/>
+<area shape="rect" id="node6" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="528,80,639,107"/>
+<area shape="rect" id="node7" href="$xsample04_8cpp.html" title="Example: DNA substring search. " alt="" coords="663,80,773,107"/>
+<area shape="rect" id="node8" href="$xsample04a_8cpp.html" title="Example: DNA index construction. " alt="" coords="798,80,915,107"/>
+<area shape="rect" id="node9" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="940,80,1051,107"/>
+<area shape="rect" id="node10" href="$svsample06_8cpp.html" title="Example: sparse_vector&lt;&gt; scan search (non&#45;ordered set functionality) " alt="" coords="1075,80,1190,107"/>
+</map>

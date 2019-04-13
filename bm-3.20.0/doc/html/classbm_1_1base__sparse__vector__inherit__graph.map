@@ -1,0 +1,8 @@
+<map id="bm::base_sparse_vector&lt; Val, BV, MAX_SIZE &gt;" name="bm::base_sparse_vector&lt; Val, BV, MAX_SIZE &gt;">
+<area shape="rect" id="node2" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; CharType, BV, MAX_STR\l_SIZE \&gt;" alt="" coords="360,5,543,61"/>
+<area shape="rect" id="node4" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; unsigned, bm::bvector\l\&lt;\&gt;, 1 \&gt;" alt="" coords="567,71,729,127"/>
+<area shape="rect" id="node6" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; Val, BV, 1 \&gt;" alt="" coords="370,137,533,178"/>
+<area shape="rect" id="node3" href="$classbm_1_1str__sparse__vector.html" title="sparse vector for strings with compression using bit transposition method " alt="" coords="753,5,936,61"/>
+<area shape="rect" id="node5" href="$classbm_1_1sparse__vector.html" title="bm::sparse_vector\&lt;\l unsigned, bm::bvector\&lt;\&gt; \&gt;" alt="" coords="1156,102,1337,143"/>
+<area shape="rect" id="node7" href="$classbm_1_1sparse__vector.html" title="sparse vector with runtime compression using bit transposition method " alt="" coords="777,137,913,178"/>
+</map>

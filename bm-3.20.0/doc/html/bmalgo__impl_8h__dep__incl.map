@@ -1,0 +1,35 @@
+<map id="bmalgo_impl.h" name="bmalgo_impl.h">
+<area shape="rect" id="node2" href="$bmalgo_8h.html" title="Algorithms for bvector&lt;&gt; (main include) " alt="" coords="939,80,1013,107"/>
+<area shape="rect" id="node28" href="$bmalgo__similarity_8h.html" title="bmalgo_similarity.h" alt="" coords="1095,229,1230,256"/>
+<area shape="rect" id="node29" href="$bmaggregator_8h.html" title="Algorithms for fast aggregation of N bvectors. " alt="" coords="784,155,896,181"/>
+<area shape="rect" id="node31" href="$bmserial_8h.html" title="Serialization / compression of bvector&lt;&gt;. Set operations on compressed BLOBs. " alt="" coords="619,155,701,181"/>
+<area shape="rect" id="node3" href="$bmsparsevec_8h.html" title="Sparse constainer sparse_vector&lt;&gt; for integer types using bit&#45;transposition transform. " alt="" coords="2001,155,2111,181"/>
+<area shape="rect" id="node5" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="1159,304,1270,331"/>
+<area shape="rect" id="node6" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="1487,304,1598,331"/>
+<area shape="rect" id="node7" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="494,304,605,331"/>
+<area shape="rect" id="node20" href="$bmstrsparsevec_8h.html" title="string sparse vector based on bit&#45;transposed matrix " alt="" coords="35,229,159,256"/>
+<area shape="rect" id="node22" href="$sample7_8cpp.html" title="Example: set operations between bvector&lt;&gt; and arrays of integers. " alt="" coords="971,155,1067,181"/>
+<area shape="rect" id="node23" href="$sample9_8cpp.html" title="Example: bvector&lt;&gt; binary similarity / distance algorithms. " alt="" coords="1091,155,1187,181"/>
+<area shape="rect" id="node24" href="$sample11_8cpp.html" title="Example: bvector&lt;&gt; bit&#45;counting techniques analysis. " alt="" coords="1211,155,1314,181"/>
+<area shape="rect" id="node25" href="$sample12_8cpp.html" title="Example: bvector&lt;&gt; analysis of bit setting methods. " alt="" coords="1338,155,1441,181"/>
+<area shape="rect" id="node26" href="$bvsetalgebra_8cpp.html" title="Example: algebra of sets operations. " alt="" coords="953,229,1071,256"/>
+<area shape="rect" id="node27" href="$xsample04_8cpp.html" title="Example: DNA substring search. " alt="" coords="691,229,802,256"/>
+<area shape="rect" id="node4" href="$bmsparsevec__algo_8h.html" title="Algorithms for sparse_vector&lt;&gt; " alt="" coords="1527,229,1667,256"/>
+<area shape="rect" id="node9" href="$svsample05_8cpp.html" title="Example: sparse_vector&lt;&gt; used for set 2 set remapping (theory of groups Image) " alt="" coords="2491,304,2605,331"/>
+<area shape="rect" id="node10" href="$svsample06_8cpp.html" title="Example: sparse_vector&lt;&gt; scan search (non&#45;ordered set functionality) " alt="" coords="2629,304,2744,331"/>
+<area shape="rect" id="node11" href="$bmsparsevec__serial_8h.html" title="Serialization for sparse_vector&lt;&gt; " alt="" coords="1305,229,1452,256"/>
+<area shape="rect" id="node13" href="$svsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; serialization. " alt="" coords="1940,304,2055,331"/>
+<area shape="rect" id="node14" href="$rscsample01_8cpp.html" title="Example: rsc_sparse_vector&lt;&gt; usage. " alt="" coords="2345,304,2466,331"/>
+<area shape="rect" id="node15" href="$bmsparsevec__compr_8h.html" title="Compressed sparse container rsc_sparse_vector&lt;&gt; for integer types. " alt="" coords="2396,229,2548,256"/>
+<area shape="rect" id="node16" href="$xsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; used for counting sort / historgam construction. " alt="" coords="1794,229,1905,256"/>
+<area shape="rect" id="node17" href="$svsample01_8cpp.html" title="Example: sparse_vector&lt;&gt; container set values. " alt="" coords="1929,229,2044,256"/>
+<area shape="rect" id="node18" href="$svsample03_8cpp.html" title="Example: sparse_vector&lt;&gt; merge and fast extraction of content. " alt="" coords="2068,229,2183,256"/>
+<area shape="rect" id="node19" href="$svsample04_8cpp.html" title="Example: sparse_vector&lt;&gt; with NULL (unset) values. " alt="" coords="2207,229,2321,256"/>
+<area shape="rect" id="node8" href="$strsvsample02_8cpp.html" title="Example: str_sparse_vector&lt;&gt; insertion sort example. " alt="" coords="909,304,1040,331"/>
+<area shape="rect" id="node12" href="$strsvsample03_8cpp.html" title="strsvsample03.cpp" alt="" coords="671,304,801,331"/>
+<area shape="rect" id="node21" href="$strsvsample01_8cpp.html" title="Example: str_sparse_vector&lt;&gt; set values, optimize memory. " alt="" coords="32,304,163,331"/>
+<area shape="rect" id="node30" href="$sample16_8cpp.html" title="Example: how to use bm::aggregator&lt;&gt; for logical operations. " alt="" coords="826,229,929,256"/>
+<area shape="rect" id="node32" href="$bmsparsevec__util_8h.html" title="bmsparsevec_util.h" alt="" coords="483,229,616,256"/>
+<area shape="rect" id="node33" href="$sample4_8cpp.html" title="Example: bvector&lt;&gt; serialization/deserialization. " alt="" coords="235,229,331,256"/>
+<area shape="rect" id="node34" href="$sample14_8cpp.html" title="Example: bvector&lt;&gt; set operations on serialized/compressed BLOBs. " alt="" coords="355,229,458,256"/>
+</map>

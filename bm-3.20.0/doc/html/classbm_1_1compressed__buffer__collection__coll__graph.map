@@ -1,0 +1,6 @@
+<map id="bm::compressed_buffer_collection&lt; BV &gt;" name="bm::compressed_buffer_collection&lt; BV &gt;">
+<area shape="rect" id="node2" href="$classbm_1_1compressed__collection.html" title="bm::compressed_collection\l\&lt; serializer\&lt; BV \&gt;::buffer, BV \&gt;" alt="" coords="15,332,220,373"/>
+<area shape="rect" id="node3" href="$classbm_1_1bvps__addr__resolver.html" title="bm::bvps_addr_resolver\l\&lt; bvector_type \&gt;" alt="" coords="5,109,163,151"/>
+<area shape="rect" id="node5" href="$classbm_1_1compressed__collection.html" title="Compressed (sparse collection of objects) " alt="" coords="148,213,329,255"/>
+<area shape="rect" id="node4" href="$classbm_1_1bvps__addr__resolver.html" title="Bit&#45;bector prefix sum address resolver using bit&#45;vector prefix sum as a space compactor. " alt="" coords="5,5,163,47"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="bm::bvector&lt; Alloc &gt;::enumerator" name="bm::bvector&lt; Alloc &gt;::enumerator">
+<area shape="rect" id="node3" href="$classbm_1_1bvector_1_1counted__enumerator.html" title="Constant iterator designed to enumerate &quot;ON&quot; bits counted_enumerator keeps bitcount, ie number of ON bits starting from the position 0 in the bit string up to the currently enumerated bit. " alt="" coords="5,184,165,225"/>
+<area shape="rect" id="node2" href="$classbm_1_1bvector_1_1iterator__base.html" title="Base class for all iterators. " alt="" coords="20,5,151,47"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="bmsimd.h" name="bmsimd.h">
+<area shape="rect" id="node2" href="$bmsse4_8h.html" title="Compute functions for SSE4.2 SIMD instruction set (internal) " alt="" coords="393,80,471,107"/>
+<area shape="rect" id="node14" href="$bmsse2_8h.html" title="Compute functions for SSE2 SIMD instruction set (internal) " alt="" coords="606,80,685,107"/>
+<area shape="rect" id="node8" href="$bmdef_8h.html" title="Definitions(internal) " alt="" coords="498,229,566,256"/>
+<area shape="rect" id="node11" href="$bmsse__util_8h.html" title="Compute functions for SSE SIMD instruction set (internal) " alt="" coords="541,155,637,181"/>
+<area shape="rect" id="node12" href="$bmutil_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="398,155,466,181"/>
+<area shape="rect" id="node13" href="$bmconst_8h.html" title="Constants, tables and typedefs. " alt="" coords="391,229,473,256"/>
+</map>

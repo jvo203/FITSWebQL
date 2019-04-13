@@ -1,0 +1,12 @@
+<map id="bmaggregator.h" name="bmaggregator.h">
+<area shape="rect" id="node2" href="$bmsparsevec__algo_8h.html" title="Algorithms for sparse_vector&lt;&gt; " alt="" coords="332,80,472,107"/>
+<area shape="rect" id="node9" href="$sample16_8cpp.html" title="Example: how to use bm::aggregator&lt;&gt; for logical operations. " alt="" coords="496,80,599,107"/>
+<area shape="rect" id="node10" href="$bvsetalgebra_8cpp.html" title="Example: algebra of sets operations. " alt="" coords="623,80,741,107"/>
+<area shape="rect" id="node11" href="$xsample04_8cpp.html" title="Example: DNA substring search. " alt="" coords="765,80,876,107"/>
+<area shape="rect" id="node3" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="5,155,116,181"/>
+<area shape="rect" id="node4" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="140,155,251,181"/>
+<area shape="rect" id="node5" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="275,155,385,181"/>
+<area shape="rect" id="node6" href="$strsvsample02_8cpp.html" title="Example: str_sparse_vector&lt;&gt; insertion sort example. " alt="" coords="410,155,541,181"/>
+<area shape="rect" id="node7" href="$svsample05_8cpp.html" title="Example: sparse_vector&lt;&gt; used for set 2 set remapping (theory of groups Image) " alt="" coords="565,155,679,181"/>
+<area shape="rect" id="node8" href="$svsample06_8cpp.html" title="Example: sparse_vector&lt;&gt; scan search (non&#45;ordered set functionality) " alt="" coords="703,155,818,181"/>
+</map>

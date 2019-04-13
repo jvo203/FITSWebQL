@@ -1,0 +1,12 @@
+<map id="sparse_vect_index" name="sparse_vect_index">
+<area shape="rect" id="node2" href="$classbm_1_1sparse__vector.html" title="bm::sparse_vector\&lt;\l unsigned, bm::bvector\&lt;\&gt; \&gt;" alt="" coords="1191,163,1372,205"/>
+<area shape="rect" id="node3" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; unsigned, bm::bvector\l\&lt;\&gt;, 1 \&gt;" alt="" coords="808,119,971,175"/>
+<area shape="rect" id="node4" href="$classbm_1_1basic__bmatrix.html" title="bm::basic_bmatrix\&lt;\l bm::bvector\&lt;\&gt; \&gt;" alt="" coords="565,53,702,94"/>
+<area shape="rect" id="node5" href="$classbm_1_1bvector.html" title="bm::bvector\&lt;\&gt;" alt="" coords="254,7,359,33"/>
+<area shape="rect" id="node6" href="$classbm_1_1bvector.html" title="Bitvector Bit&#45;vector container with runtime compression of bits. " alt="" coords="5,7,148,33"/>
+<area shape="rect" id="node7" href="$structbm_1_1bvector_1_1allocation__policy.html" title="memory allocation policy " alt="" coords="7,78,146,119"/>
+<area shape="rect" id="node8" href="$classbm_1_1basic__bmatrix.html" title="Basic dense bit&#45;matrix class. " alt="" coords="221,120,392,147"/>
+<area shape="rect" id="node9" href="$classbm_1_1base__sparse__vector.html" title="Base class for bit&#45;transposed sparse vector construction. " alt="" coords="225,178,388,219"/>
+<area shape="rect" id="node11" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; Val, BV, 1 \&gt;" alt="" coords="552,199,715,241"/>
+<area shape="rect" id="node10" href="$classbm_1_1sparse__vector.html" title="sparse vector with runtime compression using bit transposition method " alt="" coords="821,199,957,241"/>
+</map>

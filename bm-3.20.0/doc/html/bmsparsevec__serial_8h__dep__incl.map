@@ -1,0 +1,8 @@
+<map id="bmsparsevec_serial.h" name="bmsparsevec_serial.h">
+<area shape="rect" id="node2" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="5,80,116,107"/>
+<area shape="rect" id="node3" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="140,80,251,107"/>
+<area shape="rect" id="node4" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="275,80,385,107"/>
+<area shape="rect" id="node5" href="$strsvsample03_8cpp.html" title="strsvsample03.cpp" alt="" coords="410,80,541,107"/>
+<area shape="rect" id="node6" href="$svsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; serialization. " alt="" coords="565,80,679,107"/>
+<area shape="rect" id="node7" href="$rscsample01_8cpp.html" title="Example: rsc_sparse_vector&lt;&gt; usage. " alt="" coords="704,80,825,107"/>
+</map>

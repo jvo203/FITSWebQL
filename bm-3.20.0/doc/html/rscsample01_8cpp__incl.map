@@ -1,0 +1,22 @@
+<map id="rscsample01.cpp" name="rscsample01.cpp">
+<area shape="rect" id="node4" href="$bmsparsevec_8h.html" title="Sparse constainer sparse_vector&lt;&gt; for integer types using bit&#45;transposition transform. " alt="" coords="1112,155,1221,181"/>
+<area shape="rect" id="node40" href="$bmsparsevec__compr_8h.html" title="Compressed sparse container rsc_sparse_vector&lt;&gt; for integer types. " alt="" coords="1035,80,1187,107"/>
+<area shape="rect" id="node41" href="$bmsparsevec__serial_8h.html" title="Serialization for sparse_vector&lt;&gt; " alt="" coords="1575,80,1721,107"/>
+<area shape="rect" id="node7" href="$bm_8h.html" title="Compressed bit&#45;vector bvector&lt;&gt; container, set algebraic methods, traversal iterators. " alt="" coords="1181,304,1232,331"/>
+<area shape="rect" id="node11" href="$bmdef_8h.html" title="Definitions(internal) " alt="" coords="531,617,599,644"/>
+<area shape="rect" id="node34" href="$bmundef_8h.html" title="pre&#45;processor un&#45;defines to avoid global space pollution (internal) " alt="" coords="195,386,277,413"/>
+<area shape="rect" id="node35" href="$bmtrans_8h.html" title="Utilities for bit transposition (internal) (experimental!) " alt="" coords="1077,304,1157,331"/>
+<area shape="rect" id="node36" href="$bmalgo_8h.html" title="Algorithms for bvector&lt;&gt; (main include) " alt="" coords="564,229,639,256"/>
+<area shape="rect" id="node39" href="$bmbmatrix_8h.html" title="basic bit&#45;matrix class and utilities " alt="" coords="1498,229,1593,256"/>
+<area shape="rect" id="node14" href="$bmconst_8h.html" title="Constants, tables and typedefs. " alt="" coords="1811,617,1893,644"/>
+<area shape="rect" id="node15" href="$bmsimd_8h.html" title="SIMD target version definitions. " alt="" coords="806,386,885,413"/>
+<area shape="rect" id="node27" href="$bmfunc_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="403,386,477,413"/>
+<area shape="rect" id="node28" href="$encoding_8h.html" title="Encoding utilities for serialization (internal) " alt="" coords="1380,386,1465,413"/>
+<area shape="rect" id="node29" href="$bmalloc_8h.html" title="Default SIMD friendly allocator. " alt="" coords="1634,386,1713,413"/>
+<area shape="rect" id="node16" href="$bmsse4_8h.html" title="Compute functions for SSE4.2 SIMD instruction set (internal) " alt="" coords="987,468,1066,495"/>
+<area shape="rect" id="node24" href="$bmsse2_8h.html" title="Compute functions for SSE2 SIMD instruction set (internal) " alt="" coords="757,468,835,495"/>
+<area shape="rect" id="node22" href="$bmsse__util_8h.html" title="Compute functions for SSE SIMD instruction set (internal) " alt="" coords="811,543,907,569"/>
+<area shape="rect" id="node23" href="$bmutil_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="1425,543,1493,569"/>
+<area shape="rect" id="node37" href="$bmalgo__impl_8h.html" title="Algorithms for bvector&lt;&gt; " alt="" coords="767,304,873,331"/>
+<area shape="rect" id="node42" href="$bmserial_8h.html" title="Serialization / compression of bvector&lt;&gt;. Set operations on compressed BLOBs. " alt="" coords="1240,229,1323,256"/>
+</map>

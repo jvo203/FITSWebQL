@@ -1,0 +1,5 @@
+<map id="bm::sparse_vector&lt; Val, BV &gt;" name="bm::sparse_vector&lt; Val, BV &gt;">
+<area shape="rect" id="node4" href="$classbm_1_1sparse__vector.html" title="bm::sparse_vector\&lt;\l unsigned, bm::bvector\&lt;\&gt; \&gt;" alt="" coords="5,304,187,345"/>
+<area shape="rect" id="node2" href="$classbm_1_1base__sparse__vector.html" title="bm::base_sparse_vector\l\&lt; Val, BV, 1 \&gt;" alt="" coords="15,109,177,151"/>
+<area shape="rect" id="node3" href="$classbm_1_1base__sparse__vector.html" title="Base class for bit&#45;transposed sparse vector construction. " alt="" coords="15,5,177,47"/>
+</map>

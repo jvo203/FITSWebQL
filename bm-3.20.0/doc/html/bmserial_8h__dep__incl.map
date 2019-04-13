@@ -1,0 +1,14 @@
+<map id="bmserial.h" name="bmserial.h">
+<area shape="rect" id="node2" href="$bmsparsevec__serial_8h.html" title="Serialization for sparse_vector&lt;&gt; " alt="" coords="367,80,514,107"/>
+<area shape="rect" id="node3" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="5,155,116,181"/>
+<area shape="rect" id="node4" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="140,155,251,181"/>
+<area shape="rect" id="node5" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="275,155,385,181"/>
+<area shape="rect" id="node9" href="$bmsparsevec__util_8h.html" title="bmsparsevec_util.h" alt="" coords="159,80,293,107"/>
+<area shape="rect" id="node10" href="$sample4_8cpp.html" title="Example: bvector&lt;&gt; serialization/deserialization. " alt="" coords="538,80,634,107"/>
+<area shape="rect" id="node11" href="$sample14_8cpp.html" title="Example: bvector&lt;&gt; set operations on serialized/compressed BLOBs. " alt="" coords="659,80,761,107"/>
+<area shape="rect" id="node12" href="$bvsetalgebra_8cpp.html" title="Example: algebra of sets operations. " alt="" coords="785,80,904,107"/>
+<area shape="rect" id="node13" href="$xsample04_8cpp.html" title="Example: DNA substring search. " alt="" coords="928,80,1039,107"/>
+<area shape="rect" id="node6" href="$strsvsample03_8cpp.html" title="strsvsample03.cpp" alt="" coords="410,155,541,181"/>
+<area shape="rect" id="node7" href="$svsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; serialization. " alt="" coords="565,155,679,181"/>
+<area shape="rect" id="node8" href="$rscsample01_8cpp.html" title="Example: rsc_sparse_vector&lt;&gt; usage. " alt="" coords="704,155,825,181"/>
+</map>

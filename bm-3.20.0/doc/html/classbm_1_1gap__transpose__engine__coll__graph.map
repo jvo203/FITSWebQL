@@ -1,0 +1,4 @@
+<map id="bm::gap_transpose_engine&lt; GT, BT, BLOCK_SIZE &gt;" name="bm::gap_transpose_engine&lt; GT, BT, BLOCK_SIZE &gt;">
+<area shape="rect" id="node2" href="$structbm_1_1tmatrix.html" title="bm::tmatrix\&lt; GT, sizeof\l(GT) *8,(((BLOCK_SIZE\l *sizeof(unsigned))/(sizeof\l(GT)))/(sizeof(GT) *8))\&gt;" alt="" coords="599,29,769,99"/>
+<area shape="rect" id="node4" href="$structbm_1_1tmatrix.html" title="Mini&#45;matrix for bit transposition purposes. " alt="" coords="241,87,401,129"/>
+</map>

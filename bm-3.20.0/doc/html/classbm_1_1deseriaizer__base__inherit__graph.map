@@ -1,0 +1,6 @@
+<map id="bm::deseriaizer_base&lt; DEC &gt;" name="bm::deseriaizer_base&lt; DEC &gt;">
+<area shape="rect" id="node2" href="$classbm_1_1deserializer.html" title="Deserializer for bit&#45;vector. " alt="" coords="305,5,471,32"/>
+<area shape="rect" id="node4" href="$classbm_1_1serial__stream__iterator.html" title="Serialization stream iterator. " alt="" coords="301,57,475,98"/>
+<area shape="rect" id="node5" href="$classbm_1_1deseriaizer__base.html" title="bm::deseriaizer_base\l\&lt; bm::decoder \&gt;" alt="" coords="315,122,461,163"/>
+<area shape="rect" id="node3" href="$classbm_1_1deserializer.html" title="bm::deserializer\&lt; typename\l SV::bvector_type, bm::decoder \&gt;" alt="" coords="668,50,885,91"/>
+</map>

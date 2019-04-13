@@ -1,0 +1,21 @@
+<map id="svsample05.cpp" name="svsample05.cpp">
+<area shape="rect" id="node4" href="$bmsparsevec_8h.html" title="Sparse constainer sparse_vector&lt;&gt; for integer types using bit&#45;transposition transform. " alt="" coords="932,155,1041,181"/>
+<area shape="rect" id="node40" href="$bmsparsevec__algo_8h.html" title="Algorithms for sparse_vector&lt;&gt; " alt="" coords="1463,80,1603,107"/>
+<area shape="rect" id="node7" href="$bm_8h.html" title="Compressed bit&#45;vector bvector&lt;&gt; container, set algebraic methods, traversal iterators. " alt="" coords="961,304,1012,331"/>
+<area shape="rect" id="node11" href="$bmdef_8h.html" title="Definitions(internal) " alt="" coords="1606,617,1674,644"/>
+<area shape="rect" id="node34" href="$bmundef_8h.html" title="pre&#45;processor un&#45;defines to avoid global space pollution (internal) " alt="" coords="1585,386,1668,413"/>
+<area shape="rect" id="node35" href="$bmtrans_8h.html" title="Utilities for bit transposition (internal) (experimental!) " alt="" coords="43,304,123,331"/>
+<area shape="rect" id="node36" href="$bmalgo_8h.html" title="Algorithms for bvector&lt;&gt; (main include) " alt="" coords="1353,229,1428,256"/>
+<area shape="rect" id="node39" href="$bmbmatrix_8h.html" title="basic bit&#45;matrix class and utilities " alt="" coords="235,229,330,256"/>
+<area shape="rect" id="node14" href="$bmconst_8h.html" title="Constants, tables and typedefs. " alt="" coords="365,617,448,644"/>
+<area shape="rect" id="node15" href="$bmsimd_8h.html" title="SIMD target version definitions. " alt="" coords="1373,386,1451,413"/>
+<area shape="rect" id="node27" href="$bmfunc_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="1692,386,1767,413"/>
+<area shape="rect" id="node28" href="$encoding_8h.html" title="Encoding utilities for serialization (internal) " alt="" coords="1476,386,1561,413"/>
+<area shape="rect" id="node29" href="$bmalloc_8h.html" title="Default SIMD friendly allocator. " alt="" coords="546,386,625,413"/>
+<area shape="rect" id="node16" href="$bmsse4_8h.html" title="Compute functions for SSE4.2 SIMD instruction set (internal) " alt="" coords="1199,468,1278,495"/>
+<area shape="rect" id="node24" href="$bmsse2_8h.html" title="Compute functions for SSE2 SIMD instruction set (internal) " alt="" coords="1391,468,1470,495"/>
+<area shape="rect" id="node22" href="$bmsse__util_8h.html" title="Compute functions for SSE SIMD instruction set (internal) " alt="" coords="1383,543,1479,569"/>
+<area shape="rect" id="node23" href="$bmutil_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="1554,543,1622,569"/>
+<area shape="rect" id="node37" href="$bmalgo__impl_8h.html" title="Algorithms for bvector&lt;&gt; " alt="" coords="1812,304,1919,331"/>
+<area shape="rect" id="node41" href="$bmaggregator_8h.html" title="Algorithms for fast aggregation of N bvectors. " alt="" coords="1664,229,1776,256"/>
+</map>

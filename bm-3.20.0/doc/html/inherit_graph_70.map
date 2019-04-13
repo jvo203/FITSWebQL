@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classbm_1_1decoder__base.html" title="Base class for all decoding functionality. " alt="" coords="5,35,135,61"/>
+<area shape="rect" id="node2" href="$classbm_1_1decoder.html" title="Class for decoding data from memory buffer. " alt="" coords="198,5,293,32"/>
+<area shape="rect" id="node3" href="$classbm_1_1decoder__little__endian.html" title="Class for decoding data from memory buffer. " alt="" coords="183,57,308,98"/>
+</map>

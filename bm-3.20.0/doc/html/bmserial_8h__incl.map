@@ -1,0 +1,16 @@
+<map id="bmserial.h" name="bmserial.h">
+<area shape="rect" id="node2" href="$bm_8h.html" title="Compressed bit&#45;vector bvector&lt;&gt; container, set algebraic methods, traversal iterators. " alt="" coords="682,80,733,107"/>
+<area shape="rect" id="node7" href="$bmdef_8h.html" title="Definitions(internal) " alt="" coords="1356,393,1424,420"/>
+<area shape="rect" id="node19" href="$bmutil_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="1165,319,1233,345"/>
+<area shape="rect" id="node23" href="$bmfunc_8h.html" title="Bit manipulation primitives (internal) " alt="" coords="1277,162,1351,189"/>
+<area shape="rect" id="node25" href="$encoding_8h.html" title="Encoding utilities for serialization (internal) " alt="" coords="1167,162,1253,189"/>
+<area shape="rect" id="node31" href="$bmundef_8h.html" title="pre&#45;processor un&#45;defines to avoid global space pollution (internal) " alt="" coords="1426,162,1509,189"/>
+<area shape="rect" id="node32" href="$bmtrans_8h.html" title="Utilities for bit transposition (internal) (experimental!) " alt="" coords="1634,80,1714,107"/>
+<area shape="rect" id="node33" href="$bmalgo__impl_8h.html" title="Algorithms for bvector&lt;&gt; " alt="" coords="1453,244,1559,271"/>
+<area shape="rect" id="node10" href="$bmconst_8h.html" title="Constants, tables and typedefs. " alt="" coords="445,393,527,420"/>
+<area shape="rect" id="node11" href="$bmsimd_8h.html" title="SIMD target version definitions. " alt="" coords="612,162,691,189"/>
+<area shape="rect" id="node26" href="$bmalloc_8h.html" title="Default SIMD friendly allocator. " alt="" coords="236,162,315,189"/>
+<area shape="rect" id="node12" href="$bmsse4_8h.html" title="Compute functions for SSE4.2 SIMD instruction set (internal) " alt="" coords="709,244,788,271"/>
+<area shape="rect" id="node20" href="$bmsse2_8h.html" title="Compute functions for SSE2 SIMD instruction set (internal) " alt="" coords="972,244,1051,271"/>
+<area shape="rect" id="node18" href="$bmsse__util_8h.html" title="Compute functions for SSE SIMD instruction set (internal) " alt="" coords="943,319,1039,345"/>
+</map>

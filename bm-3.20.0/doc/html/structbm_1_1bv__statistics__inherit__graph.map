@@ -1,0 +1,6 @@
+<map id="bm::bv_statistics" name="bm::bv_statistics">
+<area shape="rect" id="node2" href="$structbm_1_1bvector_1_1statistics.html" title="Statistical information about bitset&#39;s memory allocation details. " alt="" coords="199,5,330,47"/>
+<area shape="rect" id="node3" href="$structbm_1_1rsc__sparse__vector_1_1statistics.html" title="bm::rsc_sparse_vector\l\&lt; Val, SV \&gt;::statistics" alt="" coords="188,71,341,112"/>
+<area shape="rect" id="node4" href="$structbm_1_1sparse__vector_1_1statistics.html" title="bm::sparse_vector\&lt;\l Val, BV \&gt;::statistics" alt="" coords="193,136,337,177"/>
+<area shape="rect" id="node5" href="$structbm_1_1str__sparse__vector_1_1statistics.html" title="bm::str_sparse_vector\l\&lt; CharType, BV, MAX_STR\l_SIZE \&gt;::statistics" alt="" coords="173,202,356,258"/>
+</map>

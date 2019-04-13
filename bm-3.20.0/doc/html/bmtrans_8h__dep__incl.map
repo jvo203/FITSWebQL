@@ -1,0 +1,28 @@
+<map id="bmtrans.h" name="bmtrans.h">
+<area shape="rect" id="node2" href="$bmbmatrix_8h.html" title="basic bit&#45;matrix class and utilities " alt="" coords="1503,80,1598,107"/>
+<area shape="rect" id="node3" href="$bmsparsevec_8h.html" title="Sparse constainer sparse_vector&lt;&gt; for integer types using bit&#45;transposition transform. " alt="" coords="664,155,773,181"/>
+<area shape="rect" id="node20" href="$bmstrsparsevec_8h.html" title="string sparse vector based on bit&#45;transposed matrix " alt="" coords="2165,229,2289,256"/>
+<area shape="rect" id="node22" href="$bmserial_8h.html" title="Serialization / compression of bvector&lt;&gt;. Set operations on compressed BLOBs. " alt="" coords="1595,155,1677,181"/>
+<area shape="rect" id="node4" href="$bmsparsevec__algo_8h.html" title="Algorithms for sparse_vector&lt;&gt; " alt="" coords="994,229,1134,256"/>
+<area shape="rect" id="node5" href="$xsample01_8cpp.html" title="Example: Example: memory consumption techniques. " alt="" coords="929,304,1039,331"/>
+<area shape="rect" id="node6" href="$xsample03_8cpp.html" title="Example: SNP search in human genome. " alt="" coords="1231,304,1342,331"/>
+<area shape="rect" id="node9" href="$svsample05_8cpp.html" title="Example: sparse_vector&lt;&gt; used for set 2 set remapping (theory of groups Image) " alt="" coords="319,304,433,331"/>
+<area shape="rect" id="node10" href="$svsample06_8cpp.html" title="Example: sparse_vector&lt;&gt; scan search (non&#45;ordered set functionality) " alt="" coords="5,304,120,331"/>
+<area shape="rect" id="node11" href="$bmsparsevec__serial_8h.html" title="Serialization for sparse_vector&lt;&gt; " alt="" coords="1159,229,1305,256"/>
+<area shape="rect" id="node13" href="$svsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; serialization. " alt="" coords="1092,304,1207,331"/>
+<area shape="rect" id="node14" href="$rscsample01_8cpp.html" title="Example: rsc_sparse_vector&lt;&gt; usage. " alt="" coords="545,304,666,331"/>
+<area shape="rect" id="node15" href="$bmsparsevec__compr_8h.html" title="Compressed sparse container rsc_sparse_vector&lt;&gt; for integer types. " alt="" coords="529,229,681,256"/>
+<area shape="rect" id="node16" href="$xsample02_8cpp.html" title="Example: sparse_vector&lt;&gt; used for counting sort / historgam construction. " alt="" coords="807,229,918,256"/>
+<area shape="rect" id="node17" href="$svsample01_8cpp.html" title="Example: sparse_vector&lt;&gt; container set values. " alt="" coords="113,229,228,256"/>
+<area shape="rect" id="node18" href="$svsample03_8cpp.html" title="Example: sparse_vector&lt;&gt; merge and fast extraction of content. " alt="" coords="252,229,367,256"/>
+<area shape="rect" id="node19" href="$svsample04_8cpp.html" title="Example: sparse_vector&lt;&gt; with NULL (unset) values. " alt="" coords="391,229,505,256"/>
+<area shape="rect" id="node7" href="$xsample05_8cpp.html" title="Example: Example on how to use bit&#45;transposed string sparse vector. " alt="" coords="1442,304,1553,331"/>
+<area shape="rect" id="node8" href="$strsvsample02_8cpp.html" title="Example: str_sparse_vector&lt;&gt; insertion sort example. " alt="" coords="1647,304,1777,331"/>
+<area shape="rect" id="node12" href="$strsvsample03_8cpp.html" title="strsvsample03.cpp" alt="" coords="1939,304,2069,331"/>
+<area shape="rect" id="node21" href="$strsvsample01_8cpp.html" title="Example: str_sparse_vector&lt;&gt; set values, optimize memory. " alt="" coords="2161,304,2292,331"/>
+<area shape="rect" id="node23" href="$bmsparsevec__util_8h.html" title="bmsparsevec_util.h" alt="" coords="1431,229,1564,256"/>
+<area shape="rect" id="node24" href="$sample4_8cpp.html" title="Example: bvector&lt;&gt; serialization/deserialization. " alt="" coords="1588,229,1684,256"/>
+<area shape="rect" id="node25" href="$sample14_8cpp.html" title="Example: bvector&lt;&gt; set operations on serialized/compressed BLOBs. " alt="" coords="1709,229,1811,256"/>
+<area shape="rect" id="node26" href="$bvsetalgebra_8cpp.html" title="Example: algebra of sets operations. " alt="" coords="1887,229,2006,256"/>
+<area shape="rect" id="node27" href="$xsample04_8cpp.html" title="Example: DNA substring search. " alt="" coords="2030,229,2141,256"/>
+</map>

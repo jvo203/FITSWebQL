@@ -1,0 +1,5 @@
+<map id="bm::bvector&lt; Alloc &gt;::iterator_base" name="bm::bvector&lt; Alloc &gt;::iterator_base">
+<area shape="rect" id="node2" href="$unionbm_1_1bvector_1_1iterator__base_1_1block__descr.html" title="bm::bvector\&lt; Alloc\l \&gt;::iterator_base::block_descr" alt="" coords="296,39,491,80"/>
+<area shape="rect" id="node3" href="$structbm_1_1bvector_1_1iterator__base_1_1dgap__descr.html" title="Information about current DGAP block. " alt="" coords="14,5,206,47"/>
+<area shape="rect" id="node4" href="$structbm_1_1bvector_1_1iterator__base_1_1bitblock__descr.html" title="Information about current bitblock. " alt="" coords="5,71,215,112"/>
+</map>
