@@ -16,3 +16,6 @@ work-in-progress
     * alternatively a recent gcc/clang++ with C++17 plus a manual installation of the free Intel IPP: https://software.intel.com/en-us/intel-ipp
 
 3. an open-source Intel SPMD Program Compiler (ispc): https://ispc.github.io
+
+4. the 809MB-large spectral lines database needs to be downloaded from http://jvo.nao.ac.jp/~chris/splatalogue_v3.db and placed inside the FITSWebQL directory (for example "wget http://jvo.nao.ac.jp/~chris/splatalogue_v3.db")
+
