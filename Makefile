@@ -1,5 +1,5 @@
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c src/lz4.c src/lz4hc.c
-INC = -I/usr/include/postgresql
+INC = -I/usr/include/postgresql -Ibm-3.20.0/src
 #-I/home/chris/uWebSockets/src -I/home/chris/uSockets-0.1.2/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -D_GLIBCXX_PARALLEL -DDEVELOPMENT -DLOCAL
 LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lpq -luWS -lssl -lz -lzfp -lnuma -lpthread
