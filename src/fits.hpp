@@ -11,6 +11,8 @@
 #include <vector>
 #include <zlib.h>
 
+#include "roaring.hh"
+
 #include <zfparray3.h>
 //#include "array3fmmap.hpp"
 
@@ -141,9 +143,9 @@ private:
   Ipp32f *pixels;
   Ipp8u *mask;
 
-  //ZFP compressed arrays
+  //ZFP compressed arrays + masks
   zfp::array3f *cube;
-  //array3fmmap *cube;
+  std::vector<Roaring64Map> masks;
 
   //housekeeping
   std::time_t timestamp;

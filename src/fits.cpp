@@ -1,6 +1,8 @@
 #include "../fits.h"
 #include "fits.hpp"
 
+#include "roaring.c"
+
 #include "lz4.h"
 #include "lz4hc.h"
 #include "json.h"
