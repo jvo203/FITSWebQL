@@ -38,17 +38,18 @@ For more information please visit:  http://bitmagic.io
 
 using namespace std;
 
-const unsigned MAX_VALUE = 1000000;
+//const unsigned MAX_VALUE = 1000000;
+const unsigned MAX_VALUE = 1024;
 
 // This procedure creates very dense bitvectors.
 // The resulting set will consists mostly from ON (1) bits
 // interrupted with small gaps of 0 bits.
-static
-void fill_bvector(bm::bvector<>* bv1, bm::bvector<>* bv2)
+static void fill_bvector(bm::bvector<> *bv1, bm::bvector<> *bv2)
 {
     for (unsigned i = 0; i < MAX_VALUE; ++i)
     {
-        if (rand() % 2500)
+        //if (rand() % 3)
+        if (i % 3)
         {
             bv1->set_bit(i);
             bv2->set_bit(i);
@@ -56,8 +57,16 @@ void fill_bvector(bm::bvector<>* bv1, bm::bvector<>* bv2)
     }
 }
 
-static
-void print_statistics(const bm::bvector<>& bv)
+static void print_bits(const bm::bvector<> &bv)
+{
+    for (unsigned i = 0; i < MAX_VALUE; ++i)
+    {
+        cout << "|" << bv.get_bit(i);
+    }
+    cout << "|" << endl;
+}
+
+static void print_statistics(const bm::bvector<> &bv)
 {
     bm::bvector<>::statistics st;
     bv.calc_stat(&st);
@@ -65,21 +74,44 @@ void print_statistics(const bm::bvector<>& bv)
     cout << "Bits count:" << bv.count() << endl;
     cout << "Bit blocks:" << st.bit_blocks << endl;
     cout << "GAP blocks:" << st.gap_blocks << endl;
-    cout << "Memory used:"<< st.memory_used << endl;
-    cout << "Max.serialize mem.:" << st.max_serialize_mem << endl << endl;;
+    cout << "Memory used:" << st.memory_used << endl;
+    cout << "Max.serialize mem.:" << st.max_serialize_mem << endl
+         << endl;
+    ;
 }
 
+static void print_bvector(const bm::bvector<> &bv)
+{
+    unsigned value = bv.get_first();
+    do
+    {
+        cout << value;
+        value = bv.get_next(value);
+        if (value)
+        {
+            cout << ",";
+        }
+        else
+        {
+            break;
+        }
+    } while (1);
+    cout << endl;
+}
 
 int main(void)
 {
     try
     {
-        bm::bvector<>   bv1;
-        bm::bvector<>   bv2;
+        bm::bvector<> bv1;
+        bm::bvector<> bv2;
 
-        bv2.set_new_blocks_strat(bm::BM_GAP);  //  set DGAP compression mode ON
+        bv2.set_new_blocks_strat(bm::BM_GAP); //  set DGAP compression mode ON
 
-        fill_bvector(&bv1, &bv2);  // Fill both bvectors with the same values
+        fill_bvector(&bv1, &bv2); // Fill both bvectors with the same values
+
+        print_bvector(bv1);
+        print_bits(bv1);
 
         // For a given distrubution statistics should demonstrate
         // lower memory consumption for the vector with compression
@@ -92,11 +124,10 @@ int main(void)
 
         print_statistics(bv1);
     }
-    catch(std::exception& ex)
+    catch (std::exception &ex)
     {
         std::cerr << ex.what() << std::endl;
     }
 
     return 0;
 }
-

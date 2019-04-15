@@ -60,6 +60,8 @@ int main(void)
         bm::bvector<>   bv3;
 
         bv1.set(10);
+        print_bvector(bv1);
+        
         bv1.set(100);
         bv1.set(1000000);
 
