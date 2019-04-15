@@ -7,7 +7,7 @@ IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 TARGET=fitswebql
 
-#disabled jemalloc for now as it seems to have problems with ZFP private views...mutable and not!
+#disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
