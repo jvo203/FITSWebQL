@@ -253,8 +253,8 @@ FITS::FITS()
     this->gz_compressed = false;
     this->header = NULL;
     this->hdr_len = 0;
-    this->pixels = NULL;
-    this->mask = NULL;
+    this->img_pixels = NULL;
+    this->img_mask = NULL;
     this->cube = NULL;
     this->defaults();
 }
@@ -273,8 +273,8 @@ FITS::FITS(std::string id, std::string flux)
     this->gz_compressed = false;
     this->header = NULL;
     this->hdr_len = 0;
-    this->pixels = NULL;
-    this->mask = NULL;
+    this->img_pixels = NULL;
+    this->img_mask = NULL;
     this->cube = NULL;
     this->defaults();
 }
@@ -292,11 +292,11 @@ FITS::~FITS()
     if (header != NULL)
         free(header);
 
-    if (pixels != NULL)
-        ippsFree(pixels);
+    if (img_pixels != NULL)
+        ippsFree(img_pixels);
 
-    if (mask != NULL)
-        ippsFree(mask);
+    if (img_mask != NULL)
+        ippsFree(img_mask);
 
     if (cube != NULL)
         delete cube;
@@ -811,16 +811,16 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         return;
     }
 
-    if (pixels != NULL)
-        ippsFree(pixels);
+    if (img_pixels != NULL)
+        ippsFree(img_pixels);
 
-    if (mask != NULL)
-        ippsFree(mask);
+    if (img_mask != NULL)
+        ippsFree(img_mask);
 
-    pixels = ippsMalloc_32f_L(plane_size);
-    mask = ippsMalloc_8u_L(plane_size);
+    img_pixels = ippsMalloc_32f_L(plane_size);
+    img_mask = ippsMalloc_8u_L(plane_size);
 
-    if (pixels == NULL || mask == NULL)
+    if (img_pixels == NULL || img_mask == NULL)
     {
         printf("%s::cannot malloc memory for a 2D image buffer.\n", dataset_id.c_str());
         processed_data = true;
@@ -856,7 +856,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         if (is_compressed)
         {
             //load data into the buffer sequentially
-            ssize_t bytes_read = gzread(this->compressed_fits_stream, pixels, frame_size);
+            ssize_t bytes_read = gzread(this->compressed_fits_stream, img_pixels, frame_size);
 
             if (bytes_read != frame_size)
             {
@@ -879,7 +879,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                 if (tid == num_threads - 1)
                     work_size = plane_size - start;
 
-                ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
+                ispc::fits2float32((int32_t *)&(img_pixels[start]), (uint8_t *)&(img_mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
             };
         }
         else
@@ -899,7 +899,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                     work_size = plane_size - start;
 
                 //parallel read (pread) at a specified offset
-                ssize_t bytes_read = pread(this->fits_file_desc, &(pixels[start]), work_size * sizeof(float), offset + start * sizeof(float));
+                ssize_t bytes_read = pread(this->fits_file_desc, &(img_pixels[start]), work_size * sizeof(float), offset + start * sizeof(float));
 
                 if (bytes_read != work_size * sizeof(float))
                 {
@@ -907,7 +907,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                     bSuccess = false;
                 }
                 else
-                    ispc::fits2float32((int32_t *)&(pixels[start]), (uint8_t *)&(mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
+                    ispc::fits2float32((int32_t *)&(img_pixels[start]), (uint8_t *)&(img_mask[start]), bzero, bscale, ignrval, datamin, datamax, _pmin, _pmax, work_size);
             };
         }
 
@@ -940,6 +940,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         size_t real_size = frame_size * depth;
         printf("%s::compressed size: %zu bytes, real size: %zu bytes, ratio: %5.2f.\n", dataset_id.c_str(), zfp_size, real_size, float(real_size) / float(zfp_size));
 
+        //compressed bitmap masks
+        masks.clear();
+        masks.resize(depth);
+
         //the rest of the variables
         frame_min.resize(depth, FLT_MAX);
         frame_max.resize(depth, -FLT_MAX);
@@ -947,9 +951,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
         integrated_spectrum.resize(depth, 0.0f);
 
         //prepare the main image/mask
-        memset(mask, 0, plane_size);
+        memset(img_mask, 0, plane_size);
         for (size_t i = 0; i < plane_size; i++)
-            pixels[i] = 0.0f;
+            img_pixels[i] = 0.0f;
 
         int max_threads = omp_get_max_threads();
 
@@ -1034,6 +1038,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                         mean_spectrum[frame] = mean;
                         integrated_spectrum[frame] = integrated;
 
+                        Roaring64Map &bitmask = masks[frame];
+
                         //pixels_buf[tid] now contains floating-point data
                         //fill-in the compressed array
                         Ipp32f *thread_pixels = pixels_buf[tid];
@@ -1043,12 +1049,17 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                             for (int i = 0; i < width; i++)
                             {
                                 if (thread_mask[view_offset])
+                                {
                                     view(i, j, frame - start_k) = thread_pixels[view_offset];
+                                    bitmask.add(view_offset);
+                                }
                                 else
                                     view(i, j, frame - start_k) = 0.0f;
 
                                 view_offset++;
                             };
+
+                        bitmask.runOptimize();
                     }
                 }
 
@@ -1077,7 +1088,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                     if (tid == num_threads - 1)
                         work_size = plane_size - start;
 
-                    ispc::join_pixels_masks(&(pixels[start]), &(pixels_tid[start]), &(mask[start]), &(mask_tid[start]), work_size);
+                    ispc::join_pixels_masks(&(img_pixels[start]), &(pixels_tid[start]), &(img_mask[start]), &(mask_tid[start]), work_size);
                 }
             }
 
@@ -1160,7 +1171,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
                             float _cdelt3 = this->has_velocity ? this->cdelt3 * this->frame_multiplier / 1000.0f : 1.0f;
 
-                            ispc::make_image_spectrumF32((int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale, ignrval, datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean, integrated, plane_size);
+                            ispc::make_image_spectrumF32((int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale, ignrval, datamin, datamax, _cdelt3, img_pixels, img_mask, fmin, fmax, mean, integrated, plane_size);
 
                             _pmin = MIN(_pmin, fmin);
                             _pmax = MAX(_pmax, fmax);
@@ -1190,6 +1201,8 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
                                 for (size_t frame = 0; frame < depth_k; frame++)
                                 {
+                                    Roaring64Map &bitmask = masks[start_k + frame];
+
                                     //fill-in the compressed array
                                     Ipp32f *thread_pixels = (*vec_pixels)[frame].get();
                                     Ipp8u *thread_mask = (*vec_mask)[frame].get();
@@ -1198,12 +1211,17 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                                         for (int i = 0; i < width; i++)
                                         {
                                             if (thread_mask[view_offset])
+                                            {
                                                 view(i, j, frame) = thread_pixels[view_offset];
+                                                bitmask.add(view_offset);
+                                            }
                                             else
                                                 view(i, j, frame) = 0.0f;
 
                                             view_offset++;
                                         };
+
+                                    bitmask.runOptimize();
                                 }
 
                                 // compress all private cached blocks to shared storage
@@ -1234,6 +1252,9 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
     if (bSuccess)
     {
+        for (int i = 0; i < depth; i++)
+            std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality() << ", size: " << masks[i].getSizeInBytes() << " bytes" << std::endl;
+
         image_statistics();
 
         printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f madN: %f black: %f white: %f sensitivity: %f flux: %s\n", dataset_id.c_str(), this->min, this->max, this->median, this->mad, this->madP, this->madN, this->black, this->white, this->sensitivity, this->flux.c_str());
@@ -1284,7 +1305,7 @@ void FITS::image_statistics()
                 work_size = total_size - start;
 
             //it also restores NaNs in the pixels array based on the mask
-            ispc::image_min_max(&(pixels[start]), &(mask[start]), _cdelt3, work_size, _pmin, _pmax);
+            ispc::image_min_max(&(img_pixels[start]), &(img_mask[start]), _cdelt3, work_size, _pmin, _pmax);
         };
     };
 
@@ -1297,7 +1318,7 @@ void FITS::image_statistics()
     IppiSize roiSize;
     roiSize.width = width;
     roiSize.height = height;
-    ippiCopy_32f_C1R(pixels, width * sizeof(Ipp32f), v.data(), width * sizeof(Ipp32f), roiSize);
+    ippiCopy_32f_C1R(img_pixels, width * sizeof(Ipp32f), v.data(), width * sizeof(Ipp32f), roiSize);
 
     remove_nan(v);
 
@@ -1328,7 +1349,7 @@ void FITS::image_statistics()
         if (tid == num_threads - 1)
             work_size = total_size - start;
 
-        ispc::asymmetric_mad(&(pixels[start]), &(mask[start]), work_size, median, _count, _mad, _countP, _madP, _countN, _madN);
+        ispc::asymmetric_mad(&(img_pixels[start]), &(img_mask[start]), work_size, median, _count, _mad, _countP, _madP, _countN, _madN);
     };
 
     if (_count > 0)

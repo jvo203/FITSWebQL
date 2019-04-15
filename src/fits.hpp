@@ -140,8 +140,8 @@ private:
   //FITS header
   char *header;
   size_t hdr_len;
-  Ipp32f *pixels;
-  Ipp8u *mask;
+  Ipp32f *img_pixels;
+  Ipp8u *img_mask;
 
   //ZFP compressed arrays + masks
   zfp::array3f *cube;
