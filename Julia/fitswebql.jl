@@ -11,6 +11,7 @@ file = "e20121211_0010500001_dp_sf_st_mos.fits"
 
 fitspath = string(dir, "/", file)
 fitspath = "/home/chris/NAO/SubaruWebQL/FITSCACHE/SUPM139C52520E922500.fits"
+fitspath = "/home/chris/projects/fits_web_ql/FITSCACHE/d61977e0-fada-3cee-8198-31c00ea64ab3.fits"
 
 println(ARGS, "\targc:", size(ARGS)[1])
 
