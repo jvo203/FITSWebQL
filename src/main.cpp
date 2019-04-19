@@ -825,9 +825,9 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table, std:
             path += std::string((const char *)PQgetvalue(res, 0, 0));
         else
             path += boost::algorithm::to_upper_copy(table.substr(0, pos)) + "/" + std::string((const char *)PQgetvalue(res, 0, 0));
-
-        PQclear(res);
     }
+
+    PQclear(res);
 
     return path;
 }
