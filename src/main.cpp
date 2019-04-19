@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-11.0"
+#define VERSION_STRING "SV2019-04-19.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1007,9 +1007,6 @@ int main(int argc, char *argv[])
     ipp_init();
     curl_global_init(CURL_GLOBAL_ALL);
 
-    std::cout << SERVER_STRING << " (" << VERSION_STRING << ")" << std::endl;
-    std::cout << "Browser URL: http://localhost:" << server_port << std::endl;
-
     int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
 
     if (rc)
@@ -1018,6 +1015,7 @@ int main(int argc, char *argv[])
         sqlite3_close(splat_db);
         splat_db = NULL;
     }
+
     struct passwd *passwdEnt = getpwuid(getuid());
     home_dir = passwdEnt->pw_dir;
 
@@ -1039,6 +1037,9 @@ int main(int argc, char *argv[])
                 home_dir = std::string(value);
         }
     }
+
+    std::cout << SERVER_STRING << " (" << VERSION_STRING << ")" << std::endl;
+    std::cout << "Browser URL: http://localhost:" << server_port << std::endl;
 
     int no_threads = MIN(MAX(std::thread::hardware_concurrency() / 2, 1), 4);
     std::vector<std::thread *> threads(no_threads);
