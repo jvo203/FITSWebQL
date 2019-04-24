@@ -1,7 +1,8 @@
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 INC = -I/usr/include/postgresql -Ilz4
 #-Ibm-3.20.0/src -I/home/chris/uWebSockets/src -I/home/chris/uSockets-0.1.2/src
-DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -D_GLIBCXX_PARALLEL -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL
+DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL
+#-D_GLIBCXX_PARALLEL
 LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lpq -luWS -lssl -lz -lzfp -lnuma -lpthread
 IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`

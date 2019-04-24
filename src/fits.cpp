@@ -14,6 +14,8 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 
+#include <parallel/algorithm>
+
 char *base64(const unsigned char *input, int length)
 {
     BIO *bmem, *b64;
@@ -150,7 +152,7 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
     return std::string(string);
 };
 
-template <typename T = double, typename C>
+/*template <typename T = double, typename C>
 inline const T stl_median(const C &the_container)
 {
     std::vector<T> tmp_array(std::begin(the_container),
@@ -168,7 +170,7 @@ inline const T stl_median(const C &the_container)
         auto max_it = std::max_element(tmp_array.begin(), tmp_array.begin() + n);
         return (*max_it + tmp_array[n]) / 2.0;
     }
-}
+}*/
 
 void remove_nan(std::vector<Ipp32f> &v)
 {
@@ -218,7 +220,7 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     //#ifdef __INTEL_COMPILER
     //    std::nth_element(pstl::execution::par_unseq, v.begin(), v.begin() + n, v.end());
     //#else
-    std::nth_element(v.begin(), v.begin() + n, v.end());
+    __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
     //#endif
 
     if (v.size() % 2)
@@ -228,7 +230,7 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
     else
     {
         // even sized vector -> average the two middle values
-        auto max_it = std::max_element(v.begin(), v.begin() + n);
+        auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
         medVal = (*max_it + v[n]) / 2.0f;
     }
 
