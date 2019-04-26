@@ -7,7 +7,7 @@
 
 #define SERVER_PORT 8080
 #define SERVER_STRING "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-04-24.0"
+#define VERSION_STRING "SV2019-04-26.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -780,6 +780,7 @@ void http_fits_response(uWS::HttpResponse *res, std::vector<std::string> dataset
 
     write_status(res, 200, "OK");
     write_content_length(res, html.length());
+    write_content_type(res, "text/html");
     res->write("\r\n", 2);
     res->write(html.data(), html.length());
     res->write("\r\n\r\n", 4);
