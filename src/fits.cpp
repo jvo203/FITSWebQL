@@ -648,6 +648,12 @@ bool FITS::process_fits_header_unit(const char *buf)
 
         if (strncmp(hdrLine, "CD2_2   = ", 10) == 0)
             cd2_2 = hdr_get_double_value(hdrLine + 10);
+
+        if (datamin == datamax)
+        {
+            datamin = -FLT_MAX;
+            datamax = FLT_MAX;
+        }
     }
 
     return end;
