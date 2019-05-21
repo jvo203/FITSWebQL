@@ -14,6 +14,7 @@ a = rand(Float32, 50_000)
 b = rand(Float32, 50_000)
 
 device, ctx, queue = cl.create_compute_context()
+println(device)
 
 a_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf=a)
 b_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf=b)
