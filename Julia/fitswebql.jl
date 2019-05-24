@@ -2,6 +2,7 @@ using AstroImages
 #] pkg> add https://github.com/JuliaAstro/AstroImages.jl
 
 using FITSIO
+using LinearAlgebra
 using NaNMath; nm = NaNMath
 using OpenCL
 using Plots
@@ -61,6 +62,42 @@ wt = wavelet(WT.db2, WT.Lifting)
 L = 4
 @time wpt(sqdata, wt, L)
 =#
+
+function rbf_forward_pass_julia(_x1, _x2, _y, _data, _e, c1, c2, p0, p1, p2, w, _grad_w)
+    for index = 1:length(_data)
+        x1 = _x1[index]
+        x2 = _x2[index]
+
+        tmp = w[NCLUST + 1]
+        grad_w = zeros(NCLUST + 1)
+        grad_w[NCLUST + 1] = 1.0
+
+        for i = 1:NCLUST
+            a = exp(p0[i])
+            b = p1[i]
+            c = exp(p2[i])
+
+            tmp1 = (x1 - c1[i]);
+            tmp2 = (x2 - c2[i]);
+            dist = a * tmp1 * tmp1 - 2.0 * b * tmp1 * tmp2 + c * tmp2 * tmp2;
+            act = exp(-dist);
+
+            tmp += w[i] * act;
+            grad_w[i] = act;
+        end
+
+        e = tmp - _data[index];
+        _y[index] = tmp;
+        _e[index] = e;
+
+        #gradients
+        for i = 1:NCLUST + 1
+            _grad_w[i] += e * grad_w[i]
+        end
+
+        #println("index: $(index), x1: $(x1), x2: $(x2), y: $(tmp), e: $(e)")
+    end
+end
 
 dims = size(data)
 width = dims[1]
@@ -149,20 +186,40 @@ for frame = 1:1#1:depth
     x2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2)
     y_buff = cl.Buffer(Float32, ctx, :w, length(y))
     e_buff = cl.Buffer(Float32, ctx, :w, length(e))
+
     c1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c1)
     c2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c2)
     p0_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p0))
     p1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p1))
     p2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p2))
     w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
-    grad_w_buff = cl.Buffer(Float32, ctx, :w, length(w))
+
+    grad_c1_buff = cl.Buffer(Float32, ctx, :w, length(grad_c1))
+    grad_c2_buff = cl.Buffer(Float32, ctx, :w, length(grad_c2))
+    grad_p0_buff = cl.Buffer(Float32, ctx, :w, length(grad_p0))
+    grad_p1_buff = cl.Buffer(Float32, ctx, :w, length(grad_p1))
+    grad_p2_buff = cl.Buffer(Float32, ctx, :w, length(grad_p2))
+    grad_w_buff = cl.Buffer(Float32, ctx, :w, length(grad_w))
 
     #execute a forward pass
     @time queue(rbf_forward_pass, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_w_buff)
 
-    y = cl.read(queue, y_buff)
-    e = cl.read(queue, e_buff)
-    grad_w = cl.read(queue, grad_w_buff)    
+    ocl_y = cl.read(queue, y_buff)
+    ocl_e = cl.read(queue, e_buff)
+    ocl_grad_w = cl.read(queue, grad_w_buff)        
 
-    println(grad_w)
+    #validate in Julia
+    @time rbf_forward_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_w)
+
+    if isapprox(norm(y - ocl_y) / length(d), zero(Float32), atol = 1e-8)
+        println("y: Success!")
+    else
+        println("y: Norm should be ≈ 0.0f, not ", norm(y - ocl_y) / length(d))
+    end
+
+    if isapprox(norm(grad_w - ocl_grad_w) / length(grad_w), zero(Float32), atol = 1e-8)
+        println("grad_w: Success!")
+    else
+        println("grad_w: Norm should be ≈ 0.0f, not ", norm(grad_w - ocl_grad_w) / length(grad_w))
+    end
 end
