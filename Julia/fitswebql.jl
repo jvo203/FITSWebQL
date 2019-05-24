@@ -84,6 +84,7 @@ compression_code = open("rbf.cl") do file
 end
 
 program = cl.Program(ctx, source = compression_code) |> cl.build!
+rbf_forward_pass = cl.Kernel(program, "rbf_forward_pass")
 
 for frame = 1:1#1:depth
     sub = view(data, :, :, frame, 1)
@@ -118,5 +119,50 @@ for frame = 1:1#1:depth
 
     #parameter initialisation
     c1 = shuffle(x1)[1:NCLUST]
-    c2 = shuffle(x2)[1:NCLUST]    
+    c2 = shuffle(x2)[1:NCLUST]
+
+    σX = 0.1 / (XCLUST - 1)
+    σY = 0.1 / (YCLUST - 1)
+    θ = 2 * π * rand(NCLUST)    
+
+    a = 0.5 * cos.(θ) .* cos.(θ) / (σX * σX) .+ 0.5 * sin.(θ) .* sin.(θ) / (σY * σY)
+    b = -0.25 * sin.(2.0 * θ) / (σX * σX) .+ 0.25 * sin.(2.0 * θ) / (σY * σY)
+    c = 0.5 * sin.(θ) .* sin.(θ) / (σX * σX) .+ 0.5 * cos.(θ) .* cos.(θ) / (σY * σY)
+    
+    p0 = log.(a)
+    p1 = b
+    p2 = log.(c)
+
+    w = randn(Float32, NCLUST + 1)
+
+    #gradients
+    grad_c1 = zeros(Float32, NCLUST)
+    grad_c2 = zeros(Float32, NCLUST)
+    grad_p0 = zeros(Float32, NCLUST)
+    grad_p1 = zeros(Float32, NCLUST)
+    grad_p2 = zeros(Float32, NCLUST)
+    grad_w = zeros(Float32, NCLUST + 1)
+
+    #OpenCL buffers
+    data_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = d)
+    x1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x1)
+    x2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2)
+    y_buff = cl.Buffer(Float32, ctx, :w, length(y))
+    e_buff = cl.Buffer(Float32, ctx, :w, length(e))
+    c1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c1)
+    c2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c2)
+    p0_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p0))
+    p1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p1))
+    p2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p2))
+    w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
+    grad_w_buff = cl.Buffer(Float32, ctx, :w, length(w))
+
+    #execute a forward pass
+    @time queue(rbf_forward_pass, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_w_buff)
+
+    y = cl.read(queue, y_buff)
+    e = cl.read(queue, e_buff)
+    grad_w = cl.read(queue, grad_w_buff)    
+
+    println(grad_w)
 end
