@@ -143,7 +143,7 @@ end
 program = cl.Program(ctx, source = compression_code) |> cl.build!
 rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
 
-for frame = Int(depth/2):Int(depth/2)#1:depth
+for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
     sub = view(data, :, :, frame, 1)
     println("frame : ", frame, "\tdims: ", size(sub))
     (frame_min, frame_max) = @time nm.extrema(sub)
