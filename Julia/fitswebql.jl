@@ -170,13 +170,18 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
         end
     end
 
-    println("count : ", count)
+    (x1min, x1max) = nm.extrema(x1)
+    (x2min, x2max) = nm.extrema(x2)
+
+    println("count : $(count), $(x1min), $(x1max), $(x2min), $(x2max)")
     
     #training data OK    
 
     #parameter initialisation
-    c1 = shuffle(x1)[1:NCLUST]
-    c2 = shuffle(x2)[1:NCLUST]
+    #c1 = shuffle(x1)[1:NCLUST]
+    #c2 = shuffle(x2)[1:NCLUST]
+    c1 = collect(Float32, LinRange(x1min, x1max, NCLUST))
+    c2 = collect(Float32, LinRange(x2min, x2max, NCLUST))
 
     σX = 0.1 / (XCLUST - 1)
     σY = 0.1 / (YCLUST - 1)
@@ -195,6 +200,8 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
     #learning rates etc.
     η₊ = 1.2
     η₋ = 0.5
+    #ΔMin = 1e-5
+    #ΔMax = 1e-1
     ΔMin = 1e-7#1e-5
     ΔMax = 1e-3#1e-1
     d₀ = ΔMin
