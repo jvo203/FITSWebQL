@@ -5,10 +5,13 @@ using FITSIO
 using LinearAlgebra
 using NaNMath; nm = NaNMath
 using OpenCL
-using Plots
+#using Plots
+using Makie
 using Random
 using Statistics
 using Wavelets
+
+#pyplot()
 
 dir = "/home/chris/ダウンロード"
 #file = "e20121211_0010500001_dp_sf_st_mos.fits"
@@ -127,7 +130,7 @@ capacity = width * height
 XCLUST = Int(round(width / 16))
 YCLUST = Int(round(height / 16))
 NCLUST = XCLUST * YCLUST
-NITER = 1000
+NITER = 500
 
 println("width : ", width, "\theight : ", height, "\tdepth : ", depth, "\tcapacity : ", capacity)
 println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)
@@ -143,7 +146,10 @@ end
 program = cl.Program(ctx, source = compression_code) |> cl.build!
 rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
 
-for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
+scene = Scene(resolution = (500, 500))
+center!(scene)
+
+for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
     sub = view(data, :, :, frame, 1)
     println("frame : ", frame, "\tdims: ", size(sub))
     (frame_min, frame_max) = @time nm.extrema(sub)
@@ -178,10 +184,24 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
     #training data OK    
 
     #parameter initialisation
-    #c1 = shuffle(x1)[1:NCLUST]
-    #c2 = shuffle(x2)[1:NCLUST]
-    c1 = collect(Float32, LinRange(x1min, x1max, NCLUST))
-    c2 = collect(Float32, LinRange(x2min, x2max, NCLUST))
+    c1 = shuffle(x1)[1:NCLUST]
+    c2 = shuffle(x2)[1:NCLUST]  
+    
+    #=
+    c1 = Float32[]
+    c2 = Float32[]
+
+    for i = 1:XCLUST
+        for j = 1:YCLUST
+            push!(c1, (i - 1) / (XCLUST - 1))
+            push!(c2, (j - 1) / (YCLUST - 1))
+        end
+    end
+    =#
+
+    scatter!(scene, c1, c2, markersize = 1 / NCLUST)
+    display(scene)
+    #gui()
 
     σX = 0.1 / (XCLUST - 1)
     σY = 0.1 / (YCLUST - 1)
@@ -200,19 +220,11 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
     #learning rates etc.
     η₊ = 1.2
     η₋ = 0.5
-    #ΔMin = 1e-5
-    #ΔMax = 1e-1
-    ΔMin = 1e-7#1e-5
-    ΔMax = 1e-3#1e-1
+    ΔMin = 1e-5
+    ΔMax = 1e-1
+    #ΔMin = 1e-7#1e-5
+    #ΔMax = 1e-3#1e-1
     d₀ = ΔMin
-
-    #gradients
-    grad_c1 = zeros(Float32, NCLUST)
-    grad_c2 = zeros(Float32, NCLUST)
-    grad_p0 = zeros(Float32, NCLUST)
-    grad_p1 = zeros(Float32, NCLUST)
-    grad_p2 = zeros(Float32, NCLUST)
-    grad_w = zeros(Float32, NCLUST + 1)
 
     #previous gradients
     grad_c1_prev = zeros(Float32, NCLUST)
@@ -235,19 +247,36 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
     x1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x1)
     x2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2)
     y_buff = cl.Buffer(Float32, ctx, :w, length(y))
-    e_buff = cl.Buffer(Float32, ctx, :w, length(e))    
-
-    grad_c1_buff = cl.Buffer(Float32, ctx, :w, length(grad_c1))
-    grad_c2_buff = cl.Buffer(Float32, ctx, :w, length(grad_c2))
-    grad_p0_buff = cl.Buffer(Float32, ctx, :w, length(grad_p0))
-    grad_p1_buff = cl.Buffer(Float32, ctx, :w, length(grad_p1))
-    grad_p2_buff = cl.Buffer(Float32, ctx, :w, length(grad_p2))
-    grad_w_buff = cl.Buffer(Float32, ctx, :w, length(grad_w))
+    e_buff = cl.Buffer(Float32, ctx, :w, length(e))        
 
     #println("w (before):", w)
 
-    for iter = 1:NITER        
-    #parameter buffers
+    for iter = 1:NITER
+    #gradients
+        grad_c1 = zeros(Float32, NCLUST)
+        grad_c2 = zeros(Float32, NCLUST)
+        grad_p0 = zeros(Float32, NCLUST)
+        grad_p1 = zeros(Float32, NCLUST)
+        grad_p2 = zeros(Float32, NCLUST)
+        grad_w = zeros(Float32, NCLUST + 1)
+
+    #gradient buffers
+    #=
+        grad_c1_buff = cl.Buffer(Float32, ctx, :w, length(grad_c1))
+        grad_c2_buff = cl.Buffer(Float32, ctx, :w, length(grad_c2))
+        grad_p0_buff = cl.Buffer(Float32, ctx, :w, length(grad_p0))
+        grad_p1_buff = cl.Buffer(Float32, ctx, :w, length(grad_p1))
+        grad_p2_buff = cl.Buffer(Float32, ctx, :w, length(grad_p2))
+        grad_w_buff = cl.Buffer(Float32, ctx, :w, length(grad_w))
+    =#
+        grad_c1_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_c1)
+        grad_c2_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_c2)
+        grad_p0_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p0)
+        grad_p1_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p1)
+        grad_p2_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p2)
+        grad_w_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_w)
+            
+    #parameter buffers    
         c1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c1)
         c2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c2)
         p0_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p0))
@@ -255,7 +284,7 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
         p2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p2))
         w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
     
-    #execute a forward pass
+    #execute a forward pass    
         @time queue(rbf_gradient_pass, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
 
         ocl_y = cl.read(queue, y_buff)
@@ -267,7 +296,10 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
         grad_p2 = cl.read(queue, grad_p2_buff)
         grad_w = cl.read(queue, grad_w_buff)
         
-        println("batch training iteration: $(iter), error: ", norm(ocl_e))
+        println("GPU batch training iteration: $(iter), error: ", norm(ocl_e)) 
+
+        #@time rbf_gradient_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
+        #println("CPU batch training iteration: $(iter), error: ", norm(e))
 
     #update parameters
         #w
@@ -284,7 +316,7 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
             w[i] = w[i] - sign(grad_w[i]) * Δw[i]                                  
             grad_w_prev[i] = grad_w[i] ;
         end
-
+        
         #c1, c2, p0, p1, p2
         for i = 1:NCLUST
             #c1
@@ -352,6 +384,19 @@ for frame = Int(round(depth/2)):Int(round(depth/2))#1:depth
             p2[i] = p2[i] - sign(grad_p2[i]) * Δp2[i]  
             grad_p2_prev[i] = grad_p2[i] ;
         end
+
+        #plot(x1, x2, ocl_y)
+        #density(x1, x2, ocl_y)
+        #scatter(c1, c2)
+        #gui()
+
+        #scene = Scene(resolution = (500, 500))
+        #center!(scene)
+        scatter!(scene, c1, c2, markersize = 1 / NCLUST)        
+        #scene = scatter(c1, c2, markersize = 1 / NCLUST)   
+        display(scene)  
+
+        #scatter!(scene, x1, x2, ocl_y, markersize = 1 / NCLUST)    
 
     #validate in Julia
     #=
