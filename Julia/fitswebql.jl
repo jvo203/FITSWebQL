@@ -127,8 +127,8 @@ height = dims[2]
 depth = dims[3]
 capacity = width * height
 
-XCLUST = Int(round(width / 8))#/16
-YCLUST = Int(round(height / 8))#/16
+XCLUST = min(Int(round(width / 8)), 32)#/16
+YCLUST = min(Int(round(height / 8)), 32)#/16
 NCLUST = XCLUST * YCLUST
 NITER = 500
 
@@ -149,8 +149,8 @@ rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
 #scene = Scene(resolution = (500, 500))
 #center!(scene)
 
-#for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
-for frame = 1:10
+for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
+#for frame = 1:5
     sub = view(data, :, :, frame, 1)
     println("frame : ", frame, "\tdims: ", size(sub))
     (frame_min, frame_max) = @time nm.extrema(sub)
@@ -200,7 +200,7 @@ for frame = 1:10
     end
     =#
 
-    scene = Scene(resolution = (1000, 1000))
+    scene = Scene(resolution = (1500, 1500))
     center!(scene)
     scatter!(scene, c1, c2, markersize = 1 / NCLUST)
     display(scene)
@@ -208,11 +208,13 @@ for frame = 1:10
 
     σX = 0.1 / (XCLUST - 1)
     σY = 0.1 / (YCLUST - 1)
+    σX = randn(NCLUST) * (0.01 * σX) .+ σX
+    σY = randn(NCLUST) * (0.01 * σY) .+ σY
     θ = 2 * π * rand(NCLUST)    
 
-    a = 0.5 * cos.(θ) .* cos.(θ) / (σX * σX) .+ 0.5 * sin.(θ) .* sin.(θ) / (σY * σY)
-    b = -0.25 * sin.(2.0 * θ) / (σX * σX) .+ 0.25 * sin.(2.0 * θ) / (σY * σY)
-    c = 0.5 * sin.(θ) .* sin.(θ) / (σX * σX) .+ 0.5 * cos.(θ) .* cos.(θ) / (σY * σY)
+    a = 0.5 * cos.(θ) .* cos.(θ) ./ (σX .* σX) .+ 0.5 * sin.(θ) .* sin.(θ) ./ (σY .* σY)
+    b = -0.25 * sin.(2.0 * θ) ./ (σX .* σX) .+ 0.25 * sin.(2.0 * θ) ./ (σY .* σY)
+    c = 0.5 * sin.(θ) .* sin.(θ) ./ (σX .* σX) .+ 0.5 * cos.(θ) .* cos.(θ) ./ (σY .* σY)
     
     p0 = log.(a)
     p1 = b
@@ -290,8 +292,8 @@ for frame = 1:10
     #execute a forward pass    
         @time queue(rbf_gradient_pass, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
 
-        ocl_y = cl.read(queue, y_buff)
-        ocl_e = cl.read(queue, e_buff)
+        y = cl.read(queue, y_buff)
+        e = cl.read(queue, e_buff)
         grad_c1 = cl.read(queue, grad_c1_buff)
         grad_c2 = cl.read(queue, grad_c2_buff)
         grad_p0 = cl.read(queue, grad_p0_buff)
@@ -299,10 +301,10 @@ for frame = 1:10
         grad_p2 = cl.read(queue, grad_p2_buff)
         grad_w = cl.read(queue, grad_w_buff)
         
-        println("frame $(frame) ==> GPU batch training iteration: $(iter), error: ", norm(ocl_e)) 
+        println("frame $(frame) ==> GPU batch training iteration: $(iter), error: ", norm(e))         
 
         #@time rbf_gradient_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
-        #println("CPU batch training iteration: $(iter), error: ", norm(e))
+        #println("frame $(frame) ==> CPU batch training iteration: $(iter), error: ", norm(e))
 
     #update parameters
         #w
@@ -400,10 +402,10 @@ for frame = 1:10
         scene = Scene(resolution = (1500, 1500))
         center!(scene)
 
-        if count < width * height            
+        if count < capacity          
             scatter!(scene, c1, c2, markersize = 1 / NCLUST)               
         else
-            img = reshape(ocl_y, width, height)
+            img = reshape(y, width, height)
             heatmap!(scene, img)
         end
 
@@ -460,4 +462,5 @@ for frame = 1:10
     end
 
     #println("w (after):", w)
+    #println("θ (after):", θ)
 end
