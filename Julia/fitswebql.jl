@@ -127,8 +127,8 @@ height = dims[2]
 depth = dims[3]
 capacity = width * height
 
-XCLUST = Int(round(width / 16))
-YCLUST = Int(round(height / 16))
+XCLUST = Int(round(width / 8))#/16
+YCLUST = Int(round(height / 8))#/16
 NCLUST = XCLUST * YCLUST
 NITER = 500
 
@@ -146,10 +146,11 @@ end
 program = cl.Program(ctx, source = compression_code) |> cl.build!
 rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
 
-scene = Scene(resolution = (500, 500))
-center!(scene)
+#scene = Scene(resolution = (500, 500))
+#center!(scene)
 
-for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
+#for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
+for frame = 1:10
     sub = view(data, :, :, frame, 1)
     println("frame : ", frame, "\tdims: ", size(sub))
     (frame_min, frame_max) = @time nm.extrema(sub)
@@ -199,6 +200,8 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
     end
     =#
 
+    scene = Scene(resolution = (1000, 1000))
+    center!(scene)
     scatter!(scene, c1, c2, markersize = 1 / NCLUST)
     display(scene)
     #gui()
@@ -296,7 +299,7 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
         grad_p2 = cl.read(queue, grad_p2_buff)
         grad_w = cl.read(queue, grad_w_buff)
         
-        println("GPU batch training iteration: $(iter), error: ", norm(ocl_e)) 
+        println("frame $(frame) ==> GPU batch training iteration: $(iter), error: ", norm(ocl_e)) 
 
         #@time rbf_gradient_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
         #println("CPU batch training iteration: $(iter), error: ", norm(e))
@@ -392,9 +395,19 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
 
         #scene = Scene(resolution = (500, 500))
         #center!(scene)
-        scatter!(scene, c1, c2, markersize = 1 / NCLUST)        
-        #scene = scatter(c1, c2, markersize = 1 / NCLUST)   
-        display(scene)  
+        #scatter!(scene, c1, c2, markersize = 1 / NCLUST)                
+        #AbstractPlotting.force_update!()
+        scene = Scene(resolution = (1500, 1500))
+        center!(scene)
+
+        if count < width * height            
+            scatter!(scene, c1, c2, markersize = 1 / NCLUST)               
+        else
+            img = reshape(ocl_y, width, height)
+            heatmap!(scene, img)
+        end
+
+        display(scene)
 
         #scatter!(scene, x1, x2, ocl_y, markersize = 1 / NCLUST)    
 
