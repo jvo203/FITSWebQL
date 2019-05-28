@@ -127,3 +127,27 @@ __kernel void rbf_gradient_pass(__global float *_x1, __global float *_x2, __glob
         }
     }
 }
+
+__kernel void rbf_compute(__global float *_x1, __global float *_x2, __global float *_y, __constant float *c1, __constant float *c2, __constant float *p0, __constant float *p1, __constant float *p2, __constant float *w)
+{
+    size_t index = get_global_id(0);
+
+    float x1 = _x1[index];
+    float x2 = _x2[index];
+    float tmp = w[NCLUST];
+
+    for (int i = 0; i < NCLUST; i++)
+    {
+        float a = native_exp(p0[i]);
+        float b = p1[i];
+        float c = native_exp(p2[i]);
+
+        float tmp1 = (x1 - c1[i]);
+        float tmp2 = (x2 - c2[i]);
+        float dist = a * tmp1 * tmp1 - 2.0f * b * tmp1 * tmp2 + c * tmp2 * tmp2;
+        float act = native_exp(-dist);
+        tmp += w[i] * act;
+    }
+
+    _y[index] = tmp;
+}

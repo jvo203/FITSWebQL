@@ -15,8 +15,8 @@ using Wavelets
 
 dir = "/home/chris/ダウンロード"
 #file = "e20121211_0010500001_dp_sf_st_mos.fits"
-#file = "ALMA01030862.fits"
-file = "ALMA01157085.fits"
+file = "ALMA01030862.fits"
+#file = "ALMA01157085.fits"
 #file = "Cygnus_sp46_vs-150_ve100_dv0.50_CN_Tmb.fits.gz" #good for testing noisy datasets
 
 #dir = "/home/chris/NAO/NRO/SF/"
@@ -130,7 +130,7 @@ capacity = width * height
 XCLUST = min(Int(round(width / 8)), 32)#/16
 YCLUST = min(Int(round(height / 8)), 32)#/16
 NCLUST = XCLUST * YCLUST
-NITER = 500
+NITER = 10
 
 println("width : ", width, "\theight : ", height, "\tdepth : ", depth, "\tcapacity : ", capacity)
 println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)
@@ -145,6 +145,7 @@ end
 
 program = cl.Program(ctx, source = compression_code) |> cl.build!
 rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
+rbf_compute = cl.Kernel(program, "rbf_compute")
 
 #scene = Scene(resolution = (500, 500))
 #center!(scene)
@@ -162,6 +163,9 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
     e = Float32[]
     count = 0
 
+    x1test = Float32[]
+    x2test = Float32[]    
+
     for iy = 1:height
         for ix = 1:width
             tmp = sub[ix,iy]
@@ -174,6 +178,8 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
                 push!(y, 0)
                 push!(e, 0)
             end
+            push!(x1test, (ix - 1) / (width - 1))   #[0,1]
+            push!(x2test, (iy - 1) / (height - 1))  #[0,1]
         end
     end
 
@@ -253,6 +259,10 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
     x2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2)
     y_buff = cl.Buffer(Float32, ctx, :w, length(y))
     e_buff = cl.Buffer(Float32, ctx, :w, length(e))        
+
+    x1test_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x1test)
+    x2test_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2test)
+    ytest_buff = cl.Buffer(Float32, ctx, :w, length(x1test))
 
     #println("w (before):", w)
 
@@ -403,7 +413,12 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
         center!(scene)
 
         if count < capacity          
-            scatter!(scene, c1, c2, markersize = 1 / NCLUST)               
+            #scatter!(scene, c1, c2, markersize = 1 / NCLUST)
+
+            @time queue(rbf_compute, capacity, nothing, x1test_buff, x2test_buff, ytest_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff)
+            y = cl.read(queue, ytest_buff)
+            img = reshape(y, width, height)
+            heatmap!(scene, img)
         else
             img = reshape(y, width, height)
             heatmap!(scene, img)
