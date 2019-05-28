@@ -130,7 +130,7 @@ capacity = width * height
 XCLUST = min(Int(round(width / 8)), 32)#/16
 YCLUST = min(Int(round(height / 8)), 32)#/16
 NCLUST = XCLUST * YCLUST
-NITER = 10
+NITER = 500
 
 println("width : ", width, "\theight : ", height, "\tdepth : ", depth, "\tcapacity : ", capacity)
 println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)
