@@ -3,6 +3,10 @@ using NaNMath
 using OpenCL
 
 const TILE_SIZE = 256
+const XCLUST = 32
+const YCLUST = 32
+const NCLUST = XCLUST * YCLUST
+const NITER = 500
 
 dir = "/home/chris/ダウンロード"
 file = "ALMA01030862.fits"
@@ -55,6 +59,19 @@ if width < TILE_SIZE && height < TILE_SIZE
     exit()
 end
 
+device, ctx, queue = cl.create_compute_context()
+println(device)
+
+println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)
+
+compression_code = open("rbf.cl") do file    
+    "#define NCLUST $(NCLUST)\n" * read(file, String)
+end
+
+program = cl.Program(ctx, source = compression_code) |> cl.build!
+rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
+rbf_compute = cl.Kernel(program, "rbf_compute")
+
 #for frame = 1:depth
 for frame = 1:1
     data = read(f[1], :, :, frame, :);
@@ -65,11 +82,15 @@ for frame = 1:1
     ncols = Int(ceil(width / TILE_SIZE))
     nrows = Int(ceil(height / TILE_SIZE))
 
-    println("\tnrows: $(nrows),  ncols: $(ncols)")
+    println("nrows: $(nrows),  ncols: $(ncols)")
 
     for row in 1:nrows
-        for col in 1:ncols        
-            println("\t\tprocessing row $(row) column $(col)")
+        for col in 1:ncols                    
+            x₁ = (col - 1) * TILE_SIZE
+            x₂ = min(width, x₁ + TILE_SIZE)
+            y₁ = (row - 1) * TILE_SIZE
+            y₂ = min(height, y₁ + TILE_SIZE)
+            println("processing row $(row) column $(col) :> x₁=$(x₁) x₂=$(x₂) y₁=$(y₁) y₂=$(y₂)")
         end
     end
 end
