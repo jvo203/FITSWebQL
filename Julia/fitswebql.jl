@@ -66,7 +66,7 @@ L = 4
 @time wpt(sqdata, wt, L)
 =#
 
-function rbf_gradient_pass_julia(_x1, _x2, _y, _data, _e, c1, c2, p0, p1, p2, w, _grad_c1, _grad_c2, _grad_p0, _grad_p1, _grad_p2, _grad_w)
+function rbf_gradient_julia(_x1, _x2, _y, _data, _e, c1, c2, p0, p1, p2, w, _grad_c1, _grad_c2, _grad_p0, _grad_p1, _grad_p2, _grad_w)
     for index = 1:length(_data)
         x1 = _x1[index]
         x2 = _x2[index]
@@ -144,7 +144,7 @@ compression_code = open("rbf.cl") do file
 end
 
 program = cl.Program(ctx, source = compression_code) |> cl.build!
-rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
+rbf_gradient = cl.Kernel(program, "rbf_gradient")
 rbf_compute = cl.Kernel(program, "rbf_compute")
 
 #scene = Scene(resolution = (500, 500))
@@ -300,7 +300,7 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
         w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
     
     #execute a forward pass    
-        @time queue(rbf_gradient_pass, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
+        @time queue(rbf_gradient, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
 
         y = cl.read(queue, y_buff)
         e = cl.read(queue, e_buff)
@@ -313,7 +313,7 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
         
         println("frame $(frame) ==> GPU batch training iteration: $(iter), error: ", norm(e))         
 
-        #@time rbf_gradient_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
+        #@time rbf_gradient_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
         #println("frame $(frame) ==> CPU batch training iteration: $(iter), error: ", norm(e))
 
     #update parameters
@@ -430,7 +430,7 @@ for frame = Int(round(depth / 2)):Int(round(depth / 2))#1:depth
 
     #validate in Julia
     #=
-        @time rbf_gradient_pass_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
+        @time rbf_gradient_julia(x1, x2, y, d, e, c1, c2, p0, p1, p2, w, grad_c1, grad_c2, grad_p0, grad_p1, grad_p2, grad_w)
 
         if isapprox(norm(y - ocl_y) / length(d), zero(Float32), atol = 1e-8)
             println("y: Success!")

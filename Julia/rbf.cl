@@ -30,7 +30,7 @@ inline void atomicAdd_g_f(volatile __global float *addr, float val)
     } while (current.u32 != expected.u32);
 }
 
-__kernel void rbf_gradient_pass(__global float *_x1, __global float *_x2, __global float *_y, __global float *_data, __global float *_e, __constant float *c1, __constant float *c2, __constant float *p0, __constant float *p1, __constant float *p2, __constant float *w, __global float *_grad_c1, __global float *_grad_c2, __global float *_grad_p0, __global float *_grad_p1, __global float *_grad_p2, __global float *_grad_w)
+__kernel void rbf_gradient(__global float *_x1, __global float *_x2, __global float *_y, __global float *_data, __global float *_e, __constant float *c1, __constant float *c2, __constant float *p0, __constant float *p1, __constant float *p2, __constant float *w, __global float *_grad_c1, __global float *_grad_c2, __global float *_grad_p0, __global float *_grad_p1, __global float *_grad_p2, __global float *_grad_w)
 {
 
     __local float tid_grad_c1[NCLUST];

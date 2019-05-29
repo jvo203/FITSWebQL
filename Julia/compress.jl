@@ -1,12 +1,11 @@
 using FITSIO
-using NaNMath
-using OpenCL
+
+include("rbf_compress.jl")
 
 const TILE_SIZE = 256
-const XCLUST = 32
-const YCLUST = 32
-const NCLUST = XCLUST * YCLUST
-const NITER = 500
+#const XCLUST = min(Int(round(TILE_SIZE / 8)), 32)#/16
+#const YCLUST = min(Int(round(TILE_SIZE / 8)), 32)#/16
+#const NCLUST = XCLUST * YCLUST
 
 dir = "/home/chris/ダウンロード"
 file = "ALMA01030862.fits"
@@ -62,19 +61,16 @@ end
 device, ctx, queue = cl.create_compute_context()
 println(device)
 
-println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)
-
-compression_code = open("rbf.cl") do file    
-    "#define NCLUST $(NCLUST)\n" * read(file, String)
-end
-
-program = cl.Program(ctx, source = compression_code) |> cl.build!
-rbf_gradient_pass = cl.Kernel(program, "rbf_gradient_pass")
-rbf_compute = cl.Kernel(program, "rbf_compute")
-
 #for frame = 1:depth
 for frame = 1:1
-    data = read(f[1], :, :, frame, :);
+    if N == 4
+        data = read(f[1], :, :, frame, :);
+    elseif N == 3
+        data = read(f[1], :, :, frame);
+    elseif N == 2
+        data = read(f[1], :, :);
+    end
+
     #println("HDU $(frame): ", size(data))
     sub = view(data, :, :, 1, 1)
     println("frame : ", frame, "\tdims: ", size(sub))
@@ -91,6 +87,8 @@ for frame = 1:1
             y₁ = (row - 1) * TILE_SIZE
             y₂ = min(height, y₁ + TILE_SIZE)
             println("processing row $(row) column $(col) :> x₁=$(x₁) x₂=$(x₂) y₁=$(y₁) y₂=$(y₂)")
+            tile = view(sub, (x₁+1):x₂, (y₁+1):y₂)            
+            is_nan = rbf_compress_tile(tile, device, ctx, queue)            
         end
     end
 end
