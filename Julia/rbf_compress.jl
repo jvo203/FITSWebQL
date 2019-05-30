@@ -6,7 +6,7 @@ using PaddedViews
 using Random
 using Statistics
 
-const NITER = 500
+const NITER = 1#500
 
 function rbf_compress_tile(tile, device, ctx, queue)
     dims = size(tile)
@@ -16,7 +16,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
 
     if isnan(padding)
         println("\tall values are NaN, skipping a tile")
-        return (true, missing, missing, missing, missing, missing, missing)
+        return (true, missing, missing, missing, missing, missing, missing, 0)
     end
 
     #add extra padding if necessary
@@ -74,6 +74,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
     XCLUST = min(Int(round(width / 8)), 32)#/16
     YCLUST = min(Int(round(height / 8)), 32)#/16
     NCLUST = min(XCLUST * YCLUST, count)
+    NCLUST = max(1, min(Int(round(count / 64)), 256))
 
     println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)    
 
@@ -287,5 +288,5 @@ function rbf_compress_tile(tile, device, ctx, queue)
         display(scene)
     end    
 
-    return (false, c1, c2, p0, p1, p2, w)
+    return (false, c1, c2, p0, p1, p2, w, NCLUST)
 end
