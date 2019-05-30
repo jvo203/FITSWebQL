@@ -88,7 +88,7 @@ for frame = 1:1
             y₂ = min(height, y₁ + TILE_SIZE)
             println("processing row $(row) column $(col) :> x₁=$(x₁) x₂=$(x₂) y₁=$(y₁) y₂=$(y₂)")
             tile = view(sub, (x₁+1):x₂, (y₁+1):y₂)            
-            (is_nan, c1, c2, p0, p1, p2, w, N) = rbf_compress_tile(tile, device, ctx, queue)            
+            (N, padding, c1, c2, p0, p1, p2, w) = rbf_compress_tile(tile, device, ctx, queue)            
         end
     end
 end

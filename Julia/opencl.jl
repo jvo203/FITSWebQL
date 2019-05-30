@@ -10,8 +10,12 @@ const sum_kernel = "
       c[gid] = a[gid] + b[gid];
     }
 "
-a = rand(Float32, 50_000)
-b = rand(Float32, 50_000)
+
+const len = 50_000
+#const len = 1
+
+a = rand(Float32, len)
+b = rand(Float32, len)
 
 device, ctx, queue = cl.create_compute_context()
 println(device)

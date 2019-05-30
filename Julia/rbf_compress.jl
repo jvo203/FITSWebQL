@@ -16,7 +16,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
 
     if isnan(padding)
         println("\tall values are NaN, skipping a tile")
-        return (true, missing, missing, missing, missing, missing, missing, 0)
+        return (0, missing, missing, missing, missing, missing, missing, missing)
     end
 
     #add extra padding if necessary
@@ -38,6 +38,10 @@ function rbf_compress_tile(tile, device, ctx, queue)
     println("\twidth : ", width, "\theight : ", height, "\tcapacity : ", capacity)
 
     (frame_min, frame_max) = NaNMath.extrema(tile)
+
+    if frame_min == frame_max
+        return (frame_min, missing, missing, missing, missing, missing, missing, missing)
+    end
 
     x1 = Float32[]
     x2 = Float32[]
@@ -74,7 +78,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
     XCLUST = min(Int(round(width / 8)), 32)#/16
     YCLUST = min(Int(round(height / 8)), 32)#/16
     NCLUST = min(XCLUST * YCLUST, count)
-    NCLUST = max(1, min(Int(round(count / 64)), 256))
+    #NCLUST = max(1, min(Int(round(count / 64)), 1024))
 
     println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)    
 
@@ -174,6 +178,10 @@ function rbf_compress_tile(tile, device, ctx, queue)
         p2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p2))
         w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
         
+        println(size(d))
+        println(x1_buff, x2_buff)
+        println(y_buff, data_buff, e_buff)
+
         #execute a forward pass    
         @time queue(rbf_gradient, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
     
@@ -288,5 +296,5 @@ function rbf_compress_tile(tile, device, ctx, queue)
         display(scene)
     end    
 
-    return (false, c1, c2, p0, p1, p2, w, NCLUST)
+    return (NCLUST, missing, c1, c2, p0, p1, p2, w)
 end
