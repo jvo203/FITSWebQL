@@ -185,7 +185,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
         grad_p2 = cl.read(queue, grad_p2_buff)
         grad_w = cl.read(queue, grad_w_buff)
             
-        println("\tGPU batch training iteration: $(iter), error: ", norm(e))    
+        println("\tGPU batch training iteration: $(iter)/$(NITER), error: ", norm(e))    
     
         #update parameters
             #w
