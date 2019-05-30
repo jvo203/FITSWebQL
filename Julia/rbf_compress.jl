@@ -1,3 +1,5 @@
+using LinearAlgebra
+using Makie
 using NaNMath
 using OpenCL
 using PaddedViews
@@ -14,7 +16,7 @@ function rbf_compress_tile(tile, device, ctx, queue)
 
     if isnan(padding)
         println("\tall values are NaN, skipping a tile")
-        return true
+        return (true, missing, missing, missing, missing, missing, missing)
     end
 
     #add extra padding if necessary
@@ -138,5 +140,152 @@ function rbf_compress_tile(tile, device, ctx, queue)
     x2test_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = x2test)
     ytest_buff = cl.Buffer(Float32, ctx, :w, length(x1test))
 
-    return false
+    for iter = 1:NITER
+        #gradients
+        grad_c1 = zeros(Float32, NCLUST)
+        grad_c2 = zeros(Float32, NCLUST)
+        grad_p0 = zeros(Float32, NCLUST)
+        grad_p1 = zeros(Float32, NCLUST)
+        grad_p2 = zeros(Float32, NCLUST)
+        grad_w = zeros(Float32, NCLUST + 1)
+    
+        #gradient buffers
+        #=
+            grad_c1_buff = cl.Buffer(Float32, ctx, :w, length(grad_c1))
+            grad_c2_buff = cl.Buffer(Float32, ctx, :w, length(grad_c2))
+            grad_p0_buff = cl.Buffer(Float32, ctx, :w, length(grad_p0))
+            grad_p1_buff = cl.Buffer(Float32, ctx, :w, length(grad_p1))
+            grad_p2_buff = cl.Buffer(Float32, ctx, :w, length(grad_p2))
+            grad_w_buff = cl.Buffer(Float32, ctx, :w, length(grad_w))
+        =#
+        grad_c1_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_c1)
+        grad_c2_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_c2)
+        grad_p0_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p0)
+        grad_p1_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p1)
+        grad_p2_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_p2)
+        grad_w_buff = cl.Buffer(Float32, ctx, (:w, :copy), hostbuf = grad_w)
+                
+        #parameter buffers    
+        c1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c1)
+        c2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = c2)
+        p0_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p0))
+        p1_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p1))
+        p2_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = Float32.(p2))
+        w_buff = cl.Buffer(Float32, ctx, (:r, :copy), hostbuf = w)
+        
+        #execute a forward pass    
+        @time queue(rbf_gradient, size(d), nothing, x1_buff, x2_buff, y_buff, data_buff, e_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff, grad_c1_buff, grad_c2_buff, grad_p0_buff, grad_p1_buff, grad_p2_buff, grad_w_buff)
+    
+        y = cl.read(queue, y_buff)
+        e = cl.read(queue, e_buff)
+        grad_c1 = cl.read(queue, grad_c1_buff)
+        grad_c2 = cl.read(queue, grad_c2_buff)
+        grad_p0 = cl.read(queue, grad_p0_buff)
+        grad_p1 = cl.read(queue, grad_p1_buff)
+        grad_p2 = cl.read(queue, grad_p2_buff)
+        grad_w = cl.read(queue, grad_w_buff)
+            
+        println("\tGPU batch training iteration: $(iter), error: ", norm(e))    
+    
+        #update parameters
+            #w
+        for i = 1:NCLUST + 1
+            if grad_w_prev[i] * grad_w[i] > 0.0
+                Δw[i] = min(ΔMax, η₊ * Δw[i])
+            end
+            
+            if grad_w_prev[i] * grad_w[i] < 0.0                
+                Δw[i] = max(ΔMin, η₋ * Δw[i])
+                grad_w[i] = 0.0
+            end
+                                    
+            w[i] = w[i] - sign(grad_w[i]) * Δw[i]                                  
+            grad_w_prev[i] = grad_w[i] ;
+        end
+            
+            #c1, c2, p0, p1, p2
+        for i = 1:NCLUST
+                #c1
+            if grad_c1_prev[i] * grad_c1[i] > 0.0
+                Δc1[i] = min(ΔMax, η₊ * Δc1[i])
+            end
+            
+            if grad_c1_prev[i] * grad_c1[i] < 0.0                
+                Δc1[i] = max(ΔMin, η₋ * Δc1[i])
+                grad_c1[i] = 0.0
+            end
+                                    
+            c1[i] = c1[i] - sign(grad_c1[i]) * Δc1[i]  
+            grad_c1_prev[i] = grad_c1[i] ;
+    
+                #c2
+            if grad_c2_prev[i] * grad_c2[i] > 0.0
+                Δc2[i] = min(ΔMax, η₊ * Δc2[i])
+            end
+            
+            if grad_c2_prev[i] * grad_c2[i] < 0.0                
+                Δc2[i] = max(ΔMin, η₋ * Δc2[i])
+                grad_c2[i] = 0.0
+            end
+                                    
+            c2[i] = c2[i] - sign(grad_c2[i]) * Δc2[i]  
+            grad_c2_prev[i] = grad_c2[i] ;
+    
+                #p0
+            if grad_p0_prev[i] * grad_p0[i] > 0.0
+                Δp0[i] = min(ΔMax, η₊ * Δp0[i])
+            end
+            
+            if grad_p0_prev[i] * grad_p0[i] < 0.0                
+                Δp0[i] = max(ΔMin, η₋ * Δp0[i])
+                grad_p0[i] = 0.0
+            end
+                                    
+            p0[i] = p0[i] - sign(grad_p0[i]) * Δp0[i]  
+            grad_p0_prev[i] = grad_p0[i] ;
+    
+                #p1
+            if grad_p1_prev[i] * grad_p1[i] > 0.0
+                Δp1[i] = min(ΔMax, η₊ * Δp1[i])
+            end
+            
+            if grad_p1_prev[i] * grad_p1[i] < 0.0                
+                Δp1[i] = max(ΔMin, η₋ * Δp1[i])
+                grad_p1[i] = 0.0
+            end
+                                    
+            p1[i] = p1[i] - sign(grad_p1[i]) * Δp1[i]  
+            grad_p1_prev[i] = grad_p1[i] ;
+    
+                #p2
+            if grad_p2_prev[i] * grad_p2[i] > 0.0
+                Δp2[i] = min(ΔMax, η₊ * Δp2[i])
+            end
+            
+            if grad_p2_prev[i] * grad_p2[i] < 0.0                
+                Δp2[i] = max(ΔMin, η₋ * Δp2[i])
+                grad_p2[i] = 0.0
+            end
+                                    
+            p2[i] = p2[i] - sign(grad_p2[i]) * Δp2[i]  
+            grad_p2_prev[i] = grad_p2[i] ;
+        end
+             
+        scene = Scene(resolution = (1500, 1500))
+        center!(scene)
+    
+        if count < capacity               
+            @time queue(rbf_compute, capacity, nothing, x1test_buff, x2test_buff, ytest_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff)
+            y = cl.read(queue, ytest_buff)
+            img = reshape(y, width, height)
+            heatmap!(scene, img)
+        else
+            img = reshape(y, width, height)
+            heatmap!(scene, img)
+        end
+    
+        display(scene)
+    end    
+
+    return (false, c1, c2, p0, p1, p2, w)
 end
