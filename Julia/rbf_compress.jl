@@ -77,8 +77,8 @@ function rbf_compress_tile(tile, device, ctx, queue)
     
     XCLUST = min(Int(round(width / 8)), 32)#/16
     YCLUST = min(Int(round(height / 8)), 32)#/16
-    NCLUST = min(XCLUST * YCLUST, count)
-    #NCLUST = max(1, min(Int(round(count / 64)), 1024))
+    #NCLUST = min(XCLUST * YCLUST, count)
+    NCLUST = max(1, min(Int(round(count / 64)), 1024))
 
     println("XCLUST : ", XCLUST, "\tYCLUST : ", YCLUST, "\tNCLUST : ", NCLUST)    
 
