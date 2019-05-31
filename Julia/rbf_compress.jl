@@ -6,7 +6,7 @@ using PaddedViews
 using Random
 using Statistics
 
-const NITER = 500
+const NITER = 0
 
 function rbf_compress_tile(tile, device, ctx, queue)
     dims = size(tile)
