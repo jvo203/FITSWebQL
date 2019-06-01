@@ -454,28 +454,6 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     let ocl_y = pro_que.create_buffer::<f32>().unwrap();
     let ocl_e = pro_que.create_buffer::<f32>().unwrap();
 
-    let ocl_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
-    ocl_c1.write(&c1).enq().unwrap();
-
-    let ocl_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
-    ocl_c2.write(&c2).enq().unwrap();
-
-    let ocl_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
-    ocl_p0.write(&p0).enq().unwrap();
-
-    let ocl_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
-    ocl_p1.write(&p1).enq().unwrap();
-
-    let ocl_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
-    ocl_p2.write(&p2).enq().unwrap();
-
-    let ocl_w = pro_que
-        .buffer_builder::<f32>()
-        .len(NCLUST + 1)
-        .build()
-        .unwrap();
-    ocl_w.write(&w).enq().unwrap();
-
     let kernel = pro_que
         .kernel_builder("rbf_gradient")
         .arg(&ocl_x1)
@@ -516,8 +494,9 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     for iter in 0..NITER {
         print!("{}/{} ", iter + 1, NITER);
 
+        let start = precise_time::precise_time_ns();
+
         //reset the gradients to zero
-        //gradients
         let mut grad_c1: Vec<f32> = vec![0.0; NCLUST];
         let mut grad_c2: Vec<f32> = vec![0.0; NCLUST];
         let mut grad_p0: Vec<f32> = vec![0.0; NCLUST];
@@ -547,16 +526,41 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
             .unwrap();
 
         //reset the param buffers
+        let ocl_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        ocl_c1.write(&c1).enq().unwrap();
+
+        let ocl_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        ocl_c2.write(&c2).enq().unwrap();
+
+        let ocl_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        ocl_p0.write(&p0).enq().unwrap();
+
+        let ocl_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        ocl_p1.write(&p1).enq().unwrap();
+
+        let ocl_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        ocl_p2.write(&p2).enq().unwrap();
+
+        let ocl_w = pro_que
+            .buffer_builder::<f32>()
+            .len(NCLUST + 1)
+            .build()
+            .unwrap();
+        ocl_w.write(&w).enq().unwrap();
 
         //set named arguments to the kernel
+        kernel.set_arg("c1", &ocl_c1).unwrap();
+        kernel.set_arg("c2", &ocl_c2).unwrap();
+        kernel.set_arg("p0", &ocl_p0).unwrap();
+        kernel.set_arg("p1", &ocl_p1).unwrap();
+        kernel.set_arg("p2", &ocl_p2).unwrap();
+        kernel.set_arg("w", &ocl_w).unwrap();
         kernel.set_arg("_grad_c1", &ocl_grad_c1).unwrap();
         kernel.set_arg("_grad_c2", &ocl_grad_c2).unwrap();
         kernel.set_arg("_grad_p0", &ocl_grad_p0).unwrap();
         kernel.set_arg("_grad_p1", &ocl_grad_p1).unwrap();
         kernel.set_arg("_grad_p2", &ocl_grad_p2).unwrap();
         kernel.set_arg("_grad_w", &ocl_grad_w).unwrap();
-
-        let start = precise_time::precise_time_ns();
 
         unsafe {
             kernel.enq().unwrap();
@@ -577,6 +581,8 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
             "[OpenCL::rbf_gradient] elapsed time: {} [ms]",
             (stop - start) / 1000000
         );
+
+        //update the parameters
     }
 
     return true;
