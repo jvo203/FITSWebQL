@@ -10,6 +10,7 @@ use ocl::ProQue;
 use rand::distributions::{StandardNormal, Uniform};
 use rand::prelude::*;
 use rand::seq::SliceRandom;
+use rayon::prelude::*;
 
 const TILE_SIZE: usize = 256;
 
@@ -250,8 +251,8 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     let mut rng = thread_rng();
     let angle = Uniform::new(0.0f32, 2.0 * std::f32::consts::PI);
 
-    let c1: Vec<f32> = x1.choose_multiple(&mut rng, NCLUST).cloned().collect();
-    let c2: Vec<f32> = x2.choose_multiple(&mut rng, NCLUST).cloned().collect();
+    let mut c1: Vec<f32> = x1.choose_multiple(&mut rng, NCLUST).cloned().collect();
+    let mut c2: Vec<f32> = x2.choose_multiple(&mut rng, NCLUST).cloned().collect();
 
     for _ in 0..NCLUST {
         let sigmaX = 0.1f32 / ((XCLUST - 1) as f32);
@@ -577,12 +578,62 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
         let stop = precise_time::precise_time_ns();
 
+        let rms: f32 = e
+            .par_iter() // <-- just change that!
+            .map(|&e| e * e)
+            .sum();
+        let rms = (rms / e.len() as f32).sqrt();
+
         println!(
-            "[OpenCL::rbf_gradient] elapsed time: {} [ms]",
+            "rms = {} [OpenCL::rbf_gradient] elapsed time: {} [ms]",
+            rms,
             (stop - start) / 1000000
         );
 
         //update the parameters
+        //w
+        for i in 0..(NCLUST + 1) {
+            if grad_w_prev[i] * grad_w[i] > 0.0 {
+                dw[i] = dMax.min(etap * dw[i]);
+            }
+
+            if grad_w_prev[i] * grad_w[i] < 0.0 {
+                dw[i] = dMin.max(etam * dw[i]);
+                grad_w[i] = 0.0;
+            }
+
+            w[i] = w[i] - num_traits::signum(grad_w[i]) * dw[i];
+            grad_w_prev[i] = grad_w[i];
+        }
+
+        //c1, c2, p0, p1, p2
+        for i in 0..NCLUST {
+            //c1
+            if grad_c1_prev[i] * grad_c1[i] > 0.0 {
+                dc1[i] = dMax.min(etap * dc1[i]);
+            }
+
+            if grad_c1_prev[i] * grad_c1[i] < 0.0 {
+                dc1[i] = dMin.max(etam * dc1[i]);
+                grad_c1[i] = 0.0;
+            }
+
+            c1[i] = c1[i] - num_traits::signum(grad_c1[i]) * dc1[i];
+            grad_c1_prev[i] = grad_c1[i];
+
+            //c2
+            if grad_c2_prev[i] * grad_c2[i] > 0.0 {
+                dc2[i] = dMax.min(etap * dc2[i]);
+            }
+
+            if grad_c2_prev[i] * grad_c2[i] < 0.0 {
+                dc2[i] = dMin.max(etam * dc2[i]);
+                grad_c2[i] = 0.0;
+            }
+
+            c2[i] = c2[i] - num_traits::signum(grad_c2[i]) * dc2[i];
+            grad_c2_prev[i] = grad_c2[i];
+        }
     }
 
     return true;
