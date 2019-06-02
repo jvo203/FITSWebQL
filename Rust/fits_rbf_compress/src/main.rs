@@ -281,6 +281,8 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     let etam = 0.5_f32;
     let dMin = 1e-5_f32;
     let dMax = 1e-1_f32;
+    /*let dMin = 1e-7_f32;
+    let dMax = 1e-3_f32;*/
     let d0 = dMin;
 
     //previous gradients
@@ -457,11 +459,16 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
     let kernel = pro_que
         .kernel_builder("rbf_gradient")
-        .arg(&ocl_x1)
+        .arg_named("_x1", &ocl_x1)
+        .arg_named("_x2", &ocl_x2)
+        .arg_named("_y", &ocl_y)
+        .arg_named("_data", &ocl_data)
+        .arg_named("_e", &ocl_e)
+        /*.arg(&ocl_x1)
         .arg(&ocl_x2)
         .arg(&ocl_y)
         .arg(&ocl_data)
-        .arg(&ocl_e)
+        .arg(&ocl_e)*/
         .arg_named("c1", None::<&Buffer<f32>>)
         .arg_named("c2", None::<&Buffer<f32>>)
         .arg_named("p0", None::<&Buffer<f32>>)
@@ -578,10 +585,7 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
         let stop = precise_time::precise_time_ns();
 
-        let rms: f32 = e
-            .par_iter() // <-- just change that!
-            .map(|&e| e * e)
-            .sum();
+        let rms: f32 = e.par_iter().map(|&e| e * e).sum();
         let rms = (rms / e.len() as f32).sqrt();
 
         println!(
@@ -604,10 +608,14 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
             w[i] = w[i] - num_traits::signum(grad_w[i]) * dw[i];
             grad_w_prev[i] = grad_w[i];
+
+            if w[i].is_nan() {
+                println!("w = {}, dw = {}, grad_w = {}", w[i], dw[i], grad_w[i]);
+            }
         }
 
         //c1, c2, p0, p1, p2
-        for i in 0..NCLUST {
+        /*for i in 0..NCLUST {
             //c1
             if grad_c1_prev[i] * grad_c1[i] > 0.0 {
                 dc1[i] = dMax.min(etap * dc1[i]);
@@ -633,7 +641,48 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
             c2[i] = c2[i] - num_traits::signum(grad_c2[i]) * dc2[i];
             grad_c2_prev[i] = grad_c2[i];
-        }
+
+            //p0
+            if grad_p0_prev[i] * grad_p0[i] > 0.0 {
+                dp0[i] = dMax.min(etap * dp0[i]);
+            }
+
+            if grad_p0_prev[i] * grad_p0[i] < 0.0 {
+                dp0[i] = dMin.max(etam * dp0[i]);
+                grad_p0[i] = 0.0;
+            }
+
+            p0[i] = p0[i] - num_traits::signum(grad_p0[i]) * dp0[i];
+            grad_p0_prev[i] = grad_p0[i];
+
+            //p1
+            if grad_p1_prev[i] * grad_p1[i] > 0.0 {
+                dp1[i] = dMax.min(etap * dp1[i]);
+            }
+
+            if grad_p1_prev[i] * grad_p1[i] < 0.0 {
+                dp1[i] = dMin.max(etam * dp1[i]);
+                grad_p1[i] = 0.0;
+            }
+
+            p1[i] = p1[i] - num_traits::signum(grad_p1[i]) * dp1[i];
+            grad_p1_prev[i] = grad_p1[i];
+
+            //p2
+            if grad_p2_prev[i] * grad_p2[i] > 0.0 {
+                dp2[i] = dMax.min(etap * dp2[i]);
+            }
+
+            if grad_p2_prev[i] * grad_p2[i] < 0.0 {
+                dp2[i] = dMin.max(etam * dp2[i]);
+                grad_p2[i] = 0.0;
+            }
+
+            p2[i] = p2[i] - num_traits::signum(grad_p2[i]) * dp2[i];
+            grad_p2_prev[i] = grad_p2[i];
+        }*/
+
+        //println!("w: {:?}", w);
     }
 
     return true;
