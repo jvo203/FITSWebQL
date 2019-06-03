@@ -132,8 +132,8 @@ fn main() {
                     ncols
                 );
 
-                for row in 0..nrows {
-                    for col in 0..ncols {
+                for row in nrows-1..nrows {
+                    for col in ncols-1..ncols {
                         let x1 = col * TILE_SIZE;
                         let x2 = min(width, x1 + TILE_SIZE);
                         let y1 = row * TILE_SIZE;
@@ -284,6 +284,13 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     /*let dMin = 1e-7_f32;
     let dMax = 1e-3_f32;*/
     let d0 = dMin;
+
+    let mut grad_c1: Vec<f32> = vec![0.0; NCLUST];
+    let mut grad_c2: Vec<f32> = vec![0.0; NCLUST];
+    let mut grad_p0: Vec<f32> = vec![0.0; NCLUST];
+    let mut grad_p1: Vec<f32> = vec![0.0; NCLUST];
+    let mut grad_p2: Vec<f32> = vec![0.0; NCLUST];
+    let mut grad_w: Vec<f32> = vec![0.0; NCLUST + 1];
 
     //previous gradients
     let mut grad_c1_prev: Vec<f32> = vec![0.0; NCLUST];
@@ -457,19 +464,63 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
     let ocl_y = pro_que.create_buffer::<f32>().unwrap();
     let ocl_e = pro_que.create_buffer::<f32>().unwrap();
 
+    let ocl_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_c1.write(&c1).enq().unwrap();
+
+    let ocl_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_c2.write(&c2).enq().unwrap();
+
+    let ocl_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_p0.write(&p0).enq().unwrap();
+
+    let ocl_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_p1.write(&p1).enq().unwrap();
+
+    let ocl_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_p2.write(&p2).enq().unwrap();
+
+    let ocl_w = pro_que
+        .buffer_builder::<f32>()
+        .len(NCLUST + 1)
+        .build()
+        .unwrap();
+    ocl_w.write(&w).enq().unwrap();
+
+    let ocl_grad_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_grad_c1.write(&grad_c1).enq().unwrap();
+
+    let ocl_grad_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_grad_c2.write(&grad_c2).enq().unwrap();
+
+    let ocl_grad_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_grad_p0.write(&grad_p0).enq().unwrap();
+
+    let ocl_grad_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_grad_p1.write(&grad_p1).enq().unwrap();
+
+    let ocl_grad_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+    ocl_grad_p2.write(&grad_p2).enq().unwrap();
+
+    let ocl_grad_w = pro_que
+        .buffer_builder::<f32>()
+        .len(NCLUST + 1)
+        .build()
+        .unwrap();
+    ocl_grad_w.write(&grad_w).enq().unwrap();
+
     let kernel = pro_que
         .kernel_builder("rbf_gradient")
-        .arg_named("_x1", &ocl_x1)
+        /*.arg_named("_x1", &ocl_x1)
         .arg_named("_x2", &ocl_x2)
         .arg_named("_y", &ocl_y)
         .arg_named("_data", &ocl_data)
-        .arg_named("_e", &ocl_e)
-        /*.arg(&ocl_x1)
+        .arg_named("_e", &ocl_e)*/
+        .arg(&ocl_x1)
         .arg(&ocl_x2)
         .arg(&ocl_y)
         .arg(&ocl_data)
-        .arg(&ocl_e)*/
-        .arg_named("c1", None::<&Buffer<f32>>)
+        .arg(&ocl_e)
+        /*.arg_named("c1", None::<&Buffer<f32>>)
         .arg_named("c2", None::<&Buffer<f32>>)
         .arg_named("p0", None::<&Buffer<f32>>)
         .arg_named("p1", None::<&Buffer<f32>>)
@@ -480,8 +531,8 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
         .arg_named("_grad_p0", None::<&Buffer<f32>>)
         .arg_named("_grad_p1", None::<&Buffer<f32>>)
         .arg_named("_grad_p2", None::<&Buffer<f32>>)
-        .arg_named("_grad_w", None::<&Buffer<f32>>)
-        /*.arg(&ocl_c1)
+        .arg_named("_grad_w", None::<&Buffer<f32>>)*/
+        .arg(&ocl_c1)
         .arg(&ocl_c2)
         .arg(&ocl_p0)
         .arg(&ocl_p1)
@@ -492,7 +543,7 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
         .arg(&ocl_grad_p0)
         .arg(&ocl_grad_p1)
         .arg(&ocl_grad_p2)
-        .arg(&ocl_grad_w)*/
+        .arg(&ocl_grad_w)
         .build()
         .unwrap();
 
@@ -505,59 +556,37 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
         let start = precise_time::precise_time_ns();
 
         //reset the gradients to zero
-        let mut grad_c1: Vec<f32> = vec![0.0; NCLUST];
-        let mut grad_c2: Vec<f32> = vec![0.0; NCLUST];
-        let mut grad_p0: Vec<f32> = vec![0.0; NCLUST];
-        let mut grad_p1: Vec<f32> = vec![0.0; NCLUST];
-        let mut grad_p2: Vec<f32> = vec![0.0; NCLUST];
-        let mut grad_w: Vec<f32> = vec![0.0; NCLUST + 1];
+        grad_c1.clear();
+        grad_c1.resize(NCLUST, 0.0);
+        grad_c2.clear();
+        grad_c2.resize(NCLUST, 0.0);
+        grad_p0.clear();
+        grad_p0.resize(NCLUST, 0.0);
+        grad_p1.clear();
+        grad_p1.resize(NCLUST, 0.0);
+        grad_p2.clear();
+        grad_p2.resize(NCLUST, 0.0);
+        grad_w.clear();
+        grad_w.resize(NCLUST + 1, 0.0);
 
-        let ocl_grad_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        //retransmit the gradient buffers
         ocl_grad_c1.write(&grad_c1).enq().unwrap();
-
-        let ocl_grad_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_grad_c2.write(&grad_c2).enq().unwrap();
-
-        let ocl_grad_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_grad_p0.write(&grad_p0).enq().unwrap();
-
-        let ocl_grad_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_grad_p1.write(&grad_p1).enq().unwrap();
-
-        let ocl_grad_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_grad_p2.write(&grad_p2).enq().unwrap();
+        ocl_grad_w.write(&grad_w).enq().unwrap();
 
-        let ocl_grad_w = pro_que
-            .buffer_builder::<f32>()
-            .len(NCLUST + 1)
-            .build()
-            .unwrap();
-
-        //reset the param buffers
-        let ocl_c1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
+        //retransmit the param buffers
         ocl_c1.write(&c1).enq().unwrap();
-
-        let ocl_c2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_c2.write(&c2).enq().unwrap();
-
-        let ocl_p0 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_p0.write(&p0).enq().unwrap();
-
-        let ocl_p1 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_p1.write(&p1).enq().unwrap();
-
-        let ocl_p2 = pro_que.buffer_builder::<f32>().len(NCLUST).build().unwrap();
         ocl_p2.write(&p2).enq().unwrap();
-
-        let ocl_w = pro_que
-            .buffer_builder::<f32>()
-            .len(NCLUST + 1)
-            .build()
-            .unwrap();
         ocl_w.write(&w).enq().unwrap();
 
         //set named arguments to the kernel
-        kernel.set_arg("c1", &ocl_c1).unwrap();
+        /*kernel.set_arg("c1", &ocl_c1).unwrap();
         kernel.set_arg("c2", &ocl_c2).unwrap();
         kernel.set_arg("p0", &ocl_p0).unwrap();
         kernel.set_arg("p1", &ocl_p1).unwrap();
@@ -568,7 +597,7 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
         kernel.set_arg("_grad_p0", &ocl_grad_p0).unwrap();
         kernel.set_arg("_grad_p1", &ocl_grad_p1).unwrap();
         kernel.set_arg("_grad_p2", &ocl_grad_p2).unwrap();
-        kernel.set_arg("_grad_w", &ocl_grad_w).unwrap();
+        kernel.set_arg("_grad_w", &ocl_grad_w).unwrap();*/
 
         unsafe {
             kernel.enq().unwrap();
@@ -609,13 +638,13 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
             w[i] = w[i] - num_traits::signum(grad_w[i]) * dw[i];
             grad_w_prev[i] = grad_w[i];
 
-            if w[i].is_nan() {
+            /*if w[i].is_nan() {
                 println!("w = {}, dw = {}, grad_w = {}", w[i], dw[i], grad_w[i]);
-            }
+            }*/
         }
 
         //c1, c2, p0, p1, p2
-        /*for i in 0..NCLUST {
+        for i in 0..NCLUST {
             //c1
             if grad_c1_prev[i] * grad_c1[i] > 0.0 {
                 dc1[i] = dMax.min(etap * dc1[i]);
@@ -680,7 +709,7 @@ fn rbf_compress_tile(tile: &Vec<f32>, width: usize, height: usize) -> bool {
 
             p2[i] = p2[i] - num_traits::signum(grad_p2[i]) * dp2[i];
             grad_p2_prev[i] = grad_p2[i];
-        }*/
+        }
 
         //println!("w: {:?}", w);
     }
