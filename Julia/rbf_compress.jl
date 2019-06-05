@@ -6,7 +6,7 @@ using PaddedViews
 using Random
 using Statistics
 
-const NITER = 0
+const NITER = 50
 
 function rbf_compress_tile(tile, device, ctx, queue)
     dims = size(tile)
@@ -41,6 +41,8 @@ function rbf_compress_tile(tile, device, ctx, queue)
 
     if frame_min == frame_max
         return (frame_min, missing, missing, missing, missing, missing, missing, missing)
+    else
+        println("tile min: $(frame_min), tile_max: $(frame_max)")
     end
 
     x1 = Float32[]
@@ -51,11 +53,13 @@ function rbf_compress_tile(tile, device, ctx, queue)
     count = 0
 
     x1test = Float32[]
-    x2test = Float32[]    
+    x2test = Float32[]
+    dtest = Float32[]  
 
     for iy = 1:height
         for ix = 1:width
             tmp = tile[ix,iy]
+
             if !isnan(tmp)
                 count = count + 1
                 pixel = log(0.5 + (tmp - frame_min) / (frame_max - frame_min))
@@ -65,8 +69,10 @@ function rbf_compress_tile(tile, device, ctx, queue)
                 push!(y, 0)
                 push!(e, 0)
             end
+
             push!(x1test, (ix - 1) / (width - 1))   #[0,1]
             push!(x2test, (iy - 1) / (height - 1))  #[0,1]
+            push!(dtest, tmp)
         end
     end
 
@@ -115,7 +121,9 @@ function rbf_compress_tile(tile, device, ctx, queue)
     η₊ = 1.2
     η₋ = 0.5
     ΔMin = 1e-5
-    ΔMax = 1e-1        
+    ΔMax = 1e-1   
+    #ΔMin = 1e-7
+    #ΔMax = 1e-2     
     d₀ = ΔMin
 
     #previous gradients
@@ -280,14 +288,18 @@ function rbf_compress_tile(tile, device, ctx, queue)
             grad_p2_prev[i] = grad_p2[i] ;
         end
              
+        println("p0:", p0)
+        println("p1:", p1)
+        println("p2:", p2)
+
         scene = Scene(resolution = (1500, 1500))
         center!(scene)
     
         if count < capacity               
             @time queue(rbf_compute, capacity, nothing, x1test_buff, x2test_buff, ytest_buff, c1_buff, c2_buff, p0_buff, p1_buff, p2_buff, w_buff)
             y = cl.read(queue, ytest_buff)
-            img = reshape(y, width, height)
-            heatmap!(scene, img)
+            img = reshape(y, width, height)#dtest or y                      
+            heatmap!(scene, img)#tile or img            
         else
             img = reshape(y, width, height)
             heatmap!(scene, img)
