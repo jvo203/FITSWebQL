@@ -1,4 +1,4 @@
-SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
+SRC = src/main_beast.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 INC = -I/usr/include/postgresql -Ilz4
 #-I/home/chris/uWebSockets/src -I/home/chris/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
@@ -27,10 +27,6 @@ llvm:
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 	g++ -march=native -g -O3 -std=c++17 -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
-
-beast:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ -march=native -g -O3 -std=c++17 -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) src/main_beast.cpp fits.o -o $(TARGET) $(LIBS) $(IPP)
 
 #$(JEMALLOC)
 
