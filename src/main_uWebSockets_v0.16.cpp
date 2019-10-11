@@ -8,7 +8,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-09.0"
+#define VERSION_STRING "SV2019-10-11.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -54,6 +54,25 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
+
+/** Thread safe cout class
+ * Exemple of use:
+ *    PrintThread{} << "Hello world!" << std::endl;
+ */
+class PrintThread : public std::ostringstream {
+public:
+  PrintThread() = default;
+
+  ~PrintThread() {
+    std::lock_guard<std::mutex> guard(_mutexPrint);
+    std::cout << this->str();
+  }
+
+private:
+  static std::mutex _mutexPrint;
+};
+
+std::mutex PrintThread::_mutexPrint{};
 
 #include <ipp.h>
 
@@ -133,53 +152,31 @@ bool is_gzip(const char *filename) {
 
 // resource not found
 void http_not_found(auto *res) {
-  const std::string not_found =
-      "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-  res->Super::write(not_found.data(), not_found.length());
-  // res->write(not_found.c_str());
+  res->writeStatus("404 Not Found");
+  res->end();
+  // res->end("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
 }
 
 // server error
 void http_internal_server_error(auto *res) {
-  const std::string server_error =
-      "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
-  res->Super::write(server_error.data(), server_error.length());
+  res->writeStatus("500 Internal Server Error");
+  res->end();
+  // res->end("HTTP/1.1 500 Internal Server Error\r\nContent-Length:
+  // 0\r\n\r\n");
 }
 
 // request accepted but not ready yet
 void http_accepted(auto *res) {
-  const std::string accepted =
-      "HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n";
-  res->Super::write(accepted.data(), accepted.length());
+  res->writeStatus("202 Accepted");
+  res->end();
+  // res->end("HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n");
 }
 
 // functionality not implemented/not available
 void http_not_implemented(auto *res) {
-  const std::string not_implemented =
-      "HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n";
-  res->Super::write(not_implemented.data(), not_implemented.length());
-}
-
-void write_status(auto *res, int code, std::string message) {
-  std::string status =
-      "HTTP/1.1 " + std::to_string(code) + " " + message + "\r\n";
-  res->Super::write(status.data(), status.length());
-}
-
-void write_content_length(auto *res, size_t length) {
-  std::string content_length =
-      "Content-Length: " + std::to_string(length) + "\r\n";
-  res->Super::write(content_length.data(), content_length.length());
-}
-
-void write_content_type(auto *res, std::string mime) {
-  std::string content_type = "Content-Type: " + mime + "\r\n";
-  res->Super::write(content_type.data(), content_type.length());
-}
-
-void write_key_value(auto *res, std::string key, std::string value) {
-  std::string content_type = key + ": " + value + "\r\n";
-  res->Super::write(content_type.data(), content_type.length());
+  res->writeStatus("501 Not Implemented");
+  res->end();
+  // res->end("HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
 }
 
 void get_spectrum(auto *res, std::shared_ptr<FITS> fits) {
@@ -188,15 +185,11 @@ void get_spectrum(auto *res, std::shared_ptr<FITS> fits) {
   fits->to_json(json);
 
   if (json.tellp() > 0) {
-    write_status(res, 200, "OK");
-    write_content_length(res, json.tellp());
-    write_content_type(res, "application/json");
-    write_key_value(res, "Cache-Control", "no-cache");
-    write_key_value(res, "Cache-Control", "no-store");
-    write_key_value(res, "Pragma", "no-cache");
-    res->Super::write("\r\n", 2);
-    res->Super::write(json.str().c_str(), json.tellp());
-    res->Super::write("\r\n\r\n", 4);
+    res->writeHeader("Content-Type", "application/json");
+    res->writeHeader("Cache-Control", "no-cache");
+    res->writeHeader("Cache-Control", "no-store");
+    res->writeHeader("Pragma", "no-cache");
+    res->end(json.str());
   } else {
     return http_not_implemented(res);
   }
@@ -304,15 +297,11 @@ void get_directory(auto *res, std::string dir) {
 
   json << "]}";
 
-  write_status(res, 200, "OK");
-  write_content_length(res, json.tellp());
-  write_content_type(res, "application/json");
-  write_key_value(res, "Cache-Control", "no-cache");
-  write_key_value(res, "Cache-Control", "no-store");
-  write_key_value(res, "Pragma", "no-cache");
-  res->Super::write("\r\n", 2);
-  res->Super::write(json.str().c_str(), json.tellp());
-  res->Super::write("\r\n\r\n", 4);
+  res->writeHeader("Content-Type", "application/json");
+  res->writeHeader("Cache-Control", "no-cache");
+  res->writeHeader("Cache-Control", "no-store");
+  res->writeHeader("Pragma", "no-cache");
+  res->end(json.str());
 }
 
 void get_home_directory(auto *res) {
@@ -347,9 +336,6 @@ void serve_file(auto *res, std::string uri) {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (buffer != NULL) {
-      write_status(res, 200, "OK");
-      write_content_length(res, size);
-
       // detect mime-types
       size_t pos = resource.find_last_of(".");
 
@@ -357,54 +343,53 @@ void serve_file(auto *res, std::string uri) {
         std::string ext = resource.substr(pos + 1, std::string::npos);
 
         if (ext == "htm" || ext == "html")
-          write_content_type(res, "text/html");
+          res->writeHeader("Content-Type", "text/html");
 
         if (ext == "txt")
-          write_content_type(res, "text/plain");
+          res->writeHeader("Content-Type", "text/plain");
 
         if (ext == "js")
-          write_content_type(res, "application/javascript");
+          res->writeHeader("Content-Type", "application/javascript");
 
         if (ext == "ico")
-          write_content_type(res, "image/x-icon");
+          res->writeHeader("Content-Type", "image/x-icon");
 
         if (ext == "png")
-          write_content_type(res, "image/png");
+          res->writeHeader("Content-Type", "image/png");
 
         if (ext == "gif")
-          write_content_type(res, "image/gif");
+          res->writeHeader("Content-Type", "image/gif");
 
         if (ext == "webp")
-          write_content_type(res, "image/webp");
+          res->writeHeader("Content-Type", "image/webp");
 
         if (ext == "jpg" || ext == "jpeg")
-          write_content_type(res, "image/jpeg");
+          res->writeHeader("Content-Type", "image/jpeg");
 
         if (ext == "bpg")
-          write_content_type(res, "image/bpg");
+          res->writeHeader("Content-Type", "image/bpg");
 
         if (ext == "mp4")
-          write_content_type(res, "video/mp4");
+          res->writeHeader("Content-Type", "video/mp4");
 
         if (ext == "hevc")
-          write_content_type(res, "video/hevc");
+          res->writeHeader("Content-Type", "video/hevc");
 
         if (ext == "css")
-          write_content_type(res, "text/css");
+          res->writeHeader("Content-Type", "text/css");
 
         if (ext == "pdf")
-          write_content_type(res, "application/pdf");
+          res->writeHeader("Content-Type", "application/pdf");
 
         if (ext == "svg")
-          write_content_type(res, "image/svg+xml");
+          res->writeHeader("Content-Type", "image/svg+xml");
 
         if (ext == "wasm")
-          write_content_type(res, "application/wasm");
+          res->writeHeader("Content-Type", "application/wasm");
       }
 
-      res->Super::write("\r\n", 2);
-      res->Super::write((const char *)buffer, size);
-      res->Super::write("\r\n\r\n", 4);
+      std::string_view body((const char *)buffer, size);
+      res->end(body);
     } else {
       perror("error mapping a file");
       http_not_found(res);
@@ -688,13 +673,15 @@ int main(int argc, char *argv[]) {
               .listen(server_port,
                       [](auto *token) {
                         if (token) {
-                          std::cout << "Thread " << std::this_thread::get_id()
-                                    << " listening on port " << server_port
-                                    << std::endl;
+                          PrintThread{} << "Thread "
+                                        << std::this_thread::get_id()
+                                        << " listening on port " << server_port
+                                        << std::endl;
                         } else {
-                          std::cout << "Thread " << std::this_thread::get_id()
-                                    << " failed to listen on port "
-                                    << server_port << std::endl;
+                          PrintThread{}
+                              << "Thread " << std::this_thread::get_id()
+                              << " failed to listen on port " << server_port
+                              << std::endl;
                         }
                       })
               .run();
