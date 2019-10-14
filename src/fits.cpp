@@ -348,6 +348,7 @@ void FITS::defaults() {
   black = NAN;
   white = NAN;
   sensitivity = NAN;
+  ratio_sensitivity = NAN;
 
   for (int i = 0; i < NBINS; i++)
     hist[i] = 0;
@@ -623,6 +624,64 @@ bool FITS::process_fits_header_unit(const char *buf) {
     if (datamin == datamax) {
       datamin = -FLT_MAX;
       datamax = FLT_MAX;
+    }
+
+    //decide on a FITS type (optical? radio? X-ray?)
+    if (strncmp(hdrLine, "TELESCOP= ", 10) == 0)
+    {
+      std::string telescope = boost::algorithm::to_lower_copy(hdr_get_string_value(hdrLine + 10));
+
+      if (telescope.find("alma") != std::string::npos)
+        is_optical = false;
+
+      if (telescope.find("vla") != std::string::npos || telescope.find("ska") != std::string::npos)
+        is_optical = false;
+
+      if (telescope.find("nro45") != std::string::npos)
+      {
+        is_optical = false;
+        flux = "logistic";
+      }
+    }
+
+    std::string line(hdrLine);
+
+    if (line.find("ASTRO-F") != std::string::npos)
+    {
+        is_optical = true;
+        flux = "logistic";
+    }
+
+    if (line.find("HSCPIPE") != std::string::npos)
+    {
+        is_optical = true;
+        flux = "ratio";
+    }
+
+    if (strncmp(hdrLine, "FRAMEID = ", 10) == 0)
+    {
+      std::string frameid = hdr_get_string_value(hdrLine + 10);
+
+      if (frameid.find("SUPM") != std::string::npos || frameid.find("MCSM") != std::string::npos)
+      {
+        is_optical = true;
+        flux = "ratio";
+      }
+    }
+
+    //JAXA X-Ray settings
+    {
+      //in-place to_lower
+      boost::algorithm::to_lower(line);
+
+      if (line.find("suzaku") != std::string::npos || line.find("hitomi") != std::string::npos || line.find("x-ray") != std::string::npos)
+      {
+        is_optical = false;
+        is_xray = true;
+        flux = "legacy";
+        if (ignrval == -FLT_MAX)
+          ignrval = -1.0f;
+      }
     }
   }
 
@@ -1379,10 +1438,24 @@ void FITS::image_statistics() {
   else
     _madN = _mad;
 
-  float u = 7.5f; // 0.5f ;
+  //ALMAWebQL-style
+  float u = 7.5f;
   float _black = MAX(_pmin, median - u * _madN);
   float _white = MIN(_pmax, median + u * _madP);
   float _sensitivity = 1.0f / (_white - _black);
+  float _ratio_sensitivity = _sensitivity;
+
+  if(this->is_optical)
+  {
+    //SubaruWebQL-style
+    float u = 0.5f;
+    float v = 15.0f;
+    _black = MAX(_pmin, median - u * _madN);
+    _white = MIN(_pmax, median + u * _madP);
+    _sensitivity = 1.0f / (v * _mad);
+    _ratio_sensitivity = _sensitivity;
+    auto_brightness(img_pixels, img_mask, _black, _ratio_sensitivity);
+  }
 
   if (this->flux == "") {
     long cdf[NBINS];
@@ -1436,6 +1509,7 @@ void FITS::image_statistics() {
   this->black = _black;
   this->white = _white;
   this->sensitivity = _sensitivity;
+  this->ratio_sensitivity = _ratio_sensitivity;
 }
 
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
@@ -1638,6 +1712,7 @@ void FITS::to_json(std::ostringstream &json) {
   json << "\"max\" : " << std::scientific << max << ",";
   json << "\"median\" : " << std::scientific << median << ",";
   json << "\"sensitivity\" : " << std::scientific << sensitivity << ",";
+  json << "\"ratio_sensitivity\" : " << std::scientific << ratio_sensitivity << ",";
   json << "\"black\" : " << std::scientific << black << ",";
   json << "\"white\" : " << std::scientific << white << ",";
   json << "\"flux\" : \"" << flux << "\",";
@@ -1647,4 +1722,71 @@ void FITS::to_json(std::ostringstream &json) {
   for (size_t i = 0; i < NBINS - 1; i++)
     json << hist[i] << ",";
   json << hist[NBINS - 1] << "]}";
+}
+
+void FITS::auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float& _ratio_sensitivity)
+{
+  if(std::isnan(_ratio_sensitivity))
+    return;
+
+  float target_brightness = 0.1f;
+  int max_iter = 20;
+  int iter = 0;
+
+  float a = 0.01f * _ratio_sensitivity;
+  float b = 100.0f * _ratio_sensitivity;
+
+  //perform the first step manually (verify that br(a) <= target_brightness <= br(b) )
+  float a_brightness = calculate_brightness(_pixels, _mask, _black, a);
+  float b_brightness = calculate_brightness(_pixels, _mask, _black, b);
+
+  if (target_brightness < a_brightness || target_brightness > b_brightness)
+    return;
+
+  do {
+    _ratio_sensitivity = 0.5f * (a + b);
+    float brightness = calculate_brightness(_pixels, _mask, _black, _ratio_sensitivity);
+
+    printf("iteration: %d, sensitivity: %f, brightness: %f divergence: %f\n", iter, _ratio_sensitivity, brightness, fabs(target_brightness - brightness));
+
+    if (brightness > target_brightness)
+      b = _ratio_sensitivity;
+
+    if (brightness < target_brightness)
+      a = _ratio_sensitivity;
+
+    if (fabs(target_brightness - brightness) < 0.1f * target_brightness)
+      break;
+
+  } while (iter++ < max_iter);
+
+  //an approximate solution
+  _ratio_sensitivity = 0.5f * (a + b);
+
+  printf("bisection sensitivity = %f\n", _ratio_sensitivity);
+}
+
+float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float _sensitivity)
+{
+  int max_threads = omp_get_max_threads();
+  size_t total_size = width * height;
+  size_t max_work_size = 1024 * 1024 * 1024;
+  size_t work_size = MIN(total_size / max_threads, max_work_size);
+  int num_threads = total_size / work_size;
+
+  float brightness = 0.0f;
+
+#pragma omp parallel for reduction(+ : brightness)
+  for (int tid = 0; tid < num_threads; tid++)
+  {
+    size_t work_size = total_size / num_threads;
+    size_t start = tid * work_size;
+
+    if (tid == num_threads - 1)
+      work_size = total_size - start;
+
+    brightness = ispc::pixels_mean_brightness_ratio(&(img_pixels[start]), &(img_mask[start]), _black, _sensitivity, work_size);
+  };
+
+  return brightness;
 }

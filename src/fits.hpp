@@ -57,6 +57,8 @@ private:
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
   void image_statistics();
+  void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float& _ratio_sensitivity);
+  float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float _sensitivity);
 
 public:
   std::string dataset_id;
@@ -117,7 +119,7 @@ public:
   std::vector<float> mean_spectrum, integrated_spectrum;
 
   //statistics
-  float min, max, median, mad, madN, madP, black, white, sensitivity;
+  float min, max, median, mad, madN, madP, black, white, sensitivity, ratio_sensitivity;
   Ipp32u hist[NBINS];
 
   //extras

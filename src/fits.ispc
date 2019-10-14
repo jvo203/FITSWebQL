@@ -146,7 +146,6 @@ export void histogram(uniform float data[], uniform unsigned int size, uniform u
     } ;
 } ;
 
-
 export void asymmetric_mad(uniform float data[], uniform unsigned int8 mask[], uniform unsigned int size, uniform float median, uniform int64& count, uniform float& mad, uniform int64& countP, uniform float& madP, uniform int64& countN, uniform float& madN)
 {
   varying int vcount = count ;
@@ -184,4 +183,28 @@ export void asymmetric_mad(uniform float data[], uniform unsigned int8 mask[], u
 
   countN = reduce_add(vcountN) ;
   madN = reduce_add(vmadN) ;
+} ;
+
+export uniform float pixels_mean_brightness_ratio(uniform float pixels[], uniform unsigned int8 mask[], uniform float black, uniform float sensitivity, uniform unsigned int total_size)
+{
+  float partial_sum = 0.0f ;
+  unsigned int partial_count = 0 ;
+
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {      
+      float pixel = 5.0f * (pixels[j] - black) * sensitivity ;
+      partial_sum += pixel > 0.0f ? pixel/(1.0f + pixel) : 0.0f ;       
+      partial_count += 1 ;
+    }   
+  }
+
+  uniform float sum = reduce_add(partial_sum) ;
+  uniform int count = reduce_add(partial_count) ;
+
+  if(count > 0)
+    return sum / (float) count ;
+  else
+    return 0.0f;
 } ;
