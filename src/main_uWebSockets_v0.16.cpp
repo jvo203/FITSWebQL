@@ -628,13 +628,9 @@ int main(int argc, char *argv[]) {
                      if (uri.find("/get_directory") != std::string::npos) {
                        std::string dir;
 
-                       // get a position of '?'
-                       size_t pos = uri.find("?");
-
-                       if (pos != std::string::npos) {
-                         std::string_view query =
-                             uri.substr(pos + 1, std::string::npos);
-                         std::cout << "query: (" << query << ")" << std::endl;
+                       std::string_view query = req->getQuery();
+                       
+                      std::cout << "query: (" << query << ")" << std::endl;
 
                          std::vector<std::string> params;
                          boost::split(params, query,
@@ -659,9 +655,8 @@ int main(int argc, char *argv[]) {
 
                                curl_easy_cleanup(curl);
                              }
-                           }
+                           }                         
                          }
-                       }
 
                        if (dir != "")
                          return get_directory(res, dir);
