@@ -3,7 +3,7 @@ INC = -I/usr/include/postgresql -Ilz4 -I/home/chris/uWebSockets/src -I/home/chri
 #-Ibm-3.20.0/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -lzfp -l:libnuma.so.1 -lpthread /home/chris/uWebSockets/uSockets/*.o
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread /home/chris/uWebSockets/uSockets/*.o
 #-luWS
 IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
