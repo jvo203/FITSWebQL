@@ -1788,5 +1788,5 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, fl
     brightness = ispc::pixels_mean_brightness_ratio(&(img_pixels[start]), &(img_mask[start]), _black, _sensitivity, work_size);
   };
 
-  return brightness;
+  return brightness / float(num_threads);
 }
