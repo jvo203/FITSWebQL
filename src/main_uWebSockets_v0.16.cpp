@@ -614,7 +614,6 @@ int main(int argc, char *argv[]) {
           uWS::App()
               .get("/*",
                    [](auto *res, auto *req) {
-                     // res->write("FITSWebQL v5 Supercomputer Edition");
                      std::string_view uri = req->getUrl();
                      std::cout << "HTTP request for " << uri << std::endl;
 
