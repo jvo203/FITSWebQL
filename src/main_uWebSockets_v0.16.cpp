@@ -669,6 +669,9 @@ int main(int argc, char *argv[]) {
                        else
                          return get_home_directory(res);
                      };
+
+                    //default handler
+                    return serve_file(res, std::string(uri));
                    })
               .listen(server_port,
                       [](auto *token) {
