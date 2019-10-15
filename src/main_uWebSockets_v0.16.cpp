@@ -1402,7 +1402,7 @@ int main(int argc, char *argv[]) {
                         if(user != NULL)
                         {
                           std::cout << "non-NULL user data" << std::endl;
-                          user->session_id = std::string("NULL");
+                          //user->session_id = std::string("NULL");
                           //user->datasetid = std::string(datasetid[0]);
                           //user->all_ids = datasetid;
                           //ws->subscribe(user->datasetid);
