@@ -1,13 +1,13 @@
 #pragma once
 
-#include <math.h>
-#include <string>
-#include <ctime>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
-#include <string.h>
+#include <ctime>
+#include <math.h>
+#include <mutex>
 #include <optional>
+#include <string.h>
+#include <string>
 #include <vector>
 #include <zlib.h>
 
@@ -34,10 +34,10 @@
 #define NBINS 1024
 
 int histogram_classifier(float *Slot);
-void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins, float pmins, float pmax);
+void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
+                    float pmins, float pmax);
 
-class FITS
-{
+class FITS {
 public:
   FITS();
   FITS(std::string id, std::string flux);
@@ -46,7 +46,8 @@ public:
 public:
   void update_timestamp();
   void from_url(std::string url, std::string flux, int va_count);
-  void from_path_zfp(std::string path, bool is_compressed, std::string flux, int va_count);
+  void from_path_zfp(std::string path, bool is_compressed, std::string flux,
+                     int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
   void to_json(std::ostringstream &json);
 
@@ -57,8 +58,10 @@ private:
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
   void image_statistics();
-  void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float& _ratio_sensitivity);
-  float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black, float _sensitivity);
+  void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
+                       float &_ratio_sensitivity);
+  float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
+                             float _sensitivity);
 
 public:
   std::string dataset_id;
@@ -113,16 +116,17 @@ public:
   std::string beam_unit;
   std::string beam_type;
 
-  //values derived from the FITS data
-  float dmin, dmax; //global data range
+  // values derived from the FITS data
+  float dmin, dmax; // global data range
   std::vector<float> frame_min, frame_max;
   std::vector<float> mean_spectrum, integrated_spectrum;
 
-  //statistics
-  float min, max, median, mad, madN, madP, black, white, sensitivity, ratio_sensitivity;
+  // statistics
+  float min, max, median, mad, madN, madP, black, white, sensitivity,
+      ratio_sensitivity;
   Ipp32u hist[NBINS];
 
-  //extras
+  // extras
   std::atomic<bool> has_header;
   std::atomic<bool> has_data;
   std::atomic<bool> has_error;
@@ -139,17 +143,17 @@ public:
   std::mutex fits_mutex;
 
 private:
-  //FITS header
+  // FITS header
   char *header;
   size_t hdr_len;
   Ipp32f *img_pixels;
   Ipp8u *img_mask;
 
-  //ZFP compressed arrays + masks
+  // ZFP compressed arrays + masks
   zfp::array3f *cube;
   std::vector<Roaring64Map> masks;
 
-  //housekeeping
+  // housekeeping
   std::time_t timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;

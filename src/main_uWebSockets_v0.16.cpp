@@ -8,7 +8,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-11.0"
+#define VERSION_STRING "SV2019-10-15.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -151,14 +151,14 @@ bool is_gzip(const char *filename) {
 }
 
 // resource not found
-void http_not_found(auto *res) {
+void http_not_found(uWS::HttpResponse<false> *res) {
   res->writeStatus("404 Not Found");
   res->end();
   // res->end("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
 }
 
 // server error
-void http_internal_server_error(auto *res) {
+void http_internal_server_error(uWS::HttpResponse<false> *res) {
   res->writeStatus("500 Internal Server Error");
   res->end();
   // res->end("HTTP/1.1 500 Internal Server Error\r\nContent-Length:
@@ -166,20 +166,20 @@ void http_internal_server_error(auto *res) {
 }
 
 // request accepted but not ready yet
-void http_accepted(auto *res) {
+void http_accepted(uWS::HttpResponse<false> *res) {
   res->writeStatus("202 Accepted");
   res->end();
   // res->end("HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n");
 }
 
 // functionality not implemented/not available
-void http_not_implemented(auto *res) {
+void http_not_implemented(uWS::HttpResponse<false> *res) {
   res->writeStatus("501 Not Implemented");
   res->end();
   // res->end("HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
 }
 
-void get_spectrum(auto *res, std::shared_ptr<FITS> fits) {
+void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits) {
   std::ostringstream json;
 
   fits->to_json(json);
@@ -195,15 +195,15 @@ void get_spectrum(auto *res, std::shared_ptr<FITS> fits) {
   }
 }
 
-/*struct MolecularStream
+struct MolecularStream
 {
     bool first;
     bool compress;
-    auto *res;
+    uWS::HttpResponse<false> *res;
     z_stream z;
     unsigned char out[CHUNK];
     FILE *fp;
-};*/
+};
 
 uintmax_t ComputeFileSize(const fs::path &pathToCheck) {
   if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck)) {
@@ -216,7 +216,7 @@ uintmax_t ComputeFileSize(const fs::path &pathToCheck) {
   return static_cast<uintmax_t>(-1);
 }
 
-void get_directory(auto *res, std::string dir) {
+void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
   std::cout << "scanning directory " << dir << std::endl;
 
   fs::path pathToShow(dir);
@@ -304,14 +304,14 @@ void get_directory(auto *res, std::string dir) {
   res->end(json.str());
 }
 
-void get_home_directory(auto *res) {
+void get_home_directory(uWS::HttpResponse<false> *res) {
   if (home_dir != "")
     return get_directory(res, home_dir);
   else
     return http_not_found(res);
 }
 
-void serve_file(auto *res, std::string uri) {
+void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
   std::string resource = "htdocs" + uri;
 
   // strip '?' from the requested file name
@@ -390,13 +390,13 @@ void serve_file(auto *res, std::string uri) {
 
       std::string_view body((const char *)buffer, size);
       res->end(body);
+
+      if (munmap(buffer, size) == -1)
+        perror("un-mapping error");
     } else {
       perror("error mapping a file");
       http_not_found(res);
     }
-
-    if (munmap(buffer, size) == -1)
-      perror("un-mapping error");
 
     close(fd);
   } else
@@ -629,34 +629,34 @@ int main(int argc, char *argv[]) {
                        std::string dir;
 
                        std::string_view query = req->getQuery();
-                       
-                      std::cout << "query: (" << query << ")" << std::endl;
 
-                         std::vector<std::string> params;
-                         boost::split(params, query,
-                                      [](char c) { return c == '&'; });
+                       std::cout << "query: (" << query << ")" << std::endl;
 
-                         for (auto const &s : params) {
-                           // find '='
-                           size_t pos = s.find("=");
+                       std::vector<std::string> params;
+                       boost::split(params, query,
+                                    [](char c) { return c == '&'; });
 
-                           if (pos != std::string::npos) {
-                             std::string key = s.substr(0, pos);
-                             std::string value =
-                                 s.substr(pos + 1, std::string::npos);
+                       for (auto const &s : params) {
+                         // find '='
+                         size_t pos = s.find("=");
 
-                             if (key == "dir") {
-                               CURL *curl = curl_easy_init();
+                         if (pos != std::string::npos) {
+                           std::string key = s.substr(0, pos);
+                           std::string value =
+                               s.substr(pos + 1, std::string::npos);
 
-                               char *str = curl_easy_unescape(
-                                   curl, value.c_str(), value.length(), NULL);
-                               dir = std::string(str);
-                               curl_free(str);
+                           if (key == "dir") {
+                             CURL *curl = curl_easy_init();
 
-                               curl_easy_cleanup(curl);
-                             }
-                           }                         
+                             char *str = curl_easy_unescape(
+                                 curl, value.c_str(), value.length(), NULL);
+                             dir = std::string(str);
+                             curl_free(str);
+
+                             curl_easy_cleanup(curl);
+                           }
                          }
+                       }
 
                        if (dir != "")
                          return get_directory(res, dir);
@@ -664,8 +664,8 @@ int main(int argc, char *argv[]) {
                          return get_home_directory(res);
                      };
 
-                    //default handler
-                    return serve_file(res, std::string(uri));
+                     // default handler
+                     return serve_file(res, std::string(uri));
                    })
               .listen(server_port,
                       [](auto *token) {
