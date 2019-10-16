@@ -8,7 +8,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-15.0"
+#define VERSION_STRING "SV2019-10-16.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <ctime> 
 #include <csignal>
 #include <iostream>
 #include <map>
@@ -54,6 +55,12 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
+
+using namespace std::chrono;
+
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 
 /** Thread safe cout class
  * Exemple of use:
@@ -424,7 +431,7 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
 
       auto filename = entry.path().filename();
       auto timestamp = fs::last_write_time(entry);
-      time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
+      time_t cftime = system_clock::to_time_t(timestamp);
       std::string last_modified = std::asctime(std::localtime(&cftime));
       last_modified.pop_back();
 
@@ -979,10 +986,15 @@ void ipp_init() {
   }
 }
 
+struct UserSession {
+  boost::uuids::uuid session_id;
+  system_clock::time_point timestamp;
+  std::string primary_id;
+  std::vector<std::string> ids;
+};
+
 struct UserData {
-  std::string session_id;
-  std::string datasetid;
-  std::vector<std::string> all_ids;
+  struct UserSession* ptr;
 };
 
 int main(int argc, char *argv[]) {
@@ -1379,7 +1391,11 @@ int main(int argc, char *argv[]) {
                 /* Handlers */
                 .open = [](auto *ws, auto *req) {                                            
                   std::string_view url = req->getUrl();
-                  std::cout << "[µWS] open " << url << std::endl;                                  
+                  PrintThread{} << "[µWS] open " << url << std::endl;                                  
+
+                  struct UserData* user = (struct UserData*) ws->getUserData();
+                  if(user != NULL)
+                    user->ptr = NULL;
 
                   size_t pos = url.find_last_of("/");
 
@@ -1392,25 +1408,20 @@ int main(int argc, char *argv[]) {
                                     [](char c) { return c == ';'; });
                   
                       for (auto const &s : datasetid) {
-                        std::cout << "datasetid: " << s << std::endl;
+                        PrintThread{} << "datasetid: " << s << std::endl;
                       }
 
                       if(datasetid.size() > 0)
-                      {
-                        struct UserData* user = (struct UserData*) ws->getUserData();                        
-
+                      { 
                         if(user != NULL)
                         {
-                          std::cout << "non-NULL user data" << std::endl;
-                          //user->session_id = std::string("NULL");
-                          //user->datasetid = std::string(datasetid[0]);
-                          //user->all_ids = datasetid;
-                          //ws->subscribe(user->datasetid);
-                        }
-                        else
-                        {
-                          std::cout << "NULL UserData!!!" << std::endl;
-                        };
+                          user->ptr = new UserSession();
+                          user->ptr->session_id = boost::uuids::random_generator()();                 
+                          user->ptr->timestamp = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(0.5));
+                          user->ptr->primary_id = datasetid[0];                          
+                          user->ptr->ids = datasetid;
+                          ws->subscribe(user->ptr->primary_id);
+                        }                        
                       }
                   }
                 },
@@ -1418,14 +1429,21 @@ int main(int argc, char *argv[]) {
                   //ws->send(message, opCode);
                 },
                 .close = [](auto *ws, int code, std::string_view message) {                  
-                  std::cout << "[µWS] close " << message << std::endl;
-
                   struct UserData* user = (struct UserData*) ws->getUserData();
 
                   if(user != NULL)
                   {
-                    //ws->unsubscribe(user->datasetid);
+                    if(user->ptr != NULL)
+                    {
+                      PrintThread{} << "[µWS] closing a session " << user->ptr->session_id << " for " << user->ptr->primary_id << std::endl;
+                      ws->unsubscribe(user->ptr->primary_id);
+                      delete user->ptr;                    
+                    }
+                    else
+                      PrintThread{} << "[µWS] close " << message << std::endl;
                   }
+                  else                  
+                    PrintThread{} << "[µWS] close " << message << std::endl;                                 
                 }
               })
               .listen(server_port,
