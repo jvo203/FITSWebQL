@@ -5,6 +5,7 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+#define BEACON_PORT 50000
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
@@ -86,7 +87,13 @@ std::mutex PrintThread::_mutexPrint{};
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "App.h"
+#include "global.h"
+
+#ifdef CLUSTER
+zactor_t *beacon = NULL;
+std::thread beacon_thread;
+#endif
+
 #include <curl/curl.h>
 #include <sqlite3.h>
 
@@ -127,6 +134,19 @@ void signalHandler(int signum) {
 
   if (splat_db != NULL)
     sqlite3_close(splat_db);
+
+#ifdef CLUSTER
+  if(beacon != NULL)
+  {
+    zstr_sendx (beacon, "SILENCE", NULL);
+    zstr_sendx (beacon, "UNSUBSCRIBE", NULL);  
+    zactor_destroy (&beacon);
+
+    zsys_shutdown();
+
+    beacon_thread.join();
+  }
+#endif
 
   std::cout << "FITSWebQL shutdown completed." << std::endl;
 
@@ -998,6 +1018,43 @@ struct UserData {
 };
 
 int main(int argc, char *argv[]) {
+#ifdef CLUSTER
+  //LAN cluster node auto-discovery
+  beacon_thread = std::thread([]() {
+  beacon = zactor_new (zbeacon, NULL);
+  zstr_send (beacon, "VERBOSE");
+
+  zsock_send (beacon, "si", "CONFIGURE", BEACON_PORT);
+  char *hostname = zstr_recv (beacon);
+
+  const int interval = 1000;//[ms]
+  zsock_send (beacon, "sbi", "PUBLISH", hostname, strlen(hostname), interval);
+  zsock_send (beacon, "sb", "SUBSCRIBE", NULL, 0);
+
+  zmsg_t *msg = NULL;
+  
+  while ((msg = zmsg_recv (beacon)) != NULL)
+  {
+    printf("peer connection beacon\n");
+
+    //check the abort status!!!
+
+    if(zmsg_size (msg) == 2)
+    {
+      zframe_t *frame = zmsg_first(msg);
+      zframe_destroy(&frame);
+
+      frame = zmsg_last(msg);
+      zframe_destroy(&frame);
+    }
+
+    zmsg_destroy (&msg);
+  }
+
+  printf("zmsg_recv() interrupted.\n");
+  });
+#endif
+
   ipp_init();
   curl_global_init(CURL_GLOBAL_ALL);
 
@@ -1274,6 +1331,54 @@ int main(int argc, char *argv[]) {
                            return http_not_implemented(res);
                        }                     
 
+                      if (uri.find("/get_image") != std::string::npos) {
+                        std::string_view query = req->getQuery();
+                       // std::cout << "query: (" << query << ")" << std::endl;
+
+                       std::string datasetid;
+
+                       std::vector<std::string> params;
+                       boost::split(params, query,
+                                    [](char c) { return c == '&'; });
+
+                       CURL *curl = curl_easy_init();
+
+                       for (auto const &s : params) {
+                         // find '='
+                         size_t pos = s.find("=");
+
+                         if (pos != std::string::npos) {
+                           std::string key = s.substr(0, pos);
+                           std::string value =
+                               s.substr(pos + 1, std::string::npos);
+
+                           if (key.find("dataset") != std::string::npos) {
+                             char *str = curl_easy_unescape(
+                                 curl, value.c_str(), value.length(), NULL);
+                             datasetid = std::string(str);
+                             curl_free(str);
+                           }
+                         }
+                       }
+
+                       curl_easy_cleanup(curl);
+
+                        std::shared_lock<std::shared_mutex> lock(fits_mutex);
+                           auto item = DATASETS.find(datasetid);
+                           lock.unlock();
+
+                           if (item == DATASETS.end())
+                             return http_not_found(res);
+                           else {
+                             auto fits = item->second;
+
+                             if (fits->has_error)
+                               return http_not_found(res);
+                              else
+                                return http_accepted(res);
+                           }
+                      }
+
                      // FITSWebQL entry
                      if (uri.find("FITSWebQL.html") != std::string::npos) {
                        std::string_view query = req->getQuery();
@@ -1420,7 +1525,11 @@ int main(int argc, char *argv[]) {
                           user->ptr->timestamp = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(0.5));
                           user->ptr->primary_id = datasetid[0];                          
                           user->ptr->ids = datasetid;
-                          ws->subscribe(user->ptr->primary_id);
+
+                          std::lock_guard<std::mutex> guard(m_progress_mutex);
+                          TWebSocketList connections = m_progress[datasetid[0]] ;
+		                      connections.insert(ws) ;
+		                      //m_progress[datasetid[0]] = connections ;
                         }                        
                       }
                   }
@@ -1434,9 +1543,18 @@ int main(int argc, char *argv[]) {
                   if(user != NULL)
                   {
                     if(user->ptr != NULL)
-                    {
-                      PrintThread{} << "[µWS] closing a session " << user->ptr->session_id << " for " << user->ptr->primary_id << std::endl;
-                      ws->unsubscribe(user->ptr->primary_id);
+                    {                      
+                      PrintThread{} << "[µWS] closing a session " << user->ptr->session_id << " for " << user->ptr->primary_id << std::endl;                      
+
+                      std::lock_guard<std::mutex> guard(m_progress_mutex);
+                      TWebSocketList connections = m_progress[user->ptr->primary_id] ;
+		                  connections.erase(ws) ;
+                      //m_progress[user->ptr->primary_id] = connections ;
+
+                      //check if it is the last connection for this dataset
+                      if(connections.size() == 0)
+                        m_progress.erase(user->ptr->primary_id);		                  
+
                       delete user->ptr;                    
                     }
                     else

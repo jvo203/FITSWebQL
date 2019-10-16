@@ -1,5 +1,7 @@
 #pragma once
 
+#include "global.h"
+
 #include <atomic>
 #include <condition_variable>
 #include <ctime>
@@ -25,8 +27,13 @@
 #define FITS_CHUNK_LENGTH 2880
 #define FITS_LINE_LENGTH 80
 
+#ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
 
 #define EPSILON 1.0E-15
 #define FPzero(A) (fabs(A) <= EPSILON)
