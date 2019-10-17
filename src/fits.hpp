@@ -3,6 +3,7 @@
 #include "global.h"
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <ctime>
 #include <math.h>
@@ -12,6 +13,8 @@
 #include <string>
 #include <vector>
 #include <zlib.h>
+
+using namespace std::chrono;
 
 #include "roaring.hh"
 
@@ -69,8 +72,9 @@ private:
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                              float _sensitivity);
+  void send_progress_notification( /*const char* notification,*/ size_t running, size_t total);
 
-public:
+public:  
   std::string dataset_id;
   std::string data_id;
   std::string flux;
@@ -161,6 +165,7 @@ private:
   std::vector<Roaring64Map> masks;
 
   // housekeeping
+  system_clock::time_point created;
   std::time_t timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;

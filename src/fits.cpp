@@ -2,6 +2,7 @@
 #include "fits.hpp"
 
 #include "roaring.c"
+#include "json.h"
 
 #include "json.h"
 #include "lz4.h"
@@ -235,6 +236,7 @@ FITS::FITS() {
   std::cout << this->dataset_id << "::default constructor." << std::endl;
 
   this->timestamp = std::time(nullptr);
+  this->created = system_clock::now();
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
   this->fits_file_size = 0;
@@ -1114,10 +1116,12 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
 
             bitmask.runOptimize();
           }
-        }
+        }        
 
         // compress all private cached blocks to shared storage
         view.flush_cache();
+
+        send_progress_notification(end_k, depth);
       }
 
       // join omp_{pixel,mask}
@@ -1295,6 +1299,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
                 view.flush_cache();
               }
               // printf("OpenMP<task::start:%zu>::finished.\n", start_k);
+              send_progress_notification(end_k, depth);
             }
           }
         }
@@ -1322,10 +1327,10 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
          elapsedMilliseconds);
 
   if (bSuccess) {
-    for (int i = 0; i < depth; i++)
+    /*for (int i = 0; i < depth; i++)
       std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
                 << ", size: " << masks[i].getSizeInBytes() << " bytes"
-                << std::endl;
+                << std::endl;*/
 
     image_statistics();
 
@@ -1792,4 +1797,30 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
   };
 
   return brightness / float(num_threads);
+}
+
+void FITS::send_progress_notification( /*const char* notification,*/ size_t running, size_t total)
+{
+  std::ostringstream json;
+
+  std::chrono::duration<double> elapsed_seconds = system_clock::now() - this->created;
+
+  json << "{" << "\"type\" : \"progress\",";
+  //json << "\"message\" : \"" << notification << "\",";
+  json << "\"message\" : \"loading FITS\",";
+  json << "\"total\" : " << total << ",";
+  json << "\"running\" : " << running << ",";
+  json << "\"elapsed\" : " << elapsed_seconds.count() << "}";
+
+  std::cout << json.str() << std::endl;
+
+  m_progress_mutex.lock() ;
+  TWebSocketList connections = m_progress[this->dataset_id] ;
+  m_progress_mutex.unlock() ;
+  
+  for (auto it = connections.begin(); it != connections.end(); ++it)
+      {
+	      TWebSocket* ws = *it ;
+	      ws->send(json.str(), uWS::OpCode::TEXT);
+      } ;
 }
