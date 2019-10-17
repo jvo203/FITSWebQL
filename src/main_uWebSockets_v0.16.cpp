@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-16.0"
+#define VERSION_STRING "SV2019-10-17.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <algorithm>
 #include <chrono>
 #include <ctime> 
@@ -92,6 +93,7 @@ std::mutex PrintThread::_mutexPrint{};
 #ifdef CLUSTER
 zactor_t *beacon = NULL;
 std::thread beacon_thread;
+std::atomic<bool> exiting(false);
 #endif
 
 #include <curl/curl.h>
@@ -126,6 +128,10 @@ inline const char *check_null(const char *str) {
 
 void signalHandler(int signum) {
   std::cout << "Interrupt signal (" << signum << ") received.\n";
+
+#ifdef CLUSTER
+  exiting = true;
+#endif
 
   // cleanup and close up stuff here
   // terminate program
@@ -1037,7 +1043,8 @@ int main(int argc, char *argv[]) {
   {
     printf("peer connection beacon\n");
 
-    //check the abort status!!!
+    if(exiting)
+      break;
 
     if(zmsg_size (msg) == 2)
     {
