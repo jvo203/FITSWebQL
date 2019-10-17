@@ -1536,7 +1536,7 @@ int main(int argc, char *argv[]) {
                           std::lock_guard<std::mutex> guard(m_progress_mutex);
                           TWebSocketList connections = m_progress[datasetid[0]] ;
 		                      connections.insert(ws) ;
-		                      //m_progress[datasetid[0]] = connections ;
+		                      m_progress[datasetid[0]] = connections ;
                         }                        
                       }
                   }
@@ -1556,7 +1556,7 @@ int main(int argc, char *argv[]) {
                       std::lock_guard<std::mutex> guard(m_progress_mutex);
                       TWebSocketList connections = m_progress[user->ptr->primary_id] ;
 		                  connections.erase(ws) ;
-                      //m_progress[user->ptr->primary_id] = connections ;
+                      m_progress[user->ptr->primary_id] = connections ;
 
                       //check if it is the last connection for this dataset
                       if(connections.size() == 0)
