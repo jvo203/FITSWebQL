@@ -236,7 +236,7 @@ FITS::FITS() {
   std::cout << this->dataset_id << "::default constructor." << std::endl;
 
   this->timestamp = std::time(nullptr);
-  this->created = system_clock::now();
+  clock_gettime(CLOCK_MONOTONIC, &(this->created));
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
   this->fits_file_size = 0;
@@ -256,6 +256,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->data_id = id + "_00_00_00";
   this->flux = flux;
   this->timestamp = std::time(nullptr);
+  clock_gettime(CLOCK_MONOTONIC, &(this->created));  
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
   this->fits_file_size = 0;
@@ -1327,6 +1328,7 @@ void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
          elapsedMilliseconds);
 
   if (bSuccess) {
+    send_progress_notification(depth, depth);
     /*for (int i = 0; i < depth; i++)
       std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
                 << ", size: " << masks[i].getSizeInBytes() << " bytes"
@@ -1770,7 +1772,7 @@ void FITS::auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
   // an approximate solution
   _ratio_sensitivity = 0.5f * (a + b);
 
-  printf("bisection sensitivity = %f\n", _ratio_sensitivity);
+  printf("bi-section sensitivity = %f\n", _ratio_sensitivity);
 }
 
 float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
@@ -1799,19 +1801,23 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
   return brightness / float(num_threads);
 }
 
-void FITS::send_progress_notification( /*const char* notification,*/ size_t running, size_t total)
+void FITS::send_progress_notification(size_t running, size_t total)
 {
   std::ostringstream json;
 
-  std::chrono::duration<double> elapsed_seconds = system_clock::now() - this->created;
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+
+  double elapsed; 
+  elapsed = (now.tv_sec - this->created.tv_sec) * 1e9; 
+  elapsed = (elapsed + (now.tv_nsec - this->created.tv_nsec)) * 1e-9;
 
   json << "{" << "\"type\" : \"progress\",";
-  //json << "\"message\" : \"" << notification << "\",";
   json << "\"message\" : \"loading FITS\",";
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
-  json << "\"elapsed\" : " << elapsed_seconds.count() << "}";
-
+  json << "\"elapsed\" : " << elapsed << "}";
+  
   std::cout << json.str() << std::endl;
 
   m_progress_mutex.lock() ;

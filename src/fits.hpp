@@ -72,7 +72,7 @@ private:
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                              float _sensitivity);
-  void send_progress_notification( /*const char* notification,*/ size_t running, size_t total);
+  void send_progress_notification(size_t running, size_t total);
 
 public:  
   std::string dataset_id;
@@ -165,7 +165,7 @@ private:
   std::vector<Roaring64Map> masks;
 
   // housekeeping
-  system_clock::time_point created;
+  struct timespec created;
   std::time_t timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;

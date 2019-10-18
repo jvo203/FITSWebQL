@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-10-15.0";
+	return "JS2019-10-18.0";
 }
 
 const wasm_supported = (() => {
@@ -1365,8 +1365,7 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 }
 
 function process_progress_event(data, index) {
-	if (data != null) {
-		var message = data.message;
+	if (data != null) {		
 		var running = data.running;
 		var total = data.total;
 		var elapsed = data.elapsed;
@@ -1404,9 +1403,6 @@ function process_progress_event(data, index) {
 
 			if (notifications_completed == va_count)
 				document.getElementById('welcome').style.display = "none";
-
-			/*if (message.indexOf("error") >= 0)
-				show_error();*/
 		}
 	}
 }
