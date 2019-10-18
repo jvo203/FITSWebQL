@@ -1,9 +1,9 @@
 SRC = src/main_uWebSockets_v0.16.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
-INC = -I/usr/include/postgresql -Ilz4 -I/home/chris/uWebSockets/src -I/home/chris/uWebSockets/uSockets/src
+INC = -I/usr/include/postgresql -Ilz4 -I~/uWebSockets/src -I~/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread /home/chris/uWebSockets/uSockets/*.o -lczmq
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread ~/uWebSockets/uSockets/*.o -lczmq
 #-luWS
 IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
