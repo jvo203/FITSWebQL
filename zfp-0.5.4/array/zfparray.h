@@ -107,7 +107,11 @@ protected:
       int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
       if (fd != -1)
       {
+#if defined(__APPLE__) && defined(__MACH__)
+        int stat = ftruncate(fd, bytes);
+#else
         int stat = ftruncate64(fd, bytes);
+#endif
         if (!stat)
         {
           void *buffer = mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
