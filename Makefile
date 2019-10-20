@@ -37,3 +37,6 @@ darwin:
 
 #	cargo run -- ~/NAO/NRO/SF/orion_12co_all_SF7.5arcsec_dV1.0kms.fits
 #	https://zeromq-dev.zeromq.narkive.com/VMD0bZ8X/no-udp-broadcast-message-received-using-czmq-zbeacon-on-raspberrypi3
+
+inet:
+	gcc src/inet.c -o inet
