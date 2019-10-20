@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-20.0"
+#define VERSION_STRING "SV2019-10-20.1"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -91,7 +91,8 @@ std::mutex PrintThread::_mutexPrint{};
 #include "global.h"
 
 #ifdef CLUSTER
-zactor_t *beacon = NULL;
+zactor_t *speaker = NULL;
+zactor_t *listener = NULL;
 std::thread beacon_thread;
 std::atomic<bool> exiting(false);
 #endif
@@ -142,16 +143,20 @@ void signalHandler(int signum) {
     sqlite3_close(splat_db);
 
 #ifdef CLUSTER
-  if(beacon != NULL)
+  if(speaker != NULL)
   {
-    zstr_sendx (beacon, "SILENCE", NULL);
-    zstr_sendx (beacon, "UNSUBSCRIBE", NULL);  
-    zactor_destroy (&beacon);
-
-    zsys_shutdown();
-
-    beacon_thread.join();
+    zstr_sendx (speaker, "SILENCE", NULL);
+    zactor_destroy (&speaker);
   }
+
+  if(listener != NULL)
+  {
+    zstr_sendx (listener, "UNSUBSCRIBE", NULL);
+    beacon_thread.join();
+    zactor_destroy (&listener);
+  }
+  
+  //zsys_shutdown();
 #endif
 
   std::cout << "FITSWebQL shutdown completed." << std::endl;
@@ -1027,42 +1032,51 @@ int main(int argc, char *argv[]) {
 #ifdef CLUSTER
   //LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
-  beacon = zactor_new (zbeacon, NULL);
-  zstr_send (beacon, "VERBOSE");
+    speaker = zactor_new (zbeacon, NULL);
+    if(speaker == NULL)
+      return;
 
-  zsock_send (beacon, "si", "CONFIGURE", BEACON_PORT);
-  char *hostname = zstr_recv (beacon);
-  if(hostname != NULL)
-	free(hostname);
-
-  const char* message = "FITSWebQL";
-
-  const int interval = 1000;//[ms]
-  zsock_send (beacon, "sbi", "PUBLISH", message, strlen(message), interval);
-  zsock_send (beacon, "sb", "SUBSCRIBE", message, strlen(message));
-
-  zmsg_t *msg = NULL;
-  
-  while ((msg = zmsg_recv (beacon)) != NULL)
-  {
-    printf("peer connection beacon\n");
-
-    if(exiting)
-      break;
-
-    if(zmsg_size (msg) == 2)
+    zstr_send (speaker, "VERBOSE");
+    zsock_send (speaker, "si", "CONFIGURE", BEACON_PORT);
+    char *hostname = zstr_recv (speaker);
+    if(hostname != NULL)
     {
-      zframe_t *frame = zmsg_first(msg);
-      zframe_destroy(&frame);
-
-      frame = zmsg_last(msg);
-      zframe_destroy(&frame);
+      const char* message = "FITSWEBQL BEACON";
+      const int interval = 1000;//[ms]
+      zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+	    free(hostname);
     }
 
-    zmsg_destroy (&msg);
-  }
+    listener = zactor_new (zbeacon, NULL);
+    if(listener == NULL)
+      return;
 
-  printf("zmsg_recv() interrupted.\n");
+    zstr_send (listener, "VERBOSE");
+    zsock_send (listener, "si", "CONFIGURE", BEACON_PORT);
+    hostname = zstr_recv (listener);
+    if(hostname != NULL)
+      free(hostname);
+    else
+      return;
+
+    zsock_send (listener, "sb", "SUBSCRIBE", "", 0);
+    zsock_set_rcvtimeo (listener, 500);
+  
+    while(!exiting) {
+      char *ipaddress = zstr_recv (listener);
+      if (ipaddress != NULL) {
+        printf("received a peer connection beacon from %s\n", ipaddress);
+
+        zframe_t *content = zframe_recv (listener);
+        if (zframe_size (content) == 2);
+          printf("beacon content length: %zu\n", zframe_size (content));
+
+        //assert (zframe_data (content) [0] == 0xCA);
+        //assert (zframe_data (content) [1] == 0xFE);
+        zframe_destroy (&content);
+        zstr_free (&ipaddress);
+      }
+    }
   });
 #endif
 
