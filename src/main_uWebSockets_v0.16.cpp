@@ -1032,6 +1032,8 @@ int main(int argc, char *argv[]) {
 
   zsock_send (beacon, "si", "CONFIGURE", BEACON_PORT);
   char *hostname = zstr_recv (beacon);
+  if(hostname != NULL)
+	free(hostname);
 
   const char* message = "FITSWebQL";
 
