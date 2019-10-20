@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-18.0"
+#define VERSION_STRING "SV2019-10-20.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1033,9 +1033,11 @@ int main(int argc, char *argv[]) {
   zsock_send (beacon, "si", "CONFIGURE", BEACON_PORT);
   char *hostname = zstr_recv (beacon);
 
+  const char* message = "FITSWebQL";
+
   const int interval = 1000;//[ms]
-  zsock_send (beacon, "sbi", "PUBLISH", hostname, strlen(hostname), interval);
-  zsock_send (beacon, "sb", "SUBSCRIBE", NULL, 0);
+  zsock_send (beacon, "sbi", "PUBLISH", message, strlen(message), interval);
+  zsock_send (beacon, "sb", "SUBSCRIBE", message, strlen(message));
 
   zmsg_t *msg = NULL;
   
