@@ -1066,8 +1066,8 @@ int main(int argc, char *argv[]) {
 				  if (ipaddress != NULL) {				    
 				    zframe_t *content = zframe_recv (listener);
 
-				    if(strcmp(my_hostname, ipaddress) != 0)
-				      PrintThread{} << "received a peer connection beacon from " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
+				    //if(strcmp(my_hostname, ipaddress) != 0)
+				    PrintThread{} << "received a peer connection beacon from " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
 				   
 				    zframe_destroy (&content);
 				    zstr_free (&ipaddress);
