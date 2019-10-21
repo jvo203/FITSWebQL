@@ -2,12 +2,12 @@
 ;; --------------------------------------------------------------------------
 ;; Desktop File for Emacs
 ;; --------------------------------------------------------------------------
-;; Created Mon Oct 21 10:20:23 2019
+;; Created Mon Oct 21 10:26:30 2019
 ;; Desktop file format version 208
 ;; Emacs version 26.3
 
 ;; Global section:
-(setq desktop-saved-frameset [frameset 1 (23981 2007 64901 553000) (desktop . "208") "chris@xeon" nil nil ((((minibuffer . t) (undecorated) (override-redirect) (font-backend xft x) (font . "-ADBO-Source Code Pro-semibold-normal-normal-*-32-*-*-*-m-0-iso10646-1") (font-parameter . "Source Code Pro") (border-width . 0) (internal-border-width . 0) (right-divider-width . 0) (bottom-divider-width . 0) (vertical-scroll-bars . right) (horizontal-scroll-bars) (foreground-color . "#383a42") (background-color . "#fafafa") (mouse-color . "RoyalBlue") (border-color . "black") (screen-gamma) (line-spacing) (left-fringe . 8) (right-fringe . 8) (no-special-glyphs) (scroll-bar-foreground . "#232627") (scroll-bar-background . "#232627") (menu-bar-lines . 1) (tool-bar-lines . 1) (title) (wait-for-wm . t) (tool-bar-position . top) (inhibit-double-buffering) (icon-type . t) (auto-raise) (auto-lower) (cursor-type . box) (scroll-bar-width . 32) (scroll-bar-height . 0) (alpha) (no-focus-on-map) (no-accept-focus) (fullscreen . fullboth) (visibility . t) (skip-taskbar) (z-group) (display-type . color) (background-mode . light) (cursor-color . "#232627") (sticky) (environment) (ccc-frame-cursor-color . "#232627") (ccc-frame-foreground-color . "#383a42") (ccc-frame-background-color . "#fafafa") (frameset--id . "6483-D0BB-07D9-A7F8") (frameset--mini t . t) (modeline . t) (unsplittable) (icon-name) (display . ":0") (explicit-name) (height . 35) (width . 113) (left . 0) (top . 0)) ((min-height . 4) (min-width . 10) (min-height-ignore . 3) (min-width-ignore . 5) (min-height-safe . 1) (min-width-safe . 2) (min-pixel-height . 164) (min-pixel-width . 190) (min-pixel-height-ignore . 123) (min-pixel-width-ignore . 95) (min-pixel-height-safe . 41) (min-pixel-width-safe . 38)) leaf (pixel-width . 2200) (pixel-height . 1421) (total-width . 116) (total-height . 34) (normal-height . 1.0) (normal-width . 1.0) (buffer "main_uWebSockets_v0.16.cpp" (selected . t) (hscroll . 0) (fringes 8 8 nil) (margins nil) (scroll-bars nil 2 t nil 0 t) (vscroll . 0) (dedicated) (point . 32461) (start . 31713))))])
+(setq desktop-saved-frameset [frameset 1 (23981 2374 831215 709000) (desktop . "208") "chris@xeon" nil nil ((((minibuffer . t) (undecorated) (override-redirect) (font-backend xft x) (font . "-ADBO-Source Code Pro-semibold-normal-normal-*-32-*-*-*-m-0-iso10646-1") (font-parameter . "Source Code Pro") (border-width . 0) (internal-border-width . 0) (right-divider-width . 0) (bottom-divider-width . 0) (vertical-scroll-bars . right) (horizontal-scroll-bars) (foreground-color . "#383a42") (background-color . "#fafafa") (mouse-color . "RoyalBlue") (border-color . "black") (screen-gamma) (line-spacing) (left-fringe . 8) (right-fringe . 8) (no-special-glyphs) (scroll-bar-foreground . "#232627") (scroll-bar-background . "#232627") (menu-bar-lines . 1) (tool-bar-lines . 1) (title) (wait-for-wm . t) (tool-bar-position . top) (inhibit-double-buffering) (icon-type . t) (auto-raise) (auto-lower) (cursor-type . box) (scroll-bar-width . 32) (scroll-bar-height . 0) (alpha) (no-focus-on-map) (no-accept-focus) (fullscreen . fullboth) (visibility . t) (skip-taskbar) (z-group) (display-type . color) (background-mode . light) (cursor-color . "#232627") (sticky) (environment) (ccc-frame-cursor-color . "#232627") (ccc-frame-foreground-color . "#383a42") (ccc-frame-background-color . "#fafafa") (frameset--id . "6483-D0BB-07D9-A7F8") (frameset--mini t . t) (modeline . t) (unsplittable) (icon-name) (display . ":0") (explicit-name) (height . 35) (width . 113) (left . 0) (top . 0)) ((min-height . 4) (min-width . 10) (min-height-ignore . 3) (min-width-ignore . 5) (min-height-safe . 1) (min-width-safe . 2) (min-pixel-height . 164) (min-pixel-width . 190) (min-pixel-height-ignore . 123) (min-pixel-width-ignore . 95) (min-pixel-height-safe . 41) (min-pixel-width-safe . 38)) leaf (pixel-width . 2200) (pixel-height . 1421) (total-width . 116) (total-height . 34) (normal-height . 1.0) (normal-width . 1.0) (buffer "main_uWebSockets_v0.16.cpp" (selected . t) (hscroll . 0) (fringes 8 8 nil) (margins nil) (scroll-bars nil 2 t nil 0 t) (vscroll . 0) (dedicated) (point . 32238) (start . 31509))))])
 (setq desktop-missing-file-warning nil)
 (setq tags-file-name nil)
 (setq tags-table-list nil)
@@ -22,12 +22,12 @@
   "main_uWebSockets_v0.16.cpp"
   'c++-mode
   '(abbrev-mode visual-line-mode TeX-PDF-mode)
-  32461
-  '(32372 nil)
+  32238
+  '(32430 nil)
   nil
   nil
   '((buffer-display-time 23981 1797 192633 56000) (buffer-file-coding-system . utf-8-unix) (truncate-lines))
-  '((mark-ring (32210 1718 143 32201 32140 32753 31635 2507 87 52050 325 52050 1 322 87 2507))))
+  '((mark-ring (32191 32267 32191 1718 143 32191 32138 32547 31633 2507 87 51844 325 51844 1 31486))))
 
 (desktop-create-buffer 208
   "/home/chris/projects/FITSWebQL/src/fits.cpp"
