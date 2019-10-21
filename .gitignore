@@ -4,6 +4,7 @@
 
 #emacs
 *~
+/src/.emacs.desktop.lock
 
 #sqlite db files
 *.db
