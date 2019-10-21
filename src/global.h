@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <shared_mutex>
 #include <set>
 
 #include "App.h"
@@ -16,5 +17,5 @@ inline progress_list m_progress;
 #include <czmq.h>
 
 inline std::set<std::string> nodes;
-inline std::mutex nodes_mtx;
+inline std::shared_mutex nodes_mtx;
 #endif
