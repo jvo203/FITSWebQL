@@ -1067,8 +1067,12 @@ int main(int argc, char *argv[]) {
 				    zframe_t *content = zframe_recv (listener);
 
 				    if(strcmp(my_hostname, ipaddress) != 0)
+            {
 				      PrintThread{} << "received a peer connection beacon from " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
-				   
+
+              //std::lock_guard<std::shared_mutex> lock(nodes_mtx);
+            }  
+
 				    zframe_destroy (&content);
 				    zstr_free (&ipaddress);
 				  }
