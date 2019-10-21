@@ -1817,8 +1817,6 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
   json << "\"elapsed\" : " << elapsed << "}";
-  
-  std::cout << json.str() << std::endl;
 
   m_progress_mutex.lock() ;
   TWebSocketList connections = m_progress[this->dataset_id] ;
@@ -1826,6 +1824,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   
   for (auto it = connections.begin(); it != connections.end(); ++it)
     {
+      //std::cout << json.str() << std::endl;     
       TWebSocket* ws = *it ;
       ws->send(json.str(), uWS::OpCode::TEXT);
     } ;
