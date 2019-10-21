@@ -1042,7 +1042,7 @@ int main(int argc, char *argv[]) {
 				if(my_hostname != NULL)
 				  {
 				    const char* message = "JVO:>FITSWEBQL/ENTER";
-				    const int interval = 1000;//[ms]
+				    const int interval = 10000;//[ms]
 				    zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
 				  }
 
