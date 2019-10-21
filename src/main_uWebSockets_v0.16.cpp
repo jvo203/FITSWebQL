@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-21.0"
+#define VERSION_STRING "SV2019-10-21.1"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1531,9 +1531,13 @@ int main(int argc, char *argv[]) {
 																	if (pos != std::string::npos)
 																	  {
 																	    std::string_view tmp = url.substr(pos+1);
-
+																	    CURL *curl = curl_easy_init();
+																	    char *str = curl_easy_unescape(curl, tmp.data(), tmp.length(), NULL);
+																	    std::string plain = std::string(str);
+																	    curl_free(str);
+																	    curl_easy_cleanup(curl);
 																	    std::vector<std::string> datasetid;
-																	    boost::split(datasetid, tmp,
+																	    boost::split(datasetid, plain,
 																			 [](char c) { return c == ';'; });
                   
 																	    for (auto const &s : datasetid) {
