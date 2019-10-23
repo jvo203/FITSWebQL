@@ -1053,7 +1053,6 @@ int main(int argc, char *argv[]) {
 				  char *ipaddress = zstr_recv (listener);
 				  if (ipaddress != NULL) {				    
 				    zframe_t *content = zframe_recv (listener);
-
 				    std::string_view message = std::string_view((const char*)zframe_data (content), zframe_size (content));
 
 				    //ENTER
