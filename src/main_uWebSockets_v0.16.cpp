@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-21.1"
+#define VERSION_STRING "SV2019-10-23.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -44,7 +44,6 @@
 
 #include <atomic>
 #include <algorithm>
-#include <chrono>
 #include <ctime> 
 #include <csignal>
 #include <iostream>
@@ -57,12 +56,6 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
-
-using namespace std::chrono;
-
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 
 /** Thread safe cout class
  * Exemple of use:
@@ -1017,17 +1010,6 @@ void ipp_init() {
   }
 }
 
-struct UserSession {
-  boost::uuids::uuid session_id;
-  system_clock::time_point timestamp;
-  std::string primary_id;
-  std::vector<std::string> ids;
-};
-
-struct UserData {
-  struct UserSession* ptr;
-};
-
 int main(int argc, char *argv[]) {
 #ifdef CLUSTER
   //LAN cluster node auto-discovery
@@ -1554,7 +1536,7 @@ int main(int argc, char *argv[]) {
 																		  {
 																		    user->ptr = new UserSession();
 																		    user->ptr->session_id = boost::uuids::random_generator()();                 
-																		    user->ptr->timestamp = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(0.5));
+																		    user->ptr->ts = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(0.5));
 																		    user->ptr->primary_id = datasetid[0];                          
 																		    user->ptr->ids = datasetid;
 

@@ -1823,9 +1823,21 @@ void FITS::send_progress_notification(size_t running, size_t total)
   m_progress_mutex.unlock() ;
   
   for (auto it = connections.begin(); it != connections.end(); ++it)
-    {
-      //std::cout << json.str() << std::endl;     
+    {           
       TWebSocket* ws = *it ;
-      ws->send(json.str(), uWS::OpCode::TEXT);
+
+      struct UserData* user = (struct UserData*) ws->getUserData();
+
+      if(user != NULL)
+	{
+	  auto now = system_clock::now();
+
+	  if(check_progress_timeout(user->ptr, now) || (running == total))
+	    {
+	      std::cout << json.str() << std::endl;
+	      ws->send(json.str(), uWS::OpCode::TEXT);
+	      update_progress_timestamp(user->ptr, now);
+	    }
+	}
     } ;
 }
