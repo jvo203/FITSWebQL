@@ -139,6 +139,12 @@ void signalHandler(int signum) {
   if(speaker != NULL)
     {
       zstr_sendx (speaker, "SILENCE", NULL);
+
+      const char* message = "JVO:>FITSWEBQL::LEAVE";
+      const int interval = 1000;//[ms]
+      zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+      
+      zstr_sendx (speaker, "SILENCE", NULL);      
       zactor_destroy (&speaker);
     }
 
@@ -1048,13 +1054,33 @@ int main(int argc, char *argv[]) {
 				  if (ipaddress != NULL) {				    
 				    zframe_t *content = zframe_recv (listener);
 
-				    if(strcmp(my_hostname, ipaddress) != 0)
+				    std::string_view message = std::string_view((const char*)zframe_data (content), zframe_size (content));
+
+				    //ENTER
+				    if(message.find("ENTER") != std::string::npos)
 				      {
-					std::string node = std::string(ipaddress);
-					if(!cluster_contains_node(node))
+					if(strcmp(my_hostname, ipaddress) != 0)
 					  {
-					    PrintThread{} << "found a new peer @ " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
-					    cluster_insert_node(node);
+					    std::string node = std::string(ipaddress);
+					    if(!cluster_contains_node(node))
+					      {
+						PrintThread{} << "found a new peer @ " << ipaddress << ": " << message << std::endl;
+						cluster_insert_node(node);
+					      }
+					  }
+				      }
+
+				    //LEAVE
+				    if(message.find("LEAVE") != std::string::npos)
+				      {
+					if(strcmp(my_hostname, ipaddress) != 0)
+					  {
+					    std::string node = std::string(ipaddress);
+					    if(cluster_contains_node(node))
+					      {
+						PrintThread{} << ipaddress << " is leaving: " << message << std::endl;
+						cluster_erase_node(node);
+					      }
 					  }
 				      }
 

@@ -83,4 +83,11 @@ inline void cluster_insert_node(std::string node)
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.insert(node);
 }
+
+inline void cluster_erase_node(std::string node)
+{
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.erase(node);
+}
+
 #endif
