@@ -1536,7 +1536,7 @@ int main(int argc, char *argv[]) {
 																		  {
 																		    user->ptr = new UserSession();
 																		    user->ptr->session_id = boost::uuids::random_generator()();                 
-																		    user->ptr->ts = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(0.5));
+																		    user->ptr->ts = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(PROGRESS_TIMEOUT));
 																		    user->ptr->primary_id = datasetid[0];                          
 																		    user->ptr->ids = datasetid;
 

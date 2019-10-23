@@ -1834,7 +1834,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
 
 	  if(check_progress_timeout(user->ptr, now) || (running == total))
 	    {
-	      std::cout << json.str() << std::endl;
+	      //std::cout << json.str() << std::endl;
 	      ws->send(json.str(), uWS::OpCode::TEXT);
 	      update_progress_timestamp(user->ptr, now);
 	    }

@@ -20,6 +20,8 @@ typedef std::unordered_map<std::string, TWebSocketList> progress_list ;
 inline std::mutex m_progress_mutex;
 inline progress_list m_progress;
 
+#define PROGRESS_TIMEOUT 0.25
+
 struct UserSession {
   //session management
   boost::uuids::uuid session_id;
@@ -44,7 +46,7 @@ inline bool check_progress_timeout(struct UserSession* session, system_clock::ti
 
   duration<double, std::milli> elapsed = now - session->ts;
 
-  if( elapsed >= duration_cast<system_clock::duration>(duration<double>(0.5)) )
+  if( elapsed >= duration_cast<system_clock::duration>(duration<double>(PROGRESS_TIMEOUT)) )
     return true;
   else
     return false;
