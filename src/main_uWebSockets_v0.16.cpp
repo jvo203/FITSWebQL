@@ -1049,11 +1049,14 @@ int main(int argc, char *argv[]) {
 				    zframe_t *content = zframe_recv (listener);
 
 				    if(strcmp(my_hostname, ipaddress) != 0)
-            {
-				      PrintThread{} << "received a peer connection beacon from " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
-
-              //std::lock_guard<std::shared_mutex> lock(nodes_mtx);
-            }  
+				      {
+					std::string node = std::string(ipaddress);
+					if(!cluster_contains_node(node))
+					  {
+					    PrintThread{} << "found a new peer @ " << ipaddress << ": " << std::string_view((const char*)zframe_data (content), zframe_size (content)) << std::endl;
+					    cluster_insert_node(node);
+					  }
+				      }
 
 				    zframe_destroy (&content);
 				    zstr_free (&ipaddress);

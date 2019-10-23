@@ -52,19 +52,35 @@ inline bool check_progress_timeout(struct UserSession* session, system_clock::ti
     return false;
 }
 
-inline void update_progress_timestamp(struct UserSession* session, system_clock::time_point now)
+inline void update_progress_timestamp(struct UserSession* session)
 {
   if(session == NULL)
     return ;
   
   std::lock_guard<std::shared_mutex> guard(session->ts_mtx);
 
-  session->ts = now;
+  session->ts = system_clock::now();
 }
 
 #ifdef CLUSTER
 #include <czmq.h>
 
-inline std::set<std::string> nodes;
-inline std::shared_mutex nodes_mtx;
+inline std::set<std::string> cluster;
+inline std::shared_mutex cluster_mtx;
+
+inline bool cluster_contains_node(std::string node)
+{
+  std::shared_lock<std::shared_mutex> lock(cluster_mtx);
+
+  if(cluster.find(node) == cluster.end())
+    return false;
+  else
+    return true;
+}
+
+inline void cluster_insert_node(std::string node)
+{
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.insert(node);
+}
 #endif

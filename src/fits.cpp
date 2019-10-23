@@ -1829,14 +1829,12 @@ void FITS::send_progress_notification(size_t running, size_t total)
       struct UserData* user = (struct UserData*) ws->getUserData();
 
       if(user != NULL)
-	{
-	  auto now = system_clock::now();
-
-	  if(check_progress_timeout(user->ptr, now) || (running == total))
+	{	 
+	  if(check_progress_timeout(user->ptr, system_clock::now()) || (running == total))
 	    {
 	      //std::cout << json.str() << std::endl;
 	      ws->send(json.str(), uWS::OpCode::TEXT);
-	      update_progress_timestamp(user->ptr, now);
+	      update_progress_timestamp(user->ptr);
 	    }
 	}
     } ;
