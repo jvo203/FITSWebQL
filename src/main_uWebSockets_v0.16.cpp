@@ -1062,6 +1062,7 @@ int main(int argc, char *argv[]) {
 					if(strcmp(my_hostname, ipaddress) != 0)
 					  {
 					    std::string node = std::string(ipaddress);
+					    
 					    if(!cluster_contains_node(node))
 					      {
 						PrintThread{} << "found a new peer @ " << ipaddress << ": " << message << std::endl;
@@ -1076,6 +1077,7 @@ int main(int argc, char *argv[]) {
 					if(strcmp(my_hostname, ipaddress) != 0)
 					  {
 					    std::string node = std::string(ipaddress);
+					    
 					    if(cluster_contains_node(node))
 					      {
 						PrintThread{} << ipaddress << " is leaving: " << message << std::endl;
