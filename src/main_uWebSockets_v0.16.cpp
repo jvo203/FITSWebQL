@@ -1624,6 +1624,8 @@ int main(int argc, char *argv[]) {
 																		   std::unique_lock<std::mutex> data_lock(fits->data_mtx);
 																		   while (!fits->processed_data)
 																		     fits->data_cv.wait(data_lock);
+                                        data_lock.unlock();
+                                                                                
 																		   if (!fits->has_data) {
 																		     std::string error = "[error] " + datasetid + "::image not found"; 
 																		     ws->send(error, opCode);
