@@ -1578,13 +1578,13 @@ int main(int argc, char *argv[]) {
 																	      }
 																	  }
 																      },
-															      .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {																	   
-                                     PrintThread{} << "[µWS] message " << message << std::endl;
-
+															      .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {
                                      size_t pos = message.find("[heartbeat]");
 
 																	    if (pos != std::string::npos) {																	    
                                         ws->send(message, opCode);
+                                      } else {
+                                        PrintThread{} << "[µWS] message " << message << std::endl;
                                       }
 																	 },
 															      .close = [](auto *ws, int code, std::string_view message) {                  
