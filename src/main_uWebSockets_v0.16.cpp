@@ -1379,26 +1379,26 @@ int main(int argc, char *argv[]) {
 
 													std::vector<std::string> params;
 													boost::split(params, query,
-														     [](char c) { return c == '&'; });
+													[](char c) { return c == '&'; });
 
 													CURL *curl = curl_easy_init();
 
 													for (auto const &s : params) {
-													  // find '='
-													  size_t pos = s.find("=");
+													// find '='
+													size_t pos = s.find("=");
 
-													  if (pos != std::string::npos) {
-													    std::string key = s.substr(0, pos);
-													    std::string value =
-													      s.substr(pos + 1, std::string::npos);
+													if (pos != std::string::npos) {
+													std::string key = s.substr(0, pos);
+													std::string value =
+													s.substr(pos + 1, std::string::npos);
 
-													    if (key.find("dataset") != std::string::npos) {
-													      char *str = curl_easy_unescape(
-																	     curl, value.c_str(), value.length(), NULL);
-													      datasetid = std::string(str);
-													      curl_free(str);
-													    }
-													  }
+													if (key.find("dataset") != std::string::npos) {
+													char *str = curl_easy_unescape(
+													curl, value.c_str(), value.length(), NULL);
+													datasetid = std::string(str);
+													curl_free(str);
+													}
+													}
 													}
 
 													curl_easy_cleanup(curl);
@@ -1408,16 +1408,16 @@ int main(int argc, char *argv[]) {
 													lock.unlock();
 
 													if (item == DATASETS.end())
-													  return http_not_found(res);
+													return http_not_found(res);
 													else {
-													  auto fits = item->second;
+													auto fits = item->second;
 
-													  if (fits->has_error)
-													    return http_not_found(res);
-													  else
-													    return http_accepted(res);
+													if (fits->has_error)
+													return http_not_found(res);
+													else
+													return http_accepted(res);
 													}
-												      }*/
+													}*/
 
 												      // FITSWebQL entry
 												      if (uri.find("FITSWebQL.html") != std::string::npos) {
@@ -1579,25 +1579,65 @@ int main(int argc, char *argv[]) {
 																	  }
 																      },
 															      .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {
-																	    if (message.find("[heartbeat]") != std::string::npos) {																	    
-                                        ws->send(message, opCode);
-                                      } else {
-                                        PrintThread{} << "[µWS] message " << message << std::endl;
-                                      }                                      
+																	   if (message.find("[heartbeat]") != std::string::npos) {																	    
+																	     ws->send(message, opCode);
+																	   } else {
+																	     PrintThread{} << "[µWS] message " << message << std::endl;
+																	   }                                      
 
-                                      //ignore messages if there is no primary datasetid available
-                                      struct UserData* user = (struct UserData*) ws->getUserData();
+																	   //ignore messages if there is no primary datasetid available
+																	   struct UserData* user = (struct UserData*) ws->getUserData();
+
+																	   if(user == NULL)
+																	     return;
+
+																	   if(user->ptr == NULL)
+																	     return;
+
+																	   std::string datasetid = user->ptr->primary_id;
                                       
-																	    if(user == NULL)
-                                        return;
+																	   if (message.find("image/") != std::string::npos) {
+																	     int width, height;
 
-                                      if(user->ptr == NULL)
-                                        return;
+																	     sscanf(std::string(message).c_str(), "image/%d/%d", &width, &height);
 
-                                      std::string datasetid = user->ptr->primary_id;
-                                      
-                                      if (message.find("image/") != std::string::npos) {
-                                      }
+																	     PrintThread{}  << datasetid << "::get_image::<" << width << "x" << height << ">" << std::endl;
+
+																	     if(width != 0 && height != 0) {
+																	       std::shared_lock<std::shared_mutex> lock(fits_mutex);
+																	       auto item = DATASETS.find(datasetid);
+																	       lock.unlock();
+
+																	       if (item == DATASETS.end()) {
+																		 std::string error = "[error] " + datasetid + "::not found"; 
+																		 ws->send(error, opCode);
+																		 return;
+																	       }
+																	       else {
+																		 auto fits = item->second;
+																		 if (fits->has_error) {
+																		   std::string error = "[error] " + datasetid + "::cannot be read"; 
+																		   ws->send(error, opCode);
+																		   return;
+																		 }
+																		 else {
+																		   std::unique_lock<std::mutex> data_lock(fits->data_mtx);
+																		   while (!fits->processed_data)
+																		     fits->data_cv.wait(data_lock);
+																		   if (!fits->has_data) {
+																		     std::string error = "[error] " + datasetid + "::image not found"; 
+																		     ws->send(error, opCode);
+																		     return;
+																		   }
+																		   else
+																		     //make an image based on the pixels and mask
+																		     std::string ok = "[ok] " + datasetid + "::image"; 
+																		     ws->send(ok, opCode);
+																		     return ;
+																		 }
+																	       }
+																	     }
+																	   }
 																	 },
 															      .close = [](auto *ws, int code, std::string_view message) {                  
 																	 struct UserData* user = (struct UserData*) ws->getUserData();
