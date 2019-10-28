@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-23.0"
+#define VERSION_STRING "SV2019-10-28.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -1371,7 +1371,7 @@ int main(int argc, char *argv[]) {
 													  return http_not_implemented(res);
 												      }                     
 
-												      if (uri.find("/get_image") != std::string::npos) {
+												      /*if (uri.find("/get_image") != std::string::npos) {
 													std::string_view query = req->getQuery();
 													// std::cout << "query: (" << query << ")" << std::endl;
 
@@ -1417,7 +1417,7 @@ int main(int argc, char *argv[]) {
 													  else
 													    return http_accepted(res);
 													}
-												      }
+												      }*/
 
 												      // FITSWebQL entry
 												      if (uri.find("FITSWebQL.html") != std::string::npos) {
