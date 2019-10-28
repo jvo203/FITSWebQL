@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-10-25.0";
+	return "JS2019-10-28.0";
 }
 
 const wasm_supported = (() => {
@@ -12726,7 +12726,7 @@ async*/ function mainRenderer() {
 		if (va_count == 1) {
 			open_websocket_connection(datasetId, 1);
 
-			fetch_image(datasetId, 1, false);
+			//fetch_image(datasetId, 1, false);
 
 			fetch_spectrum(datasetId, 1, false);
 
@@ -12738,7 +12738,7 @@ async*/ function mainRenderer() {
 
 				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
 
-				fetch_image(datasetId[index - 1], index, false);
+				//fetch_image(datasetId[index - 1], index, false);
 
 				fetch_spectrum(datasetId[index - 1], index, false);
 
