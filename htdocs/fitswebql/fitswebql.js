@@ -1459,13 +1459,13 @@ function open_websocket_connection(datasetId, index) {
 
 				ALMAWS.binaryType = 'arraybuffer';
 
-				let log = wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported";
-				ALMAWS.send('[debug] ' + log);
+				//let log = wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported";
+				//ALMAWS.send('[debug] ' + log);
 
 				var rect = document.getElementById('mainDiv').getBoundingClientRect();				
 				var width = rect.width - 20;
 				var height = rect.height - 20;
-				ALMAWS.send('get_image?width='+width+'height='+height);				
+				ALMAWS.send('image/'+width+'/'+height);
 
 				if (index == va_count) {
 					send_ping();
