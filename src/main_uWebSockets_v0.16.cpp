@@ -1578,9 +1578,14 @@ int main(int argc, char *argv[]) {
 																	      }
 																	  }
 																      },
-															      .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {
-																	   //ws->send(message, opCode);
+															      .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {																	   
                                      PrintThread{} << "[µWS] message " << message << std::endl;
+
+                                     size_t pos = message.find("[heartbeat]");
+
+																	    if (pos != std::string::npos) {																	    
+                                        ws->send(message, opCode);
+                                      }
 																	 },
 															      .close = [](auto *ws, int code, std::string_view message) {                  
 																	 struct UserData* user = (struct UserData*) ws->getUserData();
