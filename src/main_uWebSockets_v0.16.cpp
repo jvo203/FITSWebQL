@@ -1629,11 +1629,12 @@ int main(int argc, char *argv[]) {
 																		     ws->send(error, opCode);
 																		     return;
 																		   }
-																		   else
+																		   else {
 																		     //make an image based on the pixels and mask
-																		     std::string ok = "[ok] " + datasetid + "::image"; 
-																		     ws->send(ok, opCode);
+																		     std::string msg = "[ok] " + datasetid + "::image"; 
+																		     ws->send(msg, opCode);
 																		     return ;
+                                       }
 																		 }
 																	       }
 																	     }
