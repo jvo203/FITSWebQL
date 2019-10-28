@@ -1631,7 +1631,7 @@ int main(int argc, char *argv[]) {
 																		   }
 																		   else {
 																		     //make an image based on the pixels and mask
-																		     std::string msg = "[ok] " + datasetid + "::image"; 
+																		     std::string msg = datasetid + "::image OK"; 
 																		     ws->send(msg, opCode);
 																		     return ;
                                        }

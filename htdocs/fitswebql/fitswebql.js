@@ -2054,7 +2054,7 @@ function open_websocket_connection(datasetId, index) {
 						return;
 					}
 					catch (e) {
-						console.error(e);
+						console.error(received_msg, e);
 					}
 				}
 			})
