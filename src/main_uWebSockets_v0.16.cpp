@@ -1625,7 +1625,7 @@ int main(int argc, char *argv[]) {
 																		   while (!fits->processed_data)
 																		     fits->data_cv.wait(data_lock);
                                         data_lock.unlock();
-                                                                                
+
 																		   if (!fits->has_data) {
 																		     std::string error = "[error] " + datasetid + "::image not found"; 
 																		     ws->send(error, opCode);
@@ -1633,7 +1633,7 @@ int main(int argc, char *argv[]) {
 																		   }
 																		   else {
 																		     //make an image based on the pixels and mask
-																		     std::string msg = datasetid + "::image OK"; 
+																		     std::string msg = "[ok] " + datasetid + "::image OK"; 
 																		     ws->send(msg, opCode);
 																		     return ;
                                        }
