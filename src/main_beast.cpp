@@ -8,7 +8,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-08.0"
+#define VERSION_STRING "SV2019-10-29.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <algorithm>
@@ -1220,7 +1220,7 @@ int main(int argc, char *argv[]) {
   // auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
   auto const port = static_cast<unsigned short>(SERVER_PORT);
   // auto const doc_root = std::make_shared<std::string>(argv[3]);
-  auto const doc_root = std::make_shared<std::string>("htdocs");
+  auto const doc_root = std::make_shared<std::string>("htdocs_beast");
   // auto const threads = std::max<int>(1, std::atoi(argv[4]));
   int threads = std::max<int>(std::thread::hardware_concurrency() / 2, 1);
 
