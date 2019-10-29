@@ -1,4 +1,4 @@
-SRC = src/main_uWebSockets_v0.16.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
+SRC = src/main_beast.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
@@ -40,3 +40,6 @@ darwin:
 
 inet:
 	gcc src/inet.c -o inet
+
+beast:
+	g++ -march=native -g -O3 -std=c++17 src/main_http_ws_beast.cpp -o fitswebql
