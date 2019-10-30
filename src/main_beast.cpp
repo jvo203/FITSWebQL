@@ -1162,6 +1162,26 @@ public:
 
     if (ec)
       return fail(ec, "read");
+  
+    // See if it is a WebSocket Upgrade
+    //if(websocket::is_upgrade(parser_->get()))
+    /*if(websocket::is_upgrade(req_))
+    {
+        // Create a websocket session, transferring ownership
+        // of both the socket and the HTTP request.
+        boost::make_shared<websocket_session>(
+            stream_.release_socket(),
+                state_)->do_accept(std::move(req_));//->run(parser_->release());
+        return;
+    }*/
+
+    /*if(websocket::is_upgrade(req_))
+        {
+            // Create a WebSocket websocket_session by transferring the socket
+            std::make_shared<websocket_session>(
+                std::move(socket_))->do_accept(std::move(req_));
+            return;
+        }*/
 
     // Send the response
     handle_request(*doc_root_, std::move(req_), lambda_);
