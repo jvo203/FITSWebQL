@@ -120,6 +120,20 @@ main(int argc, char* argv[])
             // to return immediately, eventually destroying the
             // io_context and any remaining handlers in it.
             ioc.stop();
+        });
+
+    // Run the I/O service on the requested number of threads
+    std::vector<std::thread> v;
+    v.reserve(threads - 1);
+    for(auto i = threads - 1; i > 0; --i)
+        v.emplace_back(
+        [&ioc]
+        {
+            ioc.run();
+        });
+    ioc.run();
+
+    // (If we get here, it means we got a SIGINT or SIGTERM)
 
 #ifdef CLUSTER
             exiting = true;
@@ -141,31 +155,14 @@ main(int argc, char* argv[])
                 zstr_sendx (beacon_listener, "UNSUBSCRIBE", NULL);
                 beacon_thread.join();
                 zactor_destroy (&beacon_listener);
-            }
-
-            std::cout << "FITSWebQL shutdown completed." << std::endl;
-  
-#endif
-
-
-        });
-
-    // Run the I/O service on the requested number of threads
-    std::vector<std::thread> v;
-    v.reserve(threads - 1);
-    for(auto i = threads - 1; i > 0; --i)
-        v.emplace_back(
-        [&ioc]
-        {
-            ioc.run();
-        });
-    ioc.run();
-
-    // (If we get here, it means we got a SIGINT or SIGTERM)
+            }              
+#endif            
 
     // Block until all the threads exit
     for(auto& t : v)
         t.join();
+
+    std::cout << "FITSWebQL shutdown completed." << std::endl;
 
     return EXIT_SUCCESS;
 }
