@@ -978,13 +978,13 @@ void fail(beast::error_code ec, char const *what) {
 }
 
 // Handles an HTTP server connection
-class session : public std::enable_shared_from_this<session> {
+class http_session : public std::enable_shared_from_this<session> {
   // This is the C++11 equivalent of a generic lambda.
   // The function object is used to send an HTTP message.
   struct send_lambda {
-    session &self_;
+    http_session &self_;
 
-    explicit send_lambda(session &self) : self_(self) {}
+    explicit send_lambda(http_session &self) : self_(self) {}
 
     template <bool isRequest, class Body, class Fields>
     void operator()(http::message<isRequest, Body, Fields> &&msg) const {
@@ -1000,7 +1000,7 @@ class session : public std::enable_shared_from_this<session> {
 
       // Write the response
       http::async_write(self_.stream_, *sp,
-                        beast::bind_front_handler(&session::on_write,
+                        beast::bind_front_handler(&http_session::on_write,
                                                   self_.shared_from_this(),
                                                   sp->need_eof()));
     }
@@ -1015,7 +1015,7 @@ class session : public std::enable_shared_from_this<session> {
 
 public:
   // Take ownership of the stream
-  session(tcp::socket &&socket,
+  http_session(tcp::socket &&socket,
           std::shared_ptr<std::string const> const &doc_root)
       : stream_(std::move(socket)), doc_root_(doc_root), lambda_(*this) {}
 
@@ -1033,7 +1033,7 @@ public:
     // Read a request
     http::async_read(
         stream_, buffer_, req_,
-        beast::bind_front_handler(&session::on_read, shared_from_this()));
+        beast::bind_front_handler(&http_session::on_read, shared_from_this()));
   }
 
   void on_read(beast::error_code ec, std::size_t bytes_transferred) {
@@ -1138,7 +1138,7 @@ private:
       fail(ec, "accept");
     } else {
       // Create the session and run it
-      std::make_shared<session>(std::move(socket), doc_root_)->run();
+      std::make_shared<http_session>(std::move(socket), doc_root_)->run();
     }
 
     // Accept another connection
