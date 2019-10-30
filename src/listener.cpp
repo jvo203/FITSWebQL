@@ -73,7 +73,7 @@ void
 listener::
 fail(beast::error_code ec, char const* what)
 {
-    // Don't report on canceled operations
+    // Don't report on cancelled operations
     if(ec == net::error::operation_aborted)
         return;
     std::cerr << what << ": " << ec.message() << "\n";

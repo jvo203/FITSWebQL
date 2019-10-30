@@ -96,7 +96,6 @@ main(int argc, char* argv[])
 			      });
 #endif
 
-
     auto const address = net::ip::make_address("0.0.0.0");
     auto const port = static_cast<unsigned short>(SERVER_PORT);    
     auto doc_root = "htdocs_beast";
@@ -114,8 +113,9 @@ main(int argc, char* argv[])
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait(
-        [&ioc](boost::system::error_code const&, int)
+        [&ioc](boost::system::error_code const&, int signal)
         {
+            PrintThread{} << "Interrupt signal (" << signal << ") received.\n";
             // Stop the io_context. This will cause run()
             // to return immediately, eventually destroying the
             // io_context and any remaining handlers in it.
@@ -155,8 +155,8 @@ main(int argc, char* argv[])
                 zstr_sendx (beacon_listener, "UNSUBSCRIBE", NULL);
                 beacon_thread.join();
                 zactor_destroy (&beacon_listener);
-            }              
-#endif            
+            }
+#endif
 
     // Block until all the threads exit
     for(auto& t : v)
