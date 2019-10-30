@@ -6,9 +6,10 @@
 #define STR(x) STR_HELPER(x)
 
 #define SERVER_PORT 8080
+#define BEACON_PORT 50000
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-29.0"
+#define VERSION_STRING "SV2019-10-30.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <algorithm>
@@ -84,6 +85,77 @@ bool is_gzip(const char *filename) {
   close(fd);
 
   return ok;
+}
+
+/** Thread safe cout class
+ * Exemple of use:
+ *    PrintThread{} << "Hello world!" << std::endl;
+ */
+class PrintThread : public std::ostringstream {
+public:
+  PrintThread() = default;
+
+  ~PrintThread() {
+    std::lock_guard<std::mutex> guard(_mutexPrint);
+    std::cout << this->str();
+  }
+
+private:
+  static std::mutex _mutexPrint;
+};
+
+std::mutex PrintThread::_mutexPrint{};
+
+#include "global.h"
+
+#ifdef CLUSTER
+zactor_t *beacon_speaker = NULL;
+zactor_t *beacon_listener = NULL;
+std::thread beacon_thread;
+std::atomic<bool> exiting(false);
+#endif
+
+void signalHandler(int signum) {
+  std::cout << "Interrupt signal (" << signum << ") received.\n";
+
+#ifdef CLUSTER
+  exiting = true;
+#endif
+
+  // cleanup and close up stuff here
+  // terminate program
+
+  curl_global_cleanup();
+
+  if (splat_db != NULL)
+    sqlite3_close(splat_db);
+
+#ifdef CLUSTER
+  if(beacon_speaker != NULL)
+    {
+      zstr_sendx (beacon_speaker, "SILENCE", NULL);
+
+      const char* message = "JVO:>FITSWEBQL::LEAVE";
+      const int interval = 1000;//[ms]
+      zsock_send (beacon_speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+      
+      zstr_sendx (beacon_speaker, "SILENCE", NULL);      
+      zactor_destroy (&beacon_speaker);
+    }
+
+  if(beacon_listener != NULL)
+    {
+      zstr_sendx (beacon_listener, "UNSUBSCRIBE", NULL);
+      beacon_thread.join();
+      zactor_destroy (&beacon_listener);
+    }
+  
+  //zsys_shutdown();
+#endif
+
+  std::cout << "FITSWebQL shutdown completed." << std::endl;
+
+  exit(signum);
 }
 
 #ifdef LOCAL
@@ -1190,6 +1262,84 @@ void ipp_init() {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef CLUSTER
+  //LAN cluster node auto-discovery
+  beacon_thread = std::thread([]() {
+				beacon_speaker = zactor_new (zbeacon, NULL);
+				if(beacon_speaker == NULL)
+				  return;
+
+				zstr_send (beacon_speaker, "VERBOSE");
+				zsock_send (beacon_speaker, "si", "CONFIGURE", BEACON_PORT);
+				char *my_hostname = zstr_recv (beacon_speaker);
+				if(my_hostname != NULL)
+				  {
+				    const char* message = "JVO:>FITSWEBQL::ENTER";
+				    const int interval = 1000;//[ms]
+				    zsock_send (beacon_speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+				  }
+
+				beacon_listener = zactor_new (zbeacon, NULL);
+				if(beacon_listener == NULL)
+				  return;
+
+				zstr_send (beacon_listener, "VERBOSE");
+				zsock_send (beacon_listener, "si", "CONFIGURE", BEACON_PORT);
+				char *hostname = zstr_recv (beacon_listener);
+				if(hostname != NULL)
+				  free(hostname);
+				else
+				  return;
+
+				zsock_send (beacon_listener, "sb", "SUBSCRIBE", "", 0);
+				zsock_set_rcvtimeo (beacon_listener, 500);
+  
+				while(!exiting) {
+				  char *ipaddress = zstr_recv (beacon_listener);
+				  if (ipaddress != NULL) {				    
+				    zframe_t *content = zframe_recv (beacon_listener);
+				    std::string_view message = std::string_view((const char*)zframe_data (content), zframe_size (content));
+
+				    //ENTER
+				    if(message.find("ENTER") != std::string::npos)
+				      {
+					if(strcmp(my_hostname, ipaddress) != 0)
+					  {
+					    std::string node = std::string(ipaddress);
+					    
+					    if(!cluster_contains_node(node))
+					      {
+						PrintThread{} << "found a new peer @ " << ipaddress << ": " << message << std::endl;
+						cluster_insert_node(node);
+					      }
+					  }
+				      }
+
+				    //LEAVE
+				    if(message.find("LEAVE") != std::string::npos)
+				      {
+					if(strcmp(my_hostname, ipaddress) != 0)
+					  {
+					    std::string node = std::string(ipaddress);
+					    
+					    if(cluster_contains_node(node))
+					      {
+						PrintThread{} << ipaddress << " is leaving: " << message << std::endl;
+						cluster_erase_node(node);
+					      }
+					  }
+				      }
+
+				    zframe_destroy (&content);
+				    zstr_free (&ipaddress);
+				  }
+				}
+
+				if(my_hostname != NULL)
+				  free(my_hostname);
+			      });
+#endif
+
   ipp_init();
   curl_global_init(CURL_GLOBAL_ALL);
 
@@ -1205,6 +1355,9 @@ int main(int argc, char *argv[]) {
 
   struct passwd *passwdEnt = getpwuid(getuid());
   home_dir = passwdEnt->pw_dir;
+
+  // register signal SIGINT and signal handler
+  signal(SIGINT, signalHandler);
 
   // Check command line arguments.
   /*if (argc != 5)
