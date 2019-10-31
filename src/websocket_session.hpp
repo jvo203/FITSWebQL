@@ -1,14 +1,4 @@
-//
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/vinniefalco/CppCon2018
-//
-
-#ifndef BOOST_BEAST_EXAMPLE_WEBSOCKET_CHAT_MULTI_WEBSOCKET_SESSION_HPP
-#define BOOST_BEAST_EXAMPLE_WEBSOCKET_CHAT_MULTI_WEBSOCKET_SESSION_HPP
+#pragma once
 
 #include "net.hpp"
 #include "beast.hpp"
@@ -82,5 +72,3 @@ run(http::request<Body, http::basic_fields<Allocator>> req)
             &websocket_session::on_accept,
             shared_from_this()));
 }
-
-#endif

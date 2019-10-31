@@ -1818,7 +1818,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"running\" : " << running << ",";
   json << "\"elapsed\" : " << elapsed << "}";
 
-  m_progress_mutex.lock() ;
+  /*m_progress_mutex.lock() ;
   TWebSocketList connections = m_progress[this->dataset_id] ;
   m_progress_mutex.unlock() ;
   
@@ -1837,5 +1837,5 @@ void FITS::send_progress_notification(size_t running, size_t total)
 	      update_progress_timestamp(user->ptr);
 	    }
 	}
-    } ;
+    } ;*/
 }

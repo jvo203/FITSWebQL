@@ -12,6 +12,119 @@
 #include <boost/config.hpp>
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
+#include "json.h"
+#include <curl/curl.h>
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
+
+inline const char *check_null(const char *str) {
+  if (str != nullptr)
+    return str;
+  else
+    return "\"\"";
+};
+
+#ifdef LOCAL
+uintmax_t ComputeFileSize(const fs::path &pathToCheck) {
+  if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck)) {
+    auto err = std::error_code{};
+    auto filesize = fs::file_size(pathToCheck, err);
+    if (filesize != static_cast<uintmax_t>(-1))
+      return filesize;
+  }
+
+  return static_cast<uintmax_t>(-1);
+}
+
+std::string get_directory(std::string dir) {
+  std::cout << "scanning directory " << dir << std::endl;
+
+  fs::path pathToShow(dir);
+
+  std::map<std::string, std::string> entries;
+
+  if (fs::exists(pathToShow) && fs::is_directory(pathToShow)) {
+    for (const auto &entry : fs::directory_iterator(pathToShow)) {
+      if (!fs::exists(entry))
+        continue;
+
+      auto filename = entry.path().filename();
+      auto timestamp = fs::last_write_time(entry);
+      time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
+      std::string last_modified = std::asctime(std::localtime(&cftime));
+      last_modified.pop_back();
+
+      if (fs::is_directory(entry.status())) {
+        if (!boost::algorithm::starts_with(filename.string(), ".")) {
+          char *encoded = json_encode_string(filename.c_str());
+
+          std::string json =
+              "{\"type\" : \"dir\", \"name\" : " + std::string(encoded) +
+              ", \"last_modified\" : \"" + last_modified + "\"}";
+
+          if (encoded != NULL)
+            free(encoded);
+
+          std::cout << json << std::endl;
+
+          entries.insert(std::pair(filename, json));
+        }
+      } else if (fs::is_regular_file(entry.status())) {
+        // check the extensions .fits or .fits.gz
+        const std::string lower_filename =
+            boost::algorithm::to_lower_copy(filename.string());
+
+        if (boost::algorithm::ends_with(lower_filename, ".fits") ||
+            boost::algorithm::ends_with(lower_filename, ".fits.gz")) {
+
+          char *encoded = json_encode_string(filename.c_str());
+
+          uintmax_t filesize = ComputeFileSize(entry);
+
+          std::string json =
+              "{\"type\" : \"file\", \"name\" : " + std::string(encoded) +
+              ", \"size\" : " + std::to_string(filesize) +
+              ", \"last_modified\" : \"" + last_modified + "\"}";
+
+          if (encoded != NULL)
+            free(encoded);
+
+          std::cout << json << std::endl;
+
+          entries.insert(std::pair(filename, json));
+        }
+      }
+    }
+  }
+
+  std::ostringstream json;
+
+  char *encoded = json_encode_string(check_null(dir.c_str()));
+
+  json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [";
+
+  if (encoded != NULL)
+    free(encoded);
+
+  if (entries.size() > 0) {
+    for (auto const &entry : entries) {
+      json << entry.second << ",";
+    }
+
+    // overwrite the the last ',' with a list closing character
+    json.seekp(-1, std::ios_base::end);
+  }
+
+  json << "]}";
+
+  return json.str();
+}
+#endif
+
 #define BOOST_NO_CXX14_GENERIC_LAMBDAS
 
 //------------------------------------------------------------------------------
@@ -34,6 +147,7 @@ mime_type(beast::string_view path)
     if(iequals(ext, ".css"))  return "text/css";
     if(iequals(ext, ".txt"))  return "text/plain";
     if(iequals(ext, ".js"))   return "application/javascript";
+    if(iequals(ext, ".wasm")) return "application/wasm";
     if(iequals(ext, ".json")) return "application/json";
     if(iequals(ext, ".xml"))  return "application/xml";
     if(iequals(ext, ".swf"))  return "application/x-shockwave-flash";
@@ -89,6 +203,8 @@ template<
 void
 handle_request(
     beast::string_view doc_root,
+    beast::string_view home_dir,
+    sqlite3 *splat_db,
     http::request<Body, http::basic_fields<Allocator>>&& req,
     Send&& send)
 {
@@ -131,10 +247,83 @@ handle_request(
         return res;
     };
 
+#ifdef LOCAL
+  // Returns a directory listing
+  auto const uncached_json = [&req](std::string body) {
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "application/json");
+    res.set(http::field::cache_control, "no-cache");
+    res.set(http::field::cache_control, "no-store");
+    res.set(http::field::pragma, "no-cache");
+    res.keep_alive(req.keep_alive());
+    res.body() = body;
+    res.prepare_payload();
+    return res;
+  };
+#endif
+
     // Make sure we can handle the method
     if( req.method() != http::verb::get &&
         req.method() != http::verb::head)
         return send(bad_request("Unknown HTTP-method"));
+
+    // FITSWebQL custom HTTP requests
+
+    boost::beast::string_view uri = req.target();
+
+
+#ifdef LOCAL
+  // handle the local file system requests
+  if (uri.find("/get_directory") != std::string::npos) {
+    std::string dir;
+
+    // get a position of '?'
+    size_t pos = uri.find("?");
+
+    if (pos != std::string::npos) {
+      boost::beast::string_view query = uri.substr(pos + 1, std::string::npos);
+      std::cout << "query: (" << query << ")" << std::endl;
+
+      std::vector<std::string> params;
+      boost::split(params, query, [](char c) { return c == '&'; });
+
+      for (auto const &s : params) {
+        // find '='
+        size_t pos = s.find("=");
+
+        if (pos != std::string::npos) {
+          std::string key = s.substr(0, pos);
+          std::string value = s.substr(pos + 1, std::string::npos);
+
+          if (key == "dir") {
+            CURL *curl = curl_easy_init();
+
+            char *str =
+                curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
+            dir = std::string(str);
+            curl_free(str);
+
+            curl_easy_cleanup(curl);
+          }
+        }
+      }
+    }
+
+    std::string body = "";
+
+    if (dir != "")
+      body = get_directory(dir);
+    else {
+      if (home_dir != "")
+        body = get_directory(std::string(home_dir));
+      else
+        return send(not_found(req.target()));
+    }
+
+    return send(uncached_json(body));
+  }
+#endif
 
     // Request path must be absolute and not contain "..".
     if( req.target().empty() ||
@@ -145,7 +334,13 @@ handle_request(
     // Build the path to the requested file
     std::string path = path_cat(doc_root, req.target());
     if(req.target().back() == '/')
-        path.append("index.html");
+    {        
+#ifdef LOCAL
+        path.append("local.html");
+#else
+        path.append("test.html");
+#endif
+    }
 
     // Attempt to open the file
     beast::error_code ec;
@@ -308,6 +503,8 @@ on_read(beast::error_code ec, std::size_t)
     //
     handle_request(
         state_->doc_root(),
+        state_->home_dir(),
+        state_->splat_db(),
         std::move(req_),
         [this](auto&& response)
         {
@@ -344,6 +541,8 @@ on_read(beast::error_code ec, std::size_t)
     //
     handle_request(
         state_->doc_root(),
+        state_->home_dir(),
+        state_->splat_db(),
         parser_->release(),
         send_lambda(*this));
 

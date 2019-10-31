@@ -11,9 +11,24 @@
 #include "websocket_session.hpp"
 
 shared_state::
-shared_state(std::string doc_root)
-    : doc_root_(std::move(doc_root))
+shared_state(std::string doc_root, std::string home_dir)
+    : doc_root_(std::move(doc_root)), home_dir_(std::move(home_dir))
 {
+    int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db_,
+                           SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+
+  	if (rc) {
+    	fprintf(stderr, "Can't open local splatalogue database: %s\n",
+            sqlite3_errmsg(splat_db_));
+    	sqlite3_close(splat_db_);
+    	splat_db_ = NULL;
+  	}
+}
+
+shared_state::~shared_state()
+{
+    if (splat_db_ != NULL)            
+        sqlite3_close(splat_db_);    
 }
 
 void
