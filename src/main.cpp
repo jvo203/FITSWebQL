@@ -149,7 +149,7 @@ main(int argc, char* argv[])
 				char *my_hostname = zstr_recv (beacon_speaker);
 				if(my_hostname != NULL)
 				  {
-				    const char* message = "JVO:>FITSWEBQL::ENTER";
+				    const char* message = "JVO :> FITSWEBQL::ENTER";
 				    const int interval = 1000;//[ms]
 				    zsock_send (beacon_speaker, "sbi", "PUBLISH", message, strlen(message), interval);
 				  }
@@ -184,7 +184,7 @@ main(int argc, char* argv[])
 					    
 					    if(!cluster_contains_node(node))
 					      {
-						PrintThread{} << message << " : found a new peer @" << ipaddress << std::endl;
+						PrintThread{} << message << " :> found a new peer @" << ipaddress << std::endl;
 						cluster_insert_node(node);
 					      }
 					  }
@@ -199,7 +199,7 @@ main(int argc, char* argv[])
 					    
 					    if(cluster_contains_node(node))
 					      {
-						PrintThread{} << message << " : " << ipaddress << " is leaving" << std::endl;
+						PrintThread{} << message << " :> " << ipaddress << " is leaving" << std::endl;
 						cluster_erase_node(node);
 					      }
 					  }
@@ -267,7 +267,7 @@ main(int argc, char* argv[])
             {
                 zstr_sendx (beacon_speaker, "SILENCE", NULL);
 
-                const char* message = "JVO:>FITSWEBQL::LEAVE";
+                const char* message = "JVO :> FITSWEBQL::LEAVE";
                 const int interval = 1000;//[ms]
                 zsock_send (beacon_speaker, "sbi", "PUBLISH", message, strlen(message), interval);
       
