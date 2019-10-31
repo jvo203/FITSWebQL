@@ -72,3 +72,22 @@ send(std::string message)
         if(auto sp = wp.lock())
             sp->send(ss);
 }
+
+std::shared_ptr<FITS> shared_state::get_dataset(std::string id)
+{
+    std::shared_lock<std::shared_mutex> lock(fits_mutex);
+
+    auto item = DATASETS.find(id);
+
+    if (item == DATASETS.end())
+        return nullptr;
+    else
+        return item->second;
+}
+
+void shared_state::insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+{
+    std::lock_guard<std::shared_mutex> guard(fits_mutex);
+
+    DATASETS.insert(std::pair(id, fits));
+}

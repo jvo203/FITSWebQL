@@ -60,4 +60,8 @@ public:
     void join  (websocket_session* session);
     void leave (websocket_session* session);
     void send  (std::string message);
+
+    //many readers/one writer for FITS datasets
+    std::shared_ptr<FITS> get_dataset(std::string id);
+    void insert_dataset(std::string id, std::shared_ptr<FITS> fits);
 };

@@ -184,7 +184,7 @@ main(int argc, char* argv[])
 					    
 					    if(!cluster_contains_node(node))
 					      {
-						PrintThread{} << message << "\tfound a new peer @" << ipaddress << std::endl;
+						PrintThread{} << message << " : found a new peer @" << ipaddress << std::endl;
 						cluster_insert_node(node);
 					      }
 					  }
@@ -199,7 +199,7 @@ main(int argc, char* argv[])
 					    
 					    if(cluster_contains_node(node))
 					      {
-						PrintThread{} << message << "\t" << ipaddress << " is leaving" << std::endl;
+						PrintThread{} << message << " : " << ipaddress << " is leaving" << std::endl;
 						cluster_erase_node(node);
 					      }
 					  }
@@ -288,8 +288,6 @@ main(int argc, char* argv[])
         t.join();
 
 	curl_global_cleanup();
-
-    std::cout << "FITSWebQL shutdown completed." << std::endl;
 
     return EXIT_SUCCESS;
 }
