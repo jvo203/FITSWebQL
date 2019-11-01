@@ -627,6 +627,79 @@ handle_request(
   }
 #endif
 
+  if (uri.find("/get_spectrum") != std::string::npos) {
+    // get a position of '?'
+    size_t pos = uri.find("?");
+
+    if (pos != std::string::npos) {
+      std::string datasetid;
+
+      beast::string_view query = uri.substr(pos + 1, std::string::npos);
+      // std::cout << "query: (" << query << ")" << std::endl;
+
+      std::vector<std::string> params;
+      boost::split(params, query, [](char c) { return c == '&'; });
+
+      CURL *curl = curl_easy_init();
+
+      for (auto const &s : params) {
+        // find '='
+        size_t pos = s.find("=");
+
+        if (pos != std::string::npos) {
+          std::string key = s.substr(0, pos);
+          std::string value = s.substr(pos + 1, std::string::npos);
+
+          if (key.find("dataset") != std::string::npos) {
+            char *str =
+                curl_easy_unescape(curl, value.c_str(), value.length(), NULL);
+            datasetid = std::string(str);
+            curl_free(str);
+          }
+        }
+      }
+
+      curl_easy_cleanup(curl);
+
+      // process the response
+      std::cout << "get_spectrum(" << datasetid << ")" << std::endl;
+
+      auto item = state->get_dataset(datasetid);
+
+      if (item == nullptr)   
+        return send(not_found(datasetid));
+      else {
+        auto fits = item;
+
+        if (fits->has_error)
+          return send(not_found(datasetid));
+        else {
+          std::unique_lock<std::mutex> data_lck(fits->data_mtx);
+          while (!fits->processed_data)
+            fits->data_cv.wait(data_lck);
+
+          if (!fits->has_data)
+            // return http_accepted(res);
+            return send(not_found(datasetid));
+          else {
+            // return get_spectrum(res, fits);
+            std::ostringstream json;
+
+            fits->to_json(json);
+
+            if (json.tellp() > 0) {
+              std::string body = json.str();
+              return send(uncached_json(body));
+            } else {
+              return send(
+                  server_error(datasetid + "/get_spectrum"));
+            }
+          }
+        }
+      }
+    }
+  }
+
     // FITSWebQL entry
   if (uri.find("FITSWebQL.html") != std::string::npos) {
     // get a position of '?'
