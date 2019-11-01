@@ -14,6 +14,8 @@
 #define VERSION_STRING "SV2019-11-01.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
+#define PROGRESS_TIMEOUT 0.25
+
 #include <iostream>
 #include <sstream> 
 #include <string>

@@ -17,6 +17,8 @@ websocket_session(
     : ws_(std::move(socket))
     , state_(state)
 {
+    session_id = boost::uuids::random_generator()();                 
+    ts = system_clock::now() - duration_cast<system_clock::duration>(duration<double>(PROGRESS_TIMEOUT));
 }
 
 websocket_session::
