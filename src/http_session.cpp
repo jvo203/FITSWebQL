@@ -540,6 +540,19 @@ handle_request(
         return res;
     };
 
+    // Returns a server error response
+    auto const http_accepted =
+    [&req](beast::string_view what)
+    {
+        http::response<http::string_body> res{http::status::accepted, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "An error occurred: '" + std::string(what) + "'";
+        res.prepare_payload();
+        return res;
+    };
+
 #ifdef LOCAL
   // Returns a directory listing
   auto const uncached_json = [&req](std::string body) {
@@ -674,13 +687,13 @@ handle_request(
         if (fits->has_error)
           return send(not_found(datasetid));
         else {
-          std::unique_lock<std::mutex> data_lck(fits->data_mtx);
+          /*std::unique_lock<std::mutex> data_lck(fits->data_mtx);
           while (!fits->processed_data)
-            fits->data_cv.wait(data_lck);
+            fits->data_cv.wait(data_lck);*/
 
           if (!fits->has_data)
-            // return http_accepted(res);
-            return send(not_found(datasetid));
+            return send(http_accepted(datasetid));
+            //return send(not_found(datasetid));
           else {
             // return get_spectrum(res, fits);
             std::ostringstream json;

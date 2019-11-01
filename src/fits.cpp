@@ -1,6 +1,8 @@
 #include "../fits.h"
 #include "fits.hpp"
 
+//#include "global.h"
+
 #include "roaring.c"
 #include "json.h"
 
@@ -245,8 +247,7 @@ FITS::FITS() {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->cube = NULL;
-  this->state_ = nullptr;
+  this->cube = NULL;  
   this->defaults();
 }
 
@@ -266,8 +267,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->cube = NULL;
-  this->state_ = nullptr;
+  this->cube = NULL;  
   this->defaults();
 }
 
@@ -693,6 +693,7 @@ bool FITS::process_fits_header_unit(const char *buf) {
 
 void FITS::from_url(std::string url, std::string flux, int va_count, boost::shared_ptr<shared_state> const& state) {
   state_ = state;
+
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);

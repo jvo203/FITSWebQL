@@ -1596,7 +1596,7 @@ int main(int argc, char *argv[]) {
 
 																	   std::string datasetid = user->ptr->primary_id;
                                       
-																	   if (message.find("image/") != std::string::npos) {
+																	   /*if (message.find("image/") != std::string::npos) {
 																	     int width, height;
 
 																	     sscanf(std::string(message).c_str(), "image/%d/%d", &width, &height);
@@ -1640,7 +1640,7 @@ int main(int argc, char *argv[]) {
 																		 }
 																	       }
 																	     }
-																	   }
+																	   }*/
 																	 },
 															      .close = [](auto *ws, int code, std::string_view message) {                  
 																	 struct UserData* user = (struct UserData*) ws->getUserData();
