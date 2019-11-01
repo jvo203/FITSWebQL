@@ -99,6 +99,23 @@ send(boost::shared_ptr<std::string const> const& ss)
 
 void
 websocket_session::
+send_progress(boost::shared_ptr<std::string const> const& ss, boost::shared_ptr<std::string const> const& id, bool forced)
+{
+    if(primary_id != *id)
+        return;
+
+    auto now = system_clock::now();
+    duration<double, std::milli> elapsed = now - ts;
+
+    if( forced || elapsed >= duration_cast<system_clock::duration>(duration<double>(PROGRESS_TIMEOUT)) )
+    {
+        ts = now;
+        send(ss);        
+    }
+}
+
+void
+websocket_session::
 on_send(boost::shared_ptr<std::string const> const& ss)
 {
     // Always add to queue

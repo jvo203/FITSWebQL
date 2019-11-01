@@ -246,6 +246,7 @@ FITS::FITS() {
   this->img_pixels = NULL;
   this->img_mask = NULL;
   this->cube = NULL;
+  this->state_ = nullptr;
   this->defaults();
 }
 
@@ -266,6 +267,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->img_pixels = NULL;
   this->img_mask = NULL;
   this->cube = NULL;
+  this->state_ = nullptr;
   this->defaults();
 }
 
@@ -689,14 +691,17 @@ bool FITS::process_fits_header_unit(const char *buf) {
   return end;
 }
 
-void FITS::from_url(std::string url, std::string flux, int va_count) {
+void FITS::from_url(std::string url, std::string flux, int va_count, boost::shared_ptr<shared_state> const& state) {
+  state_ = state;
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 }
 
 void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
-                         int va_count) {
+                         int va_count, boost::shared_ptr<shared_state> const& state) {
+  state_ = state;
+
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
 
@@ -1817,6 +1822,10 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
   json << "\"elapsed\" : " << elapsed << "}";
+
+  bool forced = (running == total) ? true : false;
+
+  state_->send_progress  (json.str(), dataset_id, forced);
 
   /*m_progress_mutex.lock() ;
   TWebSocketList connections = m_progress[this->dataset_id] ;

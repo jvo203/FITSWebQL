@@ -37,8 +37,7 @@ class websocket_session : public boost::enable_shared_from_this<websocket_sessio
 
     //FITSWebQL session management
     boost::uuids::uuid session_id;
-    system_clock::time_point ts;
-    std::shared_mutex ts_mtx;
+    system_clock::time_point ts;    
 
     //the main fields
     std::string primary_id;
@@ -64,6 +63,8 @@ public:
     // Send a message
     void
     send(boost::shared_ptr<std::string const> const& ss);
+    void
+    send_progress(boost::shared_ptr<std::string const> const& ss, boost::shared_ptr<std::string const> const& id, bool forced);
 
 private:
     void

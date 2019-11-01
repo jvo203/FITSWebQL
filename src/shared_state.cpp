@@ -50,10 +50,11 @@ leave(websocket_session* session)
 // Broadcast a message to all websocket client sessions
 void
 shared_state::
-send(std::string message)
+send_progress(std::string message, std::string id, bool forced)
 {
     // Put the message in a shared pointer so we can re-use it for each client
     auto const ss = boost::make_shared<std::string const>(std::move(message));
+    auto const sid = boost::make_shared<std::string const>(std::move(id));
 
     // Make a local list of all the weak pointers representing
     // the sessions, so we can do the actual sending without
@@ -70,7 +71,7 @@ send(std::string message)
     // pointer. If successful, then send the message on that session.
     for(auto const& wp : v)
         if(auto sp = wp.lock())
-            sp->send(ss);
+            sp->send_progress(ss, sid, forced);
 }
 
 std::shared_ptr<FITS> shared_state::get_dataset(std::string id)

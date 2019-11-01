@@ -13,6 +13,7 @@
 
 // Forward declaration
 class websocket_session;
+class FITS;
 
 // Represents the shared server state
 class shared_state
@@ -59,7 +60,7 @@ public:
 
     void join  (websocket_session* session);
     void leave (websocket_session* session);
-    void send  (std::string message);
+    void send_progress  (std::string message, std::string id, bool forced);
 
     //many readers/one writer for FITS datasets
     std::shared_ptr<FITS> get_dataset(std::string id);

@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "global.h"
-
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -17,6 +15,8 @@
 using namespace std::chrono;
 
 #include "roaring.hh"
+
+#include "shared_state.hpp"
 
 #include <zfparray3.h>
 //#include "array3fmmap.hpp"
@@ -47,6 +47,8 @@ int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
                     float pmins, float pmax);
 
+class shared_state;
+
 class FITS {
 public:
   FITS();
@@ -55,9 +57,9 @@ public:
 
 public:
   void update_timestamp();
-  void from_url(std::string url, std::string flux, int va_count);
+  void from_url(std::string url, std::string flux, int va_count, boost::shared_ptr<shared_state> const& state);
   void from_path_zfp(std::string path, bool is_compressed, std::string flux,
-                     int va_count);
+                     int va_count, boost::shared_ptr<shared_state> const& state);
   void get_frequency_range(double &freq_start, double &freq_end);
   void to_json(std::ostringstream &json);
 
@@ -171,4 +173,7 @@ private:
   gzFile compressed_fits_stream;
   off_t fits_file_size;
   bool gz_compressed;
+
+  //Boost/Beast shared state
+  boost::shared_ptr<shared_state> state_;
 };

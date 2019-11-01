@@ -378,7 +378,7 @@ std::string execute_fits(boost::shared_ptr<shared_state> const& state, std::stri
 
         // load FITS data in a separate thread
         std::thread(&FITS::from_path_zfp, fits, path, is_compressed, flux,
-                    va_count)
+                    va_count, state)
             .detach();
       } else {
         // the last resort
@@ -387,7 +387,7 @@ std::string execute_fits(boost::shared_ptr<shared_state> const& state, std::stri
                           "&table=cube&data_id=" + data_id + "_00_00_00";
 
         // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
+        std::thread(&FITS::from_url, fits, url, flux, va_count, state).detach();
       }
     } else {      
       has_fits = has_fits && item->has_data;
