@@ -1824,7 +1824,6 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"elapsed\" : " << elapsed << "}";
 
   bool forced = (running == total) ? true : false;
-
   state_->send_progress  (json.str(), dataset_id, forced);
 
   /*m_progress_mutex.lock() ;
