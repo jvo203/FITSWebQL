@@ -553,8 +553,7 @@ handle_request(
         return res;
     };
 
-#ifdef LOCAL
-  // Returns a directory listing
+  // Returns a JSON response with caching disabled
   auto const uncached_json = [&req](std::string body) {
     http::response<http::string_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
@@ -567,7 +566,6 @@ handle_request(
     res.prepare_payload();
     return res;
   };
-#endif
 
     // Returns a valid OK response
   auto const ok_response = [&req](std::string body) {
@@ -578,6 +576,39 @@ handle_request(
     res.body() = body;
     res.prepare_payload();
     return res;
+  };
+
+   // Returns a valid spectrum
+  auto const spectrum = [&req, &state, &not_found, &http_accepted, &uncached_json, &server_error](std::string datasetid) {
+    auto fits = state->get_dataset(datasetid);
+
+      if (fits == nullptr)   
+        return not_found(datasetid);
+      else {        
+        if (fits->has_error)
+          return not_found(datasetid);
+        else {
+          /*std::unique_lock<std::mutex> data_lck(fits->data_mtx);
+          while (!fits->processed_data)
+            fits->data_cv.wait(data_lck);*/
+
+          if (!fits->has_data)
+            return http_accepted(datasetid);
+            //return not_found(datasetid);
+          else {            
+            std::ostringstream json;
+
+            fits->to_json(json);
+
+            if (json.tellp() > 0) {
+              std::string body = json.str();
+              return uncached_json(body);
+            } else {
+              return server_error(datasetid + "/get_spectrum");
+            }
+          }
+        }
+      }
   };
 
     // Make sure we can handle the method
@@ -675,41 +706,8 @@ handle_request(
       curl_easy_cleanup(curl);
 
       // process the response
-      std::cout << "get_spectrum(" << datasetid << ")" << std::endl;
-
-      auto item = state->get_dataset(datasetid);
-
-      if (item == nullptr)   
-        return send(not_found(datasetid));
-      else {
-        auto fits = item;
-
-        if (fits->has_error)
-          return send(not_found(datasetid));
-        else {
-          /*std::unique_lock<std::mutex> data_lck(fits->data_mtx);
-          while (!fits->processed_data)
-            fits->data_cv.wait(data_lck);*/
-
-          if (!fits->has_data)
-            return send(http_accepted(datasetid));
-            //return send(not_found(datasetid));
-          else {
-            // return get_spectrum(res, fits);
-            std::ostringstream json;
-
-            fits->to_json(json);
-
-            if (json.tellp() > 0) {
-              std::string body = json.str();
-              return send(uncached_json(body));
-            } else {
-              return send(
-                  server_error(datasetid + "/get_spectrum"));
-            }
-          }
-        }
-      }
+      std::cout << "get_spectrum(" << datasetid << ")" << std::endl;      
+      return send(spectrum(datasetid));      
     }
   }
 

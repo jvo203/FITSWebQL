@@ -175,5 +175,5 @@ private:
   bool gz_compressed;
 
   //Boost/Beast shared state
-  boost::shared_ptr<shared_state> state_;
+  boost::weak_ptr<shared_state> state_;
 };
