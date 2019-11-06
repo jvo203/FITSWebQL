@@ -19,9 +19,9 @@
 #include "fitswebql.hpp"
 #include "json.h"
 #include <curl/curl.h>
-#include <experimental/filesystem>
+#include <filesystem>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 inline const char *check_null(const char *str) {
   if (str != nullptr)
