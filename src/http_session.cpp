@@ -80,7 +80,8 @@ std::string get_directory(std::string dir) {
 
       auto filename = entry.path().filename();
       auto timestamp = fs::last_write_time(entry);
-      time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
+      std::time_t cftime = decltype(ftime)::clock::to_time_t(timestamp); 
+      //time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
       std::string last_modified = std::asctime(std::localtime(&cftime));
       last_modified.pop_back();
 
