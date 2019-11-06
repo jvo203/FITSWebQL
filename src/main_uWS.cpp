@@ -113,6 +113,25 @@ std::string home_dir;
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
+std::shared_ptr<FITS> shared_state::get_dataset(std::string id)
+{
+    std::shared_lock<std::shared_mutex> lock(fits_mutex);
+
+    auto item = DATASETS.find(id);
+
+    if (item == DATASETS.end())
+        return nullptr;
+    else
+        return item->second;
+}
+
+void shared_state::insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+{
+    std::lock_guard<std::shared_mutex> guard(fits_mutex);
+
+    DATASETS.insert(std::pair(id, fits));
+}
+
 inline const char *check_null(const char *str) {
   if (str != nullptr)
     return str;
@@ -1255,13 +1274,14 @@ int main(int argc, char *argv[]) {
 													  if (fits->has_error)
 													    return http_not_found(res);
 													  else {
-													    std::unique_lock<std::mutex> data_lock(
+													    /*std::unique_lock<std::mutex> data_lock(
 																		   fits->data_mtx);
 													    while (!fits->processed_data)
-													      fits->data_cv.wait(data_lock);
+													      fits->data_cv.wait(data_lock);*/
 
 													    if (!fits->has_data)
-													      return http_not_found(res);
+													      //return http_not_found(res);
+                                return http_accepted(res);
 													    else
 													      return get_spectrum(res, fits);
 													  }
