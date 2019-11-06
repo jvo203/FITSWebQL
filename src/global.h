@@ -17,7 +17,7 @@ typedef uWS::WebSocket<false, true> TWebSocket;
 typedef std::set<TWebSocket*> TWebSocketList;
 
 typedef std::unordered_map<std::string, TWebSocketList> progress_list ;
-inline std::mutex m_progress_mutex;
+inline std::shared_mutex m_progress_mutex;
 inline progress_list m_progress;
 
 #define PROGRESS_TIMEOUT 0.25

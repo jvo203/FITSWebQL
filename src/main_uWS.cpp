@@ -113,7 +113,7 @@ std::string home_dir;
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
-std::shared_ptr<FITS> shared_state::get_dataset(std::string id)
+std::shared_ptr<FITS> get_dataset(std::string id)
 {
     std::shared_lock<std::shared_mutex> lock(fits_mutex);
 
@@ -125,7 +125,7 @@ std::shared_ptr<FITS> shared_state::get_dataset(std::string id)
         return item->second;
 }
 
-void shared_state::insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
 {
     std::lock_guard<std::shared_mutex> guard(fits_mutex);
 
@@ -860,20 +860,16 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
 
   int va_count = datasets.size();
 
-  for (auto const &data_id : datasets) {
-    std::shared_lock<std::shared_mutex> lock(fits_mutex);
-    auto item = DATASETS.find(data_id);
-    lock.unlock();
+  for (auto const &data_id : datasets) {    
+    auto item = get_dataset(data_id);
 
-    if (item == DATASETS.end()) {
+    if (item == nullptr) {
       // set has_fits to false and load the FITS dataset
       has_fits = false;
       std::shared_ptr<FITS> fits(new FITS(data_id, flux));
 
-      std::unique_lock<std::shared_mutex> lock(fits_mutex);
-      DATASETS.insert(std::pair(data_id, fits));
-      lock.unlock();
-
+      insert_dataset(data_id, fits);
+      
       std::string path;
 
       if (dir != "" && ext != "")
@@ -904,11 +900,9 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
         // download FITS data from a URL in a separate thread
         std::thread(&FITS::from_url, fits, url, flux, va_count, nullptr).detach();
       }
-    } else {
-      auto fits = item->second;
-
-      has_fits = has_fits && fits->has_data;
-      fits->update_timestamp();
+    } else {      
+      has_fits = has_fits && item->has_data;
+      item->update_timestamp();
     }
   }
 
@@ -1262,15 +1256,11 @@ int main(int argc, char *argv[]) {
 													std::cout << "get_spectrum(" << datasetid << ")"
 														  << std::endl;
 
-													std::shared_lock<std::shared_mutex> lock(fits_mutex);
-													auto item = DATASETS.find(datasetid);
-													lock.unlock();
+                          auto fits = get_dataset(datasetid);
 
-													if (item == DATASETS.end())
+													if (fits == nullptr)
 													  return http_not_found(res);
-													else {
-													  auto fits = item->second;
-
+													else {													  
 													  if (fits->has_error)
 													    return http_not_found(res);
 													  else {
@@ -1350,15 +1340,11 @@ int main(int argc, char *argv[]) {
 
 													if (FPzero(freq_start) || FPzero(freq_end)) {
 													  // get the frequency range from the FITS header
-													  std::shared_lock<std::shared_mutex> lock(fits_mutex);
-													  auto item = DATASETS.find(datasetid);
-													  lock.unlock();
-
-													  if (item == DATASETS.end())
+                            auto fits = get_dataset(datasetid);
+													  
+													  if (fits == nullptr)
 													    return http_not_found(res);
-													  else {
-													    auto fits = item->second;
-
+													  else {													    
 													    if (fits->has_error)
 													      return http_not_found(res);
 
@@ -1554,7 +1540,7 @@ int main(int argc, char *argv[]) {
 															      /* Settings */
 															      .compression = uWS::SHARED_COMPRESSOR,
 															      /* Handlers */
-															      .open = [](auto *ws, auto *req) {                                            
+															      .open = [](auto *ws, auto *req) {                                      
 																	std::string_view url = req->getUrl();
 																	PrintThread{} << "[µWS] open " << url << std::endl;                                  
 
@@ -1590,7 +1576,7 @@ int main(int argc, char *argv[]) {
 																		    user->ptr->primary_id = datasetid[0];                          
 																		    user->ptr->ids = datasetid;
 
-																		    std::lock_guard<std::mutex> guard(m_progress_mutex);
+																		    std::lock_guard<std::shared_mutex> guard(m_progress_mutex);
 																		    TWebSocketList connections = m_progress[datasetid[0]] ;
 																		    connections.insert(ws) ;
 																		    m_progress[datasetid[0]] = connections ;
@@ -1671,7 +1657,7 @@ int main(int argc, char *argv[]) {
 																	       {                      
 																		 PrintThread{} << "[µWS] closing a session " << user->ptr->session_id << " for " << user->ptr->primary_id << std::endl;                      
 
-																		 std::lock_guard<std::mutex> guard(m_progress_mutex);
+																		 std::lock_guard<std::shared_mutex> guard(m_progress_mutex);
 																		 TWebSocketList connections = m_progress[user->ptr->primary_id] ;
 																		 connections.erase(ws) ;
 																		 m_progress[user->ptr->primary_id] = connections ;
