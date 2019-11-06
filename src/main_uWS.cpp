@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-10-28.0"
+#define VERSION_STRING "SV2019-11-06.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -874,7 +874,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
 
         // load FITS data in a separate thread
         std::thread(&FITS::from_path_zfp, fits, path, is_compressed, flux,
-                    va_count)
+                    va_count, nullptr)
 	  .detach();
       } else {
         // the last resort
@@ -883,7 +883,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
 	  "&table=cube&data_id=" + data_id + "_00_00_00";
 
         // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
+        std::thread(&FITS::from_url, fits, url, flux, va_count, nullptr).detach();
       }
     } else {
       auto fits = item->second;

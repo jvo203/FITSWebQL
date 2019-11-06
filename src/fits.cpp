@@ -1,7 +1,7 @@
 #include "../fits.h"
 #include "fits.hpp"
 
-//#include "global.h"
+#include "global.h"
 
 #include "roaring.c"
 #include "json.h"
@@ -1824,11 +1824,11 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"running\" : " << running << ",";
   json << "\"elapsed\" : " << elapsed << "}";
 
-  bool forced = (running == total) ? true : false;
+  /*bool forced = (running == total) ? true : false;
   if(boost::shared_ptr<shared_state> _state = state_.lock())
-    _state->send_progress  (json.str(), dataset_id, forced);
+    _state->send_progress  (json.str(), dataset_id, forced);*/
 
-  /*m_progress_mutex.lock() ;
+  m_progress_mutex.lock() ;
   TWebSocketList connections = m_progress[this->dataset_id] ;
   m_progress_mutex.unlock() ;
   
@@ -1847,5 +1847,5 @@ void FITS::send_progress_notification(size_t running, size_t total)
 	      update_progress_timestamp(user->ptr);
 	    }
 	}
-    } ;*/
+    } ;
 }
