@@ -19,9 +19,9 @@
 #include "fitswebql.hpp"
 #include "json.h"
 #include <curl/curl.h>
-#include <filesystem>
+#include <experimental/filesystem>
 
-namespace fs = std::filesystem;
+namespace fs = std::experimental::filesystem;
 
 inline const char *check_null(const char *str) {
   if (str != nullptr)
@@ -79,9 +79,8 @@ std::string get_directory(std::string dir) {
         continue;
 
       auto filename = entry.path().filename();
-      auto timestamp = fs::last_write_time(entry);
-      std::time_t cftime = decltype(ftime)::clock::to_time_t(timestamp); 
-      //time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
+      auto timestamp = fs::last_write_time(entry);         
+      std::time_t cftime = std::chrono::system_clock::to_time_t(timestamp);
       std::string last_modified = std::asctime(std::localtime(&cftime));
       last_modified.pop_back();
 
