@@ -892,7 +892,7 @@ struct http_session::send_lambda
     template<bool isRequest, class Body, class Fields>
     void
     operator()(http::message<isRequest, Body, Fields>&& msg) const
-    {
+    {      
         // The lifetime of the message has to extend
         // for the duration of the async operation so
         // we use a shared_ptr to manage it.
