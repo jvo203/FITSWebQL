@@ -6165,7 +6165,7 @@ static const struct {
     {NULL, 0, NULL}};
 
 static struct mg_str mg_get_mime_type(const char *path, const char *dflt,
-                                      const struct mg_serve_http_opts *opts) {
+                                      const struct mg_serve_http_opts *opts) {                                    
   const char *ext, *overrides;
   size_t i, path_len;
   struct mg_str r, k, v;
@@ -6175,10 +6175,10 @@ static struct mg_str mg_get_mime_type(const char *path, const char *dflt,
   overrides = opts->custom_mime_types;
   while ((overrides = mg_next_comma_list_entry(overrides, &k, &v)) != NULL) {
     ext = path + (path_len - k.len);
-    if (path_len > k.len && mg_vcasecmp(&k, ext) == 0) {
+    if (path_len > k.len && mg_vcasecmp(&k, ext) == 0) {      
       return v;
     }
-  }
+  }  
 
   for (i = 0; mg_static_builtin_mime_types[i].extension != NULL; i++) {
     ext = path + (path_len - mg_static_builtin_mime_types[i].ext_len);
@@ -7397,7 +7397,7 @@ static void mg_http_serve_file2(struct mg_connection *nc, const char *path,
     mg_handle_ssi_request(nc, hm, path, opts);
     return;
   }
-#endif
+#endif              
   mg_http_serve_file(nc, hm, path, mg_get_mime_type(path, "text/plain", opts),
                      mg_mk_str(opts->extra_headers));
 }
@@ -8533,7 +8533,7 @@ MG_INTERNAL void mg_send_http_file(struct mg_connection *nc, char *path,
 }
 
 void mg_serve_http(struct mg_connection *nc, struct http_message *hm,
-                   struct mg_serve_http_opts opts) {
+                   struct mg_serve_http_opts opts) {                             
   char *path = NULL;
   struct mg_str *hdr, path_info;
   uint32_t remote_ip = ntohl(*(uint32_t *) &nc->sa.sin.sin_addr);
@@ -8581,7 +8581,7 @@ void mg_serve_http(struct mg_connection *nc, struct http_message *hm,
   if (mg_uri_to_local_path(hm, &opts, &path, &path_info) == 0) {
     mg_http_send_error(nc, 404, NULL);
     return;
-  }
+  }  
   mg_send_http_file(nc, path, &path_info, hm, &opts);
 
   MG_FREE(path);
