@@ -291,8 +291,9 @@ int main(void) {
   }
 
   mg_set_protocol_http_websocket(nc);
-  s_http_server_opts.document_root = "./htdocs_mg";  // Serve current directory
+  s_http_server_opts.document_root = "htdocs_mg";  // Serve current directory
   s_http_server_opts.enable_directory_listing = "no";
+  s_http_server_opts.custom_mime_types = ".txt=text/plain,.html=text/html,.js=application/javascript,.ico=image/x-icon,.png=image/png,.gif=image/gif,.webp=image/webp,.jpg=image/jpeg,.jpeg=image/jpeg,.bpg=image/bpg,.mp4=video/mp4,.hevc=video/hevc,.css=text/css,.pdf=application/pdf,.svg=image/svg+xml,.wasm=application/wasm";
 
   for (i = 0; i < s_num_worker_threads; i++) {
     mg_start_thread(worker_thread_proc, &mgr);
