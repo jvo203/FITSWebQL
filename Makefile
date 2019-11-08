@@ -1,10 +1,14 @@
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
-SRC = src/main_beast.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c $(BEAST)
-INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
+MONGOOSE = mongoose/mongoose.c
+SRC = src/main_mg.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c $(MONGOOSE)
+#$(BEAST) 
+INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/mongoose
+#-I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread -lczmq $(HOME)/uWebSockets/uSockets/*.o
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread -lczmq
+#$(HOME)/uWebSockets/uSockets/*.o
 #-luWS
 IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
