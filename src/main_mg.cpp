@@ -171,7 +171,7 @@ inline const char* check_null(const char* str)
 } ;
 
 static volatile sig_atomic_t s_received_signal = 0;
-static const char *s_http_port = "8081";
+static const char *s_http_port = "8080";
 static const int s_num_worker_threads = 4;
 static unsigned long s_next_id = 0;
 struct mg_mgr mgr;
