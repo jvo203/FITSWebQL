@@ -41,7 +41,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
+
+#if !defined(__APPLE__) || !defined(__MACH__)
 #include <bsd/string.h>
+#endif
 
 #include "mongoose.h"
 
