@@ -2,7 +2,7 @@ BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http
 MONGOOSE = mongoose/mongoose.c
 SRC = src/main_mg.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c $(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/mongoose
+INC = -I/usr/include/postgresql -Ilz4 -Imongoose
 #-I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
 DEF = -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
