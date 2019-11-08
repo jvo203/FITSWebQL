@@ -1,7 +1,7 @@
 #include "../fits.h"
 #include "fits.hpp"
 
-//#include "global.h"
+#include "global.h"
 
 #include "roaring.c"
 #include "json.h"
@@ -691,8 +691,8 @@ bool FITS::process_fits_header_unit(const char *buf) {
   return end;
 }
 
-void FITS::from_url(std::string url, std::string flux, int va_count, boost::shared_ptr<shared_state> const& state) {
-  state_ = state;
+void FITS::from_url(std::string url, std::string flux, int va_count/*, boost::shared_ptr<shared_state> const& state*/) {
+  //state_ = state;
 
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
@@ -700,8 +700,8 @@ void FITS::from_url(std::string url, std::string flux, int va_count, boost::shar
 }
 
 void FITS::from_path_zfp(std::string path, bool is_compressed, std::string flux,
-                         int va_count, boost::shared_ptr<shared_state> const& state) {
-  state_ = state;
+                         int va_count/*, boost::shared_ptr<shared_state> const& state*/) {
+  //state_ = state;
 
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
@@ -1824,9 +1824,9 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"running\" : " << running << ",";
   json << "\"elapsed\" : " << elapsed << "}";
 
-  bool forced = (running == total) ? true : false;
+  /*bool forced = (running == total) ? true : false;
   if(boost::shared_ptr<shared_state> _state = state_.lock())
-    _state->send_progress  (json.str(), dataset_id, forced);
+    _state->send_progress  (json.str(), dataset_id, forced);*/
 
   /*std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
   TWebSocketList connections = m_progress[this->dataset_id] ;  
