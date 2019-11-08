@@ -242,17 +242,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
     case MG_EV_HTTP_REQUEST: {
       struct http_message *hm = (struct http_message *) ev_data;
       printf("URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
-
-      //serve the root index file
-      if(strnstr(hm->uri.p, "/", hm->uri.len) != NULL)
-      {
-#ifdef LOCAL
-       mg_http_serve_file(nc, hm, "htdocs_mg/local.html", mg_mk_str("text/html"), mg_mk_str(""));
-#else
-	mg_http_serve_file(nc, hm, "htdocs_mg/test.html", mg_mk_str("text/html"), mg_mk_str(""));
-#endif
-      }
-      else mg_serve_http(nc, hm, s_http_server_opts);
+      
+      mg_serve_http(nc, hm, s_http_server_opts);
 
       break;
     }
@@ -293,6 +284,11 @@ int main(void) {
   mg_set_protocol_http_websocket(nc);
   s_http_server_opts.document_root = "htdocs_mg";  // Serve current directory
   s_http_server_opts.enable_directory_listing = "no";
+#ifdef LOCAL
+  s_http_server_opts.index_files = "local.html";              
+#else
+  s_http_server_opts.index_files = "test.html";	
+#endif
   s_http_server_opts.custom_mime_types = ".txt=text/plain,.html=text/html,.js=application/javascript,.ico=image/x-icon,.png=image/png,.gif=image/gif,.webp=image/webp,.jpg=image/jpeg,.jpeg=image/jpeg,.bpg=image/bpg,.mp4=video/mp4,.hevc=video/hevc,.css=text/css,.pdf=application/pdf,.svg=image/svg+xml,.wasm=application/wasm";
 
   for (i = 0; i < s_num_worker_threads; i++) {
