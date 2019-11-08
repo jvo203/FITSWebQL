@@ -247,9 +247,9 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
       if(strnstr(hm->uri.p, "/", hm->uri.len) != NULL)
       {
 #ifdef LOCAL
-       mg_http_serve_file(c, hm, "htdocs_mg/local.html", mg_mk_str("text/html"), mg_mk_str(""));
+       mg_http_serve_file(nc, hm, "htdocs_mg/local.html", mg_mk_str("text/html"), mg_mk_str(""));
 #else
-	mg_http_serve_file(c, hm, "htdocs_mg/test.html", mg_mk_str("text/html"), mg_mk_str(""));
+	mg_http_serve_file(nc, hm, "htdocs_mg/test.html", mg_mk_str("text/html"), mg_mk_str(""));
 #endif
       }
       else mg_serve_http(nc, hm, s_http_server_opts);
