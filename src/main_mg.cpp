@@ -183,6 +183,79 @@ static void signal_handler(int sig_num) {
 static struct mg_serve_http_opts s_http_server_opts;
 static sock_t sock[2];
 
+static int is_websocket(const struct mg_connection *nc) {
+  return nc->flags & MG_F_IS_WEBSOCKET;
+}
+
+// This info is passed to the worker thread
+struct work_request {
+  unsigned long conn_id;  // needed to identify the connection where to send the reply
+  // optionally, more data that could be required by worker
+  char* dataId;  
+};
+
+
+void *worker_thread_proc(void *param)
+{
+  struct mg_mgr *mgr = (struct mg_mgr *) param;
+  struct work_request req = {0, NULL};
+  
+  while (s_received_signal == 0) {
+    if (read(sock[1], &req, sizeof(req)) < 0)
+      {
+	//if(s_received_signal == 0)
+	perror("Reading worker sock");
+      }
+    else
+      {	
+       printf("handling %s\n", req.dataId);
+      }
+  }
+  
+  printf("worker_thread_proc terminated.\n");
+  return NULL;
+}
+
+static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
+{
+  (void) nc;
+  (void) ev_data;
+
+  switch (ev) {
+    case MG_EV_ACCEPT:      
+      break;
+    case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST: {
+      struct http_message *hm = (struct http_message *) ev_data;
+      printf("WEBSOCKET URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
+      break;
+    }
+    case MG_EV_WEBSOCKET_FRAME: {
+      struct websocket_message *wm = (struct websocket_message *) ev_data;
+
+      if(wm->data != NULL && wm->size > 0)
+	{
+	  printf("[WS]:\t%.*s\n", (int) wm->size, wm->data);
+       }
+
+       break;
+    }
+    case MG_EV_HTTP_REQUEST: {
+      struct http_message *hm = (struct http_message *) ev_data;
+      printf("URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
+      mg_serve_http(nc, hm, s_http_server_opts);
+      break;
+    }
+    case MG_EV_CLOSE: {
+       if(is_websocket(nc) && nc->user_data != NULL)
+	  {
+	    printf("closing a websocket connection identified by %s\n", (char*) nc->user_data) ;
+         }
+      }
+    default:
+       break;
+  }
+}
+
 int main(void) {  
   struct mg_connection *nc;
   int i;
