@@ -1,7 +1,7 @@
 #include "../fits.h"
 #include "fits.hpp"
 
-#include "global.h"
+//#include "global.h"
 
 #include "roaring.c"
 #include "json.h"
