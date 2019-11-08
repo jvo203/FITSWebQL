@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <bsd/string.h>
 
 #include "mongoose.h"
 
@@ -191,9 +192,8 @@ static int is_websocket(const struct mg_connection *nc) {
 struct work_request {
   unsigned long conn_id;  // needed to identify the connection where to send the reply
   // optionally, more data that could be required by worker
-  char* dataId;  
+  char* dataId;
 };
-
 
 void *worker_thread_proc(void *param)
 {
@@ -242,7 +242,18 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
     case MG_EV_HTTP_REQUEST: {
       struct http_message *hm = (struct http_message *) ev_data;
       printf("URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
-      mg_serve_http(nc, hm, s_http_server_opts);
+
+      //serve the root index file
+      if(strnstr(hm->uri.p, "/", hm->uri.len) != NULL)
+      {
+#ifdef LOCAL
+       mg_http_serve_file(c, hm, "htdocs_mg/local.html", mg_mk_str("text/html"), mg_mk_str(""));
+#else
+	mg_http_serve_file(c, hm, "htdocs_mg/test.html", mg_mk_str("text/html"), mg_mk_str(""));
+#endif
+      }
+      else mg_serve_http(nc, hm, s_http_server_opts);
+
       break;
     }
     case MG_EV_CLOSE: {
