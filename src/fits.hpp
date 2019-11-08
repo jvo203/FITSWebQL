@@ -16,7 +16,7 @@ using namespace std::chrono;
 
 #include "roaring.hh"
 
-#include "shared_state.hpp"
+//#include "shared_state.hpp"
 
 #include <zfparray3.h>
 //#include "array3fmmap.hpp"
@@ -175,5 +175,5 @@ private:
   bool gz_compressed;
 
   //Boost/Beast shared state
-  boost::weak_ptr<shared_state> state_;
+  //boost::weak_ptr<shared_state> state_;
 };
