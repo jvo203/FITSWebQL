@@ -246,13 +246,13 @@ struct mg_mgr mgr;
 
 static void signal_handler(int sig_num) {
   printf("Interrupt signal [%d] received.\n", sig_num);
+
+  signal(sig_num, signal_handler);
   s_received_signal = sig_num;
 
 #ifdef CLUSTER
   exiting = true;
-#endif
-
-  signal(sig_num, signal_handler);
+#endif  
 }
 static struct mg_serve_http_opts s_http_server_opts;
 static sock_t sock[2];
@@ -333,6 +333,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 
 int main(void) {
 #ifdef CLUSTER
+  setenv("ZSYS_SIGHANDLER","false",1);
+
   //LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
 				speaker = zactor_new (zbeacon, NULL);
