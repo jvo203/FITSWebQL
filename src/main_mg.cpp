@@ -245,13 +245,14 @@ static unsigned long s_next_id = 0;
 struct mg_mgr mgr;
 
 static void signal_handler(int sig_num) {
-  signal(sig_num, signal_handler);
+  printf("Interrupt signal [%d] received.\n", sig_num);
   s_received_signal = sig_num;
 
 #ifdef CLUSTER
   exiting = true;
 #endif
 
+  signal(sig_num, signal_handler);
 }
 static struct mg_serve_http_opts s_http_server_opts;
 static sock_t sock[2];
@@ -474,7 +475,7 @@ int main(void) {
   if (splat_db != NULL)
     sqlite3_close(splat_db);
 
-  #ifdef CLUSTER
+#ifdef CLUSTER
   if(speaker != NULL)
     {
       zstr_sendx (speaker, "SILENCE", NULL);
