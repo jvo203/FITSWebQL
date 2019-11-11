@@ -1031,6 +1031,7 @@ void ipp_init() {
 
 int main(int argc, char *argv[]) {
 #ifdef CLUSTER
+  setenv("ZSYS_SIGHANDLER","false",1);
   //LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
 				speaker = zactor_new (zbeacon, NULL);
