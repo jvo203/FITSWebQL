@@ -334,7 +334,6 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 int main(void) {
 #ifdef CLUSTER
   setenv("ZSYS_SIGHANDLER","false",1);
-
   //LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
 				speaker = zactor_new (zbeacon, NULL);
