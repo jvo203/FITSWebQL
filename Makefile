@@ -36,7 +36,7 @@ gcc:
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/Cellar/czmq/4.2.0/include -I/usr/local/Cellar/zeromq/4.3.2/include -I/usr/local/Cellar/boost/1.71.0/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -L/usr/local/opt/llvm/lib $(IPP)
+	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/Cellar/czmq/4.2.0/include -I/usr/local/Cellar/zeromq/4.3.2/include -I/usr/local/Cellar/boost/1.71.0/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP)
 
 #$(JEMALLOC)
 
