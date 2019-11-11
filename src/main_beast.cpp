@@ -138,6 +138,7 @@ int
 main(int argc, char* argv[])
 {
     #ifdef CLUSTER
+    setenv("ZSYS_SIGHANDLER","false",1);
   //LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
 				beacon_speaker = zactor_new (zbeacon, NULL);
