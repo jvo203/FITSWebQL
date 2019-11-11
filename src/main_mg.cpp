@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-08.0"
+#define VERSION_STRING "SV2019-11-11.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -49,8 +49,71 @@
 
 #include "mongoose.h"
 
+#include <atomic>
+#include <iostream>
+#include <sstream>
+#include <thread>
+#include <mutex>
+#include <shared_mutex>
+#include <set>
+
 #include <curl/curl.h>
 #include <sqlite3.h>
+
+sqlite3 *splat_db = NULL;
+
+#ifdef CLUSTER
+#include <czmq.h>
+
+inline std::set<std::string> cluster;
+inline std::shared_mutex cluster_mtx;
+
+inline bool cluster_contains_node(std::string node)
+{
+  std::shared_lock<std::shared_mutex> lock(cluster_mtx);
+
+  if(cluster.find(node) == cluster.end())
+    return false;
+  else
+    return true;
+}
+
+inline void cluster_insert_node(std::string node)
+{
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.insert(node);
+}
+
+inline void cluster_erase_node(std::string node)
+{
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.erase(node);
+}
+
+zactor_t *speaker = NULL;
+zactor_t *listener = NULL;
+std::thread beacon_thread;
+std::atomic<bool> exiting(false);
+#endif
+
+/** Thread safe cout class
+ * Exemple of use:
+ *    PrintThread{} << "Hello world!" << std::endl;
+ */
+class PrintThread : public std::ostringstream {
+public:
+  PrintThread() = default;
+
+  ~PrintThread() {
+    std::lock_guard<std::mutex> guard(_mutexPrint);
+    std::cout << this->str();
+  }
+
+private:
+  static std::mutex _mutexPrint;
+};
+
+std::mutex PrintThread::_mutexPrint{};
 
 #include <ipp.h>
 
@@ -184,6 +247,11 @@ struct mg_mgr mgr;
 static void signal_handler(int sig_num) {
   signal(sig_num, signal_handler);
   s_received_signal = sig_num;
+
+#ifdef CLUSTER
+  exiting = true;
+#endif
+
 }
 static struct mg_serve_http_opts s_http_server_opts;
 static sock_t sock[2];
@@ -262,7 +330,85 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
   }
 }
 
-int main(void) {  
+int main(void) {
+#ifdef CLUSTER
+  //LAN cluster node auto-discovery
+  beacon_thread = std::thread([]() {
+				speaker = zactor_new (zbeacon, NULL);
+				if(speaker == NULL)
+				  return;
+
+				zstr_send (speaker, "VERBOSE");
+				zsock_send (speaker, "si", "CONFIGURE", BEACON_PORT);
+				char *my_hostname = zstr_recv (speaker);
+				if(my_hostname != NULL)
+				  {
+				    const char* message = "JVO:>FITSWEBQL::ENTER";
+				    const int interval = 1000;//[ms]
+				    zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+				  }
+
+				listener = zactor_new (zbeacon, NULL);
+				if(listener == NULL)
+				  return;
+
+				zstr_send (listener, "VERBOSE");
+				zsock_send (listener, "si", "CONFIGURE", BEACON_PORT);
+				char *hostname = zstr_recv (listener);
+				if(hostname != NULL)
+				  free(hostname);
+				else
+				  return;
+
+				zsock_send (listener, "sb", "SUBSCRIBE", "", 0);
+				zsock_set_rcvtimeo (listener, 500);
+  
+				while(!exiting) {
+				  char *ipaddress = zstr_recv (listener);
+				  if (ipaddress != NULL) {				    
+				    zframe_t *content = zframe_recv (listener);
+				    std::string_view message = std::string_view((const char*)zframe_data (content), zframe_size (content));
+
+				    //ENTER
+				    if(message.find("ENTER") != std::string::npos)
+				      {
+					if(strcmp(my_hostname, ipaddress) != 0)
+					  {
+					    std::string node = std::string(ipaddress);
+					    
+					    if(!cluster_contains_node(node))
+					      {
+						PrintThread{} << "found a new peer @ " << ipaddress << ": " << message << std::endl;
+						cluster_insert_node(node);
+					      }
+					  }
+				      }
+
+				    //LEAVE
+				    if(message.find("LEAVE") != std::string::npos)
+				      {
+					if(strcmp(my_hostname, ipaddress) != 0)
+					  {
+					    std::string node = std::string(ipaddress);
+					    
+					    if(cluster_contains_node(node))
+					      {
+						PrintThread{} << ipaddress << " is leaving: " << message << std::endl;
+						cluster_erase_node(node);
+					      }
+					  }
+				      }
+
+				    zframe_destroy (&content);
+				    zstr_free (&ipaddress);
+				  }
+				}
+
+				if(my_hostname != NULL)
+				  free(my_hostname);
+			      });
+#endif
+
   struct mg_connection *nc;
   int i;
 
@@ -277,6 +423,16 @@ int main(void) {
   ipp_init();
   curl_global_init(CURL_GLOBAL_ALL) ;
   
+  int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
+                           SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+
+  if (rc) {
+    fprintf(stderr, "Can't open local splatalogue database: %s\n",
+            sqlite3_errmsg(splat_db));
+    sqlite3_close(splat_db);
+    splat_db = NULL;
+  }
+
   mg_mgr_init(&mgr, NULL);
 
   nc = mg_bind(&mgr, s_http_port, ev_handler);
@@ -315,5 +471,29 @@ int main(void) {
   
   curl_global_cleanup() ;
   
+  if (splat_db != NULL)
+    sqlite3_close(splat_db);
+
+  #ifdef CLUSTER
+  if(speaker != NULL)
+    {
+      zstr_sendx (speaker, "SILENCE", NULL);
+
+      const char* message = "JVO:>FITSWEBQL::LEAVE";
+      const int interval = 1000;//[ms]
+      zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+      
+      zstr_sendx (speaker, "SILENCE", NULL);      
+      zactor_destroy (&speaker);
+    }
+
+  if(listener != NULL)
+    {
+      zstr_sendx (listener, "UNSUBSCRIBE", NULL);
+      beacon_thread.join();
+      zactor_destroy (&listener);
+    }
+#endif
+
   return 0;
 }
