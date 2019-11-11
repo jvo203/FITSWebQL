@@ -48,6 +48,8 @@
 #endif
 
 #include "mongoose.h"
+#include "json.h"
+#include "fits.hpp"
 
 #include <atomic>
 #include <iostream>
@@ -57,10 +59,14 @@
 #include <shared_mutex>
 #include <set>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <curl/curl.h>
 #include <sqlite3.h>
 
 sqlite3 *splat_db = NULL;
+std::string home_dir;
 
 #ifdef CLUSTER
 #include <czmq.h>
@@ -289,6 +295,108 @@ void *worker_thread_proc(void *param)
   return NULL;
 }
 
+#ifdef LOCAL
+static void get_directory(struct mg_connection *nc, const char* dir)
+{
+ printf("get_directory(%s)\n", check_null(dir)) ;
+  
+    struct dirent **namelist = NULL ;
+    int i,n ;
+
+    n = scandir(dir, &namelist, 0, alphasort);
+  
+    std::ostringstream json;
+  
+    char* encoded = json_encode_string(check_null(dir)) ;
+    
+    json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [" ;
+
+    if(encoded != NULL)
+      free(encoded) ;
+  
+    bool has_contents = false ;
+  
+    if (n < 0)
+      {
+	perror("scandir");      
+      
+	json << "]}" ;
+      }
+    else
+      {            
+	for (i = 0; i < n; i++)
+	  {
+	    //printf("%s\n", namelist[i]->d_name);
+
+	    char pathname[1024] ;
+
+	    sprintf(pathname, "%s/%s", dir, check_null(namelist[i]->d_name)) ;	      
+	      
+	    struct stat64 sbuf;
+
+	    int err = stat64(pathname, &sbuf) ;
+
+	    if(err == 0)
+	      {
+		char last_modified[255] ;
+
+		struct tm lm ;
+		localtime_r(&sbuf.st_mtime, &lm);
+		strftime(last_modified, sizeof(last_modified)-1, "%a, %d %b %Y %H:%M:%S %Z", &lm) ;
+		  
+		size_t filesize = sbuf.st_size;	  
+
+		if( S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.')
+		  {
+		    char* encoded = json_encode_string(check_null(namelist[i]->d_name)) ;
+		  		  
+		    json << "{\"type\" : \"dir\", \"name\" : " << check_null(encoded) << ", \"last_modified\" : \"" << last_modified << "\"}," ;
+		    has_contents = true ;
+		  
+		    if(encoded != NULL)
+		      free(encoded) ;
+		  }
+
+		if( S_ISREG(sbuf.st_mode) ) {
+        const std::string filename = std::string(namelist[i]->d_name);
+        const std::string lower_filename = boost::algorithm::to_lower_copy(filename);
+
+        //if(!strcasecmp(get_filename_ext(check_null(namelist[i]->d_name)), "fits"))
+        if (boost::algorithm::ends_with(lower_filename, ".fits") ||
+            boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+		    {
+		      char* encoded = json_encode_string(check_null(namelist[i]->d_name)) ;
+		    		    
+		      json << "{\"type\" : \"file\", \"name\" : " << check_null(encoded) << ", \"size\" : " << filesize << ", \"last_modified\" : \"" << last_modified << "\"}," ;
+		      has_contents = true ;
+
+		      if(encoded != NULL)
+			free(encoded) ;
+		    }
+    }
+	      }
+	    else
+	      perror("stat64") ;
+	  
+	    free(namelist[i]);
+	  } ;
+
+	//overwrite the the last ',' with a list closing character
+	if(has_contents)
+	  json.seekp(-1, std::ios_base::end);
+
+	json << "]}" ;
+      } ;
+
+    if(namelist != NULL)
+      free(namelist);
+
+  //std::cout << json.str() << std::endl;
+  mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
+	mg_printf(nc, json.str().c_str());
+}
+#endif
+
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
   (void) nc;
@@ -316,6 +424,39 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
       struct http_message *hm = (struct http_message *) ev_data;
       printf("URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
       
+  #ifdef LOCAL
+      //get_directory
+      if(strnstr(hm->uri.p, "/get_directory", hm->uri.len) != NULL)
+	    {	  
+        char dir[1024] = "";	
+	      struct mg_str query = hm->query_string;
+
+	      if(query.len > 0)
+	      {
+	        printf("%.*s\n", (int) query.len, query.p);	              
+
+	        if(mg_get_http_var(&query, "dir", dir, sizeof(dir)-1) > 0)
+            printf("dir: ""%s""\n", dir);          
+        }
+
+        //return a json with a directory listing
+        if(strcmp(dir, "") == 0)
+          return get_directory(nc, home_dir.c_str());
+        else
+          return get_directory(nc, dir);
+      }
+  #endif
+
+      if(strnstr(hm->uri.p, "FITSWebQL.html", hm->uri.len) != NULL)
+	    {	          
+	      struct mg_str query = hm->query_string;
+
+	      if(query.len > 0)
+	      {
+	        printf("%.*s\n", (int) query.len, query.p);
+        }
+      }
+
       mg_serve_http(nc, hm, s_http_server_opts);
 
       break;
@@ -434,6 +575,9 @@ int main(void) {
     sqlite3_close(splat_db);
     splat_db = NULL;
   }
+
+  struct passwd *passwdEnt = getpwuid(getuid());
+  home_dir = passwdEnt->pw_dir;
 
   mg_mgr_init(&mgr, NULL);
 
