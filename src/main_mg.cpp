@@ -40,12 +40,38 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
+#include <cstdint>
 #include <unistd.h>
 #include <string.h>
 
 #if !defined(__APPLE__) || !defined(__MACH__)
 #include <bsd/string.h>
 #endif
+
+static bool is_gzip(const char *filename) {
+  int fd = open(filename, O_RDONLY);
+
+  if (fd == -1)
+    return false;
+
+  bool ok = true;
+  uint8_t header[10];
+
+  // try to read the first 10 bytes
+  ssize_t bytes_read = read(fd, header, 10);
+
+  // test for magick numbers and the deflate compression type
+  if (bytes_read == 10) {
+    if (header[0] != 0x1f || header[1] != 0x8b || header[2] != 0x08)
+      ok = false;
+  } else
+    ok = false;
+
+  close(fd);
+
+  return ok;
+}
 
 #include "mongoose.h"
 #include "json.h"
@@ -67,6 +93,28 @@
 
 sqlite3 *splat_db = NULL;
 std::string home_dir;
+
+std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
+std::shared_mutex fits_mutex;
+
+std::shared_ptr<FITS> get_dataset(std::string id)
+{
+    std::shared_lock<std::shared_mutex> lock(fits_mutex);
+
+    auto item = DATASETS.find(id);
+
+    if (item == DATASETS.end())
+        return nullptr;
+    else
+        return item->second;
+}
+
+void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+{
+    std::lock_guard<std::shared_mutex> guard(fits_mutex);
+
+    DATASETS.insert(std::pair(id, fits));
+}
 
 #ifdef CLUSTER
 #include <czmq.h>
@@ -396,6 +444,210 @@ static void get_directory(struct mg_connection *nc, const char* dir)
 }
 #endif
 
+static void http_fits_response(struct mg_connection *nc,
+                        std::vector<std::string> datasets, bool composite,
+                        bool has_fits) {
+  std::string html =
+    "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
+  html.append(
+	      "<link href=\"https://fonts.googleapis.com/css?family=Inconsolata\" "
+	      "rel=\"stylesheet\"/>\n");
+  html.append(
+	      "<link href=\"https://fonts.googleapis.com/css?family=Material+Icons\" "
+	      "rel=\"stylesheet\"/>\n");
+  html.append("<script src=\"https://d3js.org/d3.v5.min.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/reconnecting-websocket.js\"></script>\n");
+  html.append("<script "
+              "src=\"//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/"
+              "numeral.min.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/ra_dec_conversion.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/sylvester.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/shortcut.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/colourmaps.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/lz4.min.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/marchingsquares-isocontours.min.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
+
+  // hevc wasm decoder
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
+              "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");
+  html.append(R"(<script>
+        Module.onRuntimeInitialized = async _ => {
+            api = {                
+                hevc_init: Module.cwrap('hevc_init', '', []), 
+                hevc_destroy: Module.cwrap('hevc_destroy', '', []),                
+                hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
+            };                   
+        };
+    </script>)");
+
+  // bootstrap
+  html.append(
+	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, "
+	      "user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
+  html.append("<link rel=\"stylesheet\" "
+              "href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/"
+              "bootstrap.min.css\">\n");
+  html.append("<script "
+              "src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/"
+              "jquery.min.js\"></script>\n");
+  html.append("<script "
+              "src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/"
+              "bootstrap.min.js\"></script>\n");
+
+  // FITSWebQL main JavaScript + CSS
+  html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
+  html.append("<link rel=\"stylesheet\" href=\"fitswebql.css?" VERSION_STRING
+              "\"/>\n");
+
+  // HTML content
+  html.append("<title>FITSWebQL</title></head><body>\n");
+  html.append("<div id='votable' style='width: 0; height: 0;' data-va_count='" +
+              std::to_string(datasets.size()) + "' ");
+
+  if (datasets.size() == 1)
+    html.append("data-datasetId='" + datasets[0] + "' ");
+  else {
+    for (int i = 0; i < datasets.size(); i++)
+      html.append("data-datasetId" + std::to_string(i + 1) + "='" +
+                  datasets[i] + "' ");
+
+    if (composite && datasets.size() <= 3)
+      html.append("data-composite='1' ");
+  }
+
+  html.append("data-root-path='/" + std::string("fitswebql") +
+              "/' data-server-version='" + VERSION_STRING +
+              "' data-server-string='" + SERVER_STRING +
+              "' data-server-mode='" + "SERVER" + "' data-has-fits='" +
+              std::to_string(has_fits) + "'></div>\n");
+
+#ifdef PRODUCTION
+  html.append(R"(<script>
+        var WS_SOCKET = 'wss://';
+        </script>)");
+#else
+  html.append(R"(<script>
+        var WS_SOCKET = 'ws://';
+        </script>)");
+#endif
+
+  // the page entry point
+  html.append(R"(<script>
+        const golden_ratio = 1.6180339887;
+        var ALMAWS = null ;
+        var wsVideo = null ;
+        var wsConn = null ;
+        var firstTime = true ;
+        var has_image = false ;         
+        var PROGRESS_VARIABLE = 0.0 ;
+        var PROGRESS_INFO = '' ;      
+        var RESTFRQ = 0.0 ;
+        var USER_SELFRQ = 0.0 ;
+        var USER_DELTAV = 0.0 ;
+        var ROOT_PATH = '/fitswebql/' ;
+        var idleResize = -1;
+        window.onresize = resizeMe;
+        window.onbeforeunload = function() {            
+            if(wsConn != null)
+            {
+                for(let i=0;i<va_count;i++)
+                    wsConn[i].close();
+            }
+
+            if(wsVideo != null)
+                wsVideo.close();
+        };
+        mainRenderer();
+    </script>)");
+
+  html.append("</body></html>");
+  
+  mg_send_head(nc, 200, html.size(), "Content-Type: text/html\r\nCache-Control: no-cache");
+  mg_send(nc, html.c_str(), html.size());
+}
+
+static void execute_fits(struct mg_connection *nc, const char* dir, const char* ext, const char* db, const char* table, std::vector<std::string> datasets, bool composite, const char* flux) {
+  bool has_fits = true;
+
+#ifndef LOCAL
+  PGconn *jvo_db = NULL;
+
+  if (db != "")
+    jvo_db = jvo_db_connect(db);
+#endif
+
+  int va_count = datasets.size();
+
+  for (auto const &data_id : datasets) {    
+    auto item = get_dataset(data_id);
+
+    if (item == nullptr) {
+      // set has_fits to false and load the FITS dataset
+      has_fits = false;
+      std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+
+      insert_dataset(data_id, fits);
+      
+      std::string path;
+
+      if (dir != "" && ext != "")
+        path = std::string(dir) + "/" + data_id + "." + std::string(ext);
+
+#ifndef LOCAL
+      if (jvo_db != NULL && table != "")
+        path = get_jvo_path(jvo_db, db, table, data_id);
+#endif
+
+      if (path != "") {
+        bool is_compressed = is_gzip(path.c_str());       
+
+        // load FITS data in a separate thread
+        std::thread(&FITS::from_path_zfp, fits, path, is_compressed, std::string(flux),
+                    va_count)
+	  .detach();
+      } else {
+        // the last resort
+        std::string url = std::string("http://") + JVO_FITS_SERVER +
+	  ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
+	  "&table=cube&data_id=" + data_id + "_00_00_00";
+
+        // download FITS data from a URL in a separate thread
+        std::thread(&FITS::from_url, fits, url, std::string(flux), va_count).detach();
+      }
+    } else {      
+      has_fits = has_fits && item->has_data;
+      item->update_timestamp();
+    }
+  }
+
+#ifndef LOCAL
+  if (jvo_db != NULL)
+    PQfinish(jvo_db);
+#endif
+
+  PrintThread{} << "has_fits: " << has_fits << std::endl;
+
+  return http_fits_response(nc, datasets, composite, has_fits);
+}
+
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
   (void) nc;
@@ -453,19 +705,83 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 	      if(query.len > 0)
 	      {
 	        printf("%.*s\n", (int) query.len, query.p);
-        }
+
+          std::vector<std::string> datasets;
+          char dir[1024] = "";
+          char ext[256] = "";
+          char db[256] = "";
+          char table[256] = "";
+          char flux[256] = "";
+          char tmp[256] = "";
+					bool composite = false;
+
+#ifdef LOCAL
+          char pattern[] = "filename";
+#else
+          char pattern[] = "dataset";
+#endif
+
+          //first try to find the main pattern
+          if(mg_get_http_var(&query, pattern, tmp, sizeof(tmp)-1) > 0)
+            datasets.push_back(std::string(tmp));
+          else {          
+            //iterate through multiple patterns, starting with '1'            
+            int count = 0;
+            strcat(pattern, std::to_string(++count).c_str());
+
+            while(mg_get_http_var(&query, pattern, tmp, sizeof(tmp)-1) > 0) {
+              datasets.push_back(std::string(tmp));
+              size_t len = strlen(pattern);
+              pattern[len-1] = '\0';
+              strcat(pattern, std::to_string(++count).c_str());
+            }
+          }
+
+          mg_get_http_var(&query, "dir", dir, sizeof(dir)-1);
+          mg_get_http_var(&query, "ext", ext, sizeof(ext)-1);
+          mg_get_http_var(&query, "db", db, sizeof(db)-1);
+          mg_get_http_var(&query, "table", table, sizeof(table)-1);
+          mg_get_http_var(&query, "flux", tmp, sizeof(tmp)-1);
+
+          // validate the flux value
+          if(strcmp(tmp, "linear") == 0 || strcmp(tmp, "logistic") == 0 || strcmp(tmp, "ratio") == 0 || strcmp(tmp, "square") == 0 || strcmp(tmp, "legacy") == 0)
+            strcpy(flux, tmp);
+					
+          mg_get_http_var(&query, "view", tmp, sizeof(tmp)-1);
+          if(strcmp(tmp, "composite") == 0)
+            composite = true;
+
+          // sane defaults													
+					if (strstr(db,"hsc") != NULL)
+					  strcpy(flux, "ratio");
+
+					if (strstr(table, "fugin") != NULL)
+					  strcpy(flux, "logistic");
+
+          /*PrintThread{} << "dir:" << dir << ", ext:" << ext
+														  << ", db:" << db << ", table:" << table
+														  << ", composite:" << composite
+														  << ", flux:" << flux << ", ";
+					for (auto const &dataset : datasets)
+					  std::cout << dataset << " ";
+					std::cout << std::endl;*/
+
+          if (datasets.size() > 0)
+					  return execute_fits(nc, dir, ext, db, table, datasets, composite, flux);
+        }  
+
+        mg_http_send_error(nc, 404, NULL);        
+        break;
       }
 
       mg_serve_http(nc, hm, s_http_server_opts);
-
       break;
     }
     case MG_EV_CLOSE: {
-       if(is_websocket(nc) && nc->user_data != NULL)
-	  {
-	    printf("closing a websocket connection identified by %s\n", (char*) nc->user_data) ;
-         }
-      }
+       if(is_websocket(nc) && nc->user_data != NULL) {
+         printf("closing a websocket connection for %s\n", (char*) nc->user_data) ;
+       }
+    }
     default:
        break;
   }
