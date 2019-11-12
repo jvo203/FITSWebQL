@@ -393,7 +393,7 @@ static void get_directory(struct mg_connection *nc, const char* dir)
 
   //std::cout << json.str() << std::endl;
   mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
-	mg_printf(nc, json.str().c_str());
+	mg_send(nc, json.str().c_str(), json.tellp());
 }
 #endif
 
