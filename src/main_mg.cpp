@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-11.0"
+#define VERSION_STRING "SV2019-11-12.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -391,7 +391,6 @@ static void get_directory(struct mg_connection *nc, const char* dir)
     if(namelist != NULL)
       free(namelist);
 
-  //std::cout << json.str() << std::endl;
   mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
 	mg_send(nc, json.str().c_str(), json.tellp());
 }
