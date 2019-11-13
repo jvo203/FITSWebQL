@@ -92,7 +92,7 @@ static bool is_gzip(const char *filename) {
 #include <sqlite3.h>
 
 #ifndef LOCAL
-#include <libpq-fe.h>
+#include <pgsql/libpq-fe.h>
 
 #define FITSHOME "/home"
 #define JVO_HOST "localhost"
