@@ -5,7 +5,7 @@ SRC = src/main_mg.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/l
 INC = -I/usr/include/postgresql -Ilz4 -Imongoose
 #-I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Ibm-3.20.0/src
-DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DNOLOCAL -DCLUSTER
+DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
 LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread -lczmq
 #$(HOME)/uWebSockets/uSockets/*.o
