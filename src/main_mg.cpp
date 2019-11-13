@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING							\
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-12.0"
+#define VERSION_STRING "SV2019-11-13.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -90,6 +90,60 @@ static bool is_gzip(const char *filename) {
 
 #include <curl/curl.h>
 #include <sqlite3.h>
+
+#ifndef LOCAL
+#include <libpq-fe.h>
+
+#define FITSHOME "/home"
+#define JVO_HOST "localhost"
+#define JVO_USER "jvo"
+
+PGconn *jvo_db_connect(std::string db) {
+  PGconn *jvo_db = NULL;
+
+  std::string conn_str =
+    "dbname=" + db + " host=" + JVO_HOST + " user=" + JVO_USER;
+
+  jvo_db = PQconnectdb(conn_str.c_str());
+
+  if (PQstatus(jvo_db) != CONNECTION_OK) {
+    fprintf(stderr, "PostgreSQL connection failed: %s\n",
+            PQerrorMessage(jvo_db));
+    PQfinish(jvo_db);
+    jvo_db = NULL;
+  } else
+    printf("PostgreSQL connection successful.\n");
+
+  return jvo_db;
+}
+
+std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
+                         std::string data_id) {
+  std::string path;
+
+  std::string sql_str =
+    "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
+
+  PGresult *res = PQexec(jvo_db, sql_str.c_str());
+  int status = PQresultStatus(res);
+
+  if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+    path = std::string(FITSHOME) + "/" + db + "/";
+
+    size_t pos = table.find(".");
+
+    if (pos == std::string::npos)
+      path += std::string((const char *)PQgetvalue(res, 0, 0));
+    else
+      path += boost::algorithm::to_upper_copy(table.substr(0, pos)) + "/" +
+	std::string((const char *)PQgetvalue(res, 0, 0));
+  }
+
+  PQclear(res);
+
+  return path;
+}
+#endif
 
 sqlite3 *splat_db = NULL;
 std::string home_dir;
@@ -590,7 +644,7 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
 #ifndef LOCAL
   PGconn *jvo_db = NULL;
 
-  if (db != "")
+  if (strcmp(db, "") != 0)
     jvo_db = jvo_db_connect(db);
 #endif
 
@@ -608,11 +662,11 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
       
       std::string path;
 
-      if (dir != "" && ext != "")
+      if (strcmp(dir, "") != 0 && strcmp(ext, "") != 0)
         path = std::string(dir) + "/" + data_id + "." + std::string(ext);
 
 #ifndef LOCAL
-      if (jvo_db != NULL && table != "")
+      if (jvo_db != NULL && strcmp(table, "") != 0)
         path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
@@ -646,6 +700,18 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
   PrintThread{} << "has_fits: " << has_fits << std::endl;
 
   return http_fits_response(nc, datasets, composite, has_fits);
+}
+
+static void get_spectrum(struct mg_connection *nc, std::shared_ptr<FITS> fits) {
+  std::ostringstream json;
+
+  fits->to_json(json);
+
+  if (json.tellp() > 0) {
+    mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
+	  mg_send(nc, json.str().c_str(), json.tellp());
+  } else
+      mg_http_send_error(nc, 501, NULL);  
 }
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
@@ -697,6 +763,47 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
           return get_directory(nc, dir);
       }
   #endif
+
+      if(strnstr(hm->uri.p, "/get_spectrum", hm->uri.len) != NULL)
+	    {	          
+	      struct mg_str query = hm->query_string;
+
+	      if(query.len > 0)
+	      {
+	        printf("%.*s\n", (int) query.len, query.p);
+
+          char datasetid[256] = "";
+
+          if(mg_get_http_var(&query, "datasetId", datasetid, sizeof(datasetid)-1) > 0) {
+            auto fits = get_dataset(datasetid);
+
+						if (fits == nullptr) {
+						  mg_http_send_error(nc, 404, NULL);
+              break;
+            }
+						else {													  
+						  if (fits->has_error) {
+							  mg_http_send_error(nc, 404, NULL);
+                break;
+              }
+							else {
+							  /*std::unique_lock<std::mutex> data_lock(
+																		   fits->data_mtx);
+													    while (!fits->processed_data)
+													      fits->data_cv.wait(data_lock);*/
+
+							  if (!fits->has_data) {
+								  //mg_http_send_error(nc, 404, NULL);
+                  mg_http_send_error(nc, 202, NULL);//http_accepted
+                  break;
+                }
+                else
+                  return get_spectrum(nc, fits);
+              }
+            }
+          }
+        }
+      }
 
       if(strnstr(hm->uri.p, "FITSWebQL.html", hm->uri.len) != NULL)
 	    {	          
@@ -770,7 +877,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 					  return execute_fits(nc, dir, ext, db, table, datasets, composite, flux);
         }  
 
-        mg_http_send_error(nc, 404, NULL);     
+        mg_http_send_error(nc, 404, NULL);    
         break;
       }
 
