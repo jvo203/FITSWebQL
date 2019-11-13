@@ -237,7 +237,7 @@ void ipp_init() {
   printf("%s %s\n", lib->Name, lib->Version);
 
   /* Get CPU features and features enabled with selected library level */
-  status = ippGetCpuFeatures(&mask, 0);
+  /*status = ippGetCpuFeatures(&mask, 0);
   if (ippStsNoErr == status) {
     emask = ippGetEnabledCpuFeatures();
     printf("Features supported by CPU\tby IPP\n");
@@ -335,7 +335,7 @@ void ipp_init() {
     printf("%c\t%c\t", (mask & ippCPUID_KNC) ? 'Y' : 'N',
            (emask & ippCPUID_KNC) ? 'Y' : 'N');
     printf("Intel(R) Xeon Phi(TM) Coprocessor instruction set\n");
-  }
+  }*/
 }
 
 inline const char* check_null(const char* str)
@@ -825,7 +825,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 #ifdef LOCAL
           char pattern[] = "filename";
 #else
-          char pattern[] = "dataset";
+          char pattern[] = "datasetId";
 #endif
 
           //first try to find the main pattern
@@ -1015,7 +1015,7 @@ int main(void) {
 #ifdef LOCAL
   s_http_server_opts.index_files = "local.html";              
 #else
-  s_http_server_opts.index_files = "test.html";	
+  s_http_server_opts.index_files = "test.html";
 #endif
   s_http_server_opts.custom_mime_types = ".txt=text/plain,.html=text/html,.js=application/javascript,.ico=image/x-icon,.png=image/png,.gif=image/gif,.webp=image/webp,.jpg=image/jpeg,.jpeg=image/jpeg,.bpg=image/bpg,.mp4=video/mp4,.hevc=video/hevc,.css=text/css,.pdf=application/pdf,.svg=image/svg+xml,.wasm=application/wasm";
 
