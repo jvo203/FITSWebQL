@@ -94,7 +94,7 @@ std::atomic<bool> exiting(false);
 #include <sqlite3.h>
 
 #ifndef LOCAL
-#include <libpq-fe.h>
+#include <pgsql/libpq-fe.h>
 
 #define FITSHOME "/home"
 #define JVO_HOST "localhost"
