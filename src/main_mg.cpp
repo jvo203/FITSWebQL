@@ -398,21 +398,6 @@ static void on_error_complete(struct mg_connection *nc, int ev, void *ev_data) {
         mg_http_send_error(nc, res->code, NULL);
     }
   }
-
-  /*(void)ev;
-  struct mg_connection *c;
-
-  struct work_result *res = (struct work_result *)ev_data;
-
-  for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
-    if (c->user_data != NULL) {
-      if ((unsigned long)c->user_data == res->conn_id) {
-        printf("conn_id = %zu\n", res->conn_id);
-        c->user_data = NULL;
-        mg_http_send_error(c, res->code, NULL);
-      }
-    }
-  }*/
 }
 
 void broadcast_error(unsigned long conn_id, int code) {
