@@ -7,7 +7,7 @@
 
 #define BEACON_PORT 50000
 #define SERVER_PORT 8080
-#define SERVER_STRING							\
+#define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 #define VERSION_STRING "SV2019-11-13.0"
 #define WASM_STRING "WASM2019-02-08.1"
@@ -25,25 +25,25 @@
    message and exits the program. Zlib's error statuses are all less
    than zero. */
 
-#define CALL_ZLIB(x)							\
-  {									\
-    int status;								\
-    status = x;								\
-    if (status < 0) {							\
-      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__, \
-              __LINE__, #x, status);					\
-      /*exit(EXIT_FAILURE);*/						\
-    }									\
+#define CALL_ZLIB(x)                                                           \
+  {                                                                            \
+    int status;                                                                \
+    status = x;                                                                \
+    if (status < 0) {                                                          \
+      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__,    \
+              __LINE__, #x, status);                                           \
+      /*exit(EXIT_FAILURE);*/                                                  \
+    }                                                                          \
   }
 
+#include <cstdint>
+#include <fcntl.h>
 #include <pwd.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <fcntl.h>
-#include <cstdint>
 #include <unistd.h>
-#include <string.h>
 
 #if !defined(__APPLE__) || !defined(__MACH__)
 #include <bsd/string.h>
@@ -73,17 +73,17 @@ static bool is_gzip(const char *filename) {
   return ok;
 }
 
-#include "mongoose.h"
-#include "json.h"
 #include "fits.hpp"
+#include "json.h"
+#include "mongoose.h"
 
 #include <atomic>
 #include <iostream>
+#include <mutex>
+#include <set>
+#include <shared_mutex>
 #include <sstream>
 #include <thread>
-#include <mutex>
-#include <shared_mutex>
-#include <set>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -102,7 +102,7 @@ PGconn *jvo_db_connect(std::string db) {
   PGconn *jvo_db = NULL;
 
   std::string conn_str =
-    "dbname=" + db + " host=" + JVO_HOST + " user=" + JVO_USER;
+      "dbname=" + db + " host=" + JVO_HOST + " user=" + JVO_USER;
 
   jvo_db = PQconnectdb(conn_str.c_str());
 
@@ -122,7 +122,7 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
   std::string path;
 
   std::string sql_str =
-    "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
+      "SELECT path FROM " + table + " WHERE data_id = '" + data_id + "';";
 
   PGresult *res = PQexec(jvo_db, sql_str.c_str());
   int status = PQresultStatus(res);
@@ -136,7 +136,7 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
       path += std::string((const char *)PQgetvalue(res, 0, 0));
     else
       path += boost::algorithm::to_upper_copy(table.substr(0, pos)) + "/" +
-	std::string((const char *)PQgetvalue(res, 0, 0));
+              std::string((const char *)PQgetvalue(res, 0, 0));
   }
 
   PQclear(res);
@@ -151,23 +151,21 @@ std::string home_dir;
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
 
-std::shared_ptr<FITS> get_dataset(std::string id)
-{
-    std::shared_lock<std::shared_mutex> lock(fits_mutex);
+std::shared_ptr<FITS> get_dataset(std::string id) {
+  std::shared_lock<std::shared_mutex> lock(fits_mutex);
 
-    auto item = DATASETS.find(id);
+  auto item = DATASETS.find(id);
 
-    if (item == DATASETS.end())
-        return nullptr;
-    else
-        return item->second;
+  if (item == DATASETS.end())
+    return nullptr;
+  else
+    return item->second;
 }
 
-void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
-{
-    std::lock_guard<std::shared_mutex> guard(fits_mutex);
+void insert_dataset(std::string id, std::shared_ptr<FITS> fits) {
+  std::lock_guard<std::shared_mutex> guard(fits_mutex);
 
-    DATASETS.insert(std::pair(id, fits));
+  DATASETS.insert(std::pair(id, fits));
 }
 
 #ifdef CLUSTER
@@ -176,24 +174,21 @@ void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
 inline std::set<std::string> cluster;
 inline std::shared_mutex cluster_mtx;
 
-inline bool cluster_contains_node(std::string node)
-{
+inline bool cluster_contains_node(std::string node) {
   std::shared_lock<std::shared_mutex> lock(cluster_mtx);
 
-  if(cluster.find(node) == cluster.end())
+  if (cluster.find(node) == cluster.end())
     return false;
   else
     return true;
 }
 
-inline void cluster_insert_node(std::string node)
-{
+inline void cluster_insert_node(std::string node) {
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.insert(node);
 }
 
-inline void cluster_erase_node(std::string node)
-{
+inline void cluster_erase_node(std::string node) {
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.erase(node);
 }
@@ -338,13 +333,12 @@ void ipp_init() {
   }*/
 }
 
-inline const char* check_null(const char* str)
-{
-  if(str != NULL)
-    return str ;
+inline const char *check_null(const char *str) {
+  if (str != NULL)
+    return str;
   else
-    return "";//"\"\"" ;
-} ;
+    return ""; //"\"\"" ;
+};
 
 static volatile sig_atomic_t s_received_signal = 0;
 static const char *s_http_port = "8080";
@@ -360,7 +354,7 @@ static void signal_handler(int sig_num) {
 
 #ifdef CLUSTER
   exiting = true;
-#endif  
+#endif
 }
 static struct mg_serve_http_opts s_http_server_opts;
 static sock_t sock[2];
@@ -371,144 +365,139 @@ static int is_websocket(const struct mg_connection *nc) {
 
 // This info is passed to the worker thread
 struct work_request {
-  unsigned long conn_id;  // needed to identify the connection where to send the reply
+  unsigned long
+      conn_id; // needed to identify the connection where to send the reply
   // optionally, more data that could be required by worker
-  char* dataId;
+  char *dataId;
 };
 
-void *worker_thread_proc(void *param)
-{
-  struct mg_mgr *mgr = (struct mg_mgr *) param;
+void *worker_thread_proc(void *param) {
+  struct mg_mgr *mgr = (struct mg_mgr *)param;
   struct work_request req = {0, NULL};
-  
+
   while (s_received_signal == 0) {
-    if (read(sock[1], &req, sizeof(req)) < 0)
-      {
-	//if(s_received_signal == 0)
-	perror("Reading worker sock");
-      }
-    else
-      {	
-       printf("handling %s\n", req.dataId);
-      }
+    if (read(sock[1], &req, sizeof(req)) < 0) {
+      // if(s_received_signal == 0)
+      perror("Reading worker sock");
+    } else {
+      printf("handling %s\n", req.dataId);
+    }
   }
-  
+
   printf("worker_thread_proc terminated.\n");
   return NULL;
 }
 
 #ifdef LOCAL
-static void get_directory(struct mg_connection *nc, const char* dir)
-{
- printf("get_directory(%s)\n", check_null(dir)) ;
-  
-    struct dirent **namelist = NULL ;
-    int i,n ;
+static void get_directory(struct mg_connection *nc, const char *dir) {
+  printf("get_directory(%s)\n", check_null(dir));
 
-    n = scandir(dir, &namelist, 0, alphasort);
-  
-    std::ostringstream json;
-  
-    char* encoded = json_encode_string(check_null(dir)) ;
-    
-    json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [" ;
+  struct dirent **namelist = NULL;
+  int i, n;
 
-    if(encoded != NULL)
-      free(encoded) ;
-  
-    bool has_contents = false ;
-  
-    if (n < 0)
-      {
-	perror("scandir");      
-      
-	json << "]}" ;
-      }
-    else
-      {            
-	for (i = 0; i < n; i++)
-	  {
-	    //printf("%s\n", namelist[i]->d_name);
+  n = scandir(dir, &namelist, 0, alphasort);
 
-	    char pathname[1024] ;
+  std::ostringstream json;
 
-	    sprintf(pathname, "%s/%s", dir, check_null(namelist[i]->d_name)) ;	      
-	      
-	    struct stat64 sbuf;
+  char *encoded = json_encode_string(check_null(dir));
 
-	    int err = stat64(pathname, &sbuf) ;
+  json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [";
 
-	    if(err == 0)
-	      {
-		char last_modified[255] ;
+  if (encoded != NULL)
+    free(encoded);
 
-		struct tm lm ;
-		localtime_r(&sbuf.st_mtime, &lm);
-		strftime(last_modified, sizeof(last_modified)-1, "%a, %d %b %Y %H:%M:%S %Z", &lm) ;
-		  
-		size_t filesize = sbuf.st_size;	  
+  bool has_contents = false;
 
-		if( S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.')
-		  {
-		    char* encoded = json_encode_string(check_null(namelist[i]->d_name)) ;
-		  		  
-		    json << "{\"type\" : \"dir\", \"name\" : " << check_null(encoded) << ", \"last_modified\" : \"" << last_modified << "\"}," ;
-		    has_contents = true ;
-		  
-		    if(encoded != NULL)
-		      free(encoded) ;
-		  }
+  if (n < 0) {
+    perror("scandir");
 
-		if( S_ISREG(sbuf.st_mode) ) {
-        const std::string filename = std::string(namelist[i]->d_name);
-        const std::string lower_filename = boost::algorithm::to_lower_copy(filename);
+    json << "]}";
+  } else {
+    for (i = 0; i < n; i++) {
+      // printf("%s\n", namelist[i]->d_name);
 
-        //if(!strcasecmp(get_filename_ext(check_null(namelist[i]->d_name)), "fits"))
-        if (boost::algorithm::ends_with(lower_filename, ".fits") ||
-            boost::algorithm::ends_with(lower_filename, ".fits.gz"))
-		    {
-		      char* encoded = json_encode_string(check_null(namelist[i]->d_name)) ;
-		    		    
-		      json << "{\"type\" : \"file\", \"name\" : " << check_null(encoded) << ", \"size\" : " << filesize << ", \"last_modified\" : \"" << last_modified << "\"}," ;
-		      has_contents = true ;
+      char pathname[1024];
 
-		      if(encoded != NULL)
-			free(encoded) ;
-		    }
-    }
-	      }
-	    else
-	      perror("stat64") ;
-	  
-	    free(namelist[i]);
-	  } ;
+      sprintf(pathname, "%s/%s", dir, check_null(namelist[i]->d_name));
 
-	//overwrite the the last ',' with a list closing character
-	if(has_contents)
-	  json.seekp(-1, std::ios_base::end);
+      struct stat64 sbuf;
 
-	json << "]}" ;
-      } ;
+      int err = stat64(pathname, &sbuf);
 
-    if(namelist != NULL)
-      free(namelist);
+      if (err == 0) {
+        char last_modified[255];
 
-  mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
-	mg_send(nc, json.str().c_str(), json.tellp());
+        struct tm lm;
+        localtime_r(&sbuf.st_mtime, &lm);
+        strftime(last_modified, sizeof(last_modified) - 1,
+                 "%a, %d %b %Y %H:%M:%S %Z", &lm);
+
+        size_t filesize = sbuf.st_size;
+
+        if (S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.') {
+          char *encoded = json_encode_string(check_null(namelist[i]->d_name));
+
+          json << "{\"type\" : \"dir\", \"name\" : " << check_null(encoded)
+               << ", \"last_modified\" : \"" << last_modified << "\"},";
+          has_contents = true;
+
+          if (encoded != NULL)
+            free(encoded);
+        }
+
+        if (S_ISREG(sbuf.st_mode)) {
+          const std::string filename = std::string(namelist[i]->d_name);
+          const std::string lower_filename =
+              boost::algorithm::to_lower_copy(filename);
+
+          // if(!strcasecmp(get_filename_ext(check_null(namelist[i]->d_name)),
+          // "fits"))
+          if (boost::algorithm::ends_with(lower_filename, ".fits") ||
+              boost::algorithm::ends_with(lower_filename, ".fits.gz")) {
+            char *encoded = json_encode_string(check_null(namelist[i]->d_name));
+
+            json << "{\"type\" : \"file\", \"name\" : " << check_null(encoded)
+                 << ", \"size\" : " << filesize << ", \"last_modified\" : \""
+                 << last_modified << "\"},";
+            has_contents = true;
+
+            if (encoded != NULL)
+              free(encoded);
+          }
+        }
+      } else
+        perror("stat64");
+
+      free(namelist[i]);
+    };
+
+    // overwrite the the last ',' with a list closing character
+    if (has_contents)
+      json.seekp(-1, std::ios_base::end);
+
+    json << "]}";
+  };
+
+  if (namelist != NULL)
+    free(namelist);
+
+  mg_send_head(nc, 200, json.tellp(),
+               "Content-Type: application/json\r\nCache-Control: no-cache");
+  mg_send(nc, json.str().c_str(), json.tellp());
 }
 #endif
 
 static void http_fits_response(struct mg_connection *nc,
-                        std::vector<std::string> datasets, bool composite,
-                        bool has_fits) {
+                               std::vector<std::string> datasets,
+                               bool composite, bool has_fits) {
   std::string html =
-    "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
+      "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
   html.append(
-	      "<link href=\"https://fonts.googleapis.com/css?family=Inconsolata\" "
-	      "rel=\"stylesheet\"/>\n");
+      "<link href=\"https://fonts.googleapis.com/css?family=Inconsolata\" "
+      "rel=\"stylesheet\"/>\n");
   html.append(
-	      "<link href=\"https://fonts.googleapis.com/css?family=Material+Icons\" "
-	      "rel=\"stylesheet\"/>\n");
+      "<link href=\"https://fonts.googleapis.com/css?family=Material+Icons\" "
+      "rel=\"stylesheet\"/>\n");
   html.append("<script src=\"https://d3js.org/d3.v5.min.js\"></script>\n");
   html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
@@ -554,8 +543,8 @@ static void http_fits_response(struct mg_connection *nc,
 
   // bootstrap
   html.append(
-	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, "
-	      "user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
+      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, "
+      "user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
   html.append("<link rel=\"stylesheet\" "
               "href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/"
               "bootstrap.min.css\">\n");
@@ -633,12 +622,16 @@ static void http_fits_response(struct mg_connection *nc,
     </script>)");
 
   html.append("</body></html>");
-  
-  mg_send_head(nc, 200, html.size(), "Content-Type: text/html\r\nCache-Control: no-cache");
+
+  mg_send_head(nc, 200, html.size(),
+               "Content-Type: text/html\r\nCache-Control: no-cache");
   mg_send(nc, html.c_str(), html.size());
 }
 
-static void execute_fits(struct mg_connection *nc, const char* dir, const char* ext, const char* db, const char* table, std::vector<std::string> datasets, bool composite, const char* flux) {
+static void execute_fits(struct mg_connection *nc, const char *dir,
+                         const char *ext, const char *db, const char *table,
+                         std::vector<std::string> datasets, bool composite,
+                         const char *flux) {
   bool has_fits = true;
 
 #ifndef LOCAL
@@ -650,7 +643,7 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
 
   int va_count = datasets.size();
 
-  for (auto const &data_id : datasets) {    
+  for (auto const &data_id : datasets) {
     auto item = get_dataset(data_id);
 
     if (item == nullptr) {
@@ -659,7 +652,7 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
       std::shared_ptr<FITS> fits(new FITS(data_id, flux));
 
       insert_dataset(data_id, fits);
-      
+
       std::string path;
 
       if (strcmp(dir, "") != 0 && strcmp(ext, "") != 0)
@@ -671,22 +664,23 @@ static void execute_fits(struct mg_connection *nc, const char* dir, const char* 
 #endif
 
       if (path != "") {
-        bool is_compressed = is_gzip(path.c_str());       
+        bool is_compressed = is_gzip(path.c_str());
 
         // load FITS data in a separate thread
-        std::thread(&FITS::from_path_zfp, fits, path, is_compressed, std::string(flux),
-                    va_count)
-	  .detach();
+        std::thread(&FITS::from_path_zfp, fits, path, is_compressed,
+                    std::string(flux), va_count)
+            .detach();
       } else {
         // the last resort
         std::string url = std::string("http://") + JVO_FITS_SERVER +
-	  ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
-	  "&table=cube&data_id=" + data_id + "_00_00_00";
+                          ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
+                          "&table=cube&data_id=" + data_id + "_00_00_00";
 
         // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, url, std::string(flux), va_count).detach();
+        std::thread(&FITS::from_url, fits, url, std::string(flux), va_count)
+            .detach();
       }
-    } else {      
+    } else {
       has_fits = has_fits && item->has_data;
       item->update_timestamp();
     }
@@ -708,270 +702,263 @@ static void get_spectrum(struct mg_connection *nc, std::shared_ptr<FITS> fits) {
   fits->to_json(json);
 
   if (json.tellp() > 0) {
-    mg_send_head(nc, 200, json.tellp(), "Content-Type: application/json\r\nCache-Control: no-cache");
-	  mg_send(nc, json.str().c_str(), json.tellp());
+    mg_send_head(nc, 200, json.tellp(),
+                 "Content-Type: application/json\r\nCache-Control: no-cache");
+    mg_send(nc, json.str().c_str(), json.tellp());
   } else
-      mg_http_send_error(nc, 501, NULL);  
+    mg_http_send_error(nc, 501, NULL);
 }
 
-static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
-{
-  (void) nc;
-  (void) ev_data;
+static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
+  (void)nc;
+  (void)ev_data;
 
   switch (ev) {
-    case MG_EV_ACCEPT:      
-      break;
-    case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST: {
-      struct http_message *hm = (struct http_message *) ev_data;
-      printf("WEBSOCKET URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
-      break;
+  case MG_EV_ACCEPT:
+    break;
+  case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST: {
+    struct http_message *hm = (struct http_message *)ev_data;
+    printf("WEBSOCKET URI:\t%.*s\n", (int)hm->uri.len, hm->uri.p);
+    break;
+  }
+  case MG_EV_WEBSOCKET_FRAME: {
+    struct websocket_message *wm = (struct websocket_message *)ev_data;
+
+    if (wm->data != NULL && wm->size > 0) {
+      printf("[WS]:\t%.*s\n", (int)wm->size, wm->data);
     }
-    case MG_EV_WEBSOCKET_FRAME: {
-      struct websocket_message *wm = (struct websocket_message *) ev_data;
 
-      if(wm->data != NULL && wm->size > 0)
-	{
-	  printf("[WS]:\t%.*s\n", (int) wm->size, wm->data);
-       }
-
-       break;
-    }
-    case MG_EV_HTTP_REQUEST: {
-      struct http_message *hm = (struct http_message *) ev_data;
-      printf("URI:\t%.*s\n", (int) hm->uri.len, hm->uri.p);
-      
-  #ifdef LOCAL
-      //get_directory
-      if(strnstr(hm->uri.p, "/get_directory", hm->uri.len) != NULL)
-	    {	  
-        char dir[1024] = "";	
-	      struct mg_str query = hm->query_string;
-
-	      if(query.len > 0)
-	      {
-	        printf("%.*s\n", (int) query.len, query.p);	              
-
-	        if(mg_get_http_var(&query, "dir", dir, sizeof(dir)-1) > 0)
-            printf("dir: ""%s""\n", dir);          
-        }
-
-        //return a json with a directory listing
-        if(strcmp(dir, "") == 0)
-          return get_directory(nc, home_dir.c_str());
-        else
-          return get_directory(nc, dir);
-      }
-  #endif
-
-      if(strnstr(hm->uri.p, "/get_spectrum", hm->uri.len) != NULL)
-	    {	          
-	      struct mg_str query = hm->query_string;
-
-	      if(query.len > 0)
-	      {
-	        printf("%.*s\n", (int) query.len, query.p);
-
-          char datasetid[256] = "";
-
-          if(mg_get_http_var(&query, "datasetId", datasetid, sizeof(datasetid)-1) > 0) {
-            auto fits = get_dataset(datasetid);
-
-						if (fits == nullptr) {
-						  mg_http_send_error(nc, 404, NULL);
-              break;
-            }
-						else {													  
-						  if (fits->has_error) {
-							  mg_http_send_error(nc, 404, NULL);
-                break;
-              }
-							else {
-							  /*std::unique_lock<std::mutex> data_lock(
-																		   fits->data_mtx);
-													    while (!fits->processed_data)
-													      fits->data_cv.wait(data_lock);*/
-
-							  if (!fits->has_data) {
-								  //mg_http_send_error(nc, 404, NULL);
-                  mg_http_send_error(nc, 202, NULL);//http_accepted
-                  break;
-                }
-                else
-                  return get_spectrum(nc, fits);
-              }
-            }
-          }
-        }
-      }
-
-      if(strnstr(hm->uri.p, "FITSWebQL.html", hm->uri.len) != NULL)
-	    {	          
-	      struct mg_str query = hm->query_string;
-
-	      if(query.len > 0)
-	      {
-	        printf("%.*s\n", (int) query.len, query.p);
-
-          std::vector<std::string> datasets;
-          char dir[1024] = "";
-          char ext[256] = "";
-          char db[256] = "";
-          char table[256] = "";
-          char flux[256] = "";
-          char tmp[256] = "";
-					bool composite = false;
+    break;
+  }
+  case MG_EV_HTTP_REQUEST: {
+    struct http_message *hm = (struct http_message *)ev_data;
+    printf("URI:\t%.*s\n", (int)hm->uri.len, hm->uri.p);
 
 #ifdef LOCAL
-          char pattern[] = "filename";
-#else
-          char pattern[] = "datasetId";
-#endif
+    // get_directory
+    if (strnstr(hm->uri.p, "/get_directory", hm->uri.len) != NULL) {
+      char dir[1024] = "";
+      struct mg_str query = hm->query_string;
 
-          //first try to find the main pattern
-          if(mg_get_http_var(&query, pattern, tmp, sizeof(tmp)-1) > 0)
-            datasets.push_back(std::string(tmp));
-          else {          
-            //iterate through multiple patterns, starting with '1'            
-            int count = 0;
-            strcat(pattern, std::to_string(++count).c_str());
+      if (query.len > 0) {
+        printf("%.*s\n", (int)query.len, query.p);
 
-            while(mg_get_http_var(&query, pattern, tmp, sizeof(tmp)-1) > 0) {
-              datasets.push_back(std::string(tmp));
-              size_t len = strlen(pattern);
-              pattern[len-1] = '\0';
-              strcat(pattern, std::to_string(++count).c_str());
-            }
-          }
-
-          mg_get_http_var(&query, "dir", dir, sizeof(dir)-1);
-          mg_get_http_var(&query, "ext", ext, sizeof(ext)-1);
-          mg_get_http_var(&query, "db", db, sizeof(db)-1);
-          mg_get_http_var(&query, "table", table, sizeof(table)-1);
-          mg_get_http_var(&query, "flux", tmp, sizeof(tmp)-1);
-
-          // validate the flux value
-          if(strcmp(tmp, "linear") == 0 || strcmp(tmp, "logistic") == 0 || strcmp(tmp, "ratio") == 0 || strcmp(tmp, "square") == 0 || strcmp(tmp, "legacy") == 0)
-            strcpy(flux, tmp);
-					
-          mg_get_http_var(&query, "view", tmp, sizeof(tmp)-1);
-          if(strcmp(tmp, "composite") == 0)
-            composite = true;
-
-          // sane defaults													
-					if (strstr(db,"hsc") != NULL)
-					  strcpy(flux, "ratio");
-
-					if (strstr(table, "fugin") != NULL)
-					  strcpy(flux, "logistic");
-
-          /*PrintThread{} << "dir:" << dir << ", ext:" << ext
-														  << ", db:" << db << ", table:" << table
-														  << ", composite:" << composite
-														  << ", flux:" << flux << ", ";
-					for (auto const &dataset : datasets)
-					  std::cout << dataset << " ";
-					std::cout << std::endl;*/
-
-          if (datasets.size() > 0)
-					  return execute_fits(nc, dir, ext, db, table, datasets, composite, flux);
-        }  
-
-        mg_http_send_error(nc, 404, NULL);    
-        break;
+        if (mg_get_http_var(&query, "dir", dir, sizeof(dir) - 1) > 0)
+          printf("dir: "
+                 "%s"
+                 "\n",
+                 dir);
       }
 
-      mg_serve_http(nc, hm, s_http_server_opts);
+      // return a json with a directory listing
+      if (strcmp(dir, "") == 0)
+        return get_directory(nc, home_dir.c_str());
+      else
+        return get_directory(nc, dir);
+    }
+#endif
+
+    if (strnstr(hm->uri.p, "/get_spectrum", hm->uri.len) != NULL) {
+      struct mg_str query = hm->query_string;
+
+      if (query.len > 0) {
+        printf("%.*s\n", (int)query.len, query.p);
+
+        char datasetid[256] = "";
+
+        if (mg_get_http_var(&query, "datasetId", datasetid,
+                            sizeof(datasetid) - 1) > 0) {
+          auto fits = get_dataset(datasetid);
+
+          if (fits == nullptr) {
+            mg_http_send_error(nc, 404, NULL);
+            break;
+          } else {
+            if (fits->has_error) {
+              mg_http_send_error(nc, 404, NULL);
+              break;
+            } else {
+              /*std::unique_lock<std::mutex> data_lock(
+                                                                                                       fits->data_mtx);
+                                                                while
+                 (!fits->processed_data) fits->data_cv.wait(data_lock);*/
+
+              if (!fits->has_data) {
+                // mg_http_send_error(nc, 404, NULL);
+                mg_http_send_error(nc, 202, NULL); // http_accepted
+                break;
+              } else
+                return get_spectrum(nc, fits);
+            }
+          }
+        }
+      }
+    }
+
+    if (strnstr(hm->uri.p, "FITSWebQL.html", hm->uri.len) != NULL) {
+      struct mg_str query = hm->query_string;
+
+      if (query.len > 0) {
+        printf("%.*s\n", (int)query.len, query.p);
+
+        std::vector<std::string> datasets;
+        char dir[1024] = "";
+        char ext[256] = "";
+        char db[256] = "";
+        char table[256] = "";
+        char flux[256] = "";
+        char tmp[256] = "";
+        bool composite = false;
+
+#ifdef LOCAL
+        char pattern[] = "filename";
+#else
+        char pattern[] = "datasetId";
+#endif
+
+        // first try to find the main pattern
+        if (mg_get_http_var(&query, pattern, tmp, sizeof(tmp) - 1) > 0)
+          datasets.push_back(std::string(tmp));
+        else {
+          // iterate through multiple patterns, starting with '1'
+          int count = 0;
+          strcat(pattern, std::to_string(++count).c_str());
+
+          while (mg_get_http_var(&query, pattern, tmp, sizeof(tmp) - 1) > 0) {
+            datasets.push_back(std::string(tmp));
+            size_t len = strlen(pattern);
+            pattern[len - 1] = '\0';
+            strcat(pattern, std::to_string(++count).c_str());
+          }
+        }
+
+        mg_get_http_var(&query, "dir", dir, sizeof(dir) - 1);
+        mg_get_http_var(&query, "ext", ext, sizeof(ext) - 1);
+        mg_get_http_var(&query, "db", db, sizeof(db) - 1);
+        mg_get_http_var(&query, "table", table, sizeof(table) - 1);
+        mg_get_http_var(&query, "flux", tmp, sizeof(tmp) - 1);
+
+        // validate the flux value
+        if (strcmp(tmp, "linear") == 0 || strcmp(tmp, "logistic") == 0 ||
+            strcmp(tmp, "ratio") == 0 || strcmp(tmp, "square") == 0 ||
+            strcmp(tmp, "legacy") == 0)
+          strcpy(flux, tmp);
+
+        mg_get_http_var(&query, "view", tmp, sizeof(tmp) - 1);
+        if (strcmp(tmp, "composite") == 0)
+          composite = true;
+
+        // sane defaults
+        if (strstr(db, "hsc") != NULL)
+          strcpy(flux, "ratio");
+
+        if (strstr(table, "fugin") != NULL)
+          strcpy(flux, "logistic");
+
+        /*PrintThread{} << "dir:" << dir << ", ext:" << ext
+                                                                                                                << ", db:" << db << ", table:" << table
+                                                                                                                << ", composite:" << composite
+                                                                                                                << ", flux:" << flux << ", ";
+                                      for (auto const &dataset : datasets)
+                                        std::cout << dataset << " ";
+                                      std::cout << std::endl;*/
+
+        if (datasets.size() > 0)
+          return execute_fits(nc, dir, ext, db, table, datasets, composite,
+                              flux);
+      }
+
+      mg_http_send_error(nc, 404, NULL);
       break;
     }
-    case MG_EV_CLOSE: {
-       if(is_websocket(nc) && nc->user_data != NULL) {
-         printf("closing a websocket connection for %s\n", (char*) nc->user_data) ;
-       }
+
+    mg_serve_http(nc, hm, s_http_server_opts);
+    break;
+  }
+  case MG_EV_CLOSE: {
+    if (is_websocket(nc) && nc->user_data != NULL) {
+      printf("closing a websocket connection for %s\n", (char *)nc->user_data);
     }
-    default:
-       break;
+  }
+  default:
+    break;
   }
 }
 
 int main(void) {
 #ifdef CLUSTER
-  setenv("ZSYS_SIGHANDLER","false",1);
-  //LAN cluster node auto-discovery
+  setenv("ZSYS_SIGHANDLER", "false", 1);
+  // LAN cluster node auto-discovery
   beacon_thread = std::thread([]() {
-				speaker = zactor_new (zbeacon, NULL);
-				if(speaker == NULL)
-				  return;
+    speaker = zactor_new(zbeacon, NULL);
+    if (speaker == NULL)
+      return;
 
-				zstr_send (speaker, "VERBOSE");
-				zsock_send (speaker, "si", "CONFIGURE", BEACON_PORT);
-				char *my_hostname = zstr_recv (speaker);
-				if(my_hostname != NULL)
-				  {
-				    const char* message = "JVO:>FITSWEBQL::ENTER";
-				    const int interval = 1000;//[ms]
-				    zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
-				  }
+    zstr_send(speaker, "VERBOSE");
+    zsock_send(speaker, "si", "CONFIGURE", BEACON_PORT);
+    char *my_hostname = zstr_recv(speaker);
+    if (my_hostname != NULL) {
+      const char *message = "JVO:>FITSWEBQL::ENTER";
+      const int interval = 1000; //[ms]
+      zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+    }
 
-				listener = zactor_new (zbeacon, NULL);
-				if(listener == NULL)
-				  return;
+    listener = zactor_new(zbeacon, NULL);
+    if (listener == NULL)
+      return;
 
-				zstr_send (listener, "VERBOSE");
-				zsock_send (listener, "si", "CONFIGURE", BEACON_PORT);
-				char *hostname = zstr_recv (listener);
-				if(hostname != NULL)
-				  free(hostname);
-				else
-				  return;
+    zstr_send(listener, "VERBOSE");
+    zsock_send(listener, "si", "CONFIGURE", BEACON_PORT);
+    char *hostname = zstr_recv(listener);
+    if (hostname != NULL)
+      free(hostname);
+    else
+      return;
 
-				zsock_send (listener, "sb", "SUBSCRIBE", "", 0);
-				zsock_set_rcvtimeo (listener, 500);
-  
-				while(!exiting) {
-				  char *ipaddress = zstr_recv (listener);
-				  if (ipaddress != NULL) {				    
-				    zframe_t *content = zframe_recv (listener);
-				    std::string_view message = std::string_view((const char*)zframe_data (content), zframe_size (content));
+    zsock_send(listener, "sb", "SUBSCRIBE", "", 0);
+    zsock_set_rcvtimeo(listener, 500);
 
-				    //ENTER
-				    if(message.find("ENTER") != std::string::npos)
-				      {
-					if(strcmp(my_hostname, ipaddress) != 0)
-					  {
-					    std::string node = std::string(ipaddress);
-					    
-					    if(!cluster_contains_node(node))
-					      {
-						PrintThread{} << "found a new peer @ " << ipaddress << ": " << message << std::endl;
-						cluster_insert_node(node);
-					      }
-					  }
-				      }
+    while (!exiting) {
+      char *ipaddress = zstr_recv(listener);
+      if (ipaddress != NULL) {
+        zframe_t *content = zframe_recv(listener);
+        std::string_view message = std::string_view(
+            (const char *)zframe_data(content), zframe_size(content));
 
-				    //LEAVE
-				    if(message.find("LEAVE") != std::string::npos)
-				      {
-					if(strcmp(my_hostname, ipaddress) != 0)
-					  {
-					    std::string node = std::string(ipaddress);
-					    
-					    if(cluster_contains_node(node))
-					      {
-						PrintThread{} << ipaddress << " is leaving: " << message << std::endl;
-						cluster_erase_node(node);
-					      }
-					  }
-				      }
+        // ENTER
+        if (message.find("ENTER") != std::string::npos) {
+          if (strcmp(my_hostname, ipaddress) != 0) {
+            std::string node = std::string(ipaddress);
 
-				    zframe_destroy (&content);
-				    zstr_free (&ipaddress);
-				  }
-				}
+            if (!cluster_contains_node(node)) {
+              PrintThread{} << "found a new peer @ " << ipaddress << ": "
+                            << message << std::endl;
+              cluster_insert_node(node);
+            }
+          }
+        }
 
-				if(my_hostname != NULL)
-				  free(my_hostname);
-			      });
+        // LEAVE
+        if (message.find("LEAVE") != std::string::npos) {
+          if (strcmp(my_hostname, ipaddress) != 0) {
+            std::string node = std::string(ipaddress);
+
+            if (cluster_contains_node(node)) {
+              PrintThread{} << ipaddress << " is leaving: " << message
+                            << std::endl;
+              cluster_erase_node(node);
+            }
+          }
+        }
+
+        zframe_destroy(&content);
+        zstr_free(&ipaddress);
+      }
+    }
+
+    if (my_hostname != NULL)
+      free(my_hostname);
+  });
 #endif
 
   struct mg_connection *nc;
@@ -984,10 +971,10 @@ int main(void) {
 
   signal(SIGTERM, signal_handler);
   signal(SIGINT, signal_handler);
-  
+
   ipp_init();
-  curl_global_init(CURL_GLOBAL_ALL) ;
-  
+  curl_global_init(CURL_GLOBAL_ALL);
+
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
 
@@ -1010,14 +997,19 @@ int main(void) {
   }
 
   mg_set_protocol_http_websocket(nc);
-  s_http_server_opts.document_root = "htdocs_mg";  // Serve current directory
+  s_http_server_opts.document_root = "htdocs_mg"; // Serve current directory
   s_http_server_opts.enable_directory_listing = "no";
 #ifdef LOCAL
-  s_http_server_opts.index_files = "local.html";              
+  s_http_server_opts.index_files = "local.html";
 #else
   s_http_server_opts.index_files = "test.html";
 #endif
-  s_http_server_opts.custom_mime_types = ".txt=text/plain,.html=text/html,.js=application/javascript,.ico=image/x-icon,.png=image/png,.gif=image/gif,.webp=image/webp,.jpg=image/jpeg,.jpeg=image/jpeg,.bpg=image/bpg,.mp4=video/mp4,.hevc=video/hevc,.css=text/css,.pdf=application/pdf,.svg=image/svg+xml,.wasm=application/wasm";
+  s_http_server_opts.custom_mime_types =
+      ".txt=text/plain,.html=text/html,.js=application/javascript,.ico=image/"
+      "x-icon,.png=image/png,.gif=image/gif,.webp=image/webp,.jpg=image/"
+      "jpeg,.jpeg=image/jpeg,.bpg=image/bpg,.mp4=video/mp4,.hevc=video/"
+      "hevc,.css=text/css,.pdf=application/pdf,.svg=image/"
+      "svg+xml,.wasm=application/wasm";
 
   for (i = 0; i < s_num_worker_threads; i++) {
     mg_start_thread(worker_thread_proc, &mgr);
@@ -1030,37 +1022,34 @@ int main(void) {
 
   mg_mgr_free(&mgr);
 
-  //no need to call shutdown() as close will do it for us    
+  // no need to call shutdown() as close will do it for us
   close(sock[0]);
   close(sock[1]);
 
-
   printf("FITSWebQL: clean shutdown completed\n");
-  
-  curl_global_cleanup() ;
-  
+
+  curl_global_cleanup();
+
   if (splat_db != NULL)
     sqlite3_close(splat_db);
 
 #ifdef CLUSTER
-  if(speaker != NULL)
-    {
-      zstr_sendx (speaker, "SILENCE", NULL);
+  if (speaker != NULL) {
+    zstr_sendx(speaker, "SILENCE", NULL);
 
-      const char* message = "JVO:>FITSWEBQL::LEAVE";
-      const int interval = 1000;//[ms]
-      zsock_send (speaker, "sbi", "PUBLISH", message, strlen(message), interval);
-      
-      zstr_sendx (speaker, "SILENCE", NULL);      
-      zactor_destroy (&speaker);
-    }
+    const char *message = "JVO:>FITSWEBQL::LEAVE";
+    const int interval = 1000; //[ms]
+    zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
 
-  if(listener != NULL)
-    {
-      zstr_sendx (listener, "UNSUBSCRIBE", NULL);
-      beacon_thread.join();
-      zactor_destroy (&listener);
-    }
+    zstr_sendx(speaker, "SILENCE", NULL);
+    zactor_destroy(&speaker);
+  }
+
+  if (listener != NULL) {
+    zstr_sendx(listener, "UNSUBSCRIBE", NULL);
+    beacon_thread.join();
+    zactor_destroy(&listener);
+  }
 #endif
 
   return 0;
