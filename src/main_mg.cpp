@@ -758,6 +758,14 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
     }
 #endif
 
+    if (strnstr(hm->uri.p, "/get_molecules", hm->uri.len) != NULL) {
+      struct mg_str query = hm->query_string;
+
+      if (query.len > 0) {
+        printf("%.*s\n", (int)query.len, query.p);
+      }
+    }
+
     if (strnstr(hm->uri.p, "/get_spectrum", hm->uri.len) != NULL) {
       struct mg_str query = hm->query_string;
 
