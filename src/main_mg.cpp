@@ -377,6 +377,49 @@ struct work_request {
   struct molecules_request *req;
 };
 
+// This info is passed by the worker thread to mg_broadcast
+struct work_result {
+  unsigned long conn_id;
+  int code;
+};
+
+static void on_error_complete(struct mg_connection *nc, int ev, void *ev_data) {
+  (void)nc;
+  (void)ev_data;
+
+  if (ev == MG_EV_POLL) {
+    struct work_result *res = (struct work_result *)ev_data;
+
+    if (res != NULL) {
+      printf("conn. id %zu, sending an error code %d; cross-check: %zu\n",
+             res->conn_id, res->code, (unsigned long)nc->user_data);
+
+      if (res->conn_id == (unsigned long)nc->user_data)
+        mg_http_send_error(nc, res->code, NULL);
+    }
+  }
+
+  /*(void)ev;
+  struct mg_connection *c;
+
+  struct work_result *res = (struct work_result *)ev_data;
+
+  for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
+    if (c->user_data != NULL) {
+      if ((unsigned long)c->user_data == res->conn_id) {
+        printf("conn_id = %zu\n", res->conn_id);
+        c->user_data = NULL;
+        mg_http_send_error(c, res->code, NULL);
+      }
+    }
+  }*/
+}
+
+void broadcast_error(unsigned long conn_id, int code) {
+  struct work_result res = {conn_id, code};
+  mg_broadcast(&mgr, on_error_complete, (void *)&res, sizeof(res));
+}
+
 void *worker_thread_proc(void *param) {
   struct mg_mgr *mgr = (struct mg_mgr *)param;
   struct work_request req = {0, NULL, NULL};
@@ -389,13 +432,53 @@ void *worker_thread_proc(void *param) {
       printf("handling %s\n", req.dataId);
 
       // stream molecules
-      //(...)
+      if (req.dataId != NULL && req.req != NULL) {
+        double freq_start = req.req->freq_start;
+        double freq_end = req.req->freq_end;
 
-      if (req.dataId != NULL)
+        if (FPzero(freq_start) || FPzero(freq_end)) {
+          // get the frequency range from the FITS header
+          auto fits = get_dataset(req.dataId);
+
+          if (fits == nullptr)
+            broadcast_error(req.conn_id, 404);
+          else {
+            if (fits->has_error)
+              broadcast_error(req.conn_id, 404);
+            else {
+              std::unique_lock<std::mutex> header_lck(fits->header_mtx);
+              while (!fits->processed_header)
+                fits->header_cv.wait(header_lck);
+
+              if (!fits->has_header)
+                broadcast_error(req.conn_id, 404);
+              else {
+                if (fits->depth <= 1 || !fits->has_frequency)
+                  broadcast_error(req.conn_id, 501);
+                else
+                  // extract the freq. range
+                  fits->get_frequency_range(freq_start, freq_end);
+              }
+            }
+          }
+        }
+
+        // process the response
+        PrintThread{} << "get_molecules(" << req.dataId << ", " << freq_start
+                      << " GHz," << freq_end << " GHz)" << std::endl;
+
+        broadcast_error(req.conn_id, 501);
+      }
+
+      if (req.dataId != NULL) {
         free(req.dataId);
+        req.dataId = NULL;
+      }
 
-      if (req.req != NULL)
+      if (req.req != NULL) {
         free(req.req);
+        req.req = NULL;
+      }
     }
   }
 
@@ -810,6 +893,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 
           if (write(sock[0], &req, sizeof(req)) < 0)
             perror("Writing worker sock");
+          else
+            break;
         }
       }
     }
