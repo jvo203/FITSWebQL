@@ -57,9 +57,12 @@ public:
 
 public:
   void update_timestamp();
-  void from_url(std::string url, std::string flux, int va_count/*, boost::shared_ptr<shared_state> const& state*/);
-  void from_path_zfp(std::string path, bool is_compressed, std::string flux,
-                     int va_count/*, boost::shared_ptr<shared_state> const& state*/);
+  void
+  from_url(std::string url, std::string flux,
+           int va_count /*, boost::shared_ptr<shared_state> const& state*/);
+  void from_path_zfp(
+      std::string path, bool is_compressed, std::string flux,
+      int va_count /*, boost::shared_ptr<shared_state> const& state*/);
   void get_frequency_range(double &freq_start, double &freq_end);
   void to_json(std::ostringstream &json);
 
@@ -76,7 +79,7 @@ private:
                              float _sensitivity);
   void send_progress_notification(size_t running, size_t total);
 
-public:  
+public:
   std::string dataset_id;
   std::string data_id;
   std::string flux;
@@ -136,7 +139,7 @@ public:
 
   // statistics
   float min, max, median, mad, madN, madP, black, white, sensitivity,
-    ratio_sensitivity;
+      ratio_sensitivity;
   Ipp32u hist[NBINS];
 
   // extras
@@ -174,6 +177,6 @@ private:
   off_t fits_file_size;
   bool gz_compressed;
 
-  //Boost/Beast shared state
-  //boost::weak_ptr<shared_state> state_;
+  // Boost/Beast shared state
+  // boost::weak_ptr<shared_state> state_;
 };
