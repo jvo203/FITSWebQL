@@ -363,17 +363,23 @@ static int is_websocket(const struct mg_connection *nc) {
   return nc->flags & MG_F_IS_WEBSOCKET;
 }
 
+struct molecules_request {
+  double freq_start;
+  double freq_end;
+};
+
 // This info is passed to the worker thread
 struct work_request {
   unsigned long
       conn_id; // needed to identify the connection where to send the reply
   // optionally, more data that could be required by worker
   char *dataId;
+  struct molecules_request *req;
 };
 
 void *worker_thread_proc(void *param) {
   struct mg_mgr *mgr = (struct mg_mgr *)param;
-  struct work_request req = {0, NULL};
+  struct work_request req = {0, NULL, NULL};
 
   while (s_received_signal == 0) {
     if (read(sock[1], &req, sizeof(req)) < 0) {
@@ -381,6 +387,15 @@ void *worker_thread_proc(void *param) {
       perror("Reading worker sock");
     } else {
       printf("handling %s\n", req.dataId);
+
+      // stream molecules
+      //(...)
+
+      if (req.dataId != NULL)
+        free(req.dataId);
+
+      if (req.req != NULL)
+        free(req.req);
     }
   }
 
@@ -763,6 +778,39 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 
       if (query.len > 0) {
         printf("%.*s\n", (int)query.len, query.p);
+
+        char datasetid[256] = "";
+        char freq_start_str[256] = "";
+        char freq_end_str[256] = "";
+        double freq_start = 0.0;
+        double freq_end = 0.0;
+
+        mg_get_http_var(&query, "datasetId", datasetid, sizeof(datasetid));
+
+        if (mg_get_http_var(&query, "freq_start", freq_start_str,
+                            sizeof(freq_start_str) - 1) > 0)
+          freq_start = atof(freq_start_str) / 1.0E9; //[Hz -> GHz]
+
+        if (mg_get_http_var(&query, "freq_end", freq_end_str,
+                            sizeof(freq_end_str) - 1) > 0)
+          freq_end = atof(freq_end_str) / 1.0E9; //[Hz -> GHz]
+
+        nc->user_data = (void *)++s_next_id;
+        printf("MG_EV_HTTP_REQUEST conn_id = %zu\n", s_next_id);
+
+        struct molecules_request *m_req = (struct molecules_request *)malloc(
+            sizeof(struct molecules_request));
+
+        if (m_req != NULL) {
+          m_req->freq_start = freq_start;
+          m_req->freq_end = freq_end;
+
+          struct work_request req = {(unsigned long)nc->user_data,
+                                     strdup(datasetid), m_req};
+
+          if (write(sock[0], &req, sizeof(req)) < 0)
+            perror("Writing worker sock");
+        }
       }
     }
 
