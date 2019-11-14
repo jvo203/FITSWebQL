@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-13.0"
+#define VERSION_STRING "SV2019-11-14.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <zlib.h>
@@ -363,9 +363,19 @@ static int is_websocket(const struct mg_connection *nc) {
   return nc->flags & MG_F_IS_WEBSOCKET;
 }
 
+void mg_http_send_error_keep_alive(struct mg_connection *nc, int code,
+                                   const char *reason) {
+  if (reason == NULL)
+    reason = "N/A";
+
+  mg_send_head(nc, code, strlen(reason), "Content-Type: text/plain");
+  mg_send(nc, reason, strlen(reason));
+}
+
 struct molecules_request {
   double freq_start;
   double freq_end;
+  bool compress;
 };
 
 // This info is passed to the worker thread
@@ -378,9 +388,22 @@ struct work_request {
 };
 
 // This info is passed by the worker thread to mg_broadcast
-struct work_result {
+struct work_result_err {
   unsigned long conn_id;
   int code;
+};
+
+// This info is passed by the worker thread to mg_broadcast
+struct work_result_header {
+  unsigned long conn_id;
+  bool compress;
+};
+
+// This info is passed by the worker thread to mg_broadcast
+struct work_result_chunk {
+  unsigned long conn_id;
+  char *chunk;
+  size_t len;
 };
 
 static void on_error_complete(struct mg_connection *nc, int ev, void *ev_data) {
@@ -388,21 +411,267 @@ static void on_error_complete(struct mg_connection *nc, int ev, void *ev_data) {
   (void)ev_data;
 
   if (ev == MG_EV_POLL) {
-    struct work_result *res = (struct work_result *)ev_data;
+    struct work_result_err *res = (struct work_result_err *)ev_data;
 
     if (res != NULL) {
       printf("conn. id %zu, sending an error code %d; cross-check: %zu\n",
              res->conn_id, res->code, (unsigned long)nc->user_data);
 
       if (res->conn_id == (unsigned long)nc->user_data)
-        mg_http_send_error(nc, res->code, NULL);
+        mg_http_send_error_keep_alive(nc, res->code, NULL);
+    }
+  }
+}
+
+static void on_header_complete(struct mg_connection *nc, int ev,
+                               void *ev_data) {
+  (void)nc;
+  (void)ev_data;
+
+  if (ev == MG_EV_POLL) {
+    struct work_result_header *res = (struct work_result_header *)ev_data;
+
+    if (res != NULL) {
+      printf("conn. id %zu, sending a chunked header, compression: %d; "
+             "cross-check: %zu\n",
+             res->conn_id, res->compress, (unsigned long)nc->user_data);
+
+      if (res->conn_id == (unsigned long)nc->user_data) {
+        if (res->compress)
+          mg_send_head(nc, 200, -1,
+                       "Content-Type: application/json\r\nCache-Control: "
+                       "no-cache\r\nContent-Encoding: gzip");
+        else
+          mg_send_head(
+              nc, 200, -1,
+              "Content-Type: application/json\r\nCache-Control: no-cache");
+      }
+    }
+  }
+}
+
+static void on_chunk_complete(struct mg_connection *nc, int ev, void *ev_data) {
+  (void)nc;
+  (void)ev_data;
+
+  struct work_result_chunk *res = (struct work_result_chunk *)ev_data;
+
+  if (ev == MG_EV_POLL) {
+    if (res != NULL) {
+      printf("conn. id %zu, sending a chunk of length %zu; cross-check: %zu\n",
+             res->conn_id, res->len, (unsigned long)nc->user_data);
+
+      if (res->conn_id == (unsigned long)nc->user_data)
+        if (res->chunk != NULL) {
+          mg_send_http_chunk(nc, res->chunk, res->len);
+          free(res->chunk);
+          res->chunk = NULL;
+        } else
+          mg_send_http_chunk(nc, "", 0);
     }
   }
 }
 
 void broadcast_error(unsigned long conn_id, int code) {
-  struct work_result res = {conn_id, code};
+  struct work_result_err res = {conn_id, code};
   mg_broadcast(&mgr, on_error_complete, (void *)&res, sizeof(res));
+}
+
+void broadcast_header(unsigned long conn_id, bool compress) {
+  struct work_result_header res = {conn_id, compress};
+  mg_broadcast(&mgr, on_header_complete, (void *)&res, sizeof(res));
+}
+
+void broadcast_chunk(unsigned long conn_id, const char *data, size_t len) {
+  char *chunk = NULL;
+
+  if (data != NULL)
+    chunk = (char *)malloc(len);
+
+  struct work_result_chunk res = {conn_id, chunk, len};
+  mg_broadcast(&mgr, on_chunk_complete, (void *)&res, sizeof(res));
+}
+
+struct MolecularStream {
+  bool first;
+  bool compress;
+  unsigned long conn_id;
+  z_stream z;
+  unsigned char out[CHUNK];
+  FILE *fp;
+};
+
+static int sqlite_callback(void *userp, int argc, char **argv,
+                           char **azColName) {
+  MolecularStream *stream = (MolecularStream *)userp;
+  // static long counter = 0;
+  // printf("sqlite_callback: %ld, argc: %d\n", counter++, argc);
+
+  if (argc == 8) {
+    /*printf("sqlite_callback::molecule:\t");
+      for (int i = 0; i < argc; i++)
+      printf("%s:%s\t", azColName[i], argv[i]);
+      printf("\n");*/
+
+    std::string json;
+
+    if (stream->first) {
+      stream->first = false;
+      broadcast_header(stream->conn_id, stream->compress);
+
+      json = "{\"molecules\" : [";
+    } else
+      json = ",";
+
+    // json-encode a spectral line
+    char *encoded;
+
+    // species
+    encoded = json_encode_string(check_null(argv[0]));
+    json += "{\"species\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // name
+    encoded = json_encode_string(check_null(argv[1]));
+    json += "\"name\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // frequency
+    json += "\"frequency\" : " + std::string(check_null(argv[2])) + ",";
+
+    // quantum numbers
+    encoded = json_encode_string(check_null(argv[3]));
+    json += "\"quantum\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // cdms_intensity
+    encoded = json_encode_string(check_null(argv[4]));
+    json += "\"cdms\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // lovas_intensity
+    encoded = json_encode_string(check_null(argv[5]));
+    json += "\"lovas\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // E_L
+    encoded = json_encode_string(check_null(argv[6]));
+    json += "\"E_L\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // linelist
+    encoded = json_encode_string(check_null(argv[7]));
+    json += "\"list\" : " + std::string(check_null(encoded)) + "}";
+    if (encoded != NULL)
+      free(encoded);
+
+    // printf("%s\n", json.c_str());
+
+    if (stream->compress) {
+      stream->z.avail_in = json.length();                // size of input
+      stream->z.next_in = (unsigned char *)json.c_str(); // input char array
+
+      do {
+        stream->z.avail_out = CHUNK;      // size of output
+        stream->z.next_out = stream->out; // output char array
+        CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
+        size_t have = CHUNK - stream->z.avail_out;
+
+        if (have > 0) {
+          // printf("ZLIB avail_out: %zu\n", have);
+          if (stream->fp != NULL)
+            fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
+
+          broadcast_chunk(stream->conn_id, (char *)stream->out, have);
+        }
+      } while (stream->z.avail_out == 0);
+    } else
+      broadcast_chunk(stream->conn_id, json.c_str(), json.length());
+  }
+
+  return 0;
+}
+
+void stream_molecules(unsigned long conn_id, double freq_start, double freq_end,
+                      bool compress) {
+  if (splat_db == NULL)
+    return broadcast_error(conn_id, 500);
+
+  char strSQL[256];
+  int rc;
+  char *zErrMsg = 0;
+
+  snprintf(strSQL, 256,
+           "SELECT * FROM lines WHERE frequency>=%f AND frequency<=%f;",
+           freq_start, freq_end);
+  printf("%s\n", strSQL);
+
+  struct MolecularStream stream;
+  stream.first = true;
+  stream.compress = compress;
+  stream.conn_id = conn_id;
+  stream.fp = NULL; // fopen("molecules.txt.gz", "w");
+
+  if (compress) {
+    stream.z.zalloc = Z_NULL;
+    stream.z.zfree = Z_NULL;
+    stream.z.opaque = Z_NULL;
+    stream.z.next_in = Z_NULL;
+    stream.z.avail_in = 0;
+
+    CALL_ZLIB(deflateInit2(&stream.z, Z_BEST_COMPRESSION, Z_DEFLATED,
+                           windowBits | GZIP_ENCODING, 9, Z_DEFAULT_STRATEGY));
+  }
+
+  rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
+    return broadcast_error(conn_id, 500);
+  }
+
+  std::string chunk_data;
+
+  if (stream.first)
+    chunk_data = "{\"molecules\" : []}";
+  else
+    chunk_data = "]}";
+
+  if (compress) {
+    stream.z.avail_in = chunk_data.length();
+    stream.z.next_in = (unsigned char *)chunk_data.c_str();
+
+    do {
+      stream.z.avail_out = CHUNK;     // size of output
+      stream.z.next_out = stream.out; // output char array
+      CALL_ZLIB(deflate(&stream.z, Z_FINISH));
+      size_t have = CHUNK - stream.z.avail_out;
+
+      if (have > 0) {
+        // printf("Z_FINISH avail_out: %zu\n", have);
+        if (stream.fp != NULL)
+          fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
+
+        broadcast_chunk(conn_id, (char *)stream.out, have);
+      }
+    } while (stream.z.avail_out == 0);
+
+    CALL_ZLIB(deflateEnd(&stream.z));
+
+    if (stream.fp != NULL)
+      fclose(stream.fp);
+  } else
+    broadcast_chunk(conn_id, chunk_data.c_str(), chunk_data.length());
+
+  // end of chunked encoding
+  broadcast_chunk(conn_id, NULL, 0);
 }
 
 void *worker_thread_proc(void *param) {
@@ -414,48 +683,51 @@ void *worker_thread_proc(void *param) {
       // if(s_received_signal == 0)
       perror("Reading worker sock");
     } else {
-      printf("handling %s\n", req.dataId);
+      if (req.dataId != NULL) {
+        printf("handling %s\n", req.dataId);
 
-      // stream molecules
-      if (req.dataId != NULL && req.req != NULL) {
-        double freq_start = req.req->freq_start;
-        double freq_end = req.req->freq_end;
+        // stream molecules
+        if (req.req != NULL) {
+          double freq_start = req.req->freq_start;
+          double freq_end = req.req->freq_end;
 
-        if (FPzero(freq_start) || FPzero(freq_end)) {
-          // get the frequency range from the FITS header
-          auto fits = get_dataset(req.dataId);
+          if (FPzero(freq_start) || FPzero(freq_end)) {
+            // get the frequency range from the FITS header
+            auto fits = get_dataset(req.dataId);
 
-          if (fits == nullptr)
-            broadcast_error(req.conn_id, 404);
-          else {
-            if (fits->has_error)
+            if (fits == nullptr)
               broadcast_error(req.conn_id, 404);
             else {
-              std::unique_lock<std::mutex> header_lck(fits->header_mtx);
-              while (!fits->processed_header)
-                fits->header_cv.wait(header_lck);
-
-              if (!fits->has_header)
+              if (fits->has_error)
                 broadcast_error(req.conn_id, 404);
               else {
-                if (fits->depth <= 1 || !fits->has_frequency)
-                  broadcast_error(req.conn_id, 501);
-                else
-                  // extract the freq. range
-                  fits->get_frequency_range(freq_start, freq_end);
+                std::unique_lock<std::mutex> header_lck(fits->header_mtx);
+                while (!fits->processed_header)
+                  fits->header_cv.wait(header_lck);
+
+                if (!fits->has_header)
+                  broadcast_error(req.conn_id, 404);
+                else {
+                  if (fits->depth <= 1 || !fits->has_frequency)
+                    broadcast_error(req.conn_id, 501);
+                  else
+                    // extract the freq. range
+                    fits->get_frequency_range(freq_start, freq_end);
+                }
               }
             }
           }
+
+          // process the response
+          PrintThread{} << "get_molecules(" << req.dataId << ", " << freq_start
+                        << " GHz," << freq_end << " GHz)" << std::endl;
+
+          if (!FPzero(freq_start) && !FPzero(freq_end))
+            stream_molecules(req.conn_id, freq_start, freq_end, compress);
+          else
+            broadcast_error(req.conn_id, 501);
         }
 
-        // process the response
-        PrintThread{} << "get_molecules(" << req.dataId << ", " << freq_start
-                      << " GHz," << freq_end << " GHz)" << std::endl;
-
-        broadcast_error(req.conn_id, 501);
-      }
-
-      if (req.dataId != NULL) {
         free(req.dataId);
         req.dataId = NULL;
       }
@@ -789,7 +1061,7 @@ static void get_spectrum(struct mg_connection *nc, std::shared_ptr<FITS> fits) {
                  "Content-Type: application/json\r\nCache-Control: no-cache");
     mg_send(nc, json.str().c_str(), json.tellp());
   } else
-    mg_http_send_error(nc, 501, NULL);
+    mg_http_send_error_keep_alive(nc, 501, "Not Implemented");
 }
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
@@ -852,6 +1124,19 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
         char freq_end_str[256] = "";
         double freq_start = 0.0;
         double freq_end = 0.0;
+        bool compress = false;
+
+        struct mg_str *hdr = mg_get_http_header(hm, "accept-encoding");
+
+        if (hdr != NULL) {
+          if (strnstr(hdr->p, "gzip", hdr->len) != NULL)
+            compress = true;
+        }
+
+        PrintThread{} << "Accept-Encoding:"
+                      << std::string_view(hdr->p, hdr->len)
+                      << "; compression support " << (compress ? "" : "not ")
+                      << "found." << std::endl;
 
         mg_get_http_var(&query, "datasetId", datasetid, sizeof(datasetid));
 
@@ -872,6 +1157,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
         if (m_req != NULL) {
           m_req->freq_start = freq_start;
           m_req->freq_end = freq_end;
+          m_req->compress = compress;
 
           struct work_request req = {(unsigned long)nc->user_data,
                                      strdup(datasetid), m_req};
@@ -897,11 +1183,11 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
           auto fits = get_dataset(datasetid);
 
           if (fits == nullptr) {
-            mg_http_send_error(nc, 404, NULL);
+            mg_http_send_error_keep_alive(nc, 404, "Not Found");
             break;
           } else {
             if (fits->has_error) {
-              mg_http_send_error(nc, 404, NULL);
+              mg_http_send_error_keep_alive(nc, 404, "Not Found");
               break;
             } else {
               /*std::unique_lock<std::mutex> data_lock(
@@ -910,8 +1196,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
                  (!fits->processed_data) fits->data_cv.wait(data_lock);*/
 
               if (!fits->has_data) {
-                // mg_http_send_error(nc, 404, NULL);
-                mg_http_send_error(nc, 202, NULL); // http_accepted
+                // mg_http_send_error_keep_alive(nc, 404, "Not Found");
+                mg_http_send_error_keep_alive(nc, 202, "Accepted");
                 break;
               } else
                 return get_spectrum(nc, fits);
@@ -994,7 +1280,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
                               flux);
       }
 
-      mg_http_send_error(nc, 404, NULL);
+      mg_http_send_error_keep_alive(nc, 404, "Not Found");
       break;
     }
 
