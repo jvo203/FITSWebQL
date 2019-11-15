@@ -25,7 +25,13 @@ int main(int argc, char *argv[]) {
 
   server.handle("/", [](const request &req, const response &res) {
     std::cout << req.uri().path << std::endl;
-    res.write_head(200);    
+
+    boost::system::error_code ec;
+    auto push = res.push(ec, "GET", "/favicon.ico");
+    push->write_head(200);
+    push->end(file_generator("htdocs2/favicon.ico"));
+
+    res.write_head(200);
     res.end("hello, world\n");
   });
 
