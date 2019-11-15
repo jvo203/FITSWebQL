@@ -1,8 +1,10 @@
-#include <nghttp2/asio_http2_server.h>
 #include <iostream>
+#include <nghttp2/asio_http2_server.h>
 
-//sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/ssl/private/http2-selfsigned.key -out /etc/ssl/certs/http2-selfsigned.crt
-//openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
+// sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout
+// /etc/ssl/private/http2-selfsigned.key -out
+// /etc/ssl/certs/http2-selfsigned.crt openssl req -x509 -nodes -days 3650
+// -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
 
 using namespace nghttp2::asio_http2;
 using namespace nghttp2::asio_http2::server;
@@ -14,7 +16,9 @@ int main(int argc, char *argv[]) {
   tls.use_private_key_file("ssl/server.key", boost::asio::ssl::context::pem);
   tls.use_certificate_chain_file("ssl/server.crt");
 
-  configure_tls_context_easy(ec, tls);
+  if (configure_tls_context_easy(ec, tls)) {
+    std::cerr << "error: " << ec.message() << std::endl;
+  }
 
   http2 server;
   server.num_threads(4);
