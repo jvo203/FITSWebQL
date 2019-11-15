@@ -1,6 +1,7 @@
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
-SRC = src/main_mg.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c $(MONGOOSE)
+SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
+#$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -Imongoose
 #-I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
