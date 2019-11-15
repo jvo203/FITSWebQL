@@ -13,8 +13,8 @@ int main(int argc, char *argv[]) {
   boost::system::error_code ec;
   boost::asio::ssl::context tls(boost::asio::ssl::context::sslv23);
 
-  tls.use_private_key_file("ssl/server.key", boost::asio::ssl::context::pem);
-  tls.use_certificate_chain_file("ssl/server.crt");
+  tls.use_private_key_file("/home/chris/.ssl/server.key", boost::asio::ssl::context::pem);
+  tls.use_certificate_chain_file("/home/chris/.ssl/server.crt");
 
   if (configure_tls_context_easy(ec, tls)) {
     std::cerr << "error: " << ec.message() << std::endl;
