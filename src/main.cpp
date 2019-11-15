@@ -2,6 +2,7 @@
 #include <iostream>
 
 //sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/ssl/private/http2-selfsigned.key -out /etc/ssl/certs/http2-selfsigned.crt
+//openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
 
 using namespace nghttp2::asio_http2;
 using namespace nghttp2::asio_http2::server;
@@ -10,8 +11,8 @@ int main(int argc, char *argv[]) {
   boost::system::error_code ec;
   boost::asio::ssl::context tls(boost::asio::ssl::context::sslv23);
 
-  tls.use_private_key_file("/etc/ssl/private/http2-selfsigned.key", boost::asio::ssl::context::pem);
-  tls.use_certificate_chain_file("/etc/ssl/certs/http2-selfsigned.crt");
+  tls.use_private_key_file("ssl/server.key", boost::asio::ssl::context::pem);
+  tls.use_certificate_chain_file("ssl/server.crt");
 
   configure_tls_context_easy(ec, tls);
 
