@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     push->end(file_generator("htdocs2/favicon.ico"));
 
     res.write_head(200);
-    res.end("hello, world\n");
+    res.end("FITSWebQL v5\n");
   });
 
   if (server.listen_and_serve(ec, tls, "localhost", "8080")) {
