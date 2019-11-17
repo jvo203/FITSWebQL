@@ -49,3 +49,7 @@ inet:
 
 beast:
 	g++ -march=native -g -O3 -std=c++17 src/main_http_ws_beast.cpp -o fitswebql
+
+cypher:
+	mkdir -p ssl
+	openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
