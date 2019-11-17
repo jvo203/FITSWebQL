@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     res.end("FITSWebQL v5\n");
   });
 
-  if (server.listen_and_serve(ec, tls, "localhost", "8080")) {
+  if (server.listen_and_serve(ec, tls, "0.0.0.0", "8080")) {
     std::cerr << "error: " << ec.message() << std::endl;
   }
 }
