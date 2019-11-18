@@ -45,6 +45,14 @@ int main(int argc, char *argv[]) {
     res.write_head(200);
     res.end(file_generator(docs_root + "/local.html"));
 #else
+    push = res.push(ec, "GET", "/test.css");
+    push->write_head(200);
+    push->end(file_generator(docs_root + "/test.css"));
+
+    push = res.push(ec, "GET", "/test.js");
+    push->write_head(200);
+    push->end(file_generator(docs_root + "/test.js"));
+
     res.write_head(200);
     res.end(file_generator(docs_root + "/test.html"));
 #endif
