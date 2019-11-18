@@ -231,9 +231,30 @@ int main(int argc, char *argv[]) {
 #ifdef LOCAL
   server.handle("/get_directory", [](const request &req, const response &res) {
     auto uri = req.uri();
-    std::cout << uri.path << "\t" << percent_decode(uri.raw_query) << std::endl;
+    auto query = percent_decode(uri.raw_query);
 
-    serve_directory(&res, home_dir);
+    std::string dir;
+    std::vector<std::string> params;
+    boost::split(params, query, [](char c) { return c == '&'; });
+
+    for (auto const &s : params) {
+      // find '='
+      size_t pos = s.find("=");
+
+      if (pos != std::string::npos) {
+        std::string key = s.substr(0, pos);
+        std::string value = s.substr(pos + 1, std::string::npos);
+
+        if (key == "dir") {
+          dir = value;
+        }
+      }
+    }
+
+    if (dir != "")
+      serve_directory(&res, dir);
+    else
+      serve_directory(&res, home_dir);
   });
 #endif
 
