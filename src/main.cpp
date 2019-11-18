@@ -48,8 +48,7 @@ int main(int argc, char *argv[]) {
 
     if (uri == "/") {
       auto push = res.push(ec, "GET", "/favicon.ico");
-      push->write_head(200);
-      push->end(file_generator(docs_root + "/favicon.ico"));
+      serve_file(push, "/favicon.ico");
 
 #ifdef LOCAL
       push = res.push(ec, "GET", "/local.css");
@@ -61,7 +60,7 @@ int main(int argc, char *argv[]) {
       push = res.push(ec, "GET", "/logo_naoj_all_s.png");
       serve_file(push, "/logo_naoj_all_s.png");
 
-      serve_file(&res, "/local.html")
+      serve_file(&res, "/local.html");
 #else
       push = res.push(ec, "GET", "/test.css");      
       serve_file(push, "/test.css");
