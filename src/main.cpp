@@ -135,6 +135,10 @@ void serve_directory(const response *res, std::string dir) {
 #endif
 
 void serve_file(const response *res, std::string uri) {
+  // a safety check against directory traversal attacks
+  if (!check_path(uri))
+    return not_found(res);
+
   // check if a resource exists
   std::string path = docs_root + uri;
 
@@ -203,8 +207,7 @@ void serve_file(const response *res, std::string uri) {
     res->write_head(200, mime);
     res->end(file_generator(path));
   } else {
-    res->write_head(404);
-    res->end("Not Found");
+    not_found(res);
   }
 }
 
@@ -228,7 +231,7 @@ int main(int argc, char *argv[]) {
 #ifdef LOCAL
   server.handle("/get_directory", [](const request &req, const response &res) {
     auto uri = req.uri();
-    std::cout << uri.path << "\t" << uri.raw_query << std::endl;
+    std::cout << uri.path << "\t" << percent_decode(uri.raw_query) << std::endl;
 
     serve_directory(&res, home_dir);
   });
