@@ -18,7 +18,68 @@ void serve_file(const response *res, std::string uri) {
   std::string path = docs_root + uri;
 
   if (std::filesystem::exists(path)) {
-    res->write_head(200);
+    // detect mime-types
+    header_map mime;
+
+    size_t pos = uri.find_last_of(".");
+
+    if (pos != std::string::npos) {
+      std::string ext = uri.substr(pos + 1, std::string::npos);
+
+      if (ext == "htm" || ext == "html")
+        mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                         {"text/html", false}));
+
+      if (ext == "txt")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"text/plain", false}));
+
+      if (ext == "js")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"application/javascript", false}));
+
+      if (ext == "ico")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"image/x-icon", false}));
+
+      if (ext == "png")
+        mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                         {"image/png", false}));
+
+      if (ext == "gif")
+        mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                         {"image/gif", false}));
+
+      if (ext == "webp")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"image/webp", false}));
+
+      if (ext == "jpg" || ext == "jpeg")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"image/jpeg", false}));
+
+      if (ext == "mp4")
+        mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                         {"video/mp4", false}));
+
+      if (ext == "css")
+        mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                         {"text/css", false}));
+
+      if (ext == "pdf")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"application/pdf", false}));
+
+      if (ext == "svg")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"image/svg+xml", false}));
+
+      if (ext == "wasm")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"application/wasm", false}));
+    }
+
+    res->write_head(200, mime);
     res->end(file_generator(path));
   } else {
     res->write_head(404);
