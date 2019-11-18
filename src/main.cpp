@@ -107,10 +107,9 @@ int main(int argc, char *argv[]) {
   });
 
   server.handle("/", [](const request &req, const response &res) {
-    auto uri = req.uri().path;
-    std::cout << uri << std::endl;
-
     boost::system::error_code ec;
+
+    auto uri = req.uri().path;
 
     if (uri == "/") {
       auto push = res.push(ec, "GET", "/favicon.ico");
@@ -137,6 +136,7 @@ int main(int argc, char *argv[]) {
       serve_file(&res, "/test.html");
 #endif
     } else {
+      std::cout << uri << std::endl;
       serve_file(&res, uri);
     }
   });
