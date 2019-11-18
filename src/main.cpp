@@ -1,13 +1,10 @@
 #include <iostream>
 #include <nghttp2/asio_http2_server.h>
 
-// sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout
-// /etc/ssl/private/http2-selfsigned.key -out
-// /etc/ssl/certs/http2-selfsigned.crt openssl req -x509 -nodes -days 3650
-// -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
-
 using namespace nghttp2::asio_http2;
 using namespace nghttp2::asio_http2::server;
+
+std::string docs_root = "htdocs2";
 
 int main(int argc, char *argv[]) {
   boost::system::error_code ec;
@@ -27,12 +24,30 @@ int main(int argc, char *argv[]) {
     std::cout << req.uri().path << std::endl;
 
     boost::system::error_code ec;
+
     auto push = res.push(ec, "GET", "/favicon.ico");
     push->write_head(200);
-    push->end(file_generator("htdocs2/favicon.ico"));
+    push->end(file_generator(docs_root + "/favicon.ico"));
+
+#ifdef LOCAL
+    push = res.push(ec, "GET", "/local.css");
+    push->write_head(200);
+    push->end(file_generator(docs_root + "/local.css"));
+
+    push = res.push(ec, "GET", "/local.js");
+    push->write_head(200);
+    push->end(file_generator(docs_root + "/local.js"));
+
+    push = res.push(ec, "GET", "/logo_naoj_all_s.png");
+    push->write_head(200);
+    push->end(file_generator(docs_root + "/logo_naoj_all_s.png"));
 
     res.write_head(200);
-    res.end("FITSWebQL v5\n");
+    res.end(file_generator(docs_root + "/local.html"));
+#else
+    res.write_head(200);
+    res.end(file_generator(docs_root + "/test.html"));
+#endif
   });
 
   if (server.listen_and_serve(ec, tls, "0.0.0.0", "8080")) {
