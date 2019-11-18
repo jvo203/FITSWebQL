@@ -101,6 +101,11 @@ int main(int argc, char *argv[]) {
   http2 server;
   server.num_threads(4);
 
+  server.handle("/get_directory", [](const request &req, const response &res) {
+    res.write_head(200);
+    res.end("FITSWebQL v5\n");
+  });
+
   server.handle("/", [](const request &req, const response &res) {
     auto uri = req.uri().path;
     std::cout << uri << std::endl;
