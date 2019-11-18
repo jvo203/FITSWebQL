@@ -1,4 +1,6 @@
+#include <filesystem>
 #include <iostream>
+
 #include <nghttp2/asio_http2_server.h>
 
 using namespace nghttp2::asio_http2;
@@ -59,9 +61,16 @@ int main(int argc, char *argv[]) {
       res.end(file_generator(docs_root + "/test.html"));
 #endif
     } else {
-      //check if a resource exists
-      res.write_head(200);
-      res.end(file_generator(docs_root + uri));
+      // check if a resource exists
+      std::string path = docs_root + uri;
+
+      if (std::filesystem::exists(path)) {
+        res.write_head(200);
+        res.end(file_generator(path));
+      } else {
+        res.write_head(404);
+        res.end("Not Found");
+      }
     }
   });
 
