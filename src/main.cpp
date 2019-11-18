@@ -30,6 +30,7 @@ void not_found(const response *res) {
   res->end("Not Found");
 }
 
+#ifdef LOCAL
 void serve_directory(const response *res, std::string dir) {
   printf("get_directory(%s)\n", dir.c_str());
 
@@ -131,6 +132,7 @@ void serve_directory(const response *res, std::string dir) {
   res->write_head(200, mime);
   res->end(json.str());
 }
+#endif
 
 void serve_file(const response *res, std::string uri) {
   // check if a resource exists
@@ -225,6 +227,9 @@ int main(int argc, char *argv[]) {
 
 #ifdef LOCAL
   server.handle("/get_directory", [](const request &req, const response &res) {
+    auto uri = req.uri();
+    std::cout << uri.path << "\t" << uri.raw_query << std::endl;
+
     serve_directory(&res, home_dir);
   });
 #endif
