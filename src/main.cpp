@@ -21,41 +21,48 @@ int main(int argc, char *argv[]) {
   server.num_threads(4);
 
   server.handle("/", [](const request &req, const response &res) {
-    std::cout << req.uri().path << std::endl;
+    auto uri = req.uri().path;
+    std::cout << uri << std::endl;
 
     boost::system::error_code ec;
 
-    auto push = res.push(ec, "GET", "/favicon.ico");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/favicon.ico"));
+    if (uri == "/") {
+      auto push = res.push(ec, "GET", "/favicon.ico");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/favicon.ico"));
 
 #ifdef LOCAL
-    push = res.push(ec, "GET", "/local.css");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/local.css"));
+      push = res.push(ec, "GET", "/local.css");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/local.css"));
 
-    push = res.push(ec, "GET", "/local.js");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/local.js"));
+      push = res.push(ec, "GET", "/local.js");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/local.js"));
 
-    push = res.push(ec, "GET", "/logo_naoj_all_s.png");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/logo_naoj_all_s.png"));
+      push = res.push(ec, "GET", "/logo_naoj_all_s.png");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/logo_naoj_all_s.png"));
 
-    res.write_head(200);
-    res.end(file_generator(docs_root + "/local.html"));
+      res.write_head(200);
+      res.end(file_generator(docs_root + "/local.html"));
 #else
-    push = res.push(ec, "GET", "/test.css");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/test.css"));
+      push = res.push(ec, "GET", "/test.css");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/test.css"));
 
-    push = res.push(ec, "GET", "/test.js");
-    push->write_head(200);
-    push->end(file_generator(docs_root + "/test.js"));
+      push = res.push(ec, "GET", "/test.js");
+      push->write_head(200);
+      push->end(file_generator(docs_root + "/test.js"));
 
-    res.write_head(200);
-    res.end(file_generator(docs_root + "/test.html"));
+      res.write_head(200);
+      res.end(file_generator(docs_root + "/test.html"));
 #endif
+    } else {
+      //check if a resource exists
+      res.write_head(200);
+      res.end(file_generator(docs_root + uri));
+    }
   });
 
   if (server.listen_and_serve(ec, tls, "0.0.0.0", "8080")) {
