@@ -220,7 +220,7 @@ void get_spectrum(const response *res, std::shared_ptr<FITS> fits) {
   }
 }
 
-void serve_file(const response *res, std::string uri) {
+void serve_file(const request *req, const response *res, std::string uri) {
   // a safety check against directory traversal attacks
   if (!check_path(uri))
     return http_not_found(res);
@@ -288,6 +288,38 @@ void serve_file(const response *res, std::string uri) {
       if (ext == "wasm")
         mime.insert(std::pair<std::string, header_value>(
             "Content-Type", {"application/wasm", false}));
+    }
+
+    // check for compression
+    header_map headers = req->header();
+    auto it = headers.find("accept-encoding");
+
+    if (it != headers.end()) {
+      auto value = it->second.value;
+      std::cout << "Supported compression: " << value << std::endl;
+
+      size_t pos = value.find("br"); // brotli or gzip
+
+      if (pos != std::string::npos) {
+        if (std::filesystem::exists(path + ".br")) {
+          path += ".br";
+          // append the compression mime
+          mime.insert(std::pair<std::string, header_value>("Content-Encoding",
+                                                           {"br", false}));
+        }
+      } else {
+        // use gzip as a backup
+        size_t pos = value.find("gzip");
+
+        if (pos != std::string::npos) {
+          if (std::filesystem::exists(path + ".gz")) {
+            path += ".gz";
+            // append the compression mime
+            mime.insert(std::pair<std::string, header_value>("Content-Encoding",
+                                                             {"gzip", false}));
+          }
+        }
+      }
     }
 
     res->write_head(200, mime);
@@ -564,27 +596,27 @@ int main(int argc, char *argv[]) {
 
     if (uri == "/") {
       auto push = res.push(ec, "GET", "/favicon.ico");
-      serve_file(push, "/favicon.ico");
+      serve_file(&req, push, "/favicon.ico");
 
 #ifdef LOCAL
       push = res.push(ec, "GET", "/local.css");
-      serve_file(push, "/local.css");
+      serve_file(&req, push, "/local.css");
 
       push = res.push(ec, "GET", "/local.js");
-      serve_file(push, "/local.js");
+      serve_file(&req, push, "/local.js");
 
       push = res.push(ec, "GET", "/logo_naoj_all_s.png");
-      serve_file(push, "/logo_naoj_all_s.png");
+      serve_file(&req, push, "/logo_naoj_all_s.png");
 
-      serve_file(&res, "/local.html");
+      serve_file(&req, &res, "/local.html");
 #else
       push = res.push(ec, "GET", "/test.css");      
-      serve_file(push, "/test.css");
+      serve_file(&req, push, "/test.css");
 
       push = res.push(ec, "GET", "/test.js");      
-      serve_file(push, "/test.js");
+      serve_file(&req, push, "/test.js");
       
-      serve_file(&res, "/test.html");
+      serve_file(&req, &res, "/test.html");
 #endif
     } else {
       std::cout << uri << std::endl;
@@ -639,13 +671,13 @@ int main(int argc, char *argv[]) {
       // FITSWebQL entry
       if (uri.find("FITSWebQL.html") != std::string::npos) {
         auto push = res.push(ec, "GET", "/favicon.ico");
-        serve_file(push, "/favicon.ico");
+        serve_file(&req, push, "/favicon.ico");
 
         push = res.push(ec, "GET", "/fitswebql/fitswebql.css?" VERSION_STRING);
-        serve_file(push, "/fitswebql/fitswebql.css");
+        serve_file(&req, push, "/fitswebql/fitswebql.css");
 
         push = res.push(ec, "GET", "/fitswebql/fitswebql.js?" VERSION_STRING);
-        serve_file(push, "/fitswebql/fitswebql.js");
+        serve_file(&req, push, "/fitswebql/fitswebql.js");
 
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
@@ -731,7 +763,7 @@ int main(int argc, char *argv[]) {
                               flux);
       }
 
-      serve_file(&res, uri);
+      serve_file(&req, &res, uri);
     }
   });
 
