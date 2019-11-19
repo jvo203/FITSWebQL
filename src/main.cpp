@@ -298,7 +298,7 @@ void serve_file(const request *req, const response *res, std::string uri) {
       auto value = it->second.value;
       // std::cout << "Supported compression: " << value << std::endl;
 
-      //prefer brotli due to smaller file sizes
+      // prefer brotli due to smaller file sizes
       size_t pos = value.find("br"); // brotli or gzip
 
       if (pos != std::string::npos) {
@@ -309,7 +309,7 @@ void serve_file(const request *req, const response *res, std::string uri) {
                                                            {"br", false}));
         }
       } else {
-        // use gzip as a backup
+        // fallback to gzip
         size_t pos = value.find("gzip");
 
         if (pos != std::string::npos) {
