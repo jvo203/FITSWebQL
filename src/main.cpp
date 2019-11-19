@@ -20,6 +20,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 
 #include <dirent.h>
 #include <pwd.h>
@@ -95,6 +96,11 @@ void http_not_found(const response *res) {
 void http_not_implemented(const response *res) {
   res->write_head(501);
   res->end("Not Implemented");
+}
+
+void http_accepted(const response *res) {
+  res->write_head(202);
+  res->end("Accepted");
 }
 
 #ifdef LOCAL
@@ -622,6 +628,13 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << uri << std::endl;
 
+      if (uri.find("/get_molecules") != std::string::npos) {
+        auto uri = req.uri();
+        auto query = percent_decode(uri.raw_query);
+
+        std::cout << query << std::endl;
+      }
+
       if (uri.find("/get_spectrum") != std::string::npos) {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
@@ -656,13 +669,13 @@ int main(int argc, char *argv[]) {
           if (fits->has_error)
             return http_not_found(&res);
           else {
-            std::unique_lock<std::mutex> data_lock(fits->data_mtx);
+            /*std::unique_lock<std::mutex> data_lock(fits->data_mtx);
             while (!fits->processed_data)
-              fits->data_cv.wait(data_lock);
+              fits->data_cv.wait(data_lock);*/
 
             if (!fits->has_data)
-              return http_not_found(&res);
-            // return http_accepted(res);
+              // return http_not_found(&res);
+              return http_accepted(&res);
             else
               return get_spectrum(&res, fits);
           }
