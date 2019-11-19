@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-18.0"
+#define VERSION_STRING "SV2019-11-19.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <filesystem>
@@ -87,9 +87,14 @@ using namespace nghttp2::asio_http2::server;
 std::string docs_root = "htdocs2";
 std::string home_dir;
 
-void not_found(const response *res) {
+void http_not_found(const response *res) {
   res->write_head(404);
   res->end("Not Found");
+}
+
+void http_not_implemented(const response *res) {
+  res->write_head(501);
+  res->end("Not Implemented");
 }
 
 #ifdef LOCAL
@@ -196,10 +201,29 @@ void serve_directory(const response *res, std::string dir) {
 }
 #endif
 
+void get_spectrum(const response *res, std::shared_ptr<FITS> fits) {
+  std::ostringstream json;
+
+  fits->to_json(json);
+
+  if (json.tellp() > 0) {
+    header_map mime;
+    mime.insert(std::pair<std::string, header_value>(
+        "Content-Type", {"application/json", false}));
+    mime.insert(std::pair<std::string, header_value>("Cache-Control",
+                                                     {"no-cache", false}));
+
+    res->write_head(200, mime);
+    res->end(json.str());
+  } else {
+    return http_not_implemented(res);
+  }
+}
+
 void serve_file(const response *res, std::string uri) {
   // a safety check against directory traversal attacks
   if (!check_path(uri))
-    return not_found(res);
+    return http_not_found(res);
 
   // check if a resource exists
   std::string path = docs_root + uri;
@@ -269,7 +293,7 @@ void serve_file(const response *res, std::string uri) {
     res->write_head(200, mime);
     res->end(file_generator(path));
   } else {
-    not_found(res);
+    http_not_found(res);
   }
 }
 
@@ -565,6 +589,53 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << uri << std::endl;
 
+      if (uri.find("/get_spectrum") != std::string::npos) {
+        auto uri = req.uri();
+        auto query = percent_decode(uri.raw_query);
+
+        std::string datasetid;
+
+        std::vector<std::string> params;
+        boost::split(params, query, [](char c) { return c == '&'; });
+
+        for (auto const &s : params) {
+          // find '='
+          size_t pos = s.find("=");
+
+          if (pos != std::string::npos) {
+            std::string key = s.substr(0, pos);
+            std::string value = s.substr(pos + 1, std::string::npos);
+
+            if (key.find("dataset") != std::string::npos) {
+              datasetid = value;
+            }
+          }
+        }
+
+        // process the response
+        std::cout << "get_spectrum(" << datasetid << ")" << std::endl;
+
+        auto fits = get_dataset(datasetid);
+
+        if (fits == nullptr)
+          return http_not_found(&res);
+        else {
+          if (fits->has_error)
+            return http_not_found(&res);
+          else {
+            std::unique_lock<std::mutex> data_lock(fits->data_mtx);
+            while (!fits->processed_data)
+              fits->data_cv.wait(data_lock);
+
+            if (!fits->has_data)
+              return http_not_found(&res);
+            // return http_accepted(res);
+            else
+              return get_spectrum(&res, fits);
+          }
+        }
+      }
+
       // FITSWebQL entry
       if (uri.find("FITSWebQL.html") != std::string::npos) {
         auto push = res.push(ec, "GET", "/favicon.ico");
@@ -654,7 +725,7 @@ int main(int argc, char *argv[]) {
         std::cout << std::endl;
 
         if (datasets.size() == 0) {
-          return not_found(&res);
+          return http_not_found(&res);
         } else
           return execute_fits(&res, dir, ext, db, table, datasets, composite,
                               flux);
