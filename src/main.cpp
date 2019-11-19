@@ -26,8 +26,51 @@
 #include <pwd.h>
 #include <sys/types.h>
 
+#include <sqlite3.h>
+
 #include "fits.hpp"
 #include "json.h"
+
+sqlite3 *splat_db = NULL;
+
+#include <zlib.h>
+
+/* CHUNK is the size of the memory chunk used by the zlib routines. */
+
+#define CHUNK 0x4000
+#define windowBits 15
+#define GZIP_ENCODING 16
+
+/* The following macro calls a zlib routine and checks the return
+   value. If the return value ("status") is not OK, it prints an error
+   message and exits the program. Zlib's error statuses are all less
+   than zero. */
+
+#define CALL_ZLIB(x)                                                           \
+  {                                                                            \
+    int status;                                                                \
+    status = x;                                                                \
+    if (status < 0) {                                                          \
+      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__,    \
+              __LINE__, #x, status);                                           \
+      /*exit(EXIT_FAILURE);*/                                                  \
+    }                                                                          \
+  }
+
+struct chunk {
+  bool last;
+  char *buf;
+  size_t len;
+};
+
+struct MolecularStream {
+  bool first;
+  bool compress;
+  boost::lockfree::spsc_queue<chunk> queue{100};
+  z_stream z;
+  unsigned char out[CHUNK];
+  FILE *fp;
+};
 
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
@@ -101,6 +144,11 @@ void http_not_implemented(const response *res) {
 void http_accepted(const response *res) {
   res->write_head(202);
   res->end("Accepted");
+}
+
+void http_internal_server_error(const response *res) {
+  res->write_head(500);
+  res->end("Internal Server Error");
 }
 
 #ifdef LOCAL
@@ -206,6 +254,198 @@ void serve_directory(const response *res, std::string dir) {
   res->end(json.str());
 }
 #endif
+
+static int sqlite_callback(void *userp, int argc, char **argv,
+                           char **azColName) {
+  MolecularStream *stream = (MolecularStream *)userp;
+
+  if (argc == 8) {
+    std::string json;
+
+    if (stream->first) {
+      stream->first = false;
+      json = "{\"molecules\" : [";
+    } else
+      json = ",";
+
+    // json-encode a spectral line
+    char *encoded;
+
+    // species
+    encoded = json_encode_string(check_null(argv[0]));
+    json += "{\"species\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // name
+    encoded = json_encode_string(check_null(argv[1]));
+    json += "\"name\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // frequency
+    json += "\"frequency\" : " + std::string(check_null(argv[2])) + ",";
+
+    // quantum numbers
+    encoded = json_encode_string(check_null(argv[3]));
+    json += "\"quantum\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // cdms_intensity
+    encoded = json_encode_string(check_null(argv[4]));
+    json += "\"cdms\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // lovas_intensity
+    encoded = json_encode_string(check_null(argv[5]));
+    json += "\"lovas\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // E_L
+    encoded = json_encode_string(check_null(argv[6]));
+    json += "\"E_L\" : " + std::string(check_null(encoded)) + ",";
+    if (encoded != NULL)
+      free(encoded);
+
+    // linelist
+    encoded = json_encode_string(check_null(argv[7]));
+    json += "\"list\" : " + std::string(check_null(encoded)) + "}";
+    if (encoded != NULL)
+      free(encoded);
+
+    // printf("%s\n", json.c_str());
+
+    if (stream->compress) {
+      stream->z.avail_in = json.length();                // size of input
+      stream->z.next_in = (unsigned char *)json.c_str(); // input char array
+
+      do {
+        stream->z.avail_out = CHUNK;      // size of output
+        stream->z.next_out = stream->out; // output char array
+        CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
+        size_t have = CHUNK - stream->z.avail_out;
+
+        if (have > 0) {
+          // printf("ZLIB avail_out: %zu\n", have);
+          if (stream->fp != NULL)
+            fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
+
+          char *buf = (char *)malloc(have);
+          memcpy(buf, stream->out, have);
+          stream->queue.push({false, buf, have});
+        }
+      } while (stream->z.avail_out == 0);
+    } else {
+      char *buf = (char *)malloc(json.size());
+      memcpy(buf, json.c_str(), json.size());
+      stream->queue.push({false, buf, json.size()});
+    }
+  }
+
+  return 0;
+}
+
+void stream_molecules(const response *res, double freq_start, double freq_end,
+                      bool compress) {
+  if (splat_db == NULL)
+    return http_internal_server_error(res);
+
+  header_map mime;
+  mime.insert(std::pair<std::string, header_value>(
+      "Content-Type", {"application/json", false}));
+  mime.insert(std::pair<std::string, header_value>("Cache-Control",
+                                                   {"no-cache", false}));
+
+  // append the compression mime
+  if (compress)
+    mime.insert(std::pair<std::string, header_value>("Content-Encoding",
+                                                     {"gzip", false}));
+  res->write_head(200, mime);
+  res->end("");
+
+  // launch a separate thread
+  std::thread([compress, freq_start, freq_end]() {
+    char strSQL[256];
+    int rc;
+    char *zErrMsg = 0;
+
+    snprintf(strSQL, 256,
+             "SELECT * FROM lines WHERE frequency>=%f AND frequency<=%f;",
+             freq_start, freq_end);
+    printf("%s\n", strSQL);
+
+    struct MolecularStream stream;
+    stream.first = true;
+    stream.compress = compress;
+    stream.fp = NULL;
+
+    if (compress) {
+      stream.z.zalloc = Z_NULL;
+      stream.z.zfree = Z_NULL;
+      stream.z.opaque = Z_NULL;
+      stream.z.next_in = Z_NULL;
+      stream.z.avail_in = 0;
+
+      CALL_ZLIB(deflateInit2(&stream.z, Z_BEST_COMPRESSION, Z_DEFLATED,
+                             windowBits | GZIP_ENCODING, 9,
+                             Z_DEFAULT_STRATEGY));
+    }
+
+    rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+    }
+
+    std::string chunk_data;
+
+    if (stream.first)
+      chunk_data = "{\"molecules\" : []}";
+    else
+      chunk_data = "]}";
+
+    if (compress) {
+      stream.z.avail_in = chunk_data.length();
+      stream.z.next_in = (unsigned char *)chunk_data.c_str();
+
+      do {
+        stream.z.avail_out = CHUNK;     // size of output
+        stream.z.next_out = stream.out; // output char array
+        CALL_ZLIB(deflate(&stream.z, Z_FINISH));
+        size_t have = CHUNK - stream.z.avail_out;
+
+        if (have > 0) {
+          // printf("Z_FINISH avail_out: %zu\n", have);
+          if (stream.fp != NULL)
+            fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
+
+          char *buf = (char *)malloc(have);
+          memcpy(buf, stream.out, have);
+          stream.queue.push({false, buf, have});
+        }
+      } while (stream.z.avail_out == 0);
+
+      CALL_ZLIB(deflateEnd(&stream.z));
+
+      if (stream.fp != NULL)
+        fclose(stream.fp);
+    } else {
+      char *buf = (char *)malloc(chunk_data.size());
+      memcpy(buf, chunk_data.c_str(), chunk_data.size());
+      stream.queue.push({false, buf, chunk_data.size()});
+    }
+
+    // end of chunked encoding
+    stream.queue.push({true, NULL, 0});
+
+    std::cout << "[stream_molecules] number of chunks: "
+              << stream.queue.read_available() << std::endl;
+  }).detach();
+}
 
 void get_spectrum(const response *res, std::shared_ptr<FITS> fits) {
   std::ostringstream json;
@@ -390,9 +630,9 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
     </script>)");
 
   // bootstrap
-  html.append(
-      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, "
-      "user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
+  html.append("<meta name=\"viewport\" content=\"width=device-width, "
+              "initial-scale=1, "
+              "user-scalable=no, minimum-scale=1, maximum-scale=1\">\n");
   html.append("<link rel=\"stylesheet\" "
               "href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/"
               "bootstrap.min.css\">\n");
@@ -550,6 +790,16 @@ void execute_fits(const response *res, std::string dir, std::string ext,
 }
 
 int main(int argc, char *argv[]) {
+  int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
+                           SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+
+  if (rc) {
+    fprintf(stderr, "Can't open local splatalogue database: %s\n",
+            sqlite3_errmsg(splat_db));
+    sqlite3_close(splat_db);
+    splat_db = NULL;
+  }
+
   struct passwd *passwdEnt = getpwuid(getuid());
   home_dir = passwdEnt->pw_dir;
 
@@ -632,7 +882,84 @@ int main(int argc, char *argv[]) {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
 
-        std::cout << query << std::endl;
+        bool compress = false;
+
+        // check for compression
+        header_map headers = req.header();
+
+        auto it = headers.find("accept-encoding");
+        if (it != headers.end()) {
+          auto value = it->second.value;
+          // std::cout << "Supported compression: " << value << std::endl;
+
+          size_t pos = value.find("gzip");
+
+          if (pos != std::string::npos) {
+            compress = true;
+          }
+        }
+
+        std::string datasetid;
+        double freq_start = 0.0;
+        double freq_end = 0.0;
+
+        std::vector<std::string> params;
+        boost::split(params, query, [](char c) { return c == '&'; });
+
+        for (auto const &s : params) {
+          // find '='
+          size_t pos = s.find("=");
+
+          if (pos != std::string::npos) {
+            std::string key = s.substr(0, pos);
+            std::string value = s.substr(pos + 1, std::string::npos);
+
+            if (key.find("dataset") != std::string::npos) {
+              datasetid = value;
+            }
+
+            if (key.find("freq_start") != std::string::npos)
+              freq_start = std::stod(value) / 1.0E9; //[Hz -> GHz]
+
+            if (key.find("freq_end") != std::string::npos)
+              freq_end = std::stod(value) / 1.0E9; //[Hz -> GHz]
+          }
+        }
+
+        if (FPzero(freq_start) || FPzero(freq_end)) {
+          // get the frequency range from the FITS header
+          auto fits = get_dataset(datasetid);
+
+          if (fits == nullptr)
+            return http_not_found(&res);
+          else {
+            if (fits->has_error)
+              return http_not_found(&res);
+
+            std::unique_lock<std::mutex> header_lck(fits->header_mtx);
+            while (!fits->processed_header)
+              fits->header_cv.wait(header_lck);
+
+            if (!fits->has_header)
+              // return http_accepted(res);
+              return http_not_found(&res);
+
+            if (fits->depth <= 1 || !fits->has_frequency)
+              return http_not_implemented(&res);
+
+            // extract the freq. range
+            fits->get_frequency_range(freq_start, freq_end);
+          }
+        }
+
+        // process the response
+        std::cout << "get_molecules(" << datasetid << "," << freq_start
+                  << "GHz," << freq_end << "GHz)" << std::endl;
+
+        if (!FPzero(freq_start) && !FPzero(freq_end))
+          return stream_molecules(&res, freq_start, freq_end, compress);
+        else
+          return http_not_implemented(&res);
       }
 
       if (uri.find("/get_spectrum") != std::string::npos) {
@@ -785,4 +1112,7 @@ int main(int argc, char *argv[]) {
                               std::to_string(SERVER_PORT))) {
     std::cerr << "error: " << ec.message() << std::endl;
   }
+
+  if (splat_db != NULL)
+    sqlite3_close(splat_db);
 }
