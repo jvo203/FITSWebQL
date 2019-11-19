@@ -292,11 +292,11 @@ void serve_file(const request *req, const response *res, std::string uri) {
 
     // check for compression
     header_map headers = req->header();
-    auto it = headers.find("accept-encoding");
 
+    auto it = headers.find("accept-encoding");
     if (it != headers.end()) {
       auto value = it->second.value;
-      std::cout << "Supported compression: " << value << std::endl;
+      // std::cout << "Supported compression: " << value << std::endl;
 
       size_t pos = value.find("br"); // brotli or gzip
 
