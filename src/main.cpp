@@ -66,7 +66,7 @@ struct chunk {
 struct MolecularStream {
   bool first;
   bool compress;
-  boost::lockfree::spsc_queue<chunk> queue{100};
+  boost::lockfree::spsc_queue<chunk> *queue;
   z_stream z;
   unsigned char out[CHUNK];
   FILE *fp;
@@ -335,13 +335,13 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 
           char *buf = (char *)malloc(have);
           memcpy(buf, stream->out, have);
-          stream->queue.push({false, buf, have});
+          stream->queue->push({false, buf, have});
         }
       } while (stream->z.avail_out == 0);
     } else {
       char *buf = (char *)malloc(json.size());
       memcpy(buf, json.c_str(), json.size());
-      stream->queue.push({false, buf, json.size()});
+      stream->queue->push({false, buf, json.size()});
     }
   }
 
@@ -364,10 +364,14 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
     mime.insert(std::pair<std::string, header_value>("Content-Encoding",
                                                      {"gzip", false}));
   res->write_head(200, mime);
+
+  boost::lockfree::spsc_queue<chunk> *queue =
+      new boost::lockfree::spsc_queue<chunk>(100);
+
   res->end("");
 
   // launch a separate thread
-  std::thread([compress, freq_start, freq_end]() {
+  std::thread([queue, compress, freq_start, freq_end]() {
     char strSQL[256];
     int rc;
     char *zErrMsg = 0;
@@ -380,6 +384,7 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
     struct MolecularStream stream;
     stream.first = true;
     stream.compress = compress;
+    stream.queue = queue;
     stream.fp = NULL;
 
     if (compress) {
@@ -425,7 +430,7 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
 
           char *buf = (char *)malloc(have);
           memcpy(buf, stream.out, have);
-          stream.queue.push({false, buf, have});
+          stream.queue->push({false, buf, have});
         }
       } while (stream.z.avail_out == 0);
 
@@ -436,14 +441,14 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
     } else {
       char *buf = (char *)malloc(chunk_data.size());
       memcpy(buf, chunk_data.c_str(), chunk_data.size());
-      stream.queue.push({false, buf, chunk_data.size()});
+      stream.queue->push({false, buf, chunk_data.size()});
     }
 
     // end of chunked encoding
-    stream.queue.push({true, NULL, 0});
+    stream.queue->push({true, NULL, 0});
 
     std::cout << "[stream_molecules] number of chunks: "
-              << stream.queue.read_available() << std::endl;
+              << stream.queue->read_available() << std::endl;
   }).detach();
 }
 
