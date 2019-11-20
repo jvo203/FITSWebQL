@@ -745,15 +745,9 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "' data-server-mode='" + "SERVER" + "' data-has-fits='" +
               std::to_string(has_fits) + "'></div>\n");
 
-#ifdef PRODUCTION
   html.append(R"(<script>
         var WS_SOCKET = 'wss://';
         </script>)");
-#else
-  html.append(R"(<script>
-        var WS_SOCKET = 'ws://';
-        </script>)");
-#endif
 
   // the page entry point
   html.append(R"(<script>
