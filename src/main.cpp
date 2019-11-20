@@ -9,7 +9,7 @@
 #define SERVER_PORT 8080
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-19.0"
+#define VERSION_STRING "SV2019-11-20.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #include <filesystem>
@@ -63,10 +63,17 @@ struct chunk {
   size_t len;
 };
 
+struct transmit_queue {
+  boost::lockfree::spsc_queue<uint8_t> q{10 * CHUNK};
+  std::atomic<bool> eof;
+
+  transmit_queue() { eof = false; }
+};
+
 struct MolecularStream {
   bool first;
   bool compress;
-  boost::lockfree::spsc_queue<chunk> *queue;
+  struct transmit_queue *queue;
   z_stream z;
   unsigned char out[CHUNK];
   FILE *fp;
@@ -333,19 +340,42 @@ static int sqlite_callback(void *userp, int argc, char **argv,
           if (stream->fp != NULL)
             fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
 
-          char *buf = (char *)malloc(have);
-          memcpy(buf, stream->out, have);
-          stream->queue->push({false, buf, have});
+          size_t pushed =
+              stream->queue->q.push((const uint8_t *)stream->out, have);
+          if (pushed != have)
+            fprintf(stderr, "error appending to spsc_queue\n");
         }
       } while (stream->z.avail_out == 0);
     } else {
-      char *buf = (char *)malloc(json.size());
-      memcpy(buf, json.c_str(), json.size());
-      stream->queue->push({false, buf, json.size()});
+      size_t pushed =
+          stream->queue->q.push((const uint8_t *)json.c_str(), json.size());
+      if (pushed != json.size())
+        fprintf(stderr, "error appending to spsc_queue\n");
     }
   }
 
   return 0;
+}
+
+generator_cb stream_generator(struct transmit_queue *queue) {
+  return [queue](uint8_t *buf, size_t len,
+                 uint32_t *data_flags) -> generator_cb::result_type {
+    ssize_t n = 0;
+
+    if (queue->q.read_available() > 0) {
+      printf("queue length: %zu buffer length: %zu bytes.\n",
+             queue->q.read_available(), len);
+
+      n = queue->q.pop(buf, len);
+    }
+
+    if (queue->eof && queue->q.read_available() == 0) {
+      *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+      free(queue);
+    }
+
+    return n;
+  };
 }
 
 void stream_molecules(const response *res, double freq_start, double freq_end,
@@ -365,10 +395,9 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
                                                      {"gzip", false}));
   res->write_head(200, mime);
 
-  boost::lockfree::spsc_queue<chunk> *queue =
-      new boost::lockfree::spsc_queue<chunk>(100);
+  struct transmit_queue *queue = new transmit_queue();
 
-  res->end("");
+  res->end(stream_generator(queue));
 
   // launch a separate thread
   std::thread([queue, compress, freq_start, freq_end]() {
@@ -428,9 +457,10 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
           if (stream.fp != NULL)
             fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
 
-          char *buf = (char *)malloc(have);
-          memcpy(buf, stream.out, have);
-          stream.queue->push({false, buf, have});
+          size_t pushed =
+              stream.queue->q.push((const uint8_t *)stream.out, have);
+          if (pushed != have)
+            fprintf(stderr, "error appending to spsc_queue\n");
         }
       } while (stream.z.avail_out == 0);
 
@@ -439,16 +469,17 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
       if (stream.fp != NULL)
         fclose(stream.fp);
     } else {
-      char *buf = (char *)malloc(chunk_data.size());
-      memcpy(buf, chunk_data.c_str(), chunk_data.size());
-      stream.queue->push({false, buf, chunk_data.size()});
+      size_t pushed = stream.queue->q.push((const uint8_t *)chunk_data.c_str(),
+                                           chunk_data.size());
+      if (pushed != chunk_data.size())
+        fprintf(stderr, "error appending to spsc_queue\n");
     }
 
-    // end of chunked encoding
-    stream.queue->push({true, NULL, 0});
+    printf("[stream_molecules] number of remaining bytes: %zu\n",
+           stream.queue->q.read_available());
 
-    std::cout << "[stream_molecules] number of chunks: "
-              << stream.queue->read_available() << std::endl;
+    // end of chunked encoding
+    stream.queue->eof = true;
   }).detach();
 }
 
