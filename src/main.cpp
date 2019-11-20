@@ -12,6 +12,7 @@
 #define VERSION_STRING "SV2019-11-20.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
+#include <deque>
 #include <filesystem>
 #include <iostream>
 #include <set>
@@ -65,6 +66,8 @@ struct chunk {
 
 struct transmit_queue {
   boost::lockfree::spsc_queue<uint8_t> q{10 * CHUNK};
+  std::deque<uint8_t> fifo;
+  std::mutex mtx;
   std::atomic<bool> eof;
 
   transmit_queue() { eof = false; }
@@ -340,17 +343,25 @@ static int sqlite_callback(void *userp, int argc, char **argv,
           if (stream->fp != NULL)
             fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
 
-          size_t pushed =
+          /*size_t pushed =
               stream->queue->q.push((const uint8_t *)stream->out, have);
           if (pushed != have)
-            fprintf(stderr, "error appending to spsc_queue\n");
+            fprintf(stderr, "error appending to spsc_queue\n");*/
+
+          std::lock_guard<std::mutex> guard(stream->queue->mtx);
+          stream->queue->fifo.insert(stream->queue->fifo.end(), stream->out,
+                                     stream->out + have);
         }
       } while (stream->z.avail_out == 0);
     } else {
-      size_t pushed =
+      /*size_t pushed =
           stream->queue->q.push((const uint8_t *)json.c_str(), json.size());
       if (pushed != json.size())
-        fprintf(stderr, "error appending to spsc_queue\n");
+        fprintf(stderr, "error appending to spsc_queue\n");*/
+
+      std::lock_guard<std::mutex> guard(stream->queue->mtx);
+      stream->queue->fifo.insert(stream->queue->fifo.end(), json.c_str(),
+                                 json.c_str() + json.size());
     }
   }
 
@@ -362,15 +373,32 @@ generator_cb stream_generator(struct transmit_queue *queue) {
                  uint32_t *data_flags) -> generator_cb::result_type {
     ssize_t n = 0;
 
-    if (queue->q.read_available() > 0) {
+    /*if (queue->q.read_available() > 0) {
       printf("queue length: %zu buffer length: %zu bytes.\n",
              queue->q.read_available(), len);
 
       n = queue->q.pop(buf, len);
+    }*/
+
+    std::unique_lock<std::mutex> lock(queue->mtx);
+
+    if (queue->fifo.size() > 0) {
+      size_t size = std::min(len, queue->fifo.size());
+
+      printf("queue length: %zu buffer length: %zu bytes.\n",
+             queue->fifo.size(), len);
+
+      // pop elements up to <len>
+      std::copy(queue->fifo.begin(), queue->fifo.begin() + size, buf);
+      queue->fifo.erase(queue->fifo.begin(), queue->fifo.begin() + size);
+      n = size;
     }
 
-    if (queue->eof && queue->q.read_available() == 0) {
+    // if (queue->eof && queue->q.read_available() == 0) {
+    if (queue->eof && queue->fifo.empty()) {
       *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+
+      lock.release();
       free(queue);
     }
 
@@ -457,10 +485,14 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
           if (stream.fp != NULL)
             fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
 
-          size_t pushed =
+          /*size_t pushed =
               stream.queue->q.push((const uint8_t *)stream.out, have);
           if (pushed != have)
-            fprintf(stderr, "error appending to spsc_queue\n");
+            fprintf(stderr, "error appending to spsc_queue\n");*/
+
+          std::lock_guard<std::mutex> guard(stream.queue->mtx);
+          stream.queue->fifo.insert(stream.queue->fifo.end(), stream.out,
+                                    stream.out + have);
         }
       } while (stream.z.avail_out == 0);
 
@@ -469,14 +501,21 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
       if (stream.fp != NULL)
         fclose(stream.fp);
     } else {
-      size_t pushed = stream.queue->q.push((const uint8_t *)chunk_data.c_str(),
-                                           chunk_data.size());
-      if (pushed != chunk_data.size())
-        fprintf(stderr, "error appending to spsc_queue\n");
+      /*size_t pushed = stream.queue->q.push((const uint8_t
+      *)chunk_data.c_str(), chunk_data.size()); if (pushed != chunk_data.size())
+        fprintf(stderr, "error appending to spsc_queue\n");*/
+
+      std::lock_guard<std::mutex> guard(stream.queue->mtx);
+      stream.queue->fifo.insert(stream.queue->fifo.end(), chunk_data.c_str(),
+                                chunk_data.c_str() + chunk_data.size());
     }
 
+    /*printf("[stream_molecules] number of remaining bytes: %zu\n",
+           stream.queue->q.read_available());*/
+
+    std::lock_guard<std::mutex> guard(stream.queue->mtx);
     printf("[stream_molecules] number of remaining bytes: %zu\n",
-           stream.queue->q.read_available());
+           stream.queue->fifo.size());
 
     // end of chunked encoding
     stream.queue->eof = true;
