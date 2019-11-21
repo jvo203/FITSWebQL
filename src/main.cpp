@@ -1031,6 +1031,64 @@ int main(int argc, char *argv[]) {
           return http_not_implemented(&res);
       }
 
+      if (uri.find("/get_image") != std::string::npos) {
+        auto uri = req.uri();
+        auto query = percent_decode(uri.raw_query);
+
+        std::string datasetid;
+        int width = 0;
+        int height = 0;
+
+        std::vector<std::string> params;
+        boost::split(params, query, [](char c) { return c == '&'; });
+
+        for (auto const &s : params) {
+          // find '='
+          size_t pos = s.find("=");
+
+          if (pos != std::string::npos) {
+            std::string key = s.substr(0, pos);
+            std::string value = s.substr(pos + 1, std::string::npos);
+
+            if (key.find("dataset") != std::string::npos) {
+              datasetid = value;
+            }
+
+            if (key.find("width") != std::string::npos) {
+              width = std::stoi(value);
+            }
+
+            if (key.find("height") != std::string::npos) {
+              height = std::stoi(value);
+            }
+          }
+        }
+
+        // process the response
+        std::cout << "get_image(" << datasetid << "::" << width
+                  << "::" << height << ")" << std::endl;
+
+        auto fits = get_dataset(datasetid);
+
+        if (fits == nullptr)
+          return http_not_found(&res);
+        else {
+          if (fits->has_error)
+            return http_not_found(&res);
+          else {
+            /*std::unique_lock<std::mutex> data_lock(fits->data_mtx);
+            while (!fits->processed_data)
+              fits->data_cv.wait(data_lock);*/
+
+            if (!fits->has_data)
+              // return http_not_found(&res);
+              return http_accepted(&res);
+            else
+              return http_not_implemented(&res);
+          }
+        }
+      }
+
       if (uri.find("/get_spectrum") != std::string::npos) {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);

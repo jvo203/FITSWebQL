@@ -9094,7 +9094,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 
 	var xmlhttp = new XMLHttpRequest();
 
-	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + 'height=' + height;
+	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height;
 	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
