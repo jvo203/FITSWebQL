@@ -647,6 +647,11 @@ bool FITS::process_fits_header_unit(const char *buf) {
         is_optical = false;
         flux = "logistic";
       }
+
+      if (telescope.find("chandra") != std::string::npos) {
+        is_optical = false;
+        is_xray = true;
+      }
     }
 
     std::string line(hdrLine);
