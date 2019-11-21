@@ -46,12 +46,12 @@ int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
                     float pmins, float pmax);
 
-struct progress {
+struct Progress {
   size_t running;
   size_t total;
   double elapsed;
 
-  progress() {
+  Progress() {
     running = 0;
     total = 0;
     elapsed = 0.0;
