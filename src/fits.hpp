@@ -7,6 +7,7 @@
 #include <math.h>
 #include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -15,8 +16,6 @@
 using namespace std::chrono;
 
 #include "roaring.hh"
-
-//#include "shared_state.hpp"
 
 #include <zfparray3.h>
 //#include "array3fmmap.hpp"
@@ -47,7 +46,11 @@ int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
                     float pmins, float pmax);
 
-class shared_state;
+struct progress {
+  size_t running;
+  size_t total;
+  double elapsed;
+};
 
 class FITS {
 public:
@@ -157,6 +160,10 @@ public:
   bool is_optical;
   bool is_xray;
   std::mutex fits_mutex;
+
+  // progress
+  struct progress progress;
+  std::shared_mutex progress_mtx;
 
 private:
   // FITS header
