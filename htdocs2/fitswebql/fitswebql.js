@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-11-21.0";
+	return "JS2019-11-21.1";
 }
 
 const wasm_supported = (() => {
@@ -1431,6 +1431,16 @@ function send_ping() {
 
 		wsConn[va_count - 1].send('[heartbeat] ' + t);
 	}
+}
+
+function open_progress_connection(datasetId, index) {
+	if (typeof (EventSource) !== "undefined") {
+		var source = new EventSource("progress/" + datasetId);
+		source.onmessage = function (event) {
+			console.log(event.data);
+		}
+	} else
+		console.log('Server-Sent Event (EventSource) is unsupported by your browser, disabling progress notifications.')
 }
 
 function open_websocket_connection(datasetId, index) {
@@ -12735,6 +12745,7 @@ async*/ function mainRenderer() {
 
 		if (va_count == 1) {
 			//open_websocket_connection(datasetId, 1);
+			open_progress_connection(datasetId, 1);
 
 			fetch_image(datasetId, 1, false);
 
@@ -12747,6 +12758,7 @@ async*/ function mainRenderer() {
 				console.log(index, datasetId.rotate(index - 1));
 
 				//open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
+				open_progress_connection(datasetId.rotate(index - 1)[0], index);
 
 				fetch_image(datasetId[index - 1], index, false);
 
