@@ -1816,7 +1816,7 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
 }
 
 void FITS::send_progress_notification(size_t running, size_t total) {
-  std::ostringstream json;
+  // std::ostringstream json;
 
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1825,12 +1825,18 @@ void FITS::send_progress_notification(size_t running, size_t total) {
   elapsed = (now.tv_sec - this->created.tv_sec) * 1e9;
   elapsed = (elapsed + (now.tv_nsec - this->created.tv_nsec)) * 1e-9;
 
-  json << "{"
+  std::lock_guard<std::shared_mutex> guard(progress_mtx);
+
+  this->progress.running = running;
+  this->progress.total = total;
+  this->progress.elapsed = elapsed;
+
+  /*json << "{"
        << "\"type\" : \"progress\",";
   json << "\"message\" : \"loading FITS\",";
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
-  json << "\"elapsed\" : " << elapsed << "}";
+  json << "\"elapsed\" : " << elapsed << "}";*/
 
   /*bool forced = (running == total) ? true : false;
   if(boost::shared_ptr<shared_state> _state = state_.lock())
