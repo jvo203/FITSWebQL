@@ -12,6 +12,8 @@
 #define VERSION_STRING "SV2019-11-21.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
+#define PROGRESS_TIMEOUT 250 /*[ms]*/
+
 #include <deque>
 #include <filesystem>
 #include <iostream>
@@ -57,12 +59,6 @@ sqlite3 *splat_db = NULL;
       /*exit(EXIT_FAILURE);*/                                                  \
     }                                                                          \
   }
-
-struct chunk {
-  bool last;
-  char *buf;
-  size_t len;
-};
 
 struct TransmitQueue {
   boost::lockfree::spsc_queue<uint8_t> q{10 * CHUNK};
@@ -368,6 +364,26 @@ static int sqlite_callback(void *userp, int argc, char **argv,
   return 0;
 }
 
+generator_cb progress_generator(std::shared_ptr<FITS> fits) {
+  return [fits](uint8_t *buf, size_t len,
+                uint32_t *data_flags) -> generator_cb::result_type {
+    ssize_t n = 0;
+    // check if running == total
+
+    // if not, sleep for PROGRESS_TIMEOUT
+
+    // obtain a read-only progress mutex
+
+    // make a json
+
+    // send it
+
+    { *data_flags |= NGHTTP2_DATA_FLAG_EOF; }
+
+    return n;
+  };
+}
+
 generator_cb stream_generator(struct TransmitQueue *queue) {
   return [queue](uint8_t *buf, size_t len,
                  uint32_t *data_flags) -> generator_cb::result_type {
@@ -385,8 +401,8 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
     if (queue->fifo.size() > 0) {
       size_t size = std::min(len, queue->fifo.size());
 
-      printf("queue length: %zu buffer length: %zu bytes.\n",
-             queue->fifo.size(), len);
+      // printf("queue length: %zu buffer length: %zu bytes.\n",
+      // queue->fifo.size(), len);
 
       // pop elements up to <len>
       std::copy(queue->fifo.begin(), queue->fifo.begin() + size, buf);
@@ -936,16 +952,49 @@ int main(int argc, char *argv[]) {
 
       serve_file(&req, &res, "/local.html");
 #else
-      push = res.push(ec, "GET", "/test.css");      
+      push = res.push(ec, "GET", "/test.css");
       serve_file(&req, push, "/test.css");
 
-      push = res.push(ec, "GET", "/test.js");      
+      push = res.push(ec, "GET", "/test.js");
       serve_file(&req, push, "/test.js");
-      
+
       serve_file(&req, &res, "/test.html");
 #endif
     } else {
       std::cout << uri << std::endl;
+
+      if (uri.find("progress/") != std::string::npos) {
+        size_t pos = uri.find_last_of("/");
+
+        if (pos != std::string::npos) {
+          std::string datasetid = uri.substr(pos + 1, std::string::npos);
+
+          // process the response
+          std::cout << "progress(" << datasetid << ")" << std::endl;
+
+          auto fits = get_dataset(datasetid);
+
+          if (fits == nullptr)
+            return http_not_found(&res);
+          else {
+            if (fits->has_error)
+              return http_not_found(&res);
+            else {
+              header_map mime;
+
+              mime.insert(std::pair<std::string, header_value>(
+                  "Content-Type", {"text/event-stream", false}));
+              mime.insert(std::pair<std::string, header_value>(
+                  "Cache-Control", {"no-cache", false}));
+              res.write_head(200, mime);
+              res.end(progress_generator(fits));
+
+              return;
+            }
+          }
+        } else
+          return http_not_found(&res);
+      }
 
       if (uri.find("/get_molecules") != std::string::npos) {
         auto uri = req.uri();
@@ -1005,13 +1054,13 @@ int main(int argc, char *argv[]) {
             if (fits->has_error)
               return http_not_found(&res);
 
-            std::unique_lock<std::mutex> header_lck(fits->header_mtx);
+            /*std::unique_lock<std::mutex> header_lck(fits->header_mtx);
             while (!fits->processed_header)
-              fits->header_cv.wait(header_lck);
+              fits->header_cv.wait(header_lck);*/
 
             if (!fits->has_header)
-              // return http_accepted(res);
-              return http_not_found(&res);
+              return http_accepted(&res);
+            // return http_not_found(&res);
 
             if (fits->depth <= 1 || !fits->has_frequency)
               return http_not_implemented(&res);
