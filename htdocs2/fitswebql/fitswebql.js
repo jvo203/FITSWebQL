@@ -1437,7 +1437,7 @@ function open_progress_connection(datasetId, index) {
 	if (typeof (EventSource) !== "undefined") {
 		var source = new EventSource("progress/" + datasetId);
 		source.onmessage = function (event) {
-			console.log(event.data);
+			console.log('index:', index, event.data);
 		}
 	} else
 		console.log('Server-Sent Event (EventSource) is unsupported by your browser, disabling progress notifications.')
