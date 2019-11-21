@@ -1435,7 +1435,7 @@ function send_ping() {
 
 function open_progress_connection(datasetId, index) {
 	if (typeof (EventSource) !== "undefined") {
-		var source = new EventSource("progress/" + datasetId);
+		var source = new EventSource("progress/" + encodeURIComponent(datasetId));
 		source.onmessage = function (event) {
 			console.log('index:', index, event.data);
 		}
