@@ -168,7 +168,7 @@ public:
   std::mutex fits_mutex;
 
   // progress
-  struct progress progress;
+  struct Progress progress;
   std::shared_mutex progress_mtx;
 
 private:
