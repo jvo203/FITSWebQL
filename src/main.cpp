@@ -64,19 +64,19 @@ struct chunk {
   size_t len;
 };
 
-struct transmit_queue {
+struct TransmitQueue {
   boost::lockfree::spsc_queue<uint8_t> q{10 * CHUNK};
   std::deque<uint8_t> fifo;
   std::mutex mtx;
   std::atomic<bool> eof;
 
-  transmit_queue() { eof = false; }
+  TransmitQueue() { eof = false; }
 };
 
 struct MolecularStream {
   bool first;
   bool compress;
-  struct transmit_queue *queue;
+  struct TransmitQueue *queue;
   z_stream z;
   unsigned char out[CHUNK];
   FILE *fp;
@@ -368,7 +368,7 @@ static int sqlite_callback(void *userp, int argc, char **argv,
   return 0;
 }
 
-generator_cb stream_generator(struct transmit_queue *queue) {
+generator_cb stream_generator(struct TransmitQueue *queue) {
   return [queue](uint8_t *buf, size_t len,
                  uint32_t *data_flags) -> generator_cb::result_type {
     ssize_t n = 0;
@@ -423,7 +423,7 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
                                                      {"gzip", false}));
   res->write_head(200, mime);
 
-  struct transmit_queue *queue = new transmit_queue();
+  struct TransmitQueue *queue = new TransmitQueue();
 
   res->end(stream_generator(queue));
 
