@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-11-01.0";
+	return "JS2019-11-21.0";
 }
 
 const wasm_supported = (() => {
@@ -1365,7 +1365,7 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 }
 
 function process_progress_event(data, index) {
-	if (data != null) {		
+	if (data != null) {
 		var running = data.running;
 		var total = data.total;
 		var elapsed = data.elapsed;
@@ -1462,10 +1462,10 @@ function open_websocket_connection(datasetId, index) {
 				//let log = wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported";
 				//ALMAWS.send('[debug] ' + log);
 
-				var rect = document.getElementById('mainDiv').getBoundingClientRect();				
+				var rect = document.getElementById('mainDiv').getBoundingClientRect();
 				var width = rect.width - 20;
 				var height = rect.height - 20;
-				ALMAWS.send('image/'+width+'/'+height);
+				ALMAWS.send('image/' + width + '/' + height);
 
 				if (index == va_count) {
 					send_ping();
@@ -9088,9 +9088,14 @@ function fetch_spectral_lines(datasetId, freq_start, freq_end) {
 };
 
 function fetch_image(datasetId, index, add_timestamp) {
+	var rect = document.getElementById('mainDiv').getBoundingClientRect();
+	var width = rect.width - 20;
+	var height = rect.height - 20;
+
 	var xmlhttp = new XMLHttpRequest();
 
-	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&' + encodeURIComponent(get_js_version());
+	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + 'height=' + height;
+	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
 		url += '&timestamp=' + Date.now();
@@ -12729,9 +12734,9 @@ async*/ function mainRenderer() {
 		spectrum_count = 0;
 
 		if (va_count == 1) {
-			open_websocket_connection(datasetId, 1);
+			//open_websocket_connection(datasetId, 1);
 
-			//fetch_image(datasetId, 1, false);
+			fetch_image(datasetId, 1, false);
 
 			fetch_spectrum(datasetId, 1, false);
 
@@ -12741,9 +12746,9 @@ async*/ function mainRenderer() {
 			for (let index = 1; index <= va_count; index++) {
 				console.log(index, datasetId.rotate(index - 1));
 
-				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
+				//open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
 
-				//fetch_image(datasetId[index - 1], index, false);
+				fetch_image(datasetId[index - 1], index, false);
 
 				fetch_spectrum(datasetId[index - 1], index, false);
 
