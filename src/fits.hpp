@@ -50,6 +50,12 @@ struct progress {
   size_t running;
   size_t total;
   double elapsed;
+
+  progress() {
+    running = 0;
+    total = 0;
+    elapsed = 0.0;
+  }
 };
 
 class FITS {
