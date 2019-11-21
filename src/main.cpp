@@ -368,17 +368,55 @@ generator_cb progress_generator(std::shared_ptr<FITS> fits) {
   return [fits](uint8_t *buf, size_t len,
                 uint32_t *data_flags) -> generator_cb::result_type {
     ssize_t n = 0;
+    std::ostringstream data;
+    bool eof = false;
+
     // check if running == total
+    {
+      std::shared_lock<std::shared_mutex> lock(fits->progress_mtx);
 
-    // if not, sleep for PROGRESS_TIMEOUT
+      if (fits->progress.total > 0 &&
+          fits->progress.total == fits->progress.running)
+        eof = true;
+    }
 
-    // obtain a read-only progress mutex
+    // if not, sleep for <PROGRESS_TIMEOUT> milliseconds
+    if (!eof) {
+      struct timespec ts;
+      ts.tv_sec = PROGRESS_TIMEOUT / 1000;
+      ts.tv_nsec = (PROGRESS_TIMEOUT % 1000) * 1000000;
+      nanosleep(&ts, NULL);
+    }
 
-    // make a json
+    // lock a read-only progress mutex
+    {
+      std::shared_lock<std::shared_mutex> lock(fits->progress_mtx);
+
+      // make a json response
+      if (fits->progress.total > 0) {
+        data << "data:";
+        data << "{ \"total\" : " << fits->progress.total << ", ";
+        data << "\"running\" : " << fits->progress.running << ", ";
+        data << "\"elapsed\" : " << fits->progress.elapsed << " }";
+        data << "\n\n";
+      }
+    }
+
+    // printf("sending progress notification: %s\n", data.str().c_str());
 
     // send it
+    size_t size = data.str().size();
 
-    { *data_flags |= NGHTTP2_DATA_FLAG_EOF; }
+    if (size > 0 && size < len) {
+      memcpy(buf, data.str().c_str(), size);
+      n = size;
+    } else if (size > len)
+      eof = true;
+
+    if (eof) {
+      printf("closing the event stream.\n");
+      *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+    }
 
     return n;
   };
@@ -402,7 +440,7 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
       size_t size = std::min(len, queue->fifo.size());
 
       // printf("queue length: %zu buffer length: %zu bytes.\n",
-      // queue->fifo.size(), len);
+      //       queue->fifo.size(), len);
 
       // pop elements up to <len>
       std::copy(queue->fifo.begin(), queue->fifo.begin() + size, buf);

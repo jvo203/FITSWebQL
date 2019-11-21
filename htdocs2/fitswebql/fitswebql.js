@@ -1436,8 +1436,25 @@ function send_ping() {
 function open_progress_connection(datasetId, index) {
 	if (typeof (EventSource) !== "undefined") {
 		var source = new EventSource("progress/" + encodeURIComponent(datasetId));
+
+		source.onerror = function (event) {
+			if (event.eventPhase == EventSource.CLOSED) {
+				source.close();
+				console.log("EventSource Closed");
+			}
+		}
+
 		source.onmessage = function (event) {
-			console.log('index:', index, event.data);
+			if (event) {
+				console.log('index:', index, event.data);
+
+				try {
+					var data = JSON.parse(event.data);
+					process_progress_event(data, index);
+				} catch (e) {
+					console.log(e);
+				}
+			}
 		}
 	} else
 		console.log('Server-Sent Event (EventSource) is unsupported by your browser, disabling progress notifications.')
