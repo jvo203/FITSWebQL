@@ -914,7 +914,7 @@ void execute_fits(const response *res, std::string dir, std::string ext,
 }
 
 void signalHandler(int signum) {
-  std::cout << "Interrupt signal (" << signum << ") received. Please wait.\n";
+  printf("Interrupt signal (%d) received. Please wait.\n", signum);
 
   http2_server->stop();
 }
