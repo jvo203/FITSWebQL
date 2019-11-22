@@ -135,6 +135,7 @@ inline const char *check_null(const char *str) {
 using namespace nghttp2::asio_http2;
 using namespace nghttp2::asio_http2::server;
 
+http2 *http2_server;
 std::string docs_root = "htdocs2";
 std::string home_dir;
 
@@ -912,6 +913,12 @@ void execute_fits(const response *res, std::string dir, std::string ext,
   return http_fits_response(res, datasets, composite, has_fits);
 }
 
+void signalHandler(int signum) {
+  std::cout << "Interrupt signal (" << signum << ") received. Please wait.\n";
+
+  http2_server->stop();
+}
+
 int main(int argc, char *argv[]) {
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
@@ -936,40 +943,41 @@ int main(int argc, char *argv[]) {
     std::cerr << "error: " << ec.message() << std::endl;
   }
 
-  http2 server;
-  server.num_threads(4);
+  http2_server = new http2();
+  http2_server->num_threads(4);
 
 #ifdef LOCAL
-  server.handle("/get_directory", [](const request &req, const response &res) {
-    auto uri = req.uri();
-    auto query = percent_decode(uri.raw_query);
+  http2_server->handle(
+      "/get_directory", [](const request &req, const response &res) {
+        auto uri = req.uri();
+        auto query = percent_decode(uri.raw_query);
 
-    std::string dir;
-    std::vector<std::string> params;
-    boost::split(params, query, [](char c) { return c == '&'; });
+        std::string dir;
+        std::vector<std::string> params;
+        boost::split(params, query, [](char c) { return c == '&'; });
 
-    for (auto const &s : params) {
-      // find '='
-      size_t pos = s.find("=");
+        for (auto const &s : params) {
+          // find '='
+          size_t pos = s.find("=");
 
-      if (pos != std::string::npos) {
-        std::string key = s.substr(0, pos);
-        std::string value = s.substr(pos + 1, std::string::npos);
+          if (pos != std::string::npos) {
+            std::string key = s.substr(0, pos);
+            std::string value = s.substr(pos + 1, std::string::npos);
 
-        if (key == "dir") {
-          dir = value;
+            if (key == "dir") {
+              dir = value;
+            }
+          }
         }
-      }
-    }
 
-    if (dir != "")
-      serve_directory(&res, dir);
-    else
-      serve_directory(&res, home_dir);
-  });
+        if (dir != "")
+          serve_directory(&res, dir);
+        else
+          serve_directory(&res, home_dir);
+      });
 #endif
 
-  server.handle("/", [](const request &req, const response &res) {
+  http2_server->handle("/", [](const request &req, const response &res) {
     boost::system::error_code ec;
 
     auto uri = req.uri().path;
@@ -1323,11 +1331,22 @@ int main(int argc, char *argv[]) {
   });
 
   signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
 
-  if (server.listen_and_serve(ec, tls, "0.0.0.0", std::to_string(HTTPS_PORT))) {
+  if (http2_server->listen_and_serve(ec, tls, "0.0.0.0",
+                                     std::to_string(HTTPS_PORT), true)) {
     std::cerr << "error: " << ec.message() << std::endl;
   }
 
+  http2_server->join();
+  delete http2_server;
+
+  // cleanup and close up stuff here
+  // terminate program
+
   if (splat_db != NULL)
     sqlite3_close(splat_db);
+
+  std::cout << "terminating FITSWebQL." << std::endl;
 }
