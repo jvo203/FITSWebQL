@@ -2,8 +2,8 @@
 
 #include <chrono>
 #include <mutex>
-#include <shared_mutex>
 #include <set>
+#include <shared_mutex>
 
 using namespace std::chrono;
 
@@ -13,50 +13,50 @@ using namespace std::chrono;
 
 #include "App.h"
 
-typedef uWS::WebSocket<false, true> TWebSocket;                                                      
-typedef std::set<TWebSocket*> TWebSocketList;
+typedef uWS::WebSocket<true, true> TWebSocket;
+typedef std::set<TWebSocket *> TWebSocketList;
 
-typedef std::unordered_map<std::string, TWebSocketList> progress_list ;
+typedef std::unordered_map<std::string, TWebSocketList> progress_list;
 inline std::shared_mutex m_progress_mutex;
 inline progress_list m_progress;
 
-#define PROGRESS_TIMEOUT 0.25
+#define uWS_PROGRESS_TIMEOUT 0.25
 
 struct UserSession {
-  //session management
+  // session management
   boost::uuids::uuid session_id;
   system_clock::time_point ts;
   std::shared_mutex ts_mtx;
 
-  //the main fields
+  // the main fields
   std::string primary_id;
   std::vector<std::string> ids;
 };
 
 struct UserData {
-  struct UserSession* ptr;
+  struct UserSession *ptr;
 };
 
-inline bool check_progress_timeout(struct UserSession* session, system_clock::time_point now)
-{
-  if(session == NULL)
+inline bool check_progress_timeout(struct UserSession *session,
+                                   system_clock::time_point now) {
+  if (session == NULL)
     return false;
-  
+
   std::shared_lock<std::shared_mutex> lock(session->ts_mtx);
 
   duration<double, std::milli> elapsed = now - session->ts;
 
-  if( elapsed >= duration_cast<system_clock::duration>(duration<double>(PROGRESS_TIMEOUT)) )
+  if (elapsed >= duration_cast<system_clock::duration>(
+                     duration<double>(uWS_PROGRESS_TIMEOUT)))
     return true;
   else
     return false;
 }
 
-inline void update_progress_timestamp(struct UserSession* session)
-{
-  if(session == NULL)
-    return ;
-  
+inline void update_progress_timestamp(struct UserSession *session) {
+  if (session == NULL)
+    return;
+
   std::lock_guard<std::shared_mutex> guard(session->ts_mtx);
 
   session->ts = system_clock::now();
@@ -68,24 +68,21 @@ inline void update_progress_timestamp(struct UserSession* session)
 inline std::set<std::string> cluster;
 inline std::shared_mutex cluster_mtx;
 
-inline bool cluster_contains_node(std::string node)
-{
+inline bool cluster_contains_node(std::string node) {
   std::shared_lock<std::shared_mutex> lock(cluster_mtx);
 
-  if(cluster.find(node) == cluster.end())
+  if (cluster.find(node) == cluster.end())
     return false;
   else
     return true;
 }
 
-inline void cluster_insert_node(std::string node)
-{
+inline void cluster_insert_node(std::string node) {
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.insert(node);
 }
 
-inline void cluster_erase_node(std::string node)
-{
+inline void cluster_erase_node(std::string node) {
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.erase(node);
 }

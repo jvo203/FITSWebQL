@@ -32,6 +32,7 @@
 
 #include <sqlite3.h>
 
+#include "global.h"
 #include "fits.hpp"
 #include "json.h"
 
