@@ -20,6 +20,7 @@
 #include <iostream>
 #include <set>
 #include <shared_mutex>
+#include <thread>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
@@ -55,15 +56,31 @@ private:
 
 std::mutex PrintThread::_mutexPrint{};
 
-#if defined(__APPLE__) && defined(__MACH__)
-sig_t prevSIGTERM;
-sig_t prevSIGINT;
-#else
-sighandler_t prevSIGTERM;
-sighandler_t prevSIGINT;
-#endif
-
 #ifdef CLUSTER
+#include <czmq.h>
+
+inline std::set<std::string> cluster;
+inline std::shared_mutex cluster_mtx;
+
+inline bool cluster_contains_node(std::string node) {
+  std::shared_lock<std::shared_mutex> lock(cluster_mtx);
+
+  if (cluster.find(node) == cluster.end())
+    return false;
+  else
+    return true;
+}
+
+inline void cluster_insert_node(std::string node) {
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.insert(node);
+}
+
+inline void cluster_erase_node(std::string node) {
+  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
+  cluster.erase(node);
+}
+
 zactor_t *speaker = NULL;
 zactor_t *listener = NULL;
 std::thread beacon_thread;
@@ -973,9 +990,9 @@ void signalHandler(int signum) {
 
   http2_server->stop();
 
-  signal(SIGINT, prevSIGINT);
+  /*signal(SIGINT, prevSIGINT);
   signal(SIGTERM, prevSIGTERM);
-  raise(signum);
+  raise(signum);*/
 }
 
 int main(int argc, char *argv[]) {
@@ -1144,6 +1161,48 @@ int main(int argc, char *argv[]) {
 #endif
     } else {
       std::cout << uri << std::endl;
+
+      if (uri.find("get_progress/") != std::string::npos) {
+        size_t pos = uri.find_last_of("/");
+
+        if (pos != std::string::npos) {
+          std::string datasetid = uri.substr(pos + 1, std::string::npos);
+
+          // process the response
+          std::cout << "progress(" << datasetid << ")" << std::endl;
+
+          auto fits = get_dataset(datasetid);
+
+          if (fits == nullptr)
+            return http_not_found(&res);
+          else {
+            if (fits->has_error)
+              return http_not_found(&res);
+            else {
+              header_map mime;
+
+              mime.insert(std::pair<std::string, header_value>(
+                  "Content-Type", {"application/json", false}));
+              res.write_head(200, mime);
+
+              // make json
+              std::ostringstream json;
+              {
+                std::shared_lock<std::shared_mutex> lock(fits->progress_mtx);
+
+                json << "{\"total\" : " << fits->progress.total << ",";
+                json << "\"running\" : " << fits->progress.running << ",";
+                json << "\"elapsed\" : " << fits->progress.elapsed << "}";
+              }
+
+              res.end(json.str());
+
+              return;
+            }
+          }
+        } else
+          return http_not_found(&res);
+      }
 
       if (uri.find("progress/") != std::string::npos) {
         size_t pos = uri.find_last_of("/");
@@ -1467,8 +1526,8 @@ int main(int argc, char *argv[]) {
   });
 
   signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE
-  prevSIGINT = signal(SIGINT, signalHandler);
-  prevSIGTERM = signal(SIGTERM, signalHandler);
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
 
   if (http2_server->listen_and_serve(ec, tls, "0.0.0.0",
                                      std::to_string(HTTPS_PORT), true)) {

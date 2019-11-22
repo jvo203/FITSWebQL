@@ -1433,6 +1433,33 @@ function send_ping() {
 	}
 }
 
+function poll_progress(datasetId, index) {
+	var xmlhttp = new XMLHttpRequest();
+	var url = 'get_progress/' + encodeURIComponent(datasetId);
+
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var data = xmlhttp.response;
+
+			try {
+				process_progress_event(data, index);
+
+				if (data.total == 0 || data.running != data.total)
+					setTimeout(function () {
+						poll_progress(datasetId, index);
+					}, 250);
+			} catch (e) {
+				console.log(e);
+			}
+		}
+	}
+
+	xmlhttp.open("POST", url, true);
+	xmlhttp.responseType = 'json';
+	xmlhttp.timeout = 0;
+	xmlhttp.send();
+}
+
 function open_progress_connection(datasetId, index) {
 	if (typeof (EventSource) !== "undefined") {
 		var source = new EventSource("progress/" + encodeURIComponent(datasetId));
@@ -2232,8 +2259,8 @@ function display_hourglass() {
 	var height = c.height;
 
 	//hourglass
-    /*var img_width = 200 ;
-    var img_height = 200 ;*/
+	/*var img_width = 200 ;
+	var img_height = 200 ;*/
 
 	//squares
 	var img_width = 128;
@@ -3587,7 +3614,7 @@ function display_dataset_info() {
 	xradec = new Array(null, null);
 
 	/*console.log("RA:", fitsData.OBSRA, fitsData.CTYPE1, "DEC:", fitsData.OBSDEC, fitsData.CTYPE2);
-
+	
 	if (fitsData.OBSRA != '' && fitsData.OBSDEC != '') {
 		var ra = ParseRA('+' + fitsData.OBSRA.toString());
 		var dec = ParseDec(fitsData.OBSDEC.toString());
@@ -3629,13 +3656,13 @@ function display_dataset_info() {
 
 	var line = '';
 
-    /*if(va_count == 1)
-    {
+	/*if(va_count == 1)
+	{
 	line = fitsData.LINE.trim() ;
-
+	
 	if(line != "")
-	    line = ' (' + line + ')' ;
-    }*/
+		line = ' (' + line + ')' ;
+	}*/
 
 	group.append("text")
 		.attr("x", width)
@@ -4347,9 +4374,9 @@ function image_refresh(index, refresh_histogram = true) {
 	if (refresh_histogram)
 		enable_autoscale();
 
-    /*displayContours = false ;
-    var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines' ;
-    d3.select("#displayContours").html(htmlStr);*/
+	/*displayContours = false ;
+	var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines' ;
+	d3.select("#displayContours").html(htmlStr);*/
 
 	var flux_elem = d3.select("#flux_path" + index);
 
@@ -4448,19 +4475,19 @@ function display_scale_range_ui(called_from_menu = false) {
 		$('#scalingHelp').modal('show');
 	}
 
-    /*var svg = d3.select("#FrontSVG") ;
-    var width = parseFloat(svg.attr("width"));
-    var height = parseFloat(svg.attr("height"));
-
-    d3.select("#yaxis")
+	/*var svg = d3.select("#FrontSVG") ;
+	var width = parseFloat(svg.attr("width"));
+	var height = parseFloat(svg.attr("height"));
+	
+	d3.select("#yaxis")
 	.attr("data-toggle", "popover")
 	.attr("data-triggre", "hover")
 	.attr("title", "fixed scale")
 	.attr("data-content", "hold 's' and move mouse over the Y-Axis, then use mouse drag/scroll-wheel to adjust the Y-Axis scale");
-
-    $(document).ready(function(){
+	
+	$(document).ready(function(){
 	$('[data-toggle="popover"]').popover();
-    });*/
+	});*/
 
 }
 
@@ -6312,14 +6339,14 @@ function setup_axes() {
 		.tickSizeOuter([3])
 		.ticks(7);
 	/*.tickFormat(function(d) {
-	    //limit the number of decimal digits shown
-	    return parseFloat(d.toPrecision(7)) ;
+		//limit the number of decimal digits shown
+		return parseFloat(d.toPrecision(7)) ;
 	});*/
 	/*.tickFormat(function(d) {var n ;
 				 if(fitsData.CDELT3 > 0)
-				     n = d * (fitsData.depth-1) + 1 ;
+					 n = d * (fitsData.depth-1) + 1 ;
 				 else
-				     n = (1-d) * (fitsData.depth-1) + 1 ;
+					 n = (1-d) * (fitsData.depth-1) + 1 ;
 				 
 				 var freq = fitsData.CRVAL3+fitsData.CDELT3*(n-fitsData.CRPIX3) ;
 				 freq /= 1e9 ;//convert from Hz to GHz
@@ -7415,8 +7442,8 @@ function fits_subregion_end() {
 	end_x = offset[0];
 	end_y = offset[1];
 
-    /*mousedown = false;
-    d3.select("#zoom").attr("opacity", 1.0);*/
+	/*mousedown = false;
+	d3.select("#zoom").attr("opacity", 1.0);*/
 	d3.select("#region").attr("opacity", 0.0);
 
 	if (end_x == begin_x || end_y == begin_y) {
@@ -7429,8 +7456,8 @@ function fits_subregion_end() {
 	else
 		partial_fits_download(d3.select(this).attr("x"), d3.select(this).attr("y"), d3.select(this).attr("width"), d3.select(this).attr("height"));
 
-    /*var onMouseMoveFunc = d3.select(this).on("mousemove");
-    d3.select("#image_rectangle").each( onMouseMoveFunc );*/
+	/*var onMouseMoveFunc = d3.select(this).on("mousemove");
+	d3.select("#image_rectangle").each( onMouseMoveFunc );*/
 }
 
 function get_diagonal_image_position(index, width, height) {
@@ -8980,7 +9007,7 @@ function display_molecules() {
 	if (theme == 'bright')
 		strokeStyle = 'black';
 
-    /*if(colourmap == "rainbow" || colourmap == "hot")
+	/*if(colourmap == "rainbow" || colourmap == "hot")
 	strokeStyle = "white";*/
 
 	//and adjust (reduce) the font size if there are too many molecules to display
@@ -9599,8 +9626,8 @@ function scaled() {
 
 	prev_scale = d3.event.transform.k;
 
-    /*var interval = factor * (tmp_data_max - tmp_data_min) ;
-    var middle = (tmp_data_max + tmp_data_min) / 2 ;*/
+	/*var interval = factor * (tmp_data_max - tmp_data_min) ;
+	var middle = (tmp_data_max + tmp_data_min) / 2 ;*/
 
 	var interval = factor * (user_data_max - user_data_min);
 	var middle = (user_data_max + user_data_min) / 2;
@@ -9809,10 +9836,10 @@ function imageTimeout() {
 	var x2 = Math.round(fitsX + fitsSize);
 	var y2 = Math.round((fitsData.height - 1) - (fitsY + fitsSize));
 
-    /*x1 = Math.round(fitsX - fitsSize) ;
-    x2 = Math.round(x1 + 2*fitsSize) ;
-    y1 = Math.round(fitsY - fitsSize) ;
-    y2 = Math.round(y1 + 2*fitsSize) ;*/
+	/*x1 = Math.round(fitsX - fitsSize) ;
+	x2 = Math.round(x1 + 2*fitsSize) ;
+	y1 = Math.round(fitsY - fitsSize) ;
+	y2 = Math.round(y1 + 2*fitsSize) ;*/
 
 	var dimx = x2 - x1 + 1;
 	var dimy = y1 - y2 + 1;
@@ -9973,15 +10000,15 @@ function updateKalman() {
 	var velX = (cur_xPos - last_x.elements[0]) / dt;
 	var velY = (cur_yPos - last_x.elements[1]) / dt;
 
-    /*var velX = (cur_xPos - last_xPos)/dt;
-    var velY = (cur_yPos - last_yPos)/dt;
-    var accX = (velX - last_velX)/dt;
-    var accY = (velY - last_velY)/dt;
-
-    last_xPos = cur_xPos ;
-    last_yPos = cur_yPos ;
-    last_velX = velX ;
-    last_velY = velY ;*/
+	/*var velX = (cur_xPos - last_xPos)/dt;
+	var velY = (cur_yPos - last_yPos)/dt;
+	var accX = (velX - last_velX)/dt;
+	var accY = (velY - last_velY)/dt;
+	
+	last_xPos = cur_xPos ;
+	last_yPos = cur_yPos ;
+	last_velX = velX ;
+	last_velY = velY ;*/
 
 	var measurement = $V([cur_xPos, cur_yPos, velX, velY]);
 	//var measurement = $V([velX, velY, accX, accY]);
@@ -10014,18 +10041,18 @@ function updateKalman() {
 
 	/*mouse_position.x = cur_x.elements[0];
 	mouse_position.y = cur_x.elements[1];
-
+	
 	return;
-
+	
 	//extrapolation
 	var predX = last_x;
 	var count = 5;//how many frames ahead
-
+	
 	for (var i = 0; i < count; i++)
 		predX = (A.multiply(predX)).add(B.multiply(control));
-
+	
 	console.log("extrapolation: x=", predX.elements[0], "y=", predX.elements[1]);
-
+	
 	mouse_position.x = predX.elements[0];
 	mouse_position.y = predX.elements[1];*/
 }
@@ -10503,17 +10530,17 @@ function display_menu() {
 					window.location.replace(loc);
 
 				/*var new_loc = window.location.href.replace("&view=", "&dummy=");
-
+	
 				if (composite_view && optical_view)
 					new_loc += "&view=composite,optical";
 				else {
 					if (composite_view)
 						new_loc += "&view=composite";
-
+	
 					if (optical_view)
 						new_loc += "&view=optical";
 				}
-
+	
 				window.location.replace(new_loc);*/
 			})
 			.html(htmlStr);
@@ -10903,10 +10930,10 @@ function show_welcome() {
 	var footer = contentDiv.append("div")
 		.attr("class", "modal-footer");
 
-    /*footer.append("button")	
+	/*footer.append("button")	
 	.attr("type", "button")
 	.attr("data-dismiss", "modal")
-    	.attr("class", "button btn-lg pull-right")
+		.attr("class", "button btn-lg pull-right")
 	.attr("align","center")
 	.html('<span class="glyphicon glyphicon-remove"></span> Close') ;*/
 
@@ -10959,7 +10986,7 @@ function setup_help() {
 	bodyDiv.append("p")
 		.html("Reloading a page should fix the problem");
 
-    /*bodyDiv.append("p")
+	/*bodyDiv.append("p")
 	.html("To enable it check <i>Preferences</i>/<i>3D View (experimental)</i> and a \"3D View\" button should appear towards the bottom of the page") ;*/
 
 	bodyDiv.append("p")
@@ -12171,31 +12198,31 @@ function enable_3d_view() {
 			po.src = 'three.min.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
-
+	
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
 			po.src = 'Detector.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
-
+	
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
 			po.src = 'threex.keyboardstate.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
-
+	
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
 			po.src = 'threex.windowresize.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
-
+	
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
 			po.src = 'THREEx.FullScreen.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
-
+	
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
 			po.src = 'TrackballControls.js' + '?' + encodeURIComponent(get_js_version());
@@ -12762,7 +12789,7 @@ async*/ function mainRenderer() {
 
 		if (va_count == 1) {
 			//open_websocket_connection(datasetId, 1);
-			open_progress_connection(datasetId, 1);
+			poll_progress(datasetId, 1);
 
 			fetch_image(datasetId, 1, false);
 
@@ -12775,7 +12802,7 @@ async*/ function mainRenderer() {
 				console.log(index, datasetId.rotate(index - 1));
 
 				//open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
-				open_progress_connection(datasetId.rotate(index - 1)[0], index);
+				poll_progress(datasetId.rotate(index - 1)[0], index);
 
 				fetch_image(datasetId[index - 1], index, false);
 
