@@ -13,7 +13,7 @@ using namespace std::chrono;
 
 #include "App.h"
 
-typedef uWS::WebSocket<true, true> TWebSocket;
+typedef uWS::WebSocket<false, true> TWebSocket;
 typedef std::set<TWebSocket *> TWebSocketList;
 
 typedef std::unordered_map<std::string, TWebSocketList> progress_list;
