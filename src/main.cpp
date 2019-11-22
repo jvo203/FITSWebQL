@@ -914,7 +914,7 @@ void execute_fits(const response *res, std::string dir, std::string ext,
 }
 
 void signalHandler(int signum) {
-  printf("Interrupt signal (%d) received. Please wait.\n", signum);
+  printf("Interrupt signal (%d) received. Please wait...\n", signum);
 
   http2_server->stop();
 }
@@ -1348,5 +1348,5 @@ int main(int argc, char *argv[]) {
   if (splat_db != NULL)
     sqlite3_close(splat_db);
 
-  std::cout << "terminating FITSWebQL." << std::endl;
+  std::cout << "Terminating FITSWebQL..." << std::endl;
 }
