@@ -17,7 +17,7 @@ using namespace std::chrono;
 
 #include "roaring.hh"
 
-#include "global.h"
+//#include "global.h"
 
 #include <zfparray3.h>
 //#include "array3fmmap.hpp"
