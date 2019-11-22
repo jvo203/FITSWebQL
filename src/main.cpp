@@ -32,9 +32,35 @@
 
 #include <sqlite3.h>
 
-#include "global.h"
 #include "fits.hpp"
+#include "global.h"
 #include "json.h"
+
+/** Thread safe cout class
+ * Exemple of use:
+ *    PrintThread{} << "Hello world!" << std::endl;
+ */
+class PrintThread : public std::ostringstream {
+public:
+  PrintThread() = default;
+
+  ~PrintThread() {
+    std::lock_guard<std::mutex> guard(_mutexPrint);
+    std::cout << this->str();
+  }
+
+private:
+  static std::mutex _mutexPrint;
+};
+
+std::mutex PrintThread::_mutexPrint{};
+
+#ifdef CLUSTER
+zactor_t *speaker = NULL;
+zactor_t *listener = NULL;
+std::thread beacon_thread;
+std::atomic<bool> exiting(false);
+#endif
 
 sqlite3 *splat_db = NULL;
 
@@ -917,10 +943,107 @@ void execute_fits(const response *res, std::string dir, std::string ext,
 void signalHandler(int signum) {
   printf("Interrupt signal (%d) received. Please wait...\n", signum);
 
+#ifdef CLUSTER
+  exiting = true;
+  if (speaker != NULL) {
+    zstr_sendx(speaker, "SILENCE", NULL);
+
+    const char *message = "JVO:>FITSWEBQL::LEAVE";
+    const int interval = 1000; //[ms]
+    zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+
+    zstr_sendx(speaker, "SILENCE", NULL);
+    zactor_destroy(&speaker);
+  }
+
+  if (listener != NULL) {
+    zstr_sendx(listener, "UNSUBSCRIBE", NULL);
+    beacon_thread.join();
+    zactor_destroy(&listener);
+  }
+
+  // zsys_shutdown();
+#endif
+
   http2_server->stop();
 }
 
 int main(int argc, char *argv[]) {
+#ifdef CLUSTER
+  setenv("ZSYS_SIGHANDLER", "false", 1);
+  // LAN cluster node auto-discovery
+  beacon_thread = std::thread([]() {
+    speaker = zactor_new(zbeacon, NULL);
+    if (speaker == NULL)
+      return;
+
+    zstr_send(speaker, "VERBOSE");
+    zsock_send(speaker, "si", "CONFIGURE", BEACON_PORT);
+    char *my_hostname = zstr_recv(speaker);
+    if (my_hostname != NULL) {
+      const char *message = "JVO:>FITSWEBQL::ENTER";
+      const int interval = 1000; //[ms]
+      zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
+    }
+
+    listener = zactor_new(zbeacon, NULL);
+    if (listener == NULL)
+      return;
+
+    zstr_send(listener, "VERBOSE");
+    zsock_send(listener, "si", "CONFIGURE", BEACON_PORT);
+    char *hostname = zstr_recv(listener);
+    if (hostname != NULL)
+      free(hostname);
+    else
+      return;
+
+    zsock_send(listener, "sb", "SUBSCRIBE", "", 0);
+    zsock_set_rcvtimeo(listener, 500);
+
+    while (!exiting) {
+      char *ipaddress = zstr_recv(listener);
+      if (ipaddress != NULL) {
+        zframe_t *content = zframe_recv(listener);
+        std::string_view message = std::string_view(
+            (const char *)zframe_data(content), zframe_size(content));
+
+        // ENTER
+        if (message.find("ENTER") != std::string::npos) {
+          if (strcmp(my_hostname, ipaddress) != 0) {
+            std::string node = std::string(ipaddress);
+
+            if (!cluster_contains_node(node)) {
+              PrintThread{} << "found a new peer @ " << ipaddress << ": "
+                            << message << std::endl;
+              cluster_insert_node(node);
+            }
+          }
+        }
+
+        // LEAVE
+        if (message.find("LEAVE") != std::string::npos) {
+          if (strcmp(my_hostname, ipaddress) != 0) {
+            std::string node = std::string(ipaddress);
+
+            if (cluster_contains_node(node)) {
+              PrintThread{} << ipaddress << " is leaving: " << message
+                            << std::endl;
+              cluster_erase_node(node);
+            }
+          }
+        }
+
+        zframe_destroy(&content);
+        zstr_free(&ipaddress);
+      }
+    }
+
+    if (my_hostname != NULL)
+      free(my_hostname);
+  });
+#endif
+
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
 

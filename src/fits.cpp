@@ -1816,8 +1816,6 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
 }
 
 void FITS::send_progress_notification(size_t running, size_t total) {
-  // std::ostringstream json;
-
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -1831,35 +1829,33 @@ void FITS::send_progress_notification(size_t running, size_t total) {
   this->progress.total = total;
   this->progress.elapsed = elapsed;
 
-  /*json << "{"
+  std::ostringstream json;
+  json << "{"
        << "\"type\" : \"progress\",";
   json << "\"message\" : \"loading FITS\",";
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
-  json << "\"elapsed\" : " << elapsed << "}";*/
+  json << "\"elapsed\" : " << elapsed << "}";
 
   /*bool forced = (running == total) ? true : false;
   if(boost::shared_ptr<shared_state> _state = state_.lock())
     _state->send_progress  (json.str(), dataset_id, forced);*/
 
-  /*std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
-  TWebSocketList connections = m_progress[this->dataset_id] ;
+  std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
+  TWebSocketList connections = m_progress[this->dataset_id];
 
-  for (auto it = connections.begin(); it != connections.end(); ++it)
-    {
-      TWebSocket* ws = *it ;
+  for (auto it = connections.begin(); it != connections.end(); ++it) {
+    TWebSocket *ws = *it;
 
-      struct UserData* user = (struct UserData*) ws->getUserData();
+    struct UserData *user = (struct UserData *)ws->getUserData();
 
-      if(user != NULL)
-            {
-              if(check_progress_timeout(user->ptr, system_clock::now()) ||
-  (running == total))
-              {
-                //std::cout << json.str() << std::endl;
-                ws->send(json.str(), uWS::OpCode::TEXT);
-                update_progress_timestamp(user->ptr);
-        }
+    if (user != NULL) {
+      if (check_progress_timeout(user->ptr, system_clock::now()) ||
+          (running == total)) {
+        // std::cout << json.str() << std::endl;
+        ws->send(json.str(), uWS::OpCode::TEXT);
+        update_progress_timestamp(user->ptr);
       }
-    } ;*/
+    }
+  };
 }
