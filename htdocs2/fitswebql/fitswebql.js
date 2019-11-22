@@ -12761,8 +12761,8 @@ async*/ function mainRenderer() {
 		spectrum_count = 0;
 
 		if (va_count == 1) {
-			open_websocket_connection(datasetId, 1);
-			//open_progress_connection(datasetId, 1);
+			//open_websocket_connection(datasetId, 1);
+			open_progress_connection(datasetId, 1);
 
 			fetch_image(datasetId, 1, false);
 
@@ -12774,8 +12774,8 @@ async*/ function mainRenderer() {
 			for (let index = 1; index <= va_count; index++) {
 				console.log(index, datasetId.rotate(index - 1));
 
-				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
-				//open_progress_connection(datasetId.rotate(index - 1)[0], index);
+				//open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
+				open_progress_connection(datasetId.rotate(index - 1)[0], index);
 
 				fetch_image(datasetId[index - 1], index, false);
 
