@@ -33,7 +33,7 @@
 #include <sqlite3.h>
 
 #include "fits.hpp"
-#include "global.h"
+//#include "global.h"
 #include "json.h"
 
 /** Thread safe cout class
@@ -1474,58 +1474,6 @@ int main(int argc, char *argv[]) {
                                      std::to_string(HTTPS_PORT), true)) {
     std::cerr << "error: " << ec.message() << std::endl;
   }
-
-  std::vector<std::thread *> threads(no_threads);
-
-  std::transform(
-      threads.begin(), threads.end(), threads.begin(), [](std::thread *t) {
-        return new std::thread([]() {
-          struct us_socket_context_options_t ssl_options = {};
-          ssl_options.cert_file_name = "ssl/server.cert";
-          ssl_options.key_file_name = "ssl/server.key";
-          uWS::SSLApp(ssl_options /*{
-                .cert_file_name = "ssl/server.cert",
-                .key_file_name = "ssl/server.key"
-
-            }*/)
-              .get("/*",
-                   [](auto *res, auto *req) {
-                     /* You can efficiently stream huge files too */
-                     res->writeHeader("Content-Type",
-                                      "text/html; charset=utf-8")
-                         ->end("<H1>FITSWebQL certificate accepted.</H1>");
-                   })
-              .ws<UserData>("/*", {/* Settings */
-                                   .compression = uWS::SHARED_COMPRESSOR,
-                                   /* Just a few of the available handlers */
-                                   .open =
-                                       [](auto *ws, auto *req) {
-                                         std::string_view url = req->getUrl();
-                                         PrintThread{} << "[µWS] open " << url
-                                                       << std::endl;
-                                       },
-                                   .message =
-                                       [](auto *ws, std::string_view message,
-                                          uWS::OpCode opCode) {
-                                         PrintThread{} << "[uWS] " << message
-                                                       << std::endl;
-                                         // ws->send(message, opCode);
-                                       }
-
-                                  })
-              .listen(WSS_PORT,
-                      [](auto *token) {
-                        if (token) {
-                          PrintThread{} << "Listening on port " << WSS_PORT
-                                        << std::endl;
-                        }
-                      })
-              .run();
-        });
-      });
-
-  std::for_each(threads.begin(), threads.end(),
-                [](std::thread *t) { t->join(); });
 
   http2_server->join();
   delete http2_server;
