@@ -1553,7 +1553,7 @@ int main(int argc, char *argv[]) {
                                user->ptr->ts =
                                    system_clock::now() -
                                    duration_cast<system_clock::duration>(
-                                       duration<double>(PROGRESS_TIMEOUT));
+                                       duration<double>(uWS_PROGRESS_TIMEOUT));
                                user->ptr->primary_id = datasetid[0];
                                user->ptr->ids = datasetid;
 
