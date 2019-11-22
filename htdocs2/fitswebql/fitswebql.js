@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-11-21.1";
+	return "JS2019-11-22.0";
 }
 
 const wasm_supported = (() => {
@@ -1467,7 +1467,7 @@ function open_websocket_connection(datasetId, index) {
 		// Let us open a web socket
 		var loc = window.location, ws_uri;
 
-		ws_uri = WS_SOCKET + loc.hostname + ':' + loc.port + ROOT_PATH + "websocket/" + encodeURIComponent(datasetId);
+		ws_uri = WS_SOCKET + loc.hostname + ':' + WS_PORT + ROOT_PATH + "websocket/" + encodeURIComponent(datasetId);
 
 		//d3.select("#welcome").append("p").text("ws_uri: " + ws_uri) ;
 
@@ -12761,8 +12761,8 @@ async*/ function mainRenderer() {
 		spectrum_count = 0;
 
 		if (va_count == 1) {
-			//open_websocket_connection(datasetId, 1);
-			open_progress_connection(datasetId, 1);
+			open_websocket_connection(datasetId, 1);
+			//open_progress_connection(datasetId, 1);
 
 			fetch_image(datasetId, 1, false);
 
@@ -12774,8 +12774,8 @@ async*/ function mainRenderer() {
 			for (let index = 1; index <= va_count; index++) {
 				console.log(index, datasetId.rotate(index - 1));
 
-				//open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
-				open_progress_connection(datasetId.rotate(index - 1)[0], index);
+				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
+				//open_progress_connection(datasetId.rotate(index - 1)[0], index);
 
 				fetch_image(datasetId[index - 1], index, false);
 
