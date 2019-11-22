@@ -870,7 +870,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
 
         // load FITS data in a separate thread
         std::thread(&FITS::from_path_zfp, fits, path, is_compressed, flux,
-                    va_count, nullptr)
+                    va_count)
             .detach();
       } else {
         // the last resort
@@ -879,8 +879,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
                           "&table=cube&data_id=" + data_id + "_00_00_00";
 
         // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, url, flux, va_count, nullptr)
-            .detach();
+        std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
       }
     } else {
       has_fits = has_fits && item->has_data;
