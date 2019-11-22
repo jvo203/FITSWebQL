@@ -169,8 +169,6 @@ void signalHandler(int signum) {
     beacon_thread.join();
     zactor_destroy(&listener);
   }
-
-  // zsys_shutdown();
 #endif
 
   std::cout << "FITSWebQL shutdown completed." << std::endl;
