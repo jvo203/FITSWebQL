@@ -1179,25 +1179,28 @@ int main(int argc, char *argv[]) {
             if (fits->has_error)
               return http_not_found(&res);
             else {
-              header_map mime;
-
-              mime.insert(std::pair<std::string, header_value>(
-                  "Content-Type", {"application/json", false}));
-              res.write_head(200, mime);
-
               // make json
               std::ostringstream json;
+              bool valid = false;
               {
                 std::shared_lock<std::shared_mutex> lock(fits->progress_mtx);
 
                 json << "{\"total\" : " << fits->progress.total << ",";
                 json << "\"running\" : " << fits->progress.running << ",";
                 json << "\"elapsed\" : " << fits->progress.elapsed << "}";
+
+                if (fits->progress.total > 0)
+                  valid = true;
               }
 
-              PrintThread{} << "sending " << json.str() << std::endl;
-
-              res.end(json.str());
+              if (valid) {
+                header_map mime;
+                mime.insert(std::pair<std::string, header_value>(
+                    "Content-Type", {"application/json", false}));
+                res.write_head(200, mime);
+                res.end(json.str());
+              } else
+                http_accepted(&res);
 
               return;
             }

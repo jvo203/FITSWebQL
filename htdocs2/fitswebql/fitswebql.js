@@ -1438,9 +1438,14 @@ function poll_progress(datasetId, index) {
 	var url = 'get_progress/' + encodeURIComponent(datasetId);
 
 	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 202) {
+			console.log("Server not ready, long-polling progress again after 250 ms.");
+			setTimeout(function () {
+				poll_progress(datasetId, index);
+			}, 250);
+		}
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
-			console.log(data);
 
 			try {
 				process_progress_event(data, index);
