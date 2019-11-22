@@ -1440,6 +1440,7 @@ function poll_progress(datasetId, index) {
 	xmlhttp.onreadystatechange = function () {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
+			console.log(data);
 
 			try {
 				process_progress_event(data, index);

@@ -1195,6 +1195,8 @@ int main(int argc, char *argv[]) {
                 json << "\"elapsed\" : " << fits->progress.elapsed << "}";
               }
 
+              PrintThread{} << "sending " << json.str() << std::endl;
+
               res.end(json.str());
 
               return;
