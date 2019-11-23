@@ -1326,6 +1326,12 @@ int main(int argc, char *argv[]) {
           return http_not_implemented(&res);
       }
 
+      if (uri.find("/heartbeat") != std::string::npos) {        
+        res.write_head(200);
+        res.end("N/A");
+        return;
+      }
+
       if (uri.find("/get_image") != std::string::npos) {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);

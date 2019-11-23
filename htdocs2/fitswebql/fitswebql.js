@@ -1433,6 +1433,34 @@ function send_ping() {
 	}
 }
 
+function poll_heartbeat() {
+	var xmlhttp = new XMLHttpRequest();
+	var url = 'heartbeat/' + performance.now();
+
+	xmlhttp.onreadystatechange = function () {
+		var RRT = 0;
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var data = xmlhttp.response;
+
+			d3.select("#heartbeat")
+				.attr("fill", "green")
+				.attr("opacity", 1.0)
+				.transition()
+				.duration(950)
+				.attr("opacity", 0.1);
+		}
+
+		if (xmlhttp.readyState == 4) {
+			setTimeout(poll_heartbeat, 1000 + RRT);
+		}
+	}
+
+	xmlhttp.open("POST", url, true);
+	xmlhttp.responseType = 'text';
+	xmlhttp.timeout = 0;
+	xmlhttp.send();
+}
+
 function poll_progress(datasetId, index) {
 	var xmlhttp = new XMLHttpRequest();
 	var url = 'get_progress/' + encodeURIComponent(datasetId);
@@ -5400,7 +5428,7 @@ function display_preferences(index) {
 		.attr("id", "pingGroup");
 
 	group.append("text")
-		.attr("id", "ping")
+		.attr("id", "heartbeat")
 		.attr("x", emFontSize / 4)
 		//.attr("y", offset)//"0.75em")
 		.attr("y", (svgHeight - offset / 4))
@@ -5410,7 +5438,7 @@ function display_preferences(index) {
 		.attr("text-anchor", "start")
 		.attr("fill", "green")
 		.attr("stroke", "none")
-		.attr("opacity", 1.0)
+		.attr("opacity", 0.0)
 		.html("&#x1f493;");
 
 	let fillColour = 'yellow';
@@ -5420,7 +5448,7 @@ function display_preferences(index) {
 
 	group.append("text")
 		.attr("id", "latency")
-		.attr("x", "1.75em")
+		.attr("x", (emFontSize / 4 + 1.75 * emFontSize))
 		//.attr("y", offset)//"0.85em")
 		.attr("y", (svgHeight - offset / 4))
 		.attr("font-family", "Inconsolata")
@@ -9251,7 +9279,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 		}
 	}
 
-	xmlhttp.open("GET", url, true);//"GET" to help with caching
+	xmlhttp.open("PUT", url, true);//"PUT" to disable caching
 	xmlhttp.responseType = 'arraybuffer';
 	xmlhttp.timeout = 0;
 	xmlhttp.send();
@@ -12793,6 +12821,8 @@ async*/ function mainRenderer() {
 		image_count = 0;
 		viewport_count = 0;
 		spectrum_count = 0;
+
+		poll_heartbeat();
 
 		if (va_count == 1) {
 			//open_websocket_connection(datasetId, 1);
