@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2019-11-22.0";
+	return "JS2019-11-23.0";
 }
 
 const wasm_supported = (() => {
@@ -5401,16 +5401,17 @@ function display_preferences(index) {
 
 	group.append("text")
 		.attr("id", "ping")
-		.attr("x", "0.5em")
+		.attr("x", emFontSize / 4)
 		//.attr("y", offset)//"0.75em")
 		.attr("y", (svgHeight - offset / 4))
 		.attr("font-family", "Helvetica")//Helvetica
-		.attr("font-size", "0.75em")
+		//.attr("font-size", "0.75em")
+		.attr("font-size", "1.5em")
 		.attr("text-anchor", "start")
 		.attr("fill", "green")
 		.attr("stroke", "none")
 		.attr("opacity", 1.0)
-		.text("■");
+		.html("&#x1f493;");
 
 	let fillColour = 'yellow';
 
