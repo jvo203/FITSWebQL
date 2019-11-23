@@ -1442,16 +1442,18 @@ function poll_heartbeat() {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
 
-			d3.select("#heartbeat")
-				.attr("fill", "green")
-				.attr("opacity", 1.0)
-				.transition()
-				.duration(950)
-				.attr("opacity", 0.1);
+			try {
+				d3.select("#heartbeat")
+					.attr("fill", "green")
+					.attr("opacity", 1.0)
+					.transition()
+					.duration(1000)
+					.attr("opacity", 0.1);
+			} catch (e) { }
 		}
 
 		if (xmlhttp.readyState == 4) {
-			setTimeout(poll_heartbeat, 1000 + RRT);
+			setTimeout(poll_heartbeat, 2000 + RRT);
 		}
 	}
 
