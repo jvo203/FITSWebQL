@@ -5,6 +5,12 @@
 #include "zfp/types.h"
 #include "zfp/system.h"
 
+#if defined(WITH_IPP)
+/*
+ * This source code file was modified with Intel(R) Integrated Performance Primitives library content
+ */
+#endif
+
 /* forward declaration of opaque type */
 typedef struct bitstream bitstream;
 
@@ -80,6 +86,10 @@ size_t stream_flush(bitstream* stream);
 
 /* copy n bits from one bit stream to another */
 void stream_copy(bitstream* dst, bitstream* src, size_t n);
+
+#if defined(WITH_IPP)
+void stream_set_eos(bitstream* s, size_t byte_len);
+#endif
 
 #ifdef BIT_STREAM_STRIDED
 /* set block size in number of words and spacing in number of blocks */

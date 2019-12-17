@@ -7,6 +7,7 @@
 #include "zfp.h"
 #include "zfp/macros.h"
 
+
 /*
 File I/O is done using the following combinations of i, o, s, and z:
 - i   : read uncompressed
@@ -516,9 +517,9 @@ int main(int argc, char* argv[])
       fprintf(stderr, "cannot write header\n");
       return EXIT_FAILURE;
     }
-
     /* compress data */
     zfpsize = zfp_compress(zfp, field);
+   
     if (zfpsize == 0) {
       fprintf(stderr, "compression failed\n");
       return EXIT_FAILURE;
@@ -641,6 +642,6 @@ int main(int argc, char* argv[])
   free(buffer);
   free(fi);
   free(fo);
-
+//  getchar();
   return EXIT_SUCCESS;
 }

@@ -24,3 +24,8 @@
 
 #ZFP build directory
 /zfp-0.5.4/build
+/zfp-0.5.4/examples
+/zfp-0.5.4/include
+/zfp-0.5.4/lib
+/zfp-0.5.4/tests
+/zfp-0.5.4/utils

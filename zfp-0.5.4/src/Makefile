@@ -18,7 +18,11 @@ $(LIBDIR)/libzfp.a: $(OBJECTS)
 
 $(LIBDIR)/libzfp.so: $(OBJECTS)
 	mkdir -p $(LIBDIR)
+ifeq ($(WITH_IPP), yes)
+	$(CC) $(CFLAGS) -shared $^ -o $@ $(IPPLIBS)
+else
 	$(CC) $(CFLAGS) -shared $^ -o $@
+endif
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

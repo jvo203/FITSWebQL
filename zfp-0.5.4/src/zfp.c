@@ -6,6 +6,14 @@
 #include "zfp/macros.h"
 #include "template/template.h"
 
+#if defined(WITH_IPP)
+/*
+* This source code file was modified with Intel(R) Integrated Performance Primitives library content
+*/
+#include <ippdc.h>
+#include <ipps.h>
+#endif
+
 /* public data ------------------------------------------------------------- */
 
 export_ const uint zfp_codec_version = ZFP_CODEC;
@@ -55,11 +63,17 @@ type_precision(zfp_type type)
 #undef Scalar
 
 #define Scalar float
+#if defined (WITH_IPP)
+	#define IPP_OPTIMIZATION_ENABLED
+#endif
 #include "template/compress.c"
 #include "template/decompress.c"
 #include "template/ompcompress.c"
 #include "template/cudacompress.c"
 #include "template/cudadecompress.c"
+#if defined (WITH_IPP)
+	#undef IPP_OPTIMIZATION_ENABLED
+#endif
 #undef Scalar
 
 #define Scalar double
@@ -896,7 +910,7 @@ zfp_compress(zfp_stream* zfp, const zfp_field* field)
   /* return 0 if compression mode is not supported */
   void (*compress)(zfp_stream*, const zfp_field*) = ftable[exec][strided][dims - 1][type - zfp_type_int32];
   if (!compress)
-    return 0;
+      return 0;
 
   /* compress field and align bit stream on word boundary */
   compress(zfp, field);
@@ -922,7 +936,7 @@ zfp_decompress(zfp_stream* zfp, zfp_field* field)
 
     /* OpenMP; not yet supported */
     {{{ NULL }}},
-
+      
     /* CUDA */
 #ifdef ZFP_WITH_CUDA
     {{{ decompress_cuda_int32_1,         decompress_cuda_int64_1,         decompress_cuda_float_1,         decompress_cuda_double_1 },
@@ -960,7 +974,6 @@ zfp_decompress(zfp_stream* zfp, zfp_field* field)
   /* decompress field and align bit stream on word boundary */
   decompress(zfp, field);
   stream_align(zfp->stream);
-
   return stream_size(zfp->stream);
 }
 
