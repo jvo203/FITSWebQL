@@ -514,6 +514,32 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
   };
 }
 
+void stream_image(const response *res, std::shared_ptr<FITS> fits) {
+  header_map mime;
+  mime.insert(std::pair<std::string, header_value>("Content-Type",
+                                                   {"image/png", false}));
+  mime.insert(std::pair<std::string, header_value>("Cache-Control",
+                                                   {"no-cache", false}));
+
+  res->write_head(200, mime);
+
+  struct TransmitQueue *queue = new TransmitQueue();
+
+  res->end(stream_generator(queue));
+
+  // launch a separate image thread
+  std::thread([queue, fits]() {
+    // append image bytes to the queue
+
+    std::lock_guard<std::mutex> guard(queue->mtx);
+    printf("[stream_image] number of remaining bytes: %zu\n",
+           queue->fifo.size());
+
+    // end of chunked encoding
+    queue->eof = true;
+  }).detach();
+}
+
 void stream_molecules(const response *res, double freq_start, double freq_end,
                       bool compress) {
   if (splat_db == NULL)
@@ -535,7 +561,7 @@ void stream_molecules(const response *res, double freq_start, double freq_end,
 
   res->end(stream_generator(queue));
 
-  // launch a separate thread
+  // launch a separate molecules thread
   std::thread([queue, compress, freq_start, freq_end]() {
     char strSQL[256];
     int rc;
@@ -1326,7 +1352,7 @@ int main(int argc, char *argv[]) {
           return http_not_implemented(&res);
       }
 
-      if (uri.find("/heartbeat") != std::string::npos) {        
+      if (uri.find("/heartbeat") != std::string::npos) {
         res.write_head(200);
         res.end("N/A");
         return;
@@ -1385,8 +1411,8 @@ int main(int argc, char *argv[]) {
               // return http_not_found(&res);
               return http_accepted(&res);
             else
-              //return http_not_implemented(&res);
-              return get_image(&res, fits);
+              // return http_not_implemented(&res);
+              return stream_image(&res, fits);
           }
         }
       }
