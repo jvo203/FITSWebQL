@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2019-11-23.0"
+#define VERSION_STRING "SV2020-02-17.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -1385,7 +1385,8 @@ int main(int argc, char *argv[]) {
               // return http_not_found(&res);
               return http_accepted(&res);
             else
-              return http_not_implemented(&res);
+              //return http_not_implemented(&res);
+              return get_image(&res, fits);
           }
         }
       }
