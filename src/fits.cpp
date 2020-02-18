@@ -1382,6 +1382,8 @@ void FITS::make_image_luma() {
   size_t work_size = MIN(total_size / max_threads, max_work_size);
   int num_threads = total_size / work_size;
 
+  memset(img_luma, 0, plane_size);
+
 #pragma omp parallel for
   for (int tid = 0; tid < num_threads; tid++) {
     size_t work_size = total_size / num_threads;
