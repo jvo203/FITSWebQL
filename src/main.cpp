@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-02-17.0"
+#define VERSION_STRING "SV2020-02-18.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -514,7 +514,7 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
   };
 }
 
-void stream_image(const response *res, std::shared_ptr<FITS> fits) {
+void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width, int _height) {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>("Content-Type",
                                                    {"image/png", false}));
@@ -529,6 +529,10 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits) {
 
   // launch a separate image thread
   std::thread([queue, fits]() {
+    // calculate a new image size
+
+    // downsize + make luminance
+
     // append image bytes to the queue
 
     std::lock_guard<std::mutex> guard(queue->mtx);
@@ -1412,7 +1416,7 @@ int main(int argc, char *argv[]) {
               return http_accepted(&res);
             else
               // return http_not_implemented(&res);
-              return stream_image(&res, fits);
+              return stream_image(&res, fits, width, height);
           }
         }
       }

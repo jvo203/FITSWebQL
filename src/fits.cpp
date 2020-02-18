@@ -247,6 +247,7 @@ FITS::FITS() {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
+  this->img_luma = NULL;
   this->cube = NULL;
   this->defaults();
 }
@@ -267,6 +268,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
+  this->img_luma = NULL;
   this->cube = NULL;
   this->defaults();
 }
@@ -288,6 +290,9 @@ FITS::~FITS() {
 
   if (img_mask != NULL)
     ippsFree(img_mask);
+
+  if (img_luma != NULL)
+    ippsFree(img_luma);
 
   if (cube != NULL)
     delete cube;
@@ -870,8 +875,9 @@ void FITS::from_path_zfp(
 
   img_pixels = ippsMalloc_32f_L(plane_size);
   img_mask = ippsMalloc_8u_L(plane_size);
+  img_luma = ippsMalloc_8u_L(plane_size);
 
-  if (img_pixels == NULL || img_mask == NULL) {
+  if (img_pixels == NULL || img_mask == NULL || img_luma == NULL) {
     printf("%s::cannot malloc memory for a 2D image buffer.\n",
            dataset_id.c_str());
     processed_data = true;
@@ -1348,13 +1354,15 @@ void FITS::from_path_zfp(
       << ", size: " << masks[i].getSizeInBytes() << " bytes"
       << std::endl;*/
 
-    image_statistics();
+    make_image_statistics();
 
     printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f "
            "madN: %f black: %f white: %f sensitivity: %f flux: %s\n",
            dataset_id.c_str(), this->min, this->max, this->median, this->mad,
            this->madP, this->madN, this->black, this->white, this->sensitivity,
            this->flux.c_str());
+
+    make_image_luma();
   } else {
     this->has_error = true;
   }
@@ -1365,7 +1373,31 @@ void FITS::from_path_zfp(
   this->timestamp = std::time(nullptr);
 }
 
-void FITS::image_statistics() {
+void FITS::make_image_luma() {
+  int max_threads = omp_get_max_threads();
+
+  // keep the worksize within int32 limits
+  size_t total_size = width * height;
+  size_t max_work_size = 1024 * 1024 * 1024;
+  size_t work_size = MIN(total_size / max_threads, max_work_size);
+  int num_threads = total_size / work_size;
+
+#pragma omp parallel for
+  for (int tid = 0; tid < num_threads; tid++) {
+    size_t work_size = total_size / num_threads;
+    size_t start = tid * work_size;
+
+    if (tid == num_threads - 1)
+      work_size = total_size - start;
+
+    // switch to a different luma based on the flux
+
+    // ispc::image_to_luminance_f32_(&(img_pixels[start]), &(img_mask[start]),
+    // _cdelt3, work_size);
+  };
+}
+
+void FITS::make_image_statistics() {
   int max_threads = omp_get_max_threads();
 
   // keep the worksize within int32 limits

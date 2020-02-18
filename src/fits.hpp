@@ -83,7 +83,8 @@ private:
   void frame_reference_unit();
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
-  void image_statistics();
+  void make_image_statistics();
+  void make_image_luma();
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
@@ -179,6 +180,7 @@ private:
   size_t hdr_len;
   Ipp32f *img_pixels;
   Ipp8u *img_mask;
+  Ipp8u *img_luma;
 
   // ZFP compressed arrays + masks
   zfp::array3f *cube;
