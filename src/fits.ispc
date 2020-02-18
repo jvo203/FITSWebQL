@@ -208,3 +208,78 @@ export uniform float pixels_mean_brightness_ratio(uniform float pixels[], unifor
   else
     return 0.0f;
 } ;
+
+export void image_to_luminance_f32_linear(uniform float cubeData[], uniform unsigned int8 mask[], uniform float black, uniform float slope, uniform unsigned int8 pixels[],  uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - black) * slope) ) ;
+      pixels[j] = isnan(tmp) ? 0 : clamp((int) pixel, 0, 255) ;
+    }
+    else
+      pixels[j] = 0 ;
+  }
+} ;
+
+export void image_to_luminance_f32_logistic(uniform float cubeData[], uniform unsigned int8 mask[], uniform float median, uniform float sensitivity, uniform unsigned int8 pixels[],  uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;
+      pixels[j] = clamp( (int) pixel, 0, 255) ;
+    }
+    else
+      pixels[j] = 0 ;
+  }
+} ;
+
+export void image_to_luminance_f32_ratio(uniform float cubeData[], uniform unsigned int8 mask[], uniform float black, uniform float sensitivity, uniform unsigned int8 pixels[],  uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = 5.0f * (tmp - black) * sensitivity ;
+      pixels[j] = pixel > 0.0f ? (int) (255.0f*pixel/(1.0f + pixel)) : 0 ;
+    }
+    else
+      pixels[j] = 0 ;
+  }
+} ;
+
+export void image_to_luminance_f32_square(uniform float cubeData[], uniform unsigned int8 mask[], uniform float black, uniform float sensitivity, uniform unsigned int8 pixels[], uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = (tmp - black) * sensitivity ;
+      pixels[j] = pixel > 0.0f ? clamp( (int) (255.0f*pixel*pixel), 0, 255) : 0 ;
+    }
+    else
+      pixels[j] = 0 ;
+  }
+} ;
+
+export void image_to_luminance_f32_legacy(uniform float cubeData[], uniform unsigned int8 mask[], uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax, uniform unsigned int8 pixels[], uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
+      pixels[j] = pixel > 0.0f ? clamp( (int) (255.0f * (log(pixel) - lmin) / (lmax - lmin)), 0, 255) : 0 ;
+    }
+    else
+      pixels[j] = 0 ;
+  }
+} ;
