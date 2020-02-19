@@ -26,7 +26,7 @@ using namespace std::chrono;
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
-#define FITSCACHE "FITSCACHE"
+#define FITSCACHE ".cache"
 
 #define FITS_CHUNK_LENGTH 2880
 #define FITS_LINE_LENGTH 80
