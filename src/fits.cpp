@@ -1376,6 +1376,8 @@ void FITS::from_path_zfp(
 }
 
 void FITS::make_image_luma() {
+  auto start_t = steady_clock::now();
+
   int max_threads = omp_get_max_threads();
 
   // keep the worksize within int32 limits
@@ -1422,6 +1424,15 @@ void FITS::make_image_luma() {
           &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
           this->lmin, this->lmax, &(img_luma[start]), work_size);
   };
+
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  printf("make_image_luma::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 
   // export luma to a PGM file for a cross-check
 }
