@@ -152,6 +152,7 @@ public:
   // statistics
   float min, max, median, mad, madN, madP, black, white, sensitivity,
       ratio_sensitivity;
+  float lmin, lmax;
   Ipp32u hist[NBINS];
 
   // extras
