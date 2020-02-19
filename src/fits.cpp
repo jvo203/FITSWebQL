@@ -1365,6 +1365,8 @@ void FITS::from_path_zfp(
            this->flux.c_str());
 
     make_image_luma();
+
+    make_exr_image();
   } else {
     this->has_error = true;
   }
@@ -1373,6 +1375,21 @@ void FITS::from_path_zfp(
   this->processed_data = true;
   this->data_cv.notify_all();
   this->timestamp = std::time(nullptr);
+}
+
+void FITS::make_exr_image() {
+  auto start_t = steady_clock::now();
+
+  // (...)
+
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 }
 
 void FITS::make_image_luma() {
