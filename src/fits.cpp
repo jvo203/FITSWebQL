@@ -359,6 +359,8 @@ void FITS::defaults() {
   white = NAN;
   sensitivity = NAN;
   ratio_sensitivity = NAN;
+  lmin = logf(0.5f);
+  lmax = logf(1.5f);
 
   for (int i = 0; i < NBINS; i++)
     hist[i] = 0;
@@ -1417,8 +1419,8 @@ void FITS::make_image_luma() {
 
     if (this->flux == "legacy")
       ispc::image_to_luminance_f32_legacy(
-          &(img_pixels[start]), &(img_mask[start]), this->black,
-          this->sensitivity, &(img_luma[start]), work_size);
+          &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
+          this->lmin, this->lmax, &(img_luma[start]), work_size);
   };
 }
 
