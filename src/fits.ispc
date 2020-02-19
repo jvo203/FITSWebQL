@@ -269,7 +269,7 @@ export void image_to_luminance_f32_square(uniform float cubeData[], uniform unsi
   }
 } ;
 
-export void image_to_luminance_f32_legacy(uniform float cubeData[], uniform unsigned int8 mask[], uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax, uniform unsigned int8 pixels[], uniform unsigned int total_size)
+export void image_to_luminance_f32_logarithmic(uniform float cubeData[], uniform unsigned int8 mask[], uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax, uniform unsigned int8 pixels[], uniform unsigned int total_size)
 {
   foreach(j=0 ... total_size)
   {
