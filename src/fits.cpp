@@ -1435,6 +1435,19 @@ void FITS::make_image_luma() {
   printf("make_image_luma::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 
   // export luma to a PGM file for a cross-check
+  std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".pgm");
+
+  std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+  if (!pgm_file)
+    return;
+
+  pgm_file << "P5" << std::endl;
+  pgm_file << width << " " << height << " 255" << std::endl;
+  pgm_file.write((const char *)img_luma, total_size);
+  pgm_file.close();
 }
 
 void FITS::make_image_statistics() {
