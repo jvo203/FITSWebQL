@@ -1418,7 +1418,7 @@ void FITS::make_image_luma() {
           this->sensitivity, &(img_luma[start]), work_size);
 
     if (this->flux == "legacy")
-      ispc::image_to_luminance_f32_legacy(
+      ispc::image_to_luminance_f32_logarithmic(
           &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
           this->lmin, this->lmax, &(img_luma[start]), work_size);
   };
