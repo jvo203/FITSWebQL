@@ -1393,9 +1393,32 @@ void FITS::make_image_luma() {
       work_size = total_size - start;
 
     // switch to a different luma based on the flux
+    if (this->flux == "linear") {
+      float slope = 1.0f / (this->white - this->black);
+      ispc::image_to_luminance_f32_linear(&(img_pixels[start]),
+                                          &(img_mask[start]), this->black,
+                                          slope, &(img_luma[start]), work_size);
+    }
 
-    // ispc::image_to_luminance_f32_(&(img_pixels[start]), &(img_mask[start]),
-    // _cdelt3, work_size);
+    if (this->flux == "logistic")
+      ispc::image_to_luminance_f32_logistic(
+          &(img_pixels[start]), &(img_mask[start]), this->median,
+          this->sensitivity, &(img_luma[start]), work_size);
+
+    if (this->flux == "ratio")
+      ispc::image_to_luminance_f32_ratio(
+          &(img_pixels[start]), &(img_mask[start]), this->black,
+          this->sensitivity, &(img_luma[start]), work_size);
+
+    if (this->flux == "square")
+      ispc::image_to_luminance_f32_square(
+          &(img_pixels[start]), &(img_mask[start]), this->black,
+          this->sensitivity, &(img_luma[start]), work_size);
+
+    if (this->flux == "legacy")
+      ispc::image_to_luminance_f32_legacy(
+          &(img_pixels[start]), &(img_mask[start]), this->black,
+          this->sensitivity, &(img_luma[start]), work_size);
   };
 }
 
