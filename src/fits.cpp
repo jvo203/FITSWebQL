@@ -1422,6 +1422,8 @@ void FITS::make_image_luma() {
           &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
           this->lmin, this->lmax, &(img_luma[start]), work_size);
   };
+
+  // export luma to a PGM file for a cross-check
 }
 
 void FITS::make_image_statistics() {
