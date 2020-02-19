@@ -3,13 +3,15 @@ MONGOOSE = mongoose/mongoose.c
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 #$(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src
+INC = -I/usr/include/postgresql -Ilz4
+#-I$(HOME)/uWebSockets/src
 #-I$(HOME)/uWebSockets/uSockets/src
 #-Imongoose
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -L/usr/local/lib64 -lzfp -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -L../zfp-0.5.4/lib -lzfp -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system
+#-L/usr/local/lib64 -lzfp
 #$(HOME)/uWebSockets/uSockets/*.o
 #-luWS
 IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
