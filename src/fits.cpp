@@ -60,6 +60,7 @@ using std::chrono::steady_clock;
 #include <boost/algorithm/string.hpp>
 
 // OpenEXR
+#include <OpenEXR/IlmThread.h>
 #include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfRgbaFile.h>
 
@@ -1402,6 +1403,19 @@ void FITS::make_exr_image() {
         p.a = 1.0f;
       }
     }
+  }
+
+  // export EXR in a YA format
+  std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".exr");
+
+  try {
+    /*RgbaOutputFile file(filename, width, height, WRITE_YA);
+    file.setFrameBuffer(pixels, 1, width);
+    file.writePixels(height);*/
+  } catch (const std::exception &exc) {
+    std::cerr << exc.what() << std::endl;
   }
 
   auto end_t = steady_clock::now();
