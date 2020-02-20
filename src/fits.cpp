@@ -247,7 +247,6 @@ FITS::FITS() {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->img_luma = NULL;
   this->cube = NULL;
   this->defaults();
 }
@@ -268,7 +267,6 @@ FITS::FITS(std::string id, std::string flux) {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->img_luma = NULL;
   this->cube = NULL;
   this->defaults();
 }
@@ -290,9 +288,6 @@ FITS::~FITS() {
 
   if (img_mask != NULL)
     ippsFree(img_mask);
-
-  if (img_luma != NULL)
-    ippsFree(img_luma);
 
   if (cube != NULL)
     delete cube;
@@ -877,9 +872,8 @@ void FITS::from_path_zfp(
 
   img_pixels = ippsMalloc_32f_L(plane_size);
   img_mask = ippsMalloc_8u_L(plane_size);
-  img_luma = ippsMalloc_8u_L(plane_size);
 
-  if (img_pixels == NULL || img_mask == NULL || img_luma == NULL) {
+  if (img_pixels == NULL || img_mask == NULL) {
     printf("%s::cannot malloc memory for a 2D image buffer.\n",
            dataset_id.c_str());
     processed_data = true;
@@ -1403,6 +1397,14 @@ void FITS::make_image_luma() {
   size_t work_size = MIN(total_size / max_threads, max_work_size);
   int num_threads = total_size / work_size;
 
+  Ipp8u *img_luma = ippsMalloc_8u_L(total_size);
+
+  if (img_luma == NULL) {
+    printf("%s::cannot malloc memory for a 2D image luma buffer.\n",
+           dataset_id.c_str());
+    return;
+  }
+
   memset(img_luma, 0, total_size);
 
 #pragma omp parallel for
@@ -1465,6 +1467,8 @@ void FITS::make_image_luma() {
   pgm_file << width << " " << height << " 255" << std::endl;
   pgm_file.write((const char *)img_luma, total_size);
   pgm_file.close();
+
+  ippsFree(img_luma);
 }
 
 void FITS::make_image_statistics() {

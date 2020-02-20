@@ -181,8 +181,7 @@ private:
   char *header;
   size_t hdr_len;
   Ipp32f *img_pixels;
-  Ipp8u *img_mask;
-  Ipp8u *img_luma;
+  Ipp8u *img_mask;  
 
   // ZFP compressed arrays + masks
   zfp::array3f *cube;
