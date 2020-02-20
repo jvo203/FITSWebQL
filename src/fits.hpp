@@ -86,6 +86,7 @@ private:
   void make_image_statistics();
   void make_image_luma();
   void make_exr_image();
+  void read_exr_image();
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
@@ -181,7 +182,7 @@ private:
   char *header;
   size_t hdr_len;
   Ipp32f *img_pixels;
-  Ipp8u *img_mask;  
+  Ipp8u *img_mask;
 
   // ZFP compressed arrays + masks
   zfp::array3f *cube;

@@ -1369,6 +1369,8 @@ void FITS::from_path_zfp(
     make_image_luma();
 
     make_exr_image();
+
+    read_exr_image(); // for testing purposes
   } else {
     this->has_error = true;
   }
@@ -1408,6 +1410,11 @@ void FITS::make_exr_image() {
     }
   }*/
 
+  /*size_t work_size = width * height;
+  ispc::image_to_luminance_f32_logarithmic_inplace(
+      img_pixels, img_mask, this->min, this->max, this->lmin, this->lmax,
+      work_size);*/
+
   // export EXR in a YA format
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
@@ -1437,6 +1444,12 @@ void FITS::make_exr_image() {
   double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
   printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
+}
+
+void FITS::read_exr_image() {
+  std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".exr");
 }
 
 void FITS::make_image_luma() {
