@@ -59,6 +59,12 @@ using std::chrono::steady_clock;
 
 #include <boost/algorithm/string.hpp>
 
+// OpenEXR
+#include <OpenEXR/ImfArray.h>
+#include <OpenEXR/ImfRgbaFile.h>
+
+using namespace OPENEXR_IMF_NAMESPACE;
+
 auto Ipp32fFree = [](Ipp32f *p) {
   static size_t counter = 0;
   if (p != NULL) {
@@ -1374,7 +1380,29 @@ void FITS::from_path_zfp(
 void FITS::make_exr_image() {
   auto start_t = steady_clock::now();
 
-  // (...)
+  Array2D<Rgba> pixels(height, width);
+
+#pragma omp parallel for
+  for (long i = 0; i < height; i++) {
+    size_t offset = i * height;
+
+    for (long j = 0; j < width; j++) {
+      Rgba &p = pixels[i][j];
+
+      if (img_mask[offset + j] > 0) {
+        float val = img_pixels[offset + j];
+        p.r = val;
+        p.g = val;
+        p.b = val;
+        p.a = 1.0f;
+      } else {
+        p.r = 0.0f;
+        p.g = 0.0f;
+        p.b = 0.0f;
+        p.a = 1.0f;
+      }
+    }
+  }
 
   auto end_t = steady_clock::now();
 
