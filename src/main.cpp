@@ -15,6 +15,12 @@
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
+#include <OpenEXR/IlmThread.h>
+#include <OpenEXR/ImfNamespace.h>
+#include <OpenEXR/ImfThreading.h>
+
+#include <omp.h>
+
 #include <deque>
 #include <filesystem>
 #include <iostream>
@@ -514,7 +520,8 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
   };
 }
 
-void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width, int _height) {
+void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
+                  int _height) {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>("Content-Type",
                                                    {"image/png", false}));
@@ -1100,6 +1107,13 @@ int main(int argc, char *argv[]) {
       free(my_hostname);
   });
 #endif
+
+  if (ILMTHREAD_NAMESPACE::supportsThreads()) {
+    int omp_threads = omp_get_max_threads();
+    OPENEXR_IMF_NAMESPACE::setGlobalThreadCount(omp_threads);
+    std::cout << "[OpenEXR] number of threads: "
+              << OPENEXR_IMF_NAMESPACE::globalThreadCount() << std::endl;
+  }
 
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);

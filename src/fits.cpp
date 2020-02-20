@@ -60,7 +60,6 @@ using std::chrono::steady_clock;
 #include <boost/algorithm/string.hpp>
 
 // OpenEXR
-#include <OpenEXR/IlmThread.h>
 #include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfRgbaFile.h>
 
