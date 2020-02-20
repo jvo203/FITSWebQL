@@ -10,7 +10,7 @@ INC = -I/usr/include/postgresql -Ilz4 -Izfp-0.5.4/include -Izfp-0.5.4/array
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -Lzfp-0.5.4/lib -lzfp -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -Lzfp-0.5.4/lib -lzfp -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
 #-L/usr/local/lib64 -lzfp
 #$(HOME)/uWebSockets/uSockets/*.o
 #-luWS
