@@ -60,8 +60,10 @@ using std::chrono::steady_clock;
 #include <boost/algorithm/string.hpp>
 
 // OpenEXR
-#include <OpenEXR/ImfArray.h>
-#include <OpenEXR/ImfRgbaFile.h>
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfNamespace.h>
+#include <OpenEXR/ImfOutputFile.h>
 
 using namespace OPENEXR_IMF_NAMESPACE;
 
@@ -1380,7 +1382,9 @@ void FITS::from_path_zfp(
 void FITS::make_exr_image() {
   auto start_t = steady_clock::now();
 
-  Array2D<Rgba> pixels(height, width);
+  // save luminance only for the time being
+
+  /*Array2D<Rgba> pixels(height, width);
 
 #pragma omp parallel for
   for (long i = 0; i < height; i++) {
@@ -1402,17 +1406,25 @@ void FITS::make_exr_image() {
         p.a = 1.0f;
       }
     }
-  }
+  }*/
 
   // export EXR in a YA format
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
                          std::string(".exr");
-
   try {
-    /*RgbaOutputFile file(filename, width, height, WRITE_YA);
-    file.setFrameBuffer(pixels, 1, width);
-    file.writePixels(height);*/
+    Header header(width, height);
+    header.compression() = PIZ_COMPRESSION;
+    header.channels().insert("Y", Channel(FLOAT));
+
+    OutputFile file(filename.c_str(), header);
+    FrameBuffer frameBuffer;
+
+    frameBuffer.insert("G", Slice(FLOAT, (char *)img_pixels, sizeof(Ipp32f),
+                                  sizeof(Ipp32f) * width));
+
+    file.setFrameBuffer(frameBuffer);
+    file.writePixels(height);
   } catch (const std::exception &exc) {
     std::cerr << exc.what() << std::endl;
   }

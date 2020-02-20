@@ -283,3 +283,18 @@ export void image_to_luminance_f32_logarithmic(uniform float cubeData[], uniform
       pixels[j] = 0 ;
   }
 } ;
+
+export void image_to_luminance_f32_logarithmic_inplace(uniform float cubeData[], uniform unsigned int8 mask[], uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax, uniform unsigned int total_size)
+{
+  foreach(j=0 ... total_size)
+  {
+    cif(mask[j] > 0)
+    {
+      float tmp = cubeData[j] ;
+      float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
+      cubeData[j] = pixel > 0.0f ? clamp( (int) (255.0f * (log(pixel) - lmin) / (lmax - lmin)), 0, 255) : 0 ;
+    }
+    else
+      cubeData[j] = 0 ;
+  }
+} ;
