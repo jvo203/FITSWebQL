@@ -1415,6 +1415,19 @@ void FITS::make_exr_image() {
       img_pixels, img_mask, this->min, this->max, this->lmin, this->lmax,
       work_size);*/
 
+  size_t total_size = width * height;
+  Ipp16u *mask = ippsMalloc_16u_L(total_size);
+
+  if (mask == NULL) {
+    printf("%s::cannot malloc memory for a UNIT mask buffer.\n",
+           dataset_id.c_str());
+    return;
+  }
+
+#pragma omp parallel for simd
+  for (size_t i = 0; i < total_size; i++)
+    mask[i] = img_mask[i];
+
   // export EXR in a YA format
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
@@ -1423,12 +1436,16 @@ void FITS::make_exr_image() {
     Header header(width, height);
     header.compression() = PIZ_COMPRESSION;
     header.channels().insert("Y", Channel(FLOAT));
+    header.channels().insert("A", Channel(UINT));
 
     OutputFile file(filename.c_str(), header);
     FrameBuffer frameBuffer;
 
-    frameBuffer.insert("G", Slice(FLOAT, (char *)img_pixels, sizeof(Ipp32f),
+    frameBuffer.insert("Y", Slice(FLOAT, (char *)img_pixels, sizeof(Ipp32f) * 1,
                                   sizeof(Ipp32f) * width));
+
+    frameBuffer.insert("A", Slice(UINT, (char *)mask, sizeof(Ipp16u) * 1,
+                                  sizeof(Ipp16u) * width));
 
     file.setFrameBuffer(frameBuffer);
     file.writePixels(height);
@@ -1444,6 +1461,8 @@ void FITS::make_exr_image() {
   double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
   printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
+
+  ippsFree(mask);
 }
 
 void FITS::read_exr_image() {
