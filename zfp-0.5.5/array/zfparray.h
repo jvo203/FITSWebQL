@@ -10,6 +10,10 @@
 #include "zfp.h"
 #include "zfp/memory.h"
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+
 // all undefined at end
 #define DIV_ROUND_UP(x, y) (((x) + (y) - 1) / (y))
 #define BITS_TO_BYTES(x) DIV_ROUND_UP(x, CHAR_BIT)
@@ -166,9 +170,48 @@ protected:
   void alloc(bool clear = true)
   {
     bytes = blocks * blkbits / CHAR_BIT;
-    zfp::reallocate_aligned(data, bytes, 0x100u);
-    if (clear)
-      std::fill(data, data + bytes, 0);
+    
+    printf("zfp::array3::alloc<clear:%d, storage:%s, bytes:%zu>\n", clear, storage.c_str(), bytes);
+    if (bytes > 1 && storage != "")
+    {
+      //try mmap first
+      int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+      if (fd != -1)
+      {
+#if defined(__APPLE__) && defined(__MACH__)
+        int stat = ftruncate(fd, bytes);
+#else
+        int stat = ftruncate64(fd, bytes);
+#endif
+        if (!stat)
+        {
+          void *buffer = mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+          if (buffer != MAP_FAILED)
+          {
+            data = (uchar *)buffer;
+            is_mmapped = true;
+            storage_size = bytes;
+            printf("zfp::array3::alloc<mmap OK>.\n");
+          }
+          else
+            perror("mmap");
+        }
+        else
+        {
+          perror("ftruncate64");
+        }
+        close(fd);
+      }
+    }
+    
+    if (!is_mmapped)
+    {        
+        zfp::reallocate_aligned(data, bytes, 0x100u);
+        if (clear)
+        std::fill(data, data + bytes, 0);
+    }
+    
     stream_close(zfp->stream);
     zfp_stream_set_bit_stream(zfp, stream_open(data, bytes));
     clear_cache();
@@ -183,7 +226,23 @@ protected:
     stream_close(zfp->stream);
     zfp_stream_set_bit_stream(zfp, 0);
     bytes = 0;
-    zfp::deallocate_aligned(data);
+    
+    if (!is_mmapped)
+      zfp::deallocate_aligned(data);
+    else
+    {
+      if (data != NULL)
+      {
+        if (munmap(data, storage_size) == -1)
+          perror("un-mapping error");
+        else
+          printf("zfp::array3::free<munmap OK>.\n");
+
+        storage_size = 0;
+        is_mmapped = false;
+      };
+    };
+        
     data = 0;
     zfp::deallocate(shape);
     shape = 0;
@@ -274,6 +333,10 @@ protected:
   mutable uchar* data; // pointer to compressed data
   zfp_stream* zfp;     // compressed stream of blocks
   uchar* shape;        // precomputed block dimensions (or null if uniform)
+  
+  std::string storage; //persistent storage via mmap
+  bool is_mmapped;
+  size_t storage_size;
 };
 
 #undef DIV_ROUND_UP
