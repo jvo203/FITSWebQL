@@ -1434,7 +1434,7 @@ void FITS::make_exr_image() {
                          std::string(".exr");
   try {
     Header header(width, height);
-    header.compression() = PIZ_COMPRESSION;
+    header.compression() = DWAB_COMPRESSION;
     header.channels().insert("Y", Channel(FLOAT));
     header.channels().insert("A", Channel(UINT));
 
@@ -1463,12 +1463,6 @@ void FITS::make_exr_image() {
   printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 
   ippsFree(mask);
-}
-
-void FITS::read_exr_image() {
-  std::string filename = FITSCACHE + std::string("/") +
-                         boost::replace_all_copy(dataset_id, "/", "_") +
-                         std::string(".exr");
 }
 
 void FITS::make_image_luma() {
