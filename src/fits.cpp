@@ -1369,8 +1369,6 @@ void FITS::from_path_zfp(
     make_image_luma();
 
     make_exr_image();
-
-    read_exr_image(); // for testing purposes
   } else {
     this->has_error = true;
   }
