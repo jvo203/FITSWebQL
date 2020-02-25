@@ -1083,6 +1083,7 @@ void FITS::from_path_zfp(
         // get a mutable private_view to a ZFP-compressed array
         zfp::array3f::private_view view(cube, 0, 0, start_k, width, height,
                                         depth_k);
+        view.set_cache_size(67108864);
         // printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid,
         // view.size_x(), view.size_y(), view.size_z());
 
@@ -1301,6 +1302,7 @@ void FITS::from_path_zfp(
               } else {
                 zfp::array3f::private_view view(cube, 0, 0, start_k, width,
                                                 height, depth_k);
+                view.set_cache_size(67108864);
                 // printf("%s::start_k:%zu::view %d x %d x %d\n",
                 // dataset_id.c_str(), start_k, view.size_x(), view.size_y(),
                 // view.size_z());
