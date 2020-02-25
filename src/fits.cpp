@@ -1146,12 +1146,12 @@ void FITS::from_path_zfp(
         }
 
         // compress all private cached blocks to shared storage
-        size_t cache_size_before_flush = view.cache_size();
+        // size_t cache_size_before_flush = view.cache_size();
         view.flush_cache();
-        size_t cache_size_after_flush = view.cache_size();
+        /*size_t cache_size_after_flush = view.cache_size();
         printf("private_view cache size before (%zu) and after a flush (%zu) "
                "bytes\n",
-               cache_size_before_flush, cache_size_after_flush);
+               cache_size_before_flush, cache_size_after_flush);*/
 
         send_progress_notification(end_k, depth);
       }
@@ -1329,12 +1329,12 @@ void FITS::from_path_zfp(
                 }
 
                 // compress all private cached blocks to shared storage
-                size_t cache_size_before_flush = view.cache_size();
+                // size_t cache_size_before_flush = view.cache_size();
                 view.flush_cache();
-                size_t cache_size_after_flush = view.cache_size();
+                /*size_t cache_size_after_flush = view.cache_size();
                 printf("private_view cache size before (%zu) and after a flush "
                        "(%zu) bytes\n",
-                       cache_size_before_flush, cache_size_after_flush);
+                       cache_size_before_flush, cache_size_after_flush);*/
               }
               // printf("OpenMP<task::start:%zu>::finished.\n", start_k);
               send_progress_notification(end_k, depth);
