@@ -3,7 +3,7 @@ MONGOOSE = mongoose/mongoose.c
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 #$(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4 -Izfp-0.5.5/include -Izfp-0.5.5/array
+INC = -I/usr/include/postgresql -Ilz4 -Izfp-0.5.5.ipp/include -Izfp-0.5.5.ipp/array
 #-I$(HOME)/uWebSockets/src
 #-I$(HOME)/uWebSockets/uSockets/src
 #-Imongoose
