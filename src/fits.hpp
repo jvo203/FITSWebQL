@@ -188,6 +188,9 @@ private:
   // mmap pointer to the underlying FITS file
   void *fits_ptr;
 
+  // a pointer array to 2D planes in a 3D cube
+  std::vector<void *> cube;
+
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
 };

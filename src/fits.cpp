@@ -282,6 +282,9 @@ FITS::FITS(std::string id, std::string flux) {
 FITS::~FITS() {
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
+  // clear the cube containing pointers to mmaped regions
+  cube.clear(0);
+
   if (fits_ptr != NULL && fits_file_size > 0)
     munmap(fits_ptr, fits_file_size);
 
@@ -1287,8 +1290,14 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         mmap(NULL, this->fits_file_size, PROT_READ,
              MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
 
-    if (this->fits_ptr == NULL)
+    if (this->fits_ptr == NULL) {
       printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
+      processed_header = true;
+      header_cv.notify_all();
+      processed_data = true;
+      data_cv.notify_all();
+      return;
+    }
   }
 
   printf("%s::reading FITS header...\n", dataset_id.c_str());
@@ -1500,6 +1509,10 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     frame_max.resize(depth, -FLT_MAX);
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
+
+    // init the cube with nullptr
+    cube.clear();
+    cube.resize(depth, nullptr);
 
     // prepare the main image/mask
     memset(img_mask, 0, plane_size);
