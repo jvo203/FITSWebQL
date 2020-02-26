@@ -1669,6 +1669,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
             mean_spectrum[frame] = mean;
             integrated_spectrum[frame] = integrated;
 
+            // save a plane to an mmaped-file?
+
             send_progress_notification(frame, depth);
           }
         }
