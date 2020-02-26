@@ -255,7 +255,7 @@ FITS::FITS() {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->fits_ptr = NULL;
+  this->fits_ptr = nullptr;
   this->defaults();
 }
 
@@ -275,7 +275,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
-  this->fits_ptr = NULL;
+  this->fits_ptr = nullptr;
   this->defaults();
 }
 
@@ -1287,7 +1287,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
   // mmap the FITS file
   if (this->fits_file_desc != -1) {
     this->fits_ptr =
-        mmap(NULL, this->fits_file_size, PROT_READ,
+        mmap(nullptr, this->fits_file_size, PROT_READ,
              MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
 
     if (this->fits_ptr == NULL) {
@@ -1565,10 +1565,11 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         Ipp32f *pixels_buf = nullptr;
 
         // point the cube element to an mmaped region
-        {
+        if (this->fits_ptr != nullptr) {
           char *ptr = (char *)this->fits_ptr;
-          cube[frame] = ptr + offset + frame_size * frame;
-          pixels_buf = (Ipp32f *)cube[frame];
+          ptr += this->hdr_len + frame_size * frame;
+          cube[frame] = ptr;
+          pixels_buf = (Ipp32f *)ptr;
         }
 
         if (pixels_buf == nullptr) {
@@ -1585,7 +1586,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                               ? this->cdelt3 * this->frame_multiplier / 1000.0f
                               : 1.0f;
 
-          ispc::make_image_spectrumF32(
+          ispc::make_image_spectrumF32_ro(
               (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
               datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
               fmax, mean, integrated, plane_size);
