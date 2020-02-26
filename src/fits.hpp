@@ -15,13 +15,6 @@
 
 using namespace std::chrono;
 
-#include "roaring.hh"
-
-//#include "global.h"
-
-#include <zfparray3.h>
-//#include "array3fmmap.hpp"
-
 #include <ipp.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
@@ -73,9 +66,6 @@ public:
            int va_count /*, boost::shared_ptr<shared_state> const& state*/);
   void from_path(std::string path, bool is_compressed, std::string flux,
                  int va_count);
-  void from_path_zfp(
-      std::string path, bool is_compressed, std::string flux,
-      int va_count /*, boost::shared_ptr<shared_state> const& state*/);
   void from_path_mmap(std::string path, bool is_compressed, std::string flux,
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
@@ -186,10 +176,6 @@ private:
   size_t hdr_len;
   Ipp32f *img_pixels;
   Ipp8u *img_mask;
-
-  // ZFP compressed arrays + masks
-  zfp::array3f *cube;
-  std::vector<Roaring64Map> masks;
 
   // housekeeping
   struct timespec created;
