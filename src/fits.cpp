@@ -283,7 +283,7 @@ FITS::~FITS() {
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
   // clear the cube containing pointers to mmaped regions
-  cube.clear(0);
+  cube.clear();
 
   if (fits_ptr != NULL && fits_file_size > 0)
     munmap(fits_ptr, fits_file_size);
@@ -1510,8 +1510,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
 
-    // init the cube with nullptr
+    // reset the cube just in case
     cube.clear();
+    // init the cube with nullptr
     cube.resize(depth, nullptr);
 
     // prepare the main image/mask
@@ -1561,6 +1562,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                   dataset_id.c_str(), tid);
           bSuccess = false;
           continue;
+        }
+
+        // point the cube element to an mmaped region
+        {
+          char *ptr = this->fits_ptr;
+          cube[frame] = ptr + offset + frame_size * frame;
         }
 
         // parallel read (pread) at a specified offset
