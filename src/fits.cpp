@@ -255,6 +255,7 @@ FITS::FITS() {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
+  this->fits_ptr = NULL;
   this->defaults();
 }
 
@@ -274,11 +275,15 @@ FITS::FITS(std::string id, std::string flux) {
   this->hdr_len = 0;
   this->img_pixels = NULL;
   this->img_mask = NULL;
+  this->fits_ptr = NULL;
   this->defaults();
 }
 
 FITS::~FITS() {
   std::cout << this->dataset_id << "::destructor." << std::endl;
+
+  if (fits_ptr != NULL && fits_file_size > 0)
+    munmap(fits_ptr, fits_file_size);
 
   if (fits_file_desc != -1)
     close(fits_file_desc);

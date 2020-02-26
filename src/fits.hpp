@@ -185,6 +185,9 @@ private:
   off_t fits_file_size;
   bool gz_compressed;
 
+  // mmap pointer to the underlying FITS file
+  void *fits_ptr;
+
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
 };
