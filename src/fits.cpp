@@ -1525,7 +1525,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     if (!is_compressed) {
       // pre-allocated floating-point read buffers
       // to reduce RAM thrashing
-      std::vector<Ipp32f *> pixels_buf(max_threads);
       std::vector<Ipp8u *> mask_buf(max_threads);
 
       // OpenMP per-thread {pixels,mask}
@@ -1533,7 +1532,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       std::vector<Ipp8u *> omp_mask(max_threads);
 
       for (int i = 0; i < max_threads; i++) {
-        pixels_buf[i] = ippsMalloc_32f_L(plane_size);
         mask_buf[i] = ippsMalloc_8u_L(plane_size);
 
         omp_pixels[i] = ippsMalloc_32f_L(plane_size);
@@ -1554,8 +1552,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       for (size_t frame = 0; frame < depth; frame++) {
         int tid = omp_get_thread_num();
         // printf("tid: %d, k: %zu\n", tid, k);
-        if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL ||
-            omp_pixels[tid] == NULL || omp_mask[tid] == NULL) {
+        if (mask_buf[tid] == NULL || omp_pixels[tid] == NULL ||
+            omp_mask[tid] == NULL) {
           fprintf(stderr,
                   "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
                   "arrays.\n",
@@ -1564,21 +1562,18 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           continue;
         }
 
+        Ipp32f *pixels_buf = nullptr;
+
         // point the cube element to an mmaped region
         {
           char *ptr = (char *)this->fits_ptr;
           cube[frame] = ptr + offset + frame_size * frame;
+          pixels_buf = (Ipp32f *)cube[frame];
         }
 
-        // parallel read (pread) at a specified offset
-        ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid],
-                                   frame_size, offset + frame_size * frame);
-
-        if (bytes_read != frame_size) {
-          fprintf(stderr,
-                  "%s::<tid::%d>::CRITICAL: only read %zd out of requested "
-                  "%zd bytes.\n",
-                  dataset_id.c_str(), tid, bytes_read, frame_size);
+        if (pixels_buf == nullptr) {
+          fprintf(stderr, "%s::<tid::%d>::CRITICAL: pixels_buf is nullptr.\n",
+                  dataset_id.c_str(), tid);
           bSuccess = false;
         } else {
           float fmin = FLT_MAX;
@@ -1591,7 +1586,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                               : 1.0f;
 
           ispc::make_image_spectrumF32(
-              (int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval,
+              (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
               datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
               fmax, mean, integrated, plane_size);
 
@@ -1633,9 +1628,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
       // release memory
       for (int i = 0; i < max_threads; i++) {
-        if (pixels_buf[i] != NULL)
-          ippsFree(pixels_buf[i]);
-
         if (mask_buf[i] != NULL)
           ippsFree(mask_buf[i]);
 
