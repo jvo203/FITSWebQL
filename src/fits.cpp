@@ -1566,7 +1566,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
         // point the cube element to an mmaped region
         {
-          char *ptr = this->fits_ptr;
+          char *ptr = (char *)this->fits_ptr;
           cube[frame] = ptr + offset + frame_size * frame;
         }
 
