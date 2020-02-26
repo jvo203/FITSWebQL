@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-02-25.0"
+#define VERSION_STRING "SV2020-02-26.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -974,7 +974,7 @@ void execute_fits(const response *res, std::string dir, std::string ext,
           is_compressed = is_gzip(path.c_str());*/
 
         // load FITS data in a separate thread
-        std::thread(&FITS::from_path_with_mmap, fits, path, is_compressed, flux,
+        std::thread(&FITS::from_path_zfp, fits, path, is_compressed, flux,
                     va_count)
             .detach();
       } else {
