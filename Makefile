@@ -3,14 +3,16 @@ MONGOOSE = mongoose/mongoose.c
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 #$(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4 -Izfp-0.5.5/include -Izfp-0.5.5/array
+INC = -I/usr/include/postgresql -Ilz4
+#-Izfp-0.5.5/include -Izfp-0.5.5/array
 #-I$(HOME)/uWebSockets/src
 #-I$(HOME)/uWebSockets/uSockets/src
 #-Imongoose
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -Lzfp-0.5.5/lib -lzfp -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+LIBS = -lstdc++fs -lsqlite3 -lcurl -lcrypto -lbsd -l:libpq.so.5 -lssl -lz -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+#-Lzfp-0.5.5/lib -lzfp
 #-L/usr/local/lib64 -lzfp
 #$(HOME)/uWebSockets/uSockets/*.o
 #-luWS
@@ -22,19 +24,19 @@ TARGET=fitswebql
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	icpc -g -O3 -xHost -mcmodel large -qopenmp -qopenmp-simd -qopt-streaming-stores auto -funroll-loops -ipo -std=c++17 -fp-model fast -qopt-report=5 -qopt-report-phase=vec $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -ipp
+	icpc -g -O3 -xHost -mcmodel large -qopenmp -qopenmp-simd -qopt-streaming-stores auto -funroll-loops -ipo -std=c++17 -fp-model fast -qopt-report=5 -qopt-report-phase=vec $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -ipp $(JEMALLOC)
 
 #$(JEMALLOC) 
 
 llvm:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
+	clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
 
 #$(JEMALLOC)
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP)
+	g++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
 
 #$(JEMALLOC)
 
