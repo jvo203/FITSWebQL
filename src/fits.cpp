@@ -1281,6 +1281,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     return;
   }
 
+  // mmap the FITS file
+  if (this->fits_file_desc != -1)
+    this->fits_ptr =
+        mmap(NULL, this->fits_file_size, PROT_READ,
+             MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
+
   printf("%s::reading FITS header...\n", dataset_id.c_str());
 
   int no_hu = 0;
