@@ -71,11 +71,13 @@ public:
   void
   from_url(std::string url, std::string flux,
            int va_count /*, boost::shared_ptr<shared_state> const& state*/);
+  void from_path(std::string path, bool is_compressed, std::string flux,
+                 int va_count);
   void from_path_zfp(
       std::string path, bool is_compressed, std::string flux,
       int va_count /*, boost::shared_ptr<shared_state> const& state*/);
-  void from_path_with_mmap(std::string path, bool is_compressed,
-                           std::string flux, int va_count);
+  void from_path_mmap(std::string path, bool is_compressed, std::string flux,
+                      int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
   void to_json(std::ostringstream &json);
 
