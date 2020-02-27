@@ -85,6 +85,7 @@ private:
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                              float _sensitivity);
   void send_progress_notification(size_t running, size_t total);
+  void zfp_compress();
 
 public:
   std::string dataset_id;
@@ -156,6 +157,7 @@ public:
   std::atomic<bool> has_error;
   std::atomic<bool> processed_header;
   std::atomic<bool> processed_data;
+  std::mutex zfp_mtx;
   std::mutex header_mtx;
   std::mutex data_mtx;
   std::condition_variable header_cv;
