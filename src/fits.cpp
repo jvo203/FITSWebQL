@@ -2452,9 +2452,15 @@ void FITS::zfp_compress() {
   if (depth <= 1)
     return;
 
+    // use blocks of 4; each zfp_compress_4_frames
+
 #pragma omp parallel for
   for (size_t frame = 0; frame < depth; frame++)
     zfp_compress_frame(frame);
+
+  /*#pragma omp parallel for
+    for (size_t frame = 0; frame < depth; frame+=4)
+      zfp_compress_4_frames(frame);*/
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
 }
