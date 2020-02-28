@@ -2449,4 +2449,19 @@ void FITS::zfp_compress_frame(size_t frame) {
   printf("zfp-compressing frame %zu.\n", frame);
 
   // allocate memory for pixels and a mask
+  const size_t plane_size = width * height;
+  const size_t frame_size = plane_size * abs(bitpix / 8);
+
+  Ipp32f *pixels = ippsMalloc_32f_L(plane_size);
+  if (pixels == NULL)
+    return;
+
+  Ipp8u *mask = ippsMalloc_8u_L(plane_size);
+  if (mask == NULL)
+    return;
+
+  // use ispc to fill-in the pixels and mask
+
+  ippsFree(pixels);
+  ippsFree(mask);
 }
