@@ -10,6 +10,9 @@
 #include "lz4.h"
 #include "lz4hc.h"
 
+// Intel IPP ZFP functions
+#include <ippdc.h>
+
 // base64 encoding with SSL
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -2446,14 +2449,11 @@ void FITS::zfp_compress() {
 }
 
 void FITS::zfp_compress_frame(size_t frame) {
-  printf("zfp-compressing frame %zu.\n", frame);
-
   if (fits_cube[frame] == NULL)
     return;
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
-  const size_t frame_size = plane_size * abs(bitpix / 8);
 
   Ipp32f *pixels = ippsMalloc_32f_L(plane_size);
   if (pixels == NULL)
@@ -2476,10 +2476,40 @@ void FITS::zfp_compress_frame(size_t frame) {
                       datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean,
                       plane_size);
 
+  int maxX = width;
+  int maxY = height;
+
+  int encStateSize;
+  IppEncodeZfpState_32f *pEncState;
+  int *pComprLen = 0;
+
+  Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
+  Ipp64f accur = MIN(fabs(fmin), fabs(fmax));
+
+  ippsEncodeZfpGetStateSize_32f(&encStateSize);
+  pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+  ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY), pEncState);
+  ippsEncodeZfpSetAccuracy_32f(accur, pEncState);
+
+  int x, y;
+  float block[4 * 4];
+
   // compress the pixels with ZFP
+  for (y = 0; y < height; y += 4)
+    for (x = 0; x < width; x += 4) {
+      // fill a 4x4 block
+    }
+
+  ippsEncodeZfpFlush_32f(pEncState);
+  ippsEncodeZfpGetCompressedSize_32f(pEncState, pComprLen);
+  ippsFree(pEncState);
 
   // compress the mask with LZ4
 
+  printf("zfp-compressing frame %zu; ZFP::pComprLen = %d bytes.\n", frame,
+         pComprLen);
+
   ippsFree(pixels);
   ippsFree(mask);
+  ippsFree(pBuffer);
 }
