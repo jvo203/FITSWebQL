@@ -2511,17 +2511,18 @@ void FITS::zfp_compress_frame(size_t frame) {
       // fill a 4x4 block
       int offset = 0;
       for (j = y; j < y + 4; j++)
-        for (i = x; i < x + 4; j++) {
+        for (i = x; i < x + 4; i++) {
           if (i >= width || j >= height)
             val = mean;
           else {
-            size_t src = j * width + x;
+            size_t src = j * width + i;
+
             if (mask[src] == 0)
               val = mean;
             else
               val = pixels[src];
           }
-          
+
           block[offset++] = val;
         }
     }
