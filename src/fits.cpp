@@ -286,7 +286,7 @@ FITS::~FITS() {
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
   // clear the cube containing pointers to mmaped regions
-  cube.clear();
+  fits_cube.clear();
 
   if (fits_ptr != NULL && fits_file_size > 0)
     munmap(fits_ptr, fits_file_size);
@@ -1514,9 +1514,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     integrated_spectrum.resize(depth, 0.0f);
 
     // reset the cube just in case
-    cube.clear();
+    fits_cube.clear();
     // init the cube with nullptr
-    cube.resize(depth, nullptr);
+    fits_cube.resize(depth, nullptr);
 
     // prepare the main image/mask
     memset(img_mask, 0, plane_size);
@@ -1571,7 +1571,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         if (this->fits_ptr != nullptr) {
           char *ptr = (char *)this->fits_ptr;
           ptr += this->hdr_len + frame_size * frame;
-          cube[frame] = ptr;
+          fits_cube[frame] = ptr;
           pixels_buf = (Ipp32f *)ptr;
         }
 
@@ -2439,14 +2439,14 @@ void FITS::zfp_compress() {
     return;
 
 #pragma omp parallel for
-  for (size_t frame = 0; frame < depth; frame++) {
-    printf("zfp-compressing frame %zu.\n", frame);
+  for (size_t frame = 0; frame < depth; frame++)
     zfp_compress_frame(frame);
-  }
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
 }
 
 void FITS::zfp_compress_frame(size_t frame) {
+  printf("zfp-compressing frame %zu.\n", frame);
+
   // allocate memory for pixels and a mask
 }
