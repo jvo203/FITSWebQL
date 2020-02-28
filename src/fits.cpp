@@ -2491,7 +2491,7 @@ void FITS::zfp_compress_frame(size_t frame) {
 
   int encStateSize;
   IppEncodeZfpState_32f *pEncState;
-  int *pComprLen = 0;
+  int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
   Ipp64f accur = 1.0e-5;
@@ -2501,10 +2501,12 @@ void FITS::zfp_compress_frame(size_t frame) {
   ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY), pEncState);
   ippsEncodeZfpSetAccuracy_32f(accur, pEncState);
 
+  // the code needs to be re-written in order to use full 4x4x4 blocks
+
   int x, y;
   int i, j;
   float val;
-  float block[4 * 4];
+  float block[4 * 4 * 4];
 
   // compress the pixels with ZFP
   for (y = 0; y < height; y += 4)
@@ -2527,12 +2529,15 @@ void FITS::zfp_compress_frame(size_t frame) {
           block[offset++] = val;
         }
 
+      for (offset = 0; offset < 4 * 4 * 4; offset++)
+        block[offset] = 1.17f;
+
       ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
                            pEncState);
     }
 
   ippsEncodeZfpFlush_32f(pEncState);
-  ippsEncodeZfpGetCompressedSize_32f(pEncState, pComprLen);
+  ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
   ippsFree(pEncState);
 
   // compress the mask with LZ4
