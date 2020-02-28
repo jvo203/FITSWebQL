@@ -280,8 +280,8 @@ FITS::FITS(std::string id, std::string flux) {
 }
 
 FITS::~FITS() {
-  // std::lock_guard<std::mutex> lock(zfp_mtx);
-  compress_thread.join();
+  if (compress_thread.joinable())
+    compress_thread.join();
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
@@ -1652,8 +1652,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
-
-      // zfp_thread.detach();
     } else {
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
@@ -2434,8 +2432,6 @@ void FITS::send_progress_notification(size_t running, size_t total) {
 }
 
 void FITS::zfp_compress() {
-  // std::lock_guard<std::mutex> lock(zfp_mtx);
-
   printf("[%s]::zfp_compress started.\n", dataset_id.c_str());
 
 #pragma omp parallel for

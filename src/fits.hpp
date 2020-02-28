@@ -158,7 +158,6 @@ public:
   std::atomic<bool> has_error;
   std::atomic<bool> processed_header;
   std::atomic<bool> processed_data;
-  // std::mutex zfp_mtx;
   std::thread compress_thread;
 
   std::mutex header_mtx;
