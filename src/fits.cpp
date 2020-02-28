@@ -42,6 +42,17 @@ char *base64(const unsigned char *input, int length) {
   return buff;
 };
 
+int roundUp(int numToRound, int multiple) {
+  if (multiple == 0)
+    return numToRound;
+
+  int remainder = numToRound % multiple;
+  if (remainder == 0)
+    return numToRound;
+
+  return numToRound + multiple - remainder;
+}
+
 #include <cfloat>
 #include <cmath>
 #include <fcntl.h>
@@ -2464,8 +2475,6 @@ void FITS::zfp_compress_frame(size_t frame) {
     return;
 
   // use ispc to fill-in the pixels and mask
-  float fmin = FLT_MAX;
-  float fmax = -FLT_MAX;
   float mean = 0.0f;
 
   float _cdelt3 = this->has_velocity
@@ -2473,18 +2482,18 @@ void FITS::zfp_compress_frame(size_t frame) {
                       : 1.0f;
 
   ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                      datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean,
+                      datamin, datamax, _cdelt3, pixels, mask, mean,
                       plane_size);
 
-  int maxX = width;
-  int maxY = height;
+  int maxX = roundUp(width, 4);
+  int maxY = roundUp(height, 4);
 
   int encStateSize;
   IppEncodeZfpState_32f *pEncState;
   int *pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
-  Ipp64f accur = MIN(fabs(fmin), fabs(fmax));
+  Ipp64f accur = 1.0e-5;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
@@ -2492,12 +2501,18 @@ void FITS::zfp_compress_frame(size_t frame) {
   ippsEncodeZfpSetAccuracy_32f(accur, pEncState);
 
   int x, y;
+  int i, j;
   float block[4 * 4];
 
   // compress the pixels with ZFP
   for (y = 0; y < height; y += 4)
     for (x = 0; x < width; x += 4) {
+      size_t src = y * width + x;
+
       // fill a 4x4 block
+      for (j = y; j < y + 4; j++)
+        for (i = x; i < x + 4; j++) {
+        }
     }
 
   ippsEncodeZfpFlush_32f(pEncState);
