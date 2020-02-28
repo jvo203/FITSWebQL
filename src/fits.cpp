@@ -2434,11 +2434,19 @@ void FITS::send_progress_notification(size_t running, size_t total) {
 void FITS::zfp_compress() {
   printf("[%s]::zfp_compress started.\n", dataset_id.c_str());
 
+  // do nothing for single planes
+  if (depth <= 1)
+    return;
+
 #pragma omp parallel for
   for (size_t frame = 0; frame < depth; frame++) {
     printf("zfp-compressing frame %zu.\n", frame);
-    sleep(1);
+    zfp_compress_frame(frame);
   }
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
+}
+
+void FITS::zfp_compress_frame(size_t frame) {
+  // allocate memory for pixels and a mask
 }
