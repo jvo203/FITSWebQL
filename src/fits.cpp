@@ -2465,6 +2465,7 @@ void FITS::zfp_compress_frame(size_t frame) {
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
+  const size_t frame_size = plane_size * abs(bitpix / 8);
 
   Ipp32f *pixels = ippsMalloc_32f_L(plane_size);
   if (pixels == NULL)
@@ -2525,6 +2526,9 @@ void FITS::zfp_compress_frame(size_t frame) {
 
           block[offset++] = val;
         }
+
+      ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
+                           pEncState);
     }
 
   ippsEncodeZfpFlush_32f(pEncState);
@@ -2533,8 +2537,8 @@ void FITS::zfp_compress_frame(size_t frame) {
 
   // compress the mask with LZ4
 
-  printf("zfp-compressing frame %zu; ZFP::pComprLen = %d bytes.\n", frame,
-         pComprLen);
+  printf("zfp-compressing frame %zu; ZFP::pComprLen = %d, orig. = %zu bytes.\n",
+         frame, pComprLen, frame_size);
 
   ippsFree(pixels);
   ippsFree(mask);
