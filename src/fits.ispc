@@ -175,7 +175,7 @@ export void make_planeF32(uniform int32 src[], uniform float bzero, uniform floa
       else
       {
 	      dst_pixels[i] = 0.0f;
-	      mask[i] = 0;
+	      dst_mask[i] = 0;
       }
     } ;
 
