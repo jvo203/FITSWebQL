@@ -2468,6 +2468,10 @@ void FITS::zfp_compress_frame(size_t frame) {
   float fmax = -FLT_MAX;
   float mean = 0.0f;
 
+  float _cdelt3 = this->has_velocity
+                      ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                      : 1.0f;
+
   ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
                       datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean,
                       plane_size);
