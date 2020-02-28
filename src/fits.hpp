@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <string.h>
 #include <string>
+#include <thread>
 #include <vector>
 #include <zlib.h>
 
@@ -157,7 +158,9 @@ public:
   std::atomic<bool> has_error;
   std::atomic<bool> processed_header;
   std::atomic<bool> processed_data;
-  std::mutex zfp_mtx;
+  // std::mutex zfp_mtx;
+  std::thread compress_thread;
+
   std::mutex header_mtx;
   std::mutex data_mtx;
   std::condition_variable header_cv;

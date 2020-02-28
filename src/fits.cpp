@@ -50,7 +50,6 @@ char *base64(const unsigned char *input, int length) {
 #include <string>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <thread>
 #include <unistd.h>
 
 #include <chrono>
@@ -281,7 +280,8 @@ FITS::FITS(std::string id, std::string flux) {
 }
 
 FITS::~FITS() {
-  std::lock_guard<std::mutex> lock(zfp_mtx);
+  // std::lock_guard<std::mutex> lock(zfp_mtx);
+  compress_thread.join();
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
@@ -1642,18 +1642,18 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           ippsFree(omp_mask[i]);
       }
 
-      std::thread zfp_thread(&FITS::zfp_compress, this);
+      compress_thread = std::thread(&FITS::zfp_compress, this);
 
       struct sched_param param;
       param.sched_priority = 0;
-      if (pthread_setschedparam(zfp_thread.native_handle(), SCHED_IDLE,
+      if (pthread_setschedparam(compress_thread.native_handle(), SCHED_IDLE,
                                 &param) != 0)
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
 
-      zfp_thread.detach();
+      // zfp_thread.detach();
     } else {
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
@@ -2434,14 +2434,14 @@ void FITS::send_progress_notification(size_t running, size_t total) {
 }
 
 void FITS::zfp_compress() {
-  std::lock_guard<std::mutex> lock(zfp_mtx);
+  // std::lock_guard<std::mutex> lock(zfp_mtx);
 
   printf("[%s]::zfp_compress started.\n", dataset_id.c_str());
 
 #pragma omp parallel for
   for (size_t frame = 0; frame < depth; frame++) {
-    printf("zfp-compressing frame %zu\n.", frame);
-    sleep(5);
+    printf("zfp-compressing frame %zu.\n", frame);
+    sleep(1);
   }
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
