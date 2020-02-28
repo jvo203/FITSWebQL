@@ -2448,6 +2448,9 @@ void FITS::zfp_compress() {
 void FITS::zfp_compress_frame(size_t frame) {
   printf("zfp-compressing frame %zu.\n", frame);
 
+  if (fits_cube[frame] == NULL)
+    return;
+
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
@@ -2461,6 +2464,13 @@ void FITS::zfp_compress_frame(size_t frame) {
     return;
 
   // use ispc to fill-in the pixels and mask
+  float fmin = FLT_MAX;
+  float fmax = -FLT_MAX;
+  float mean = 0.0f;
+
+  ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+                      datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean,
+                      plane_size);
 
   ippsFree(pixels);
   ippsFree(mask);
