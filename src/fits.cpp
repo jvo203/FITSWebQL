@@ -2476,6 +2476,10 @@ void FITS::zfp_compress_frame(size_t frame) {
                       datamin, datamax, _cdelt3, pixels, mask, fmin, fmax, mean,
                       plane_size);
 
+  // compress the pixels with ZFP
+
+  // compress the mask with LZ4
+
   ippsFree(pixels);
   ippsFree(mask);
 }
