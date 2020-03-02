@@ -2532,44 +2532,73 @@ void FITS::zfp_compress() {
     return;
 
     // use blocks of 4; each zfp_compress_4_frames
-
 #pragma omp parallel for
-  for (size_t frame = 0; frame < depth; frame++)
-    zfp_compress_frame(frame);
-
-  /*#pragma omp parallel for
-    for (size_t frame = 0; frame < depth; frame+=4)
-      zfp_compress_4_frames(frame);*/
+  for (size_t k = 0; k < depth; k += 4)
+    zfp_compress_cube(k);
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
 }
 
-void FITS::zfp_compress_frame(size_t frame) {
-  if (fits_cube[frame] == NULL)
-    return;
+void FITS::zfp_compress_cube(size_t start_k) {
+  size_t end_k = MIN(start_k + 4, depth);
+
+  for (size_t i = start_k; i < end_k; i++)
+    if (fits_cube[i] == NULL)
+      return;
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
 
-  Ipp32f *pixels = ippsMalloc_32f_L(plane_size);
-  if (pixels == NULL)
+  Ipp32f *pixels[4];
+  Ipp8u *mask[4];
+  float mean[4];
+
+  bool ok = true;
+
+  for (int i = 0; i < 4; i++) {
+    mean[i] = 0.0f;
+
+    pixels[i] = ippsMalloc_32f_L(plane_size);
+    if (pixels[i] == NULL)
+      ok = false;
+    else
+      for (size_t j = 0; j < plane_size; j++)
+        pixels[i][j] = 0.0f;
+
+    mask[i] = ippsMalloc_8u_L(plane_size);
+    if (mask[i] == NULL)
+      ok = false;
+    else
+      memset(mask[i], 0, plane_size);
+  }
+
+  if (!ok) {
+    for (int i = 0; i < 4; i++) {
+      if (pixels[i] != NULL)
+        ippsFree(pixels[i]);
+
+      if (mask[i] != NULL)
+        ippsFree(mask[i]);
+    }
+
     return;
+  }
 
-  Ipp8u *mask = ippsMalloc_8u_L(plane_size);
-  if (mask == NULL)
-    return;
+  // use ispc to fill in the pixels and mask
+  int offset = 0;
+  for (size_t frame = start_k; frame < end_k; frame++) {
+    float _cdelt3 = this->has_velocity
+                        ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                        : 1.0f;
 
-  // use ispc to fill-in the pixels and mask
-  float mean = 0.0f;
+    float _mean;
+    ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+                        datamin, datamax, _cdelt3, pixels[offset], mask[offset],
+                        _mean, plane_size);
 
-  float _cdelt3 = this->has_velocity
-                      ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                      : 1.0f;
-
-  ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                      datamin, datamax, _cdelt3, pixels, mask, mean,
-                      plane_size);
+    mean[offset++] = _mean;
+  }
 
   int maxX = roundUp(width, 4);
   int maxY = roundUp(height, 4);
@@ -2579,7 +2608,7 @@ void FITS::zfp_compress_frame(size_t frame) {
   int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
-  Ipp64f accur = 1.0e-5;
+  Ipp64f accur = 1.0e-3;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
@@ -2589,33 +2618,35 @@ void FITS::zfp_compress_frame(size_t frame) {
   // the code needs to be re-written in order to use full 4x4x4 blocks
 
   int x, y;
-  int i, j;
+  int i, j, k;
   float val;
   float block[4 * 4 * 4];
 
   // compress the pixels with ZFP
   for (y = 0; y < height; y += 4)
     for (x = 0; x < width; x += 4) {
-      // fill a 4x4 block
+      // fill a 4x4x4 block
       int offset = 0;
-      for (j = y; j < y + 4; j++)
-        for (i = x; i < x + 4; i++) {
-          if (i >= width || j >= height)
-            val = mean;
-          else {
-            size_t src = j * width + i;
+      for (k = 0; k < 4; k++) {
+        for (j = y; j < y + 4; j++)
+          for (i = x; i < x + 4; i++) {
+            if (i >= width || j >= height)
+              val = mean[k];
+            else {
+              size_t src = j * width + i;
 
-            if (mask[src] == 0)
-              val = mean;
-            else
-              val = pixels[src];
+              if (mask[k][src] == 0)
+                val = mean[k];
+              else
+                val = 1.17f; // pixels[k][src];
+            }
+
+            block[offset++] = val;
           }
+      }
 
-          block[offset++] = val;
-        }
-
-      for (offset = 0; offset < 4 * 4 * 4; offset++)
-        block[offset] = 1.17f;
+      /*for (offset = 0; offset < 4 * 4 * 4; offset++)
+        block[offset] = 1.17f;*/
 
       ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
                            pEncState);
@@ -2625,12 +2656,20 @@ void FITS::zfp_compress_frame(size_t frame) {
   ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
   ippsFree(pEncState);
 
-  // compress the mask with LZ4
+  // compress the four masks with LZ4
 
-  printf("zfp-compressing frame %zu; ZFP::pComprLen = %d, orig. = %zu bytes.\n",
-         frame, pComprLen, frame_size);
+  printf("zfp-compressing 4 frames starting at %zu; ZFP::pComprLen = %d, orig. "
+         "= %zu bytes.\n",
+         start_k, pComprLen, frame_size);
 
-  ippsFree(pixels);
-  ippsFree(mask);
-  ippsFree(pBuffer);
+  if (pBuffer != NULL)
+    ippsFree(pBuffer);
+
+  for (int i = 0; i < 4; i++) {
+    if (pixels[i] != NULL)
+      ippsFree(pixels[i]);
+
+    if (mask[i] != NULL)
+      ippsFree(mask[i]);
+  }
 }

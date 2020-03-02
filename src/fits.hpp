@@ -87,7 +87,7 @@ private:
                              float _sensitivity);
   void send_progress_notification(size_t running, size_t total);
   void zfp_compress();
-  void zfp_compress_frame(size_t frame);
+  void zfp_compress_cube(size_t frame);
 
 public:
   std::string dataset_id;
