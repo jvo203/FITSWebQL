@@ -2594,6 +2594,7 @@ void FITS::zfp_compress_cube(size_t start_k) {
                         plane_size);
 
     mean[offset++] = _mean;
+    printf("mean = %f\n", mean[offset - 1]);
   }
 
   int maxX = roundUp(width, 4);
@@ -2604,14 +2605,12 @@ void FITS::zfp_compress_cube(size_t start_k) {
   int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
-  Ipp64f accur = 1.0e-3;
+  Ipp64f precision = 4;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
   ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY), pEncState);
-  ippsEncodeZfpSetAccuracy_32f(accur, pEncState);
-
-  // the code needs to be re-written in order to use full 4x4x4 blocks
+  ippsEncodeZfpSetAccuracy_32f(precision, pEncState);
 
   int x, y;
   int i, j, k;
@@ -2627,22 +2626,29 @@ void FITS::zfp_compress_cube(size_t start_k) {
         for (j = y; j < y + 4; j++)
           for (i = x; i < x + 4; i++) {
             if (i >= width || j >= height)
-              val = mean[k];
+              val = 0.0f; // mean[k];
             else {
               size_t src = j * width + i;
 
               if (mask[k][src] == 0)
-                val = mean[k];
-              else
-                val = 1.17f; // pixels[k][src];
+                val = 0.0f; // mean[k];
+              else {
+                /*if (std::isnan(pixels[k][src]) || src >= plane_size)
+                  printf("NaN/OOR pixel k=%d x=%d y=%d i=%d j=%d src=%zu/%zu\t",
+                         k, x, y, i, j, src, plane_size);*/
+                val = pixels[k][src];
+              }
             }
 
             block[offset++] = val;
           }
       }
 
-      /*for (offset = 0; offset < 4 * 4 * 4; offset++)
-        block[offset] = 1.17f;*/
+      /*if (y == height / 2 && x == width / 2) {
+        for (offset = 0; offset < 4 * 4 * 4; offset++)
+          printf("%f ", block[offset]);
+        printf("\n");
+    }*/
 
       ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
                            pEncState);
