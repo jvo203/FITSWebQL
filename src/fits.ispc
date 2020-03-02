@@ -148,7 +148,7 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform unsigned int8
   frame_max = reduce_max(partial_max);  
 } ;
 
-export void make_planeF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& mean, uniform unsigned int total_size)
+export void make_planeF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& mean, uniform unsigned int total_size)
 {  
   varying float partial_sum = 0.0f ;
   varying unsigned int64 partial_count = 0 ;
