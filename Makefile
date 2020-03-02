@@ -59,5 +59,5 @@ cypher:
 	mkdir -p ssl
 	openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt
 
-test:
+ippzfp:
 	icpc -g -O3 -xHost testIPPZFP.cpp -ipp
