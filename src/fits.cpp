@@ -314,11 +314,16 @@ FITS::~FITS() {
   if (header != NULL)
     free(header);
 
-  if (img_pixels != NULL)
-    ippsFree(img_pixels);
+  if (img_pixels != NULL) {
+    size_t plane_size = width * height;
+    size_t frame_size = plane_size * abs(bitpix / 8);
+    munmap(img_pixels, frame_size);
+  }
 
-  if (img_mask != NULL)
-    ippsFree(img_mask);
+  if (img_mask != NULL) {
+    size_t plane_size = width * height;
+    munmap(img_mask, plane_size);
+  }
 }
 
 void FITS::defaults() {
@@ -889,17 +894,54 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     return;
   }
 
-  if (img_pixels != NULL)
-    ippsFree(img_pixels);
+  // use mmap
+  if (img_pixels == NULL && img_mask == NULL) {
+    int fd, stat;
+    std::string filename;
 
-  if (img_mask != NULL)
-    ippsFree(img_mask);
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".pixels");
 
-  img_pixels = ippsMalloc_32f_L(plane_size);
-  img_mask = ippsMalloc_8u_L(plane_size);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+
+    if (fd != -1) {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, frame_size);
+#else
+      stat = ftruncate64(fd, frame_size);
+#endif
+
+      if (!stat)
+        img_pixels = (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
+                                    MAP_SHARED, fd, 0);
+
+      close(fd);
+    }
+
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".mask");
+
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+
+    if (fd != -1) {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, plane_size);
+#else
+      stat = ftruncate64(fd, plane_size);
+#endif
+
+      if (!stat)
+        img_mask = (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
+                                 MAP_SHARED, fd, 0);
+
+      close(fd);
+    }
+  }
 
   if (img_pixels == NULL || img_mask == NULL) {
-    printf("%s::cannot malloc memory for a 2D image buffer.\n",
+    printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
     processed_data = true;
     data_cv.notify_all();
@@ -1411,17 +1453,54 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     return;
   }
 
-  if (img_pixels != NULL)
-    ippsFree(img_pixels);
+  // use mmap
+  if (img_pixels == NULL && img_mask == NULL) {
+    int fd, stat;
+    std::string filename;
 
-  if (img_mask != NULL)
-    ippsFree(img_mask);
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".pixels");
 
-  img_pixels = ippsMalloc_32f_L(plane_size);
-  img_mask = ippsMalloc_8u_L(plane_size);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+
+    if (fd != -1) {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, frame_size);
+#else
+      stat = ftruncate64(fd, frame_size);
+#endif
+
+      if (!stat)
+        img_pixels = (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
+                                    MAP_SHARED, fd, 0);
+
+      close(fd);
+    }
+
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".mask");
+
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+
+    if (fd != -1) {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, plane_size);
+#else
+      stat = ftruncate64(fd, plane_size);
+#endif
+
+      if (!stat)
+        img_mask = (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
+                                 MAP_SHARED, fd, 0);
+
+      close(fd);
+    }
+  }
 
   if (img_pixels == NULL || img_mask == NULL) {
-    printf("%s::cannot malloc memory for a 2D image buffer.\n",
+    printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
     processed_data = true;
     data_cv.notify_all();
