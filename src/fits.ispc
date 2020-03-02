@@ -148,11 +148,8 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform unsigned int8
   frame_max = reduce_max(partial_max);  
 } ;
 
-export void make_planeF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& mean, uniform unsigned int total_size)
-{  
-  varying float partial_sum = 0.0f ;
-  varying unsigned int64 partial_count = 0 ;
-
+export void make_planeF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
+{    
   foreach(i=0 ... total_size)
     {
       float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;      
@@ -163,24 +160,14 @@ export void make_planeF32(uniform int32 src[], uniform float bzero, uniform floa
       cif (!nan)
 	    {	      
 	      dst_pixels[i] = tmp ;
-	      dst_mask[i] = 255 ;
-	      partial_sum += tmp ;
-	      partial_count += 1 ;	      
+	      dst_mask[i] = 255 ;	 
 	    }
       else
       {
 	      dst_pixels[i] = 0.0f;
 	      dst_mask[i] = 0;
       }
-    } ;
-
-  uniform float sum = reduce_add(partial_sum) ;
-  uniform int64 count = reduce_add(partial_count) ;
-
-  if(count > 0)    
-      mean = sum / (float) count ;         
-  else   
-      mean = 0.0f ;   
+    } ;    
 } ;
 
 export void join_pixels_masks(uniform float pixels[], uniform float pixels_tid[], uniform unsigned int8 mask[], uniform unsigned int8 mask_tid[], uniform unsigned int size)

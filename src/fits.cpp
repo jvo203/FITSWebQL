@@ -2552,13 +2552,10 @@ void FITS::zfp_compress_cube(size_t start_k) {
 
   Ipp32f *pixels[4];
   Ipp8u *mask[4];
-  float mean[4];
 
   bool ok = true;
 
   for (int i = 0; i < 4; i++) {
-    mean[i] = 0.0f;
-
     pixels[i] = ippsMalloc_32f_L(plane_size);
     if (pixels[i] == NULL)
       ok = false;
@@ -2588,13 +2585,11 @@ void FITS::zfp_compress_cube(size_t start_k) {
   // use ispc to fill in the pixels and mask
   int offset = 0;
   for (size_t frame = start_k; frame < end_k; frame++) {
-    float _mean;
     ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                        datamin, datamax, pixels[offset], mask[offset], _mean,
+                        datamin, datamax, pixels[offset], mask[offset],
                         plane_size);
 
-    mean[offset++] = _mean;
-    printf("mean = %f\n", mean[offset - 1]);
+    offset++;
   }
 
   int maxX = roundUp(width, 4);
@@ -2606,7 +2601,7 @@ void FITS::zfp_compress_cube(size_t start_k) {
   int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY * maxZ);
-  Ipp64f precision = 1.e-3;
+  Ipp64f precision = 1.e-4;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
@@ -2628,29 +2623,15 @@ void FITS::zfp_compress_cube(size_t start_k) {
         for (j = y; j < y + 4; j++)
           for (i = x; i < x + 4; i++) {
             if (i >= width || j >= height)
-              val = 0.0f; // mean[k];
+              val = 0.0f;
             else {
               size_t src = j * width + i;
-
-              if (mask[k][src] == 0)
-                val = 0.0f; // mean[k];
-              else {
-                /*if (std::isnan(pixels[k][src]) || src >= plane_size)
-                  printf("NaN/OOR pixel k=%d x=%d y=%d i=%d j=%d src=%zu/%zu\t",
-                         k, x, y, i, j, src, plane_size);*/
-                val = pixels[k][src];
-              }
+              val = pixels[k][src];
             }
 
             block[offset++] = val;
           }
       }
-
-      /*if (y == height / 2 && x == width / 2) {
-        for (offset = 0; offset < 4 * 4 * 4; offset++)
-          printf("%f ", block[offset]);
-        printf("\n");
-    }*/
 
       ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
                            pEncState);
