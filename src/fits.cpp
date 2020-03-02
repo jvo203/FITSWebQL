@@ -2615,8 +2615,8 @@ void FITS::zfp_compress_cube(size_t start_k) {
   float block[4 * 4 * 4];
 
   // compress the pixels with ZFP
-  for (y = 0; y < maxY; y += 4)
-    for (x = 0; x < maxX; x += 4) {
+  for (y = 0; y < height; y += 4)
+    for (x = 0; x < width; x += 4) {
       // fill a 4x4x4 block
       int offset = 0;
       for (k = 0; k < 4; k++) {
