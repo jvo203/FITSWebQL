@@ -1,6 +1,7 @@
 #compilation target
 /fitswebql
 /inet
+/a.out
 
 #emacs
 *~
