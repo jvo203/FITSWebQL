@@ -2588,14 +2588,10 @@ void FITS::zfp_compress_cube(size_t start_k) {
   // use ispc to fill in the pixels and mask
   int offset = 0;
   for (size_t frame = start_k; frame < end_k; frame++) {
-    float _cdelt3 = this->has_velocity
-                        ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                        : 1.0f;
-
     float _mean;
     ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                        datamin, datamax, _cdelt3, pixels[offset], mask[offset],
-                        _mean, plane_size);
+                        datamin, datamax, pixels[offset], mask[offset], _mean,
+                        plane_size);
 
     mean[offset++] = _mean;
   }
