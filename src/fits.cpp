@@ -2599,17 +2599,19 @@ void FITS::zfp_compress_cube(size_t start_k) {
 
   int maxX = roundUp(width, 4);
   int maxY = roundUp(height, 4);
+  int maxZ = 4;
 
   int encStateSize;
   IppEncodeZfpState_32f *pEncState;
   int pComprLen = 0;
 
-  Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY);
-  Ipp64f precision = 4;
+  Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY * maxZ);
+  Ipp64f precision = 1.e-3;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-  ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY), pEncState);
+  ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY * maxZ),
+                        pEncState);
   ippsEncodeZfpSetAccuracy_32f(precision, pEncState);
 
   int x, y;
@@ -2618,8 +2620,8 @@ void FITS::zfp_compress_cube(size_t start_k) {
   float block[4 * 4 * 4];
 
   // compress the pixels with ZFP
-  for (y = 0; y < height; y += 4)
-    for (x = 0; x < width; x += 4) {
+  for (y = 0; y < maxY; y += 4)
+    for (x = 0; x < maxX; x += 4) {
       // fill a 4x4x4 block
       int offset = 0;
       for (k = 0; k < 4; k++) {
@@ -2662,7 +2664,7 @@ void FITS::zfp_compress_cube(size_t start_k) {
 
   printf("zfp-compressing 4 frames starting at %zu; ZFP::pComprLen = %d, orig. "
          "= %zu bytes.\n",
-         start_k, pComprLen, frame_size);
+         start_k, pComprLen, frame_size * 4);
 
   if (pBuffer != NULL)
     ippsFree(pBuffer);
