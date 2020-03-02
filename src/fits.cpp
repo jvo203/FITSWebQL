@@ -903,7 +903,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                boost::replace_all_copy(dataset_id, "/", "_") +
                std::string(".pixels");
 
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
     if (fd != -1) {
 #if defined(__APPLE__) && defined(__MACH__)
@@ -923,7 +923,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                boost::replace_all_copy(dataset_id, "/", "_") +
                std::string(".mask");
 
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
     if (fd != -1) {
 #if defined(__APPLE__) && defined(__MACH__)
@@ -1462,7 +1462,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                boost::replace_all_copy(dataset_id, "/", "_") +
                std::string(".pixels");
 
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
     if (fd != -1) {
 #if defined(__APPLE__) && defined(__MACH__)
@@ -1482,7 +1482,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                boost::replace_all_copy(dataset_id, "/", "_") +
                std::string(".mask");
 
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
     if (fd != -1) {
 #if defined(__APPLE__) && defined(__MACH__)
