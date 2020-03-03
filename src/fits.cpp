@@ -2601,17 +2601,17 @@ void FITS::zfp_compress_cube(size_t start_k) {
   int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY * maxZ);
-  Ipp64f accuracy = 1.e-4;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
   ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY * maxZ),
                         pEncState);
 
-  // absolute accuracy
+  // absolute accuracy (a Fixed-Accuracy mode)
+  // Ipp64f accuracy = 1.e-4;
   // ippsEncodeZfpSetAccuracy_32f(accuracy, pEncState);
 
-  // relative accuracy
+  // relative accuracy (a Fixed-Precision mode)
   int precision = 11;
   ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, precision, IppZFPMINEXP,
                        pEncState);
