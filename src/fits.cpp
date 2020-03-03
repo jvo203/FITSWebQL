@@ -13,12 +13,6 @@
 // Intel IPP ZFP functions
 #include <ippdc.h>
 
-/* default compression parameters */
-#define ZFP_MIN_BITS     1 /* minimum number of bits per block */
-#define ZFP_MAX_BITS 16651 /* maximum number of bits per block */
-#define ZFP_MAX_PREC    64 /* maximum precision supported */
-#define ZFP_MIN_EXP  -1074 /* minimum floating-point base-2 exponent */
-
 // base64 encoding with SSL
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -2607,13 +2601,20 @@ void FITS::zfp_compress_cube(size_t start_k) {
   int pComprLen = 0;
 
   Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY * maxZ);
-  Ipp64f precision = 1.e-4;
+  Ipp64f accuracy = 1.e-4;
 
   ippsEncodeZfpGetStateSize_32f(&encStateSize);
   pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
   ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY * maxZ),
                         pEncState);
-  ippsEncodeZfpSetAccuracy_32f(precision, pEncState);
+
+  // absolute accuracy
+  // ippsEncodeZfpSetAccuracy_32f(accuracy, pEncState);
+
+  // relative accuracy
+  int precision = 11;
+  ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, precision, IppZFPMINEXP,
+                       pEncState);
 
   int x, y;
   int i, j, k;
