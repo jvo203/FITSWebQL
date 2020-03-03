@@ -13,6 +13,8 @@
 // Intel IPP ZFP functions
 #include <ippdc.h>
 
+#define ZFP_CACHE_REGION 256
+
 // base64 encoding with SSL
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -2594,8 +2596,10 @@ void FITS::zfp_compress_cube(size_t start_k) {
 
   // divide the image into 256 x 256 x 4 regions to be compressed individually
   // a cache scheme will decompress those regions on demand
-
-
+  for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+    for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
+      // start a new ZFP stream
+    }
 
   // a whole-image approach
   int maxX = roundUp(width, 4);
