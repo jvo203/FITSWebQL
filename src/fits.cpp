@@ -2592,6 +2592,12 @@ void FITS::zfp_compress_cube(size_t start_k) {
     offset++;
   }
 
+  // divide the image into 256 x 256 x 4 regions to be compressed individually
+  // a cache scheme will decompress those regions on demand
+
+
+
+  // a whole-image approach
   int maxX = roundUp(width, 4);
   int maxY = roundUp(height, 4);
   int maxZ = 4;
