@@ -2614,7 +2614,35 @@ void FITS::zfp_compress_cube(size_t start_k) {
       ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
                            pEncState);
 
-      // ... compression
+      // ... ZFP compression
+      int x, y;
+      int i, j, k;
+      float val;
+      float block[4 * 4 * 4];
+
+      // compress the pixels with ZFP
+      for (y = 0; y < ZFP_CACHE_REGION; y += 4)
+        for (x = 0; x < ZFP_CACHE_REGION; x += 4) {
+          // fill a 4x4x4 block
+          int offset = 0;
+          for (k = 0; k < 4; k++) {
+            for (j = y; j < y + 4; j++)
+              for (i = x; i < x + 4; i++) {
+                if (src_x + i >= width || src_y + j >= height)
+                  val = 0.0f;
+                else {
+                  // adjust the src offset for src_x and src_y
+                  size_t src = (src_y + j) * width + src_x + i;
+                  val = pixels[k][src];
+                }
+
+                block[offset++] = val;
+              }
+          }
+
+          ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
+                               4 * 4 * sizeof(Ipp32f), pEncState);
+        }
 
       ippsEncodeZfpFlush_32f(pEncState);
       ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
@@ -2622,11 +2650,11 @@ void FITS::zfp_compress_cube(size_t start_k) {
 
       // compress the four masks with LZ4
 
-      printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); ZFP::pComprLen "
+      printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
              "= %d, "
              "orig. "
              "= %zu bytes.\n",
-             ZFP_CACHE_REGION, ZFP_CACHE_REGION, start_k, src_x, src_y,
+             ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
              pComprLen,
              sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4));
 
