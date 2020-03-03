@@ -2599,6 +2599,40 @@ void FITS::zfp_compress_cube(size_t start_k) {
   for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
     for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
       // start a new ZFP stream
+      int encStateSize;
+      IppEncodeZfpState_32f *pEncState;
+      int pComprLen = 0;
+
+      Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * ZFP_CACHE_REGION *
+                                     ZFP_CACHE_REGION * 4);
+      ippsEncodeZfpGetStateSize_32f(&encStateSize);
+      pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+      ippsEncodeZfpInit_32f(
+          pBuffer, sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4),
+          pEncState);
+      // relative accuracy (a Fixed-Precision mode)
+      ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
+                           pEncState);
+
+      // ... compression
+
+      ippsEncodeZfpFlush_32f(pEncState);
+      ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
+      ippsFree(pEncState);
+
+      // compress the four masks with LZ4
+
+      printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); ZFP::pComprLen "
+             "= %d, "
+             "orig. "
+             "= %zu bytes.\n",
+             ZFP_CACHE_REGION, ZFP_CACHE_REGION, start_k, src_x, src_y,
+             pComprLen,
+             sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4));
+
+      // release the buffer
+      if (pBuffer != NULL)
+        ippsFree(pBuffer);
     }
 
   // a whole-image approach
