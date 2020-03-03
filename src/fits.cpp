@@ -13,6 +13,12 @@
 // Intel IPP ZFP functions
 #include <ippdc.h>
 
+/* default compression parameters */
+#define ZFP_MIN_BITS     1 /* minimum number of bits per block */
+#define ZFP_MAX_BITS 16651 /* maximum number of bits per block */
+#define ZFP_MAX_PREC    64 /* maximum precision supported */
+#define ZFP_MIN_EXP  -1074 /* minimum floating-point base-2 exponent */
+
 // base64 encoding with SSL
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
