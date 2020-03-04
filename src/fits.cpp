@@ -2274,8 +2274,8 @@ void FITS::to_json(std::ostringstream &json) {
     return;
 
   // compress the header with LZ4
-  compressed_size = LZ4_compress_default(
-      (const char *)header, (char *)header_lz4, hdr_len, worst_size);
+  compressed_size = LZ4_compress_HC((const char *)header, (char *)header_lz4,
+                                    hdr_len, worst_size, LZ4HC_CLEVEL_MAX);
   printf("FITS HEADER size %zu bytes, LZ4-compressed: %d bytes.\n", hdr_len,
          compressed_size);
 
