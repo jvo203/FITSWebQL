@@ -2662,32 +2662,46 @@ void FITS::zfp_compress_cube(size_t start_k) {
     }
 
   // compress the four masks with LZ4
+  Ipp8u *pBuffer = NULL;
+  int compressed_size = 0;
   Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
 
-  for (int k = 0; k < 4; k++) {
-    for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
-      for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
-        int offset = 0;
-        char val;
+  size_t mask_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION * sizeof(Ipp8u);
+  int worst_size = LZ4_compressBound(mask_size);
+  pBuffer = ippsMalloc_8u_L(worst_size);
 
-        for (int y = 0; y < ZFP_CACHE_REGION; y++)
-          for (int x = 0; x < ZFP_CACHE_REGION; x++) {
-            if (src_x + x >= width || src_y + y >= height)
-              val = 0;
-            else {
-              // adjust the src offset for src_x and src_y
-              size_t src = (src_y + y) * width + src_x + x;
-              val = mask[k][src];
+  if (pBuffer != NULL) {
+    for (int k = 0; k < 4; k++) {
+      for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+        for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
+          int offset = 0;
+          char val;
+
+          for (int y = 0; y < ZFP_CACHE_REGION; y++)
+            for (int x = 0; x < ZFP_CACHE_REGION; x++) {
+              if (src_x + x >= width || src_y + y >= height)
+                val = 0;
+              else {
+                // adjust the src offset for src_x and src_y
+                size_t src = (src_y + y) * width + src_x + x;
+                val = mask[k][src];
+              }
+
+              _mask[offset++] = val;
             }
+        }
 
-            _mask[offset++] = val;
-          }
-      }
+      // _mask has been filled-in; compress it
+      compressed_size =
+          LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
+                          worst_size, LZ4HC_CLEVEL_MAX);
+      printf("block mask size %zu bytes, LZ4-compressed: %d bytes.\n",
+             mask_size, compressed_size);
+    }
 
-    // _mask has been filled-in; compress it
+    // LZ4 done, release the buffer
+    ippsFree(pBuffer);
   }
-
-  // LZ4 done
 
   for (int i = 0; i < 4; i++) {
     if (pixels[i] != NULL)
