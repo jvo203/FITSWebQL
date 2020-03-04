@@ -2585,13 +2585,13 @@ void FITS::zfp_compress_cube(size_t start_k) {
   }
 
   // use ispc to fill in the pixels and mask
-  int offset = 0;
+  int plane_count = 0;
   for (size_t frame = start_k; frame < end_k; frame++) {
     ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                        datamin, datamax, pixels[offset], mask[offset],
-                        plane_size);
+                        datamin, datamax, pixels[plane_count],
+                        mask[plane_count], plane_size);
 
-    offset++;
+    plane_count++;
   }
 
   // divide the image into 256 x 256 x 4 regions to be compressed individually
@@ -2648,10 +2648,6 @@ void FITS::zfp_compress_cube(size_t start_k) {
       ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
       ippsFree(pEncState);
 
-      // compress the four masks with LZ4
-      int mask_offset = 0;
-      Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
-
       printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
              "= %d, "
              "orig. "
@@ -2664,6 +2660,12 @@ void FITS::zfp_compress_cube(size_t start_k) {
       if (pBuffer != NULL)
         ippsFree(pBuffer);
     }
+
+  // compress the four masks with LZ4
+  int mask_offset = 0;
+  Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
+
+  // LZ4 done
 
   for (int i = 0; i < 4; i++) {
     if (pixels[i] != NULL)
