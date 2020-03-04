@@ -2649,6 +2649,8 @@ void FITS::zfp_compress_cube(size_t start_k) {
       ippsFree(pEncState);
 
       // compress the four masks with LZ4
+      int mask_offset = 0;
+      Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
 
       printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
              "= %d, "
@@ -2662,72 +2664,6 @@ void FITS::zfp_compress_cube(size_t start_k) {
       if (pBuffer != NULL)
         ippsFree(pBuffer);
     }
-
-  // a whole-image approach
-  int maxX = roundUp(width, 4);
-  int maxY = roundUp(height, 4);
-  int maxZ = 4;
-
-  int encStateSize;
-  IppEncodeZfpState_32f *pEncState;
-  int pComprLen = 0;
-
-  Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * maxX * maxY * maxZ);
-
-  ippsEncodeZfpGetStateSize_32f(&encStateSize);
-  pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-  ippsEncodeZfpInit_32f(pBuffer, sizeof(Ipp32f) * (maxX * maxY * maxZ),
-                        pEncState);
-
-  // absolute accuracy (a Fixed-Accuracy mode)
-  // Ipp64f accuracy = 1.e-4;
-  // ippsEncodeZfpSetAccuracy_32f(accuracy, pEncState);
-
-  // relative accuracy (a Fixed-Precision mode)
-  int precision = 11;
-  ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, precision, IppZFPMINEXP,
-                       pEncState);
-
-  int x, y;
-  int i, j, k;
-  float val;
-  float block[4 * 4 * 4];
-
-  // compress the pixels with ZFP
-  for (y = 0; y < height; y += 4)
-    for (x = 0; x < width; x += 4) {
-      // fill a 4x4x4 block
-      int offset = 0;
-      for (k = 0; k < 4; k++) {
-        for (j = y; j < y + 4; j++)
-          for (i = x; i < x + 4; i++) {
-            if (i >= width || j >= height)
-              val = 0.0f;
-            else {
-              size_t src = j * width + i;
-              val = pixels[k][src];
-            }
-
-            block[offset++] = val;
-          }
-      }
-
-      ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f), 4 * 4 * sizeof(Ipp32f),
-                           pEncState);
-    }
-
-  ippsEncodeZfpFlush_32f(pEncState);
-  ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
-  ippsFree(pEncState);
-
-  // compress the four masks with LZ4
-
-  printf("zfp-compressing 4 frames starting at %zu; ZFP::pComprLen = %d, orig. "
-         "= %zu bytes.\n",
-         start_k, pComprLen, frame_size * 4);
-
-  if (pBuffer != NULL)
-    ippsFree(pBuffer);
 
   for (int i = 0; i < 4; i++) {
     if (pixels[i] != NULL)
