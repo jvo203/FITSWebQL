@@ -2711,7 +2711,7 @@ void FITS::zfp_compress_cube(size_t start_k) {
       ippsFree(mask[i]);
   }
 
-  // advise the kernel to free memory when needed
+  // advise the kernel it's OK to release memory
   for (size_t frame = start_k; frame < end_k; frame++)
     madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
 }
