@@ -2662,8 +2662,30 @@ void FITS::zfp_compress_cube(size_t start_k) {
     }
 
   // compress the four masks with LZ4
-  int mask_offset = 0;
   Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
+
+  for (int k = 0; k < 4; k++) {
+    for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+      for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
+        int offset = 0;
+        char val;
+
+        for (int y = 0; y < ZFP_CACHE_REGION; y++)
+          for (int x = 0; x < ZFP_CACHE_REGION; x++) {
+            if (src_x + x >= width || src_y + y >= height)
+              val = 0;
+            else {
+              // adjust the src offset for src_x and src_y
+              size_t src = (src_y + y) * width + src_x + x;
+              val = mask[k][src];
+            }
+
+            _mask[offset++] = val;
+          }
+      }
+
+    // _mask has been filled-in; compress it
+  }
 
   // LZ4 done
 
