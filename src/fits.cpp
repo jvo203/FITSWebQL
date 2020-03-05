@@ -1646,8 +1646,11 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     reduction(min                                                              \
               : _pmin) reduction(max                                           \
                                  : _pmax)
-
-      for (size_t frame = 0; frame < depth; frame++) {
+for (size_t k = 0; k < depth; k += 4) {
+  size_t start_k = k;
+        size_t end_k = MIN(k + 4, depth);
+        for (size_t frame = start_k; frame < end_k; frame++) {
+      //for (size_t frame = 0; frame < depth; frame++) {
         int tid = omp_get_thread_num();
         // printf("tid: %d, k: %zu\n", tid, k);
         if (mask_buf[tid] == NULL || omp_pixels[tid] == NULL ||
@@ -1699,6 +1702,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
         send_progress_notification(frame, depth);
       }
+}
 
       // join omp_{pixel,mask}
 
@@ -1737,7 +1741,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           ippsFree(omp_mask[i]);
       }
 
-      compress_thread = std::thread(&FITS::zfp_compress, this);
+      /*compress_thread = std::thread(&FITS::zfp_compress, this);
 
       struct sched_param param;
       param.sched_priority = 0;
@@ -1746,7 +1750,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the zfp_compress thread priority to "
-               "SCHED_IDLE.\n");
+               "SCHED_IDLE.\n");*/
     } else {
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
