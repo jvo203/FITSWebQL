@@ -1702,6 +1702,9 @@ for (size_t k = 0; k < depth; k += 4) {
 
         send_progress_notification(frame, depth);
       }
+
+      // append <start_k> to a ZFP compression queue
+      zfp_compress_cube(start_k);
 }
 
       // join omp_{pixel,mask}
