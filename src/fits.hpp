@@ -14,12 +14,7 @@
 #include <vector>
 #include <zlib.h>
 
-struct zfp_pool_thread {
-  std::thread zfp_thread; // a compression thread
-  // boost::lockfree::queue<int, boost::lockfree::capacity<1024>> zfp_fifo;
-  std::vector<int> zfp_fifo; // FIFO
-  std::shared_mutex zfp_mtx; // protect zfp_queue
-};
+#include <boost/lockfree/queue.hpp>
 
 using namespace std::chrono;
 
@@ -169,8 +164,10 @@ public:
   std::atomic<bool> processed_data;
 
   // ZFP compression
-  std::thread compress_thread;
-  std::vector<std::shared_ptr<struct zfp_pool_thread>> zfp_pool;
+  // std::thread compress_thread;
+  std::vector<std::thread> zfp_pool;
+  boost::lockfree::queue<size_t, boost::lockfree::capacity<1024>> zfp_queue;
+  std::atomic<bool> terminate_compression;
 
   std::mutex header_mtx;
   std::mutex data_mtx;

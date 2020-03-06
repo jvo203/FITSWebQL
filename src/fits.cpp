@@ -296,12 +296,12 @@ FITS::FITS(std::string id, std::string flux) {
 }
 
 FITS::~FITS() {
-  if (compress_thread.joinable())
-    compress_thread.join();
+  /*if (compress_thread.joinable())
+    compress_thread.join();*/
 
   for (auto &thread : zfp_pool) {
-    if (thread->zfp_thread.joinable())
-      thread->zfp_thread.join();
+    if (thread.joinable())
+      thread.join();
   }
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
@@ -1625,22 +1625,24 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
     int max_threads = omp_get_max_threads();
 
-    for (int i = 0; i < max_threads; i++) {
-      std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
+    terminate_compression = false;
 
-      a_thread->zfp_thread =
+    for (int i = 0; i < max_threads; i++) {
+      // std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
+
+      std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
       struct sched_param param;
       param.sched_priority = 0;
-      if (pthread_setschedparam(a_thread->zfp_thread.native_handle(),
-                                SCHED_IDLE, &param) != 0)
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
+          0)
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
 
-      zfp_pool.push_back(a_thread);
+      zfp_pool.push_back(std::move(a_thread));
     }
 
     if (!is_compressed) {
@@ -1730,9 +1732,10 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         }
 
         // append <start_k> to a ZFP compression queue
-        int tid = omp_get_thread_num();
+        /*int tid = omp_get_thread_num();
         std::lock_guard<std::shared_mutex> guard(zfp_pool[tid]->zfp_mtx);
-        zfp_pool[tid]->zfp_fifo.push_back(start_k);
+        zfp_pool[tid]->zfp_fifo.push_back(start_k);*/
+        zfp_queue.push(start_k);
         // zfp_compress_cube(start_k);
       }
 
@@ -1858,10 +1861,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
   }
 
   // send a termination signal to the ZFP compression pool
-  for (auto &thread : zfp_pool) {
-    std::lock_guard<std::shared_mutex> guard(thread->zfp_mtx);
-    thread->zfp_fifo.push_back(-1);
-  }
+  terminate_compression = true;
 
   auto end_t = steady_clock::now();
 
@@ -2760,16 +2760,12 @@ void FITS::zfp_compression_thread(int tid) {
   printf("launched a ZFP compression thread#%d\n", tid);
 
   // await compression requests
-  bool done = false;
-  int frame;
+  while (!terminate_compression) {
+    size_t frame;
 
-  /*while (!done) {
-    while (zfp_pool[tid]->zfp_fifo.pop(frame))
-      if (frame == -1)
-        done = true;
-      else
-        zfp_compress_cube(frame);
-}*/
+    while (zfp_queue.pop(frame))
+      zfp_compress_cube(frame);
+  }
 
   printf("ZFP compression thread#%d has terminated.\n", tid);
 }
