@@ -169,8 +169,6 @@ public:
 
   // ZFP compression
   std::thread compress_thread;
-
-  // boost::lockfree::queue<int> zfp_queue{1024};
   std::vector<struct zfp_pool_thread> zfp_pool;
 
   std::mutex header_mtx;
