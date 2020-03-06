@@ -165,7 +165,8 @@ public:
   // ZFP compression
   std::thread compress_thread;
 
-  boost::lockfree::queue<int> zfp_queue{100};
+  // boost::lockfree::queue<int> zfp_queue{100};
+  std::vector<boost::lockfree::queue<int>> zfp_queue;
   std::vector<std::thread> zfp_pool;
 
   std::mutex header_mtx;
