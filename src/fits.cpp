@@ -1646,66 +1646,68 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     reduction(min                                                              \
               : _pmin) reduction(max                                           \
                                  : _pmax)
-for (size_t k = 0; k < depth; k += 4) {
-  size_t start_k = k;
+      for (size_t k = 0; k < depth; k += 4) {
+        size_t start_k = k;
         size_t end_k = MIN(k + 4, depth);
         for (size_t frame = start_k; frame < end_k; frame++) {
-      //for (size_t frame = 0; frame < depth; frame++) {
-        int tid = omp_get_thread_num();
-        // printf("tid: %d, k: %zu\n", tid, k);
-        if (mask_buf[tid] == NULL || omp_pixels[tid] == NULL ||
-            omp_mask[tid] == NULL) {
-          fprintf(stderr,
-                  "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
-                  "arrays.\n",
-                  dataset_id.c_str(), tid);
-          bSuccess = false;
-          continue;
+          // for (size_t frame = 0; frame < depth; frame++) {
+          int tid = omp_get_thread_num();
+          // printf("tid: %d, k: %zu\n", tid, k);
+          if (mask_buf[tid] == NULL || omp_pixels[tid] == NULL ||
+              omp_mask[tid] == NULL) {
+            fprintf(
+                stderr,
+                "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
+                "arrays.\n",
+                dataset_id.c_str(), tid);
+            bSuccess = false;
+            continue;
+          }
+
+          Ipp32f *pixels_buf = nullptr;
+
+          // point the cube element to an mmaped region
+          if (this->fits_ptr != nullptr) {
+            char *ptr = (char *)this->fits_ptr;
+            ptr += this->hdr_len + frame_size * frame;
+            fits_cube[frame] = ptr;
+            pixels_buf = (Ipp32f *)ptr;
+          }
+
+          if (pixels_buf == nullptr) {
+            fprintf(stderr, "%s::<tid::%d>::CRITICAL: pixels_buf is nullptr.\n",
+                    dataset_id.c_str(), tid);
+            bSuccess = false;
+          } else {
+            float fmin = FLT_MAX;
+            float fmax = -FLT_MAX;
+            float mean = 0.0f;
+            float integrated = 0.0f;
+
+            float _cdelt3 =
+                this->has_velocity
+                    ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                    : 1.0f;
+
+            ispc::make_image_spectrumF32_ro(
+                (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
+                datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
+                fmax, mean, integrated, plane_size);
+
+            _pmin = MIN(_pmin, fmin);
+            _pmax = MAX(_pmax, fmax);
+            frame_min[frame] = fmin;
+            frame_max[frame] = fmax;
+            mean_spectrum[frame] = mean;
+            integrated_spectrum[frame] = integrated;
+          }
+
+          send_progress_notification(frame, depth);
         }
 
-        Ipp32f *pixels_buf = nullptr;
-
-        // point the cube element to an mmaped region
-        if (this->fits_ptr != nullptr) {
-          char *ptr = (char *)this->fits_ptr;
-          ptr += this->hdr_len + frame_size * frame;
-          fits_cube[frame] = ptr;
-          pixels_buf = (Ipp32f *)ptr;
-        }
-
-        if (pixels_buf == nullptr) {
-          fprintf(stderr, "%s::<tid::%d>::CRITICAL: pixels_buf is nullptr.\n",
-                  dataset_id.c_str(), tid);
-          bSuccess = false;
-        } else {
-          float fmin = FLT_MAX;
-          float fmax = -FLT_MAX;
-          float mean = 0.0f;
-          float integrated = 0.0f;
-
-          float _cdelt3 = this->has_velocity
-                              ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                              : 1.0f;
-
-          ispc::make_image_spectrumF32_ro(
-              (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
-              datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
-              fmax, mean, integrated, plane_size);
-
-          _pmin = MIN(_pmin, fmin);
-          _pmax = MAX(_pmax, fmax);
-          frame_min[frame] = fmin;
-          frame_max[frame] = fmax;
-          mean_spectrum[frame] = mean;
-          integrated_spectrum[frame] = integrated;
-        }
-
-        send_progress_notification(frame, depth);
+        // append <start_k> to a ZFP compression queue
+        zfp_compress_cube(start_k);
       }
-
-      // append <start_k> to a ZFP compression queue
-      zfp_compress_cube(start_k);
-}
 
       // join omp_{pixel,mask}
 
@@ -1758,11 +1760,13 @@ for (size_t k = 0; k < depth; k += 4) {
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
 
-#pragma omp parallel num_threads(no_omp_threads)
-      {
-#pragma omp single
+      // ZFP requires blocks-of-4 processing
+      for (size_t k = 0; k < depth; k += 4) {
         {
-          for (size_t frame = 0; frame < depth; frame++) {
+          size_t start_k = k;
+          size_t end_k = MIN(k + 4, depth);
+
+          for (size_t frame = start_k; frame < end_k; frame++) {
             // allocate {pixel_buf, mask_buf}
             std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                                Ipp32fFree);
@@ -1817,249 +1821,166 @@ for (size_t k = 0; k < depth; k += 4) {
 
             send_progress_notification(frame, depth);
           }
+          // TO-DO: notify ZFP compression threads
         }
       }
+
+      dmin = _pmin;
+      dmax = _pmax;
+
+      /*printf("FMIN/FMAX\tSPECTRUM\n");
+        for (int i = 0; i < depth; i++)
+        printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i],
+        mean_spectrum[i], integrated_spectrum[i]); printf("\n");*/
     }
 
-    dmin = _pmin;
-    dmax = _pmax;
+    auto end_t = steady_clock::now();
 
-    /*printf("FMIN/FMAX\tSPECTRUM\n");
-      for (int i = 0; i < depth; i++)
-      printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i],
-      mean_spectrum[i], integrated_spectrum[i]); printf("\n");*/
+    double elapsedSeconds = ((end_t - start_t).count()) *
+                            steady_clock::period::num /
+                            static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n",
+           dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax,
+           elapsedMilliseconds);
+
+    if (bSuccess) {
+      send_progress_notification(depth, depth);
+      /*for (int i = 0; i < depth; i++)
+        std::cout << "mask[" << i << "]::cardinality: " <<
+        masks[i].cardinality()
+        << ", size: " << masks[i].getSizeInBytes() << " bytes"
+        << std::endl;*/
+
+      make_image_statistics();
+
+      printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f "
+             "madN: %f black: %f white: %f sensitivity: %f flux: %s\n",
+             dataset_id.c_str(), this->min, this->max, this->median, this->mad,
+             this->madP, this->madN, this->black, this->white,
+             this->sensitivity, this->flux.c_str());
+
+      make_image_luma();
+
+      make_exr_image();
+    } else {
+      this->has_error = true;
+    }
+
+    this->has_data = bSuccess ? true : false;
+    this->processed_data = true;
+    this->data_cv.notify_all();
+    this->timestamp = std::time(nullptr);
   }
 
-  auto end_t = steady_clock::now();
+  void FITS::make_exr_image() {
+    auto start_t = steady_clock::now();
 
-  double elapsedSeconds = ((end_t - start_t).count()) *
-                          steady_clock::period::num /
-                          static_cast<double>(steady_clock::period::den);
-  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+    // save luminance only for the time being
 
-  printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n",
-         dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax,
-         elapsedMilliseconds);
+    /*Array2D<Rgba> pixels(height, width);
 
-  if (bSuccess) {
-    send_progress_notification(depth, depth);
-    /*for (int i = 0; i < depth; i++)
-      std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
-      << ", size: " << masks[i].getSizeInBytes() << " bytes"
-      << std::endl;*/
+  #pragma omp parallel for
+    for (long i = 0; i < height; i++) {
+      size_t offset = i * height;
 
-    make_image_statistics();
+      for (long j = 0; j < width; j++) {
+        Rgba &p = pixels[i][j];
 
-    printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f "
-           "madN: %f black: %f white: %f sensitivity: %f flux: %s\n",
-           dataset_id.c_str(), this->min, this->max, this->median, this->mad,
-           this->madP, this->madN, this->black, this->white, this->sensitivity,
-           this->flux.c_str());
-
-    make_image_luma();
-
-    make_exr_image();
-  } else {
-    this->has_error = true;
-  }
-
-  this->has_data = bSuccess ? true : false;
-  this->processed_data = true;
-  this->data_cv.notify_all();
-  this->timestamp = std::time(nullptr);
-}
-
-void FITS::make_exr_image() {
-  auto start_t = steady_clock::now();
-
-  // save luminance only for the time being
-
-  /*Array2D<Rgba> pixels(height, width);
-
-#pragma omp parallel for
-  for (long i = 0; i < height; i++) {
-    size_t offset = i * height;
-
-    for (long j = 0; j < width; j++) {
-      Rgba &p = pixels[i][j];
-
-      if (img_mask[offset + j] > 0) {
-        float val = img_pixels[offset + j];
-        p.r = val;
-        p.g = val;
-        p.b = val;
-        p.a = 1.0f;
-      } else {
-        p.r = 0.0f;
-        p.g = 0.0f;
-        p.b = 0.0f;
-        p.a = 1.0f;
+        if (img_mask[offset + j] > 0) {
+          float val = img_pixels[offset + j];
+          p.r = val;
+          p.g = val;
+          p.b = val;
+          p.a = 1.0f;
+        } else {
+          p.r = 0.0f;
+          p.g = 0.0f;
+          p.b = 0.0f;
+          p.a = 1.0f;
+        }
       }
+    }*/
+
+    /*size_t work_size = width * height;
+    ispc::image_to_luminance_f32_logarithmic_inplace(
+        img_pixels, img_mask, this->min, this->max, this->lmin, this->lmax,
+        work_size);*/
+
+    size_t total_size = width * height;
+    Ipp16u *mask = ippsMalloc_16u_L(total_size);
+
+    if (mask == NULL) {
+      printf("%s::cannot malloc memory for a UNIT mask buffer.\n",
+             dataset_id.c_str());
+      return;
     }
-  }*/
-
-  /*size_t work_size = width * height;
-  ispc::image_to_luminance_f32_logarithmic_inplace(
-      img_pixels, img_mask, this->min, this->max, this->lmin, this->lmax,
-      work_size);*/
-
-  size_t total_size = width * height;
-  Ipp16u *mask = ippsMalloc_16u_L(total_size);
-
-  if (mask == NULL) {
-    printf("%s::cannot malloc memory for a UNIT mask buffer.\n",
-           dataset_id.c_str());
-    return;
-  }
 
 #pragma omp parallel for simd
-  for (size_t i = 0; i < total_size; i++)
-    mask[i] = img_mask[i];
+    for (size_t i = 0; i < total_size; i++)
+      mask[i] = img_mask[i];
 
-  // export EXR in a YA format
-  std::string filename = FITSCACHE + std::string("/") +
-                         boost::replace_all_copy(dataset_id, "/", "_") +
-                         std::string(".exr");
-  try {
-    Header header(width, height);
-    header.compression() = DWAB_COMPRESSION;
-    header.channels().insert("Y", Channel(FLOAT));
-    header.channels().insert("A", Channel(UINT));
+    // export EXR in a YA format
+    std::string filename = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".exr");
+    try {
+      Header header(width, height);
+      header.compression() = DWAB_COMPRESSION;
+      header.channels().insert("Y", Channel(FLOAT));
+      header.channels().insert("A", Channel(UINT));
 
-    OutputFile file(filename.c_str(), header);
-    FrameBuffer frameBuffer;
+      OutputFile file(filename.c_str(), header);
+      FrameBuffer frameBuffer;
 
-    frameBuffer.insert("Y", Slice(FLOAT, (char *)img_pixels, sizeof(Ipp32f) * 1,
-                                  sizeof(Ipp32f) * width));
+      frameBuffer.insert("Y",
+                         Slice(FLOAT, (char *)img_pixels, sizeof(Ipp32f) * 1,
+                               sizeof(Ipp32f) * width));
 
-    frameBuffer.insert("A", Slice(UINT, (char *)mask, sizeof(Ipp16u) * 1,
-                                  sizeof(Ipp16u) * width));
+      frameBuffer.insert("A", Slice(UINT, (char *)mask, sizeof(Ipp16u) * 1,
+                                    sizeof(Ipp16u) * width));
 
-    file.setFrameBuffer(frameBuffer);
-    file.writePixels(height);
-  } catch (const std::exception &exc) {
-    std::cerr << exc.what() << std::endl;
-  }
-
-  auto end_t = steady_clock::now();
-
-  double elapsedSeconds = ((end_t - start_t).count()) *
-                          steady_clock::period::num /
-                          static_cast<double>(steady_clock::period::den);
-  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-  printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
-
-  ippsFree(mask);
-}
-
-void FITS::make_image_luma() {
-  auto start_t = steady_clock::now();
-
-  int max_threads = omp_get_max_threads();
-
-  // keep the worksize within int32 limits
-  size_t total_size = width * height;
-  size_t max_work_size = 1024 * 1024 * 1024;
-  size_t work_size = MIN(total_size / max_threads, max_work_size);
-  int num_threads = total_size / work_size;
-
-  Ipp8u *img_luma = ippsMalloc_8u_L(total_size);
-
-  if (img_luma == NULL) {
-    printf("%s::cannot malloc memory for a 2D image luma buffer.\n",
-           dataset_id.c_str());
-    return;
-  }
-
-  memset(img_luma, 0, total_size);
-
-#pragma omp parallel for
-  for (int tid = 0; tid < num_threads; tid++) {
-    size_t work_size = total_size / num_threads;
-    size_t start = tid * work_size;
-
-    if (tid == num_threads - 1)
-      work_size = total_size - start;
-
-    // switch to a different luma based on the flux
-    if (this->flux == "linear") {
-      float slope = 1.0f / (this->white - this->black);
-      ispc::image_to_luminance_f32_linear(&(img_pixels[start]),
-                                          &(img_mask[start]), this->black,
-                                          slope, &(img_luma[start]), work_size);
+      file.setFrameBuffer(frameBuffer);
+      file.writePixels(height);
+    } catch (const std::exception &exc) {
+      std::cerr << exc.what() << std::endl;
     }
 
-    if (this->flux == "logistic")
-      ispc::image_to_luminance_f32_logistic(
-          &(img_pixels[start]), &(img_mask[start]), this->median,
-          this->sensitivity, &(img_luma[start]), work_size);
+    auto end_t = steady_clock::now();
 
-    if (this->flux == "ratio")
-      ispc::image_to_luminance_f32_ratio(
-          &(img_pixels[start]), &(img_mask[start]), this->black,
-          this->sensitivity, &(img_luma[start]), work_size);
+    double elapsedSeconds = ((end_t - start_t).count()) *
+                            steady_clock::period::num /
+                            static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-    if (this->flux == "square")
-      ispc::image_to_luminance_f32_square(
-          &(img_pixels[start]), &(img_mask[start]), this->black,
-          this->sensitivity, &(img_luma[start]), work_size);
+    printf("make_exr_image::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 
-    if (this->flux == "legacy")
-      ispc::image_to_luminance_f32_logarithmic(
-          &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
-          this->lmin, this->lmax, &(img_luma[start]), work_size);
-  };
+    ippsFree(mask);
+  }
 
-  auto end_t = steady_clock::now();
+  void FITS::make_image_luma() {
+    auto start_t = steady_clock::now();
 
-  double elapsedSeconds = ((end_t - start_t).count()) *
-                          steady_clock::period::num /
-                          static_cast<double>(steady_clock::period::den);
-  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+    int max_threads = omp_get_max_threads();
 
-  printf("make_image_luma::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
+    // keep the worksize within int32 limits
+    size_t total_size = width * height;
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
 
-  // export luma to a PGM file for a cross-check
-  std::string filename = FITSCACHE + std::string("/") +
-                         boost::replace_all_copy(dataset_id, "/", "_") +
-                         std::string(".pgm");
+    Ipp8u *img_luma = ippsMalloc_8u_L(total_size);
 
-  std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+    if (img_luma == NULL) {
+      printf("%s::cannot malloc memory for a 2D image luma buffer.\n",
+             dataset_id.c_str());
+      return;
+    }
 
-  if (!pgm_file)
-    return;
+    memset(img_luma, 0, total_size);
 
-  pgm_file << "P5" << std::endl;
-  pgm_file << width << " " << height << " 255" << std::endl;
-  pgm_file.write((const char *)img_luma, total_size);
-  pgm_file.close();
-
-  ippsFree(img_luma);
-}
-
-void FITS::make_image_statistics() {
-  int max_threads = omp_get_max_threads();
-
-  // keep the worksize within int32 limits
-  size_t total_size = width * height;
-  size_t max_work_size = 1024 * 1024 * 1024;
-  size_t work_size = MIN(total_size / max_threads, max_work_size);
-  int num_threads = total_size / work_size;
-
-  float _pmin = FLT_MAX;
-  float _pmax = -FLT_MAX;
-
-  if (this->depth == 1) {
-    _pmin = dmin;
-    _pmax = dmax;
-  } else {
-    float _cdelt3 = this->has_velocity
-                        ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                        : 1.0f;
-
-    // use pixels/mask to get min/max
-#pragma omp parallel for reduction(min : _pmin) reduction(max : _pmax)
+#pragma omp parallel for
     for (int tid = 0; tid < num_threads; tid++) {
       size_t work_size = total_size / num_threads;
       size_t start = tid * work_size;
@@ -2067,37 +1988,122 @@ void FITS::make_image_statistics() {
       if (tid == num_threads - 1)
         work_size = total_size - start;
 
-      // it also restores NaNs in the pixels array based on the mask
-      ispc::image_min_max(&(img_pixels[start]), &(img_mask[start]), _cdelt3,
-                          work_size, _pmin, _pmax);
+      // switch to a different luma based on the flux
+      if (this->flux == "linear") {
+        float slope = 1.0f / (this->white - this->black);
+        ispc::image_to_luminance_f32_linear(
+            &(img_pixels[start]), &(img_mask[start]), this->black, slope,
+            &(img_luma[start]), work_size);
+      }
+
+      if (this->flux == "logistic")
+        ispc::image_to_luminance_f32_logistic(
+            &(img_pixels[start]), &(img_mask[start]), this->median,
+            this->sensitivity, &(img_luma[start]), work_size);
+
+      if (this->flux == "ratio")
+        ispc::image_to_luminance_f32_ratio(
+            &(img_pixels[start]), &(img_mask[start]), this->black,
+            this->sensitivity, &(img_luma[start]), work_size);
+
+      if (this->flux == "square")
+        ispc::image_to_luminance_f32_square(
+            &(img_pixels[start]), &(img_mask[start]), this->black,
+            this->sensitivity, &(img_luma[start]), work_size);
+
+      if (this->flux == "legacy")
+        ispc::image_to_luminance_f32_logarithmic(
+            &(img_pixels[start]), &(img_mask[start]), this->min, this->max,
+            this->lmin, this->lmax, &(img_luma[start]), work_size);
     };
-  };
 
-  printf("%s::pixel_range<%f,%f>\n", dataset_id.c_str(), _pmin, _pmax);
+    auto end_t = steady_clock::now();
 
-  size_t len = width * height;
-  std::vector<Ipp32f> v(len);
-  // memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+    double elapsedSeconds = ((end_t - start_t).count()) *
+                            steady_clock::period::num /
+                            static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-  IppiSize roiSize;
-  roiSize.width = width;
-  roiSize.height = height;
-  ippiCopy_32f_C1R(img_pixels, width * sizeof(Ipp32f), v.data(),
-                   width * sizeof(Ipp32f), roiSize);
+    printf("make_image_luma::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
 
-  remove_nan(v);
+    // export luma to a PGM file for a cross-check
+    std::string filename = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".pgm");
 
-  make_histogram(v, hist, NBINS, _pmin, _pmax);
+    std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
-  median = stl_median(v);
+    if (!pgm_file)
+      return;
 
-  float _mad = 0.0f;
-  int64_t _count = 0;
+    pgm_file << "P5" << std::endl;
+    pgm_file << width << " " << height << " 255" << std::endl;
+    pgm_file.write((const char *)img_luma, total_size);
+    pgm_file.close();
 
-  float _madP = 0.0f;
-  float _madN = 0.0f;
-  int64_t _countP = 0;
-  int64_t _countN = 0;
+    ippsFree(img_luma);
+  }
+
+  void FITS::make_image_statistics() {
+    int max_threads = omp_get_max_threads();
+
+    // keep the worksize within int32 limits
+    size_t total_size = width * height;
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
+
+    float _pmin = FLT_MAX;
+    float _pmax = -FLT_MAX;
+
+    if (this->depth == 1) {
+      _pmin = dmin;
+      _pmax = dmax;
+    } else {
+      float _cdelt3 = this->has_velocity
+                          ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                          : 1.0f;
+
+      // use pixels/mask to get min/max
+#pragma omp parallel for reduction(min : _pmin) reduction(max : _pmax)
+      for (int tid = 0; tid < num_threads; tid++) {
+        size_t work_size = total_size / num_threads;
+        size_t start = tid * work_size;
+
+        if (tid == num_threads - 1)
+          work_size = total_size - start;
+
+        // it also restores NaNs in the pixels array based on the mask
+        ispc::image_min_max(&(img_pixels[start]), &(img_mask[start]), _cdelt3,
+                            work_size, _pmin, _pmax);
+      };
+    };
+
+    printf("%s::pixel_range<%f,%f>\n", dataset_id.c_str(), _pmin, _pmax);
+
+    size_t len = width * height;
+    std::vector<Ipp32f> v(len);
+    // memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+
+    IppiSize roiSize;
+    roiSize.width = width;
+    roiSize.height = height;
+    ippiCopy_32f_C1R(img_pixels, width * sizeof(Ipp32f), v.data(),
+                     width * sizeof(Ipp32f), roiSize);
+
+    remove_nan(v);
+
+    make_histogram(v, hist, NBINS, _pmin, _pmax);
+
+    median = stl_median(v);
+
+    float _mad = 0.0f;
+    int64_t _count = 0;
+
+    float _madP = 0.0f;
+    float _madN = 0.0f;
+    int64_t _countP = 0;
+    int64_t _countN = 0;
 
 #pragma omp parallel for reduction(+					\
                                    : _mad) reduction(+			\
@@ -2106,480 +2112,611 @@ void FITS::make_image_statistics() {
                                                                                             : _countP) reduction(+ \
                                                                                                                  : _madN) reduction(+ \
                                                                                                                                     : _countN)
-  for (int tid = 0; tid < num_threads; tid++) {
-    size_t work_size = total_size / num_threads;
-    size_t start = tid * work_size;
+    for (int tid = 0; tid < num_threads; tid++) {
+      size_t work_size = total_size / num_threads;
+      size_t start = tid * work_size;
 
-    if (tid == num_threads - 1)
-      work_size = total_size - start;
+      if (tid == num_threads - 1)
+        work_size = total_size - start;
 
-    ispc::asymmetric_mad(&(img_pixels[start]), &(img_mask[start]), work_size,
-                         median, _count, _mad, _countP, _madP, _countN, _madN);
-  };
-
-  if (_count > 0)
-    _mad /= float(_count);
-
-  if (_countP > 0)
-    _madP /= float(_countP);
-  else
-    _madP = _mad;
-
-  if (_countN > 0)
-    _madN /= float(_countN);
-  else
-    _madN = _mad;
-
-  // ALMAWebQL-style
-  float u = 7.5f;
-  float _black = MAX(_pmin, median - u * _madN);
-  float _white = MIN(_pmax, median + u * _madP);
-  float _sensitivity = 1.0f / (_white - _black);
-  float _ratio_sensitivity = _sensitivity;
-
-  if (this->is_optical) {
-    // SubaruWebQL-style
-    float u = 0.5f;
-    float v = 15.0f;
-    _black = MAX(_pmin, median - u * _madN);
-    _white = MIN(_pmax, median + u * _madP);
-    _sensitivity = 1.0f / (v * _mad);
-    _ratio_sensitivity = _sensitivity;
-    auto_brightness(img_pixels, img_mask, _black, _ratio_sensitivity);
-  }
-
-  if (this->flux == "") {
-    long cdf[NBINS];
-    float Slot[NBINS];
-
-    long total = hist[0];
-    cdf[0] = hist[0];
-
-    for (int i = 1; i < NBINS; i++) {
-      cdf[i] = cdf[i - 1] + hist[i];
-      total += hist[i];
+      ispc::asymmetric_mad(&(img_pixels[start]), &(img_mask[start]), work_size,
+                           median, _count, _mad, _countP, _madP, _countN,
+                           _madN);
     };
 
-    for (int i = 0; i < NBINS; i++) {
-      Slot[i] = (float)cdf[i] / (float)total;
-    };
-
-    int tone_mapping_class = histogram_classifier(Slot);
-
-    switch (tone_mapping_class) {
-    case 0:
-      this->flux = std::string("legacy");
-      break;
-
-    case 1:
-      this->flux = std::string("linear");
-      break;
-
-    case 2:
-      this->flux = std::string("logistic");
-      break;
-
-    case 3:
-      this->flux = std::string("ratio");
-      break;
-
-    case 4:
-      this->flux = std::string("square");
-      break;
-
-    default:
-      this->flux = std::string("legacy");
-    };
-  }
-
-  this->min = _pmin;
-  this->max = _pmax;
-  this->mad = _mad;
-  this->madN = _madN;
-  this->madP = _madP;
-  this->black = _black;
-  this->white = _white;
-  this->sensitivity = _sensitivity;
-  this->ratio_sensitivity = _ratio_sensitivity;
-}
-
-void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
-                    float pmin, float pmax) {
-  if (v.size() <= 1)
-    return;
-
-  auto start_t = steady_clock::now();
-
-  for (int i = 0; i < nbins; i++)
-    bins[i] = 0;
-
-  int max_threads = omp_get_max_threads();
-
-  // keep the worksize within int32 limits
-  size_t total_size = v.size();
-  size_t max_work_size = 1024 * 1024 * 1024;
-  size_t work_size = MIN(total_size / max_threads, max_work_size);
-  int num_threads = total_size / work_size;
-
-  printf("make_histogram::num_threads: %d\n", num_threads);
-
-#pragma omp parallel for
-  for (int tid = 0; tid < num_threads; tid++) {
-    Ipp32u thread_hist[NBINS];
-
-    for (int i = 0; i < nbins; i++)
-      thread_hist[i] = 0;
-
-    size_t work_size = total_size / num_threads;
-    size_t start = tid * work_size;
-
-    if (tid == num_threads - 1)
-      work_size = total_size - start;
-
-    ispc::histogram((float *)&(v[start]), work_size, thread_hist, nbins, pmin,
-                    pmax);
-
-#pragma omp critical
-    {
-      IppStatus sts = ippsAdd_32u_I(thread_hist, bins, nbins);
-
-      if (sts != ippStsNoErr)
-        printf("%s\n", ippGetStatusString(sts));
-    };
-  };
-
-  auto end_t = steady_clock::now();
-
-  double elapsedSeconds = ((end_t - start_t).count()) *
-                          steady_clock::period::num /
-                          static_cast<double>(steady_clock::period::den);
-  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-  printf("make_histogram::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
-}
-
-inline const char *FITS::check_null(const char *str) {
-  if (str != nullptr)
-    return str;
-  else
-    return "\"\"";
-};
-
-void FITS::to_json(std::ostringstream &json) {
-  if (header == NULL || hdr_len == 0)
-    return;
-
-  Ipp8u *header_lz4 = NULL;
-  int compressed_size = 0;
-
-  // LZ4-compress the FITS header
-  int worst_size = LZ4_compressBound(hdr_len);
-
-  header_lz4 = ippsMalloc_8u_L(worst_size);
-
-  if (header_lz4 == NULL)
-    return;
-
-  // compress the header with LZ4
-  compressed_size = LZ4_compress_HC((const char *)header, (char *)header_lz4,
-                                    hdr_len, worst_size, LZ4HC_CLEVEL_MAX);
-  printf("FITS HEADER size %zu bytes, LZ4-compressed: %d bytes.\n", hdr_len,
-         compressed_size);
-
-  char *encoded_header = NULL;
-  char *fits_header =
-      base64((const unsigned char *)header_lz4, compressed_size);
-
-  ippsFree(header_lz4);
-
-  if (fits_header != NULL) {
-    encoded_header = json_encode_string(fits_header);
-    free(fits_header);
-  };
-
-  json << "{";
-
-  // header
-  json << "\"HEADERSIZE\" : " << hdr_len << ",";
-  json << "\"HEADER\" : " << check_null(encoded_header) << ",";
-
-  if (encoded_header != NULL)
-    free(encoded_header);
-
-  // fields
-  json << "\"width\" : " << width << ",";
-  json << "\"height\" : " << height << ",";
-  json << "\"depth\" : " << depth << ",";
-  json << "\"polarisation\" : " << polarisation << ",";
-  json << "\"filesize\" : " << fits_file_size << ",";
-  json << "\"IGNRVAL\" : " << std::scientific << ignrval << ",";
-
-  if (std::isnan(cd1_1))
-    json << "\"CD1_1\" : null,";
-  else
-    json << "\"CD1_1\" : " << std::scientific << cd1_1 << ",";
-
-  if (std::isnan(cd1_2))
-    json << "\"CD1_2\" : null,";
-  else
-    json << "\"CD1_2\" : " << std::scientific << cd1_2 << ",";
-
-  if (std::isnan(cd2_1))
-    json << "\"CD2_1\" : null,";
-  else
-    json << "\"CD2_1\" : " << std::scientific << cd2_1 << ",";
-
-  if (std::isnan(cd2_2))
-    json << "\"CD2_2\" : null,";
-  else
-    json << "\"CD2_2\" : " << std::scientific << cd2_2 << ",";
-
-  json << "\"CRVAL1\" : " << std::scientific << crval1 << ",";
-
-  if (std::isnan(cdelt1))
-    json << "\"CDELT1\" : null,";
-  else
-    json << "\"CDELT1\" : " << std::scientific << cdelt1 << ",";
-
-  json << "\"CRPIX1\" : " << std::scientific << crpix1 << ",";
-  json << "\"CUNIT1\" : \"" << cunit1 << "\",";
-  json << "\"CTYPE1\" : \"" << ctype1 << "\",";
-  json << "\"CRVAL2\" : " << std::scientific << crval2 << ",";
-
-  if (std::isnan(cdelt2))
-    json << "\"CDELT2\" : null,";
-  else
-    json << "\"CDELT2\" : " << std::scientific << cdelt2 << ",";
-
-  json << "\"CRPIX2\" : " << std::scientific << crpix2 << ",";
-  json << "\"CUNIT2\" : \"" << cunit2 << "\",";
-  json << "\"CTYPE2\" : \"" << ctype2 << "\",";
-  json << "\"CRVAL3\" : " << std::scientific << crval3 << ",";
-  json << "\"CDELT3\" : " << std::scientific << cdelt3 << ",";
-  json << "\"CRPIX3\" : " << std::scientific << crpix3 << ",";
-  json << "\"CUNIT3\" : \"" << cunit3 << "\",";
-  json << "\"CTYPE3\" : \"" << ctype3 << "\",";
-  json << "\"BMAJ\" : " << std::scientific << bmaj << ",";
-  json << "\"BMIN\" : " << std::scientific << bmin << ",";
-  json << "\"BPA\" : " << std::scientific << bpa << ",";
-  json << "\"BUNIT\" : \"" << beam_unit << "\",";
-  json << "\"BTYPE\" : \"" << beam_type << "\",";
-  json << "\"SPECSYS\" : \"" << specsys << "\",";
-  json << "\"RESTFRQ\" : " << std::scientific << restfrq << ",";
-  json << "\"OBSRA\" : " << std::scientific << obsra << ",";
-  json << "\"OBSDEC\" : " << std::scientific << obsdec << ",";
-  json << "\"OBJECT\" : \"" << object << "\",";
-  json << "\"DATEOBS\" : \"" << date_obs << "\",";
-  json << "\"TIMESYS\" : \"" << timesys << "\",";
-  json << "\"LINE\" : \"" << line << "\",";
-  json << "\"FILTER\" : \"" << filter << "\",";
-
-  // needs this->has_data
-
-  // mean spectrum
-  if (mean_spectrum.size() > 0) {
-    json << "\"mean_spectrum\" : [";
-
-    for (size_t i = 0; i < depth - 1; i++)
-      json << std::scientific << mean_spectrum[i] << ",";
-
-    json << std::scientific << mean_spectrum[depth - 1] << "],";
-  } else
-    json << "\"mean_spectrum\" : [],";
-
-  // integrated spectrum
-  if (integrated_spectrum.size() > 0) {
-    json << "\"integrated_spectrum\" : [";
-
-    for (size_t i = 0; i < depth - 1; i++)
-      json << std::scientific << integrated_spectrum[i] << ",";
-
-    json << std::scientific << integrated_spectrum[depth - 1] << "],";
-  } else
-    json << "\"integrated_spectrum\" : [],";
-
-  // statistics
-  json << "\"min\" : " << std::scientific << min << ",";
-  json << "\"max\" : " << std::scientific << max << ",";
-  json << "\"median\" : " << std::scientific << median << ",";
-  json << "\"sensitivity\" : " << std::scientific << sensitivity << ",";
-  json << "\"ratio_sensitivity\" : " << std::scientific << ratio_sensitivity
-       << ",";
-  json << "\"black\" : " << std::scientific << black << ",";
-  json << "\"white\" : " << std::scientific << white << ",";
-  json << "\"flux\" : \"" << flux << "\",";
-
-  // histogram
-  json << "\"histogram\" : [";
-  for (size_t i = 0; i < NBINS - 1; i++)
-    json << hist[i] << ",";
-  json << hist[NBINS - 1] << "]}";
-}
-
-void FITS::auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
-                           float &_ratio_sensitivity) {
-  if (std::isnan(_ratio_sensitivity))
-    return;
-
-  float target_brightness = 0.1f;
-  int max_iter = 20;
-  int iter = 0;
-
-  float a = 0.01f * _ratio_sensitivity;
-  float b = 100.0f * _ratio_sensitivity;
-
-  // perform the first step manually (verify that br(a) <= target_brightness <=
-  // br(b) )
-  float a_brightness = calculate_brightness(_pixels, _mask, _black, a);
-  float b_brightness = calculate_brightness(_pixels, _mask, _black, b);
-
-  if (target_brightness < a_brightness || target_brightness > b_brightness)
-    return;
-
-  do {
-    _ratio_sensitivity = 0.5f * (a + b);
-    float brightness =
-        calculate_brightness(_pixels, _mask, _black, _ratio_sensitivity);
-
-    printf("iteration: %d, sensitivity: %f, brightness: %f divergence: %f\n",
-           iter, _ratio_sensitivity, brightness,
-           fabs(target_brightness - brightness));
-
-    if (brightness > target_brightness)
-      b = _ratio_sensitivity;
-
-    if (brightness < target_brightness)
-      a = _ratio_sensitivity;
-
-    if (fabs(target_brightness - brightness) < 0.1f * target_brightness)
-      break;
-
-  } while (iter++ < max_iter);
-
-  // an approximate solution
-  _ratio_sensitivity = 0.5f * (a + b);
-
-  printf("bi-section sensitivity = %f\n", _ratio_sensitivity);
-}
-
-float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
-                                 float _sensitivity) {
-  int max_threads = omp_get_max_threads();
-  size_t total_size = width * height;
-  size_t max_work_size = 1024 * 1024 * 1024;
-  size_t work_size = MIN(total_size / max_threads, max_work_size);
-  int num_threads = total_size / work_size;
-
-  float brightness = 0.0f;
-
-#pragma omp parallel for reduction(+ : brightness)
-  for (int tid = 0; tid < num_threads; tid++) {
-    size_t work_size = total_size / num_threads;
-    size_t start = tid * work_size;
-
-    if (tid == num_threads - 1)
-      work_size = total_size - start;
-
-    brightness = ispc::pixels_mean_brightness_ratio(&(img_pixels[start]),
-                                                    &(img_mask[start]), _black,
-                                                    _sensitivity, work_size);
-  };
-
-  return brightness / float(num_threads);
-}
-
-void FITS::send_progress_notification(size_t running, size_t total) {
-  struct timespec now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
-
-  double elapsed;
-  elapsed = (now.tv_sec - this->created.tv_sec) * 1e9;
-  elapsed = (elapsed + (now.tv_nsec - this->created.tv_nsec)) * 1e-9;
-
-  std::lock_guard<std::shared_mutex> guard(progress_mtx);
-
-  this->progress.running = running;
-  this->progress.total = total;
-  this->progress.elapsed = elapsed;
-
-  /*std::ostringstream json;
-  json << "{"
-       << "\"type\" : \"progress\",";
-  json << "\"message\" : \"loading FITS\",";
-  json << "\"total\" : " << total << ",";
-  json << "\"running\" : " << running << ",";
-  json << "\"elapsed\" : " << elapsed << "}";*/
-
-  /*bool forced = (running == total) ? true : false;
-  if(boost::shared_ptr<shared_state> _state = state_.lock())
-    _state->send_progress  (json.str(), dataset_id, forced);*/
-
-  /*std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
-  TWebSocketList connections = m_progress[this->dataset_id];
-
-  for (auto it = connections.begin(); it != connections.end(); ++it) {
-    TWebSocket *ws = *it;
-
-    struct UserData *user = (struct UserData *)ws->getUserData();
-
-    if (user != NULL) {
-      if (check_progress_timeout(user->ptr, system_clock::now()) ||
-          (running == total)) {
-        // std::cout << json.str() << std::endl;
-        ws->send(json.str(), uWS::OpCode::TEXT);
-        update_progress_timestamp(user->ptr);
-      }
+    if (_count > 0)
+      _mad /= float(_count);
+
+    if (_countP > 0)
+      _madP /= float(_countP);
+    else
+      _madP = _mad;
+
+    if (_countN > 0)
+      _madN /= float(_countN);
+    else
+      _madN = _mad;
+
+    // ALMAWebQL-style
+    float u = 7.5f;
+    float _black = MAX(_pmin, median - u * _madN);
+    float _white = MIN(_pmax, median + u * _madP);
+    float _sensitivity = 1.0f / (_white - _black);
+    float _ratio_sensitivity = _sensitivity;
+
+    if (this->is_optical) {
+      // SubaruWebQL-style
+      float u = 0.5f;
+      float v = 15.0f;
+      _black = MAX(_pmin, median - u * _madN);
+      _white = MIN(_pmax, median + u * _madP);
+      _sensitivity = 1.0f / (v * _mad);
+      _ratio_sensitivity = _sensitivity;
+      auto_brightness(img_pixels, img_mask, _black, _ratio_sensitivity);
     }
-  };*/
-}
 
-void FITS::zfp_compress() {
-  printf("[%s]::zfp_compress started.\n", dataset_id.c_str());
+    if (this->flux == "") {
+      long cdf[NBINS];
+      float Slot[NBINS];
 
-  // do nothing for single planes
-  if (depth <= 1)
-    return;
+      long total = hist[0];
+      cdf[0] = hist[0];
 
-    // use blocks of 4; each zfp_compress_4_frames
-#pragma omp parallel for
-  for (size_t k = 0; k < depth; k += 4)
-    zfp_compress_cube(k);
+      for (int i = 1; i < NBINS; i++) {
+        cdf[i] = cdf[i - 1] + hist[i];
+        total += hist[i];
+      };
 
-  printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
-}
+      for (int i = 0; i < NBINS; i++) {
+        Slot[i] = (float)cdf[i] / (float)total;
+      };
 
-void FITS::zfp_compress_cube(size_t start_k) {
-  size_t end_k = MIN(start_k + 4, depth);
+      int tone_mapping_class = histogram_classifier(Slot);
 
-  for (size_t i = start_k; i < end_k; i++)
-    if (fits_cube[i] == NULL)
+      switch (tone_mapping_class) {
+      case 0:
+        this->flux = std::string("legacy");
+        break;
+
+      case 1:
+        this->flux = std::string("linear");
+        break;
+
+      case 2:
+        this->flux = std::string("logistic");
+        break;
+
+      case 3:
+        this->flux = std::string("ratio");
+        break;
+
+      case 4:
+        this->flux = std::string("square");
+        break;
+
+      default:
+        this->flux = std::string("legacy");
+      };
+    }
+
+    this->min = _pmin;
+    this->max = _pmax;
+    this->mad = _mad;
+    this->madN = _madN;
+    this->madP = _madP;
+    this->black = _black;
+    this->white = _white;
+    this->sensitivity = _sensitivity;
+    this->ratio_sensitivity = _ratio_sensitivity;
+  }
+
+  void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
+                      float pmin, float pmax) {
+    if (v.size() <= 1)
       return;
 
-  // allocate memory for pixels and a mask
-  const size_t plane_size = width * height;
-  const size_t frame_size = plane_size * abs(bitpix / 8);
+    auto start_t = steady_clock::now();
 
-  Ipp32f *pixels[4];
-  Ipp8u *mask[4];
+    for (int i = 0; i < nbins; i++)
+      bins[i] = 0;
 
-  bool ok = true;
+    int max_threads = omp_get_max_threads();
 
-  for (int i = 0; i < 4; i++) {
-    pixels[i] = ippsMalloc_32f_L(plane_size);
-    if (pixels[i] == NULL)
-      ok = false;
-    else
-      for (size_t j = 0; j < plane_size; j++)
-        pixels[i][j] = 0.0f;
+    // keep the worksize within int32 limits
+    size_t total_size = v.size();
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
 
-    mask[i] = ippsMalloc_8u_L(plane_size);
-    if (mask[i] == NULL)
-      ok = false;
-    else
-      memset(mask[i], 0, plane_size);
+    printf("make_histogram::num_threads: %d\n", num_threads);
+
+#pragma omp parallel for
+    for (int tid = 0; tid < num_threads; tid++) {
+      Ipp32u thread_hist[NBINS];
+
+      for (int i = 0; i < nbins; i++)
+        thread_hist[i] = 0;
+
+      size_t work_size = total_size / num_threads;
+      size_t start = tid * work_size;
+
+      if (tid == num_threads - 1)
+        work_size = total_size - start;
+
+      ispc::histogram((float *)&(v[start]), work_size, thread_hist, nbins, pmin,
+                      pmax);
+
+#pragma omp critical
+      {
+        IppStatus sts = ippsAdd_32u_I(thread_hist, bins, nbins);
+
+        if (sts != ippStsNoErr)
+          printf("%s\n", ippGetStatusString(sts));
+      };
+    };
+
+    auto end_t = steady_clock::now();
+
+    double elapsedSeconds = ((end_t - start_t).count()) *
+                            steady_clock::period::num /
+                            static_cast<double>(steady_clock::period::den);
+    double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+    printf("make_histogram::elapsed time: %5.2f [ms]\n", elapsedMilliseconds);
   }
 
-  if (!ok) {
+  inline const char *FITS::check_null(const char *str) {
+    if (str != nullptr)
+      return str;
+    else
+      return "\"\"";
+  };
+
+  void FITS::to_json(std::ostringstream & json) {
+    if (header == NULL || hdr_len == 0)
+      return;
+
+    Ipp8u *header_lz4 = NULL;
+    int compressed_size = 0;
+
+    // LZ4-compress the FITS header
+    int worst_size = LZ4_compressBound(hdr_len);
+
+    header_lz4 = ippsMalloc_8u_L(worst_size);
+
+    if (header_lz4 == NULL)
+      return;
+
+    // compress the header with LZ4
+    compressed_size = LZ4_compress_HC((const char *)header, (char *)header_lz4,
+                                      hdr_len, worst_size, LZ4HC_CLEVEL_MAX);
+    printf("FITS HEADER size %zu bytes, LZ4-compressed: %d bytes.\n", hdr_len,
+           compressed_size);
+
+    char *encoded_header = NULL;
+    char *fits_header =
+        base64((const unsigned char *)header_lz4, compressed_size);
+
+    ippsFree(header_lz4);
+
+    if (fits_header != NULL) {
+      encoded_header = json_encode_string(fits_header);
+      free(fits_header);
+    };
+
+    json << "{";
+
+    // header
+    json << "\"HEADERSIZE\" : " << hdr_len << ",";
+    json << "\"HEADER\" : " << check_null(encoded_header) << ",";
+
+    if (encoded_header != NULL)
+      free(encoded_header);
+
+    // fields
+    json << "\"width\" : " << width << ",";
+    json << "\"height\" : " << height << ",";
+    json << "\"depth\" : " << depth << ",";
+    json << "\"polarisation\" : " << polarisation << ",";
+    json << "\"filesize\" : " << fits_file_size << ",";
+    json << "\"IGNRVAL\" : " << std::scientific << ignrval << ",";
+
+    if (std::isnan(cd1_1))
+      json << "\"CD1_1\" : null,";
+    else
+      json << "\"CD1_1\" : " << std::scientific << cd1_1 << ",";
+
+    if (std::isnan(cd1_2))
+      json << "\"CD1_2\" : null,";
+    else
+      json << "\"CD1_2\" : " << std::scientific << cd1_2 << ",";
+
+    if (std::isnan(cd2_1))
+      json << "\"CD2_1\" : null,";
+    else
+      json << "\"CD2_1\" : " << std::scientific << cd2_1 << ",";
+
+    if (std::isnan(cd2_2))
+      json << "\"CD2_2\" : null,";
+    else
+      json << "\"CD2_2\" : " << std::scientific << cd2_2 << ",";
+
+    json << "\"CRVAL1\" : " << std::scientific << crval1 << ",";
+
+    if (std::isnan(cdelt1))
+      json << "\"CDELT1\" : null,";
+    else
+      json << "\"CDELT1\" : " << std::scientific << cdelt1 << ",";
+
+    json << "\"CRPIX1\" : " << std::scientific << crpix1 << ",";
+    json << "\"CUNIT1\" : \"" << cunit1 << "\",";
+    json << "\"CTYPE1\" : \"" << ctype1 << "\",";
+    json << "\"CRVAL2\" : " << std::scientific << crval2 << ",";
+
+    if (std::isnan(cdelt2))
+      json << "\"CDELT2\" : null,";
+    else
+      json << "\"CDELT2\" : " << std::scientific << cdelt2 << ",";
+
+    json << "\"CRPIX2\" : " << std::scientific << crpix2 << ",";
+    json << "\"CUNIT2\" : \"" << cunit2 << "\",";
+    json << "\"CTYPE2\" : \"" << ctype2 << "\",";
+    json << "\"CRVAL3\" : " << std::scientific << crval3 << ",";
+    json << "\"CDELT3\" : " << std::scientific << cdelt3 << ",";
+    json << "\"CRPIX3\" : " << std::scientific << crpix3 << ",";
+    json << "\"CUNIT3\" : \"" << cunit3 << "\",";
+    json << "\"CTYPE3\" : \"" << ctype3 << "\",";
+    json << "\"BMAJ\" : " << std::scientific << bmaj << ",";
+    json << "\"BMIN\" : " << std::scientific << bmin << ",";
+    json << "\"BPA\" : " << std::scientific << bpa << ",";
+    json << "\"BUNIT\" : \"" << beam_unit << "\",";
+    json << "\"BTYPE\" : \"" << beam_type << "\",";
+    json << "\"SPECSYS\" : \"" << specsys << "\",";
+    json << "\"RESTFRQ\" : " << std::scientific << restfrq << ",";
+    json << "\"OBSRA\" : " << std::scientific << obsra << ",";
+    json << "\"OBSDEC\" : " << std::scientific << obsdec << ",";
+    json << "\"OBJECT\" : \"" << object << "\",";
+    json << "\"DATEOBS\" : \"" << date_obs << "\",";
+    json << "\"TIMESYS\" : \"" << timesys << "\",";
+    json << "\"LINE\" : \"" << line << "\",";
+    json << "\"FILTER\" : \"" << filter << "\",";
+
+    // needs this->has_data
+
+    // mean spectrum
+    if (mean_spectrum.size() > 0) {
+      json << "\"mean_spectrum\" : [";
+
+      for (size_t i = 0; i < depth - 1; i++)
+        json << std::scientific << mean_spectrum[i] << ",";
+
+      json << std::scientific << mean_spectrum[depth - 1] << "],";
+    } else
+      json << "\"mean_spectrum\" : [],";
+
+    // integrated spectrum
+    if (integrated_spectrum.size() > 0) {
+      json << "\"integrated_spectrum\" : [";
+
+      for (size_t i = 0; i < depth - 1; i++)
+        json << std::scientific << integrated_spectrum[i] << ",";
+
+      json << std::scientific << integrated_spectrum[depth - 1] << "],";
+    } else
+      json << "\"integrated_spectrum\" : [],";
+
+    // statistics
+    json << "\"min\" : " << std::scientific << min << ",";
+    json << "\"max\" : " << std::scientific << max << ",";
+    json << "\"median\" : " << std::scientific << median << ",";
+    json << "\"sensitivity\" : " << std::scientific << sensitivity << ",";
+    json << "\"ratio_sensitivity\" : " << std::scientific << ratio_sensitivity
+         << ",";
+    json << "\"black\" : " << std::scientific << black << ",";
+    json << "\"white\" : " << std::scientific << white << ",";
+    json << "\"flux\" : \"" << flux << "\",";
+
+    // histogram
+    json << "\"histogram\" : [";
+    for (size_t i = 0; i < NBINS - 1; i++)
+      json << hist[i] << ",";
+    json << hist[NBINS - 1] << "]}";
+  }
+
+  void FITS::auto_brightness(Ipp32f * _pixels, Ipp8u * _mask, float _black,
+                             float &_ratio_sensitivity) {
+    if (std::isnan(_ratio_sensitivity))
+      return;
+
+    float target_brightness = 0.1f;
+    int max_iter = 20;
+    int iter = 0;
+
+    float a = 0.01f * _ratio_sensitivity;
+    float b = 100.0f * _ratio_sensitivity;
+
+    // perform the first step manually (verify that br(a) <= target_brightness
+    // <= br(b) )
+    float a_brightness = calculate_brightness(_pixels, _mask, _black, a);
+    float b_brightness = calculate_brightness(_pixels, _mask, _black, b);
+
+    if (target_brightness < a_brightness || target_brightness > b_brightness)
+      return;
+
+    do {
+      _ratio_sensitivity = 0.5f * (a + b);
+      float brightness =
+          calculate_brightness(_pixels, _mask, _black, _ratio_sensitivity);
+
+      printf("iteration: %d, sensitivity: %f, brightness: %f divergence: %f\n",
+             iter, _ratio_sensitivity, brightness,
+             fabs(target_brightness - brightness));
+
+      if (brightness > target_brightness)
+        b = _ratio_sensitivity;
+
+      if (brightness < target_brightness)
+        a = _ratio_sensitivity;
+
+      if (fabs(target_brightness - brightness) < 0.1f * target_brightness)
+        break;
+
+    } while (iter++ < max_iter);
+
+    // an approximate solution
+    _ratio_sensitivity = 0.5f * (a + b);
+
+    printf("bi-section sensitivity = %f\n", _ratio_sensitivity);
+  }
+
+  float FITS::calculate_brightness(Ipp32f * _pixels, Ipp8u * _mask,
+                                   float _black, float _sensitivity) {
+    int max_threads = omp_get_max_threads();
+    size_t total_size = width * height;
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(total_size / max_threads, max_work_size);
+    int num_threads = total_size / work_size;
+
+    float brightness = 0.0f;
+
+#pragma omp parallel for reduction(+ : brightness)
+    for (int tid = 0; tid < num_threads; tid++) {
+      size_t work_size = total_size / num_threads;
+      size_t start = tid * work_size;
+
+      if (tid == num_threads - 1)
+        work_size = total_size - start;
+
+      brightness = ispc::pixels_mean_brightness_ratio(
+          &(img_pixels[start]), &(img_mask[start]), _black, _sensitivity,
+          work_size);
+    };
+
+    return brightness / float(num_threads);
+  }
+
+  void FITS::send_progress_notification(size_t running, size_t total) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    double elapsed;
+    elapsed = (now.tv_sec - this->created.tv_sec) * 1e9;
+    elapsed = (elapsed + (now.tv_nsec - this->created.tv_nsec)) * 1e-9;
+
+    std::lock_guard<std::shared_mutex> guard(progress_mtx);
+
+    this->progress.running = running;
+    this->progress.total = total;
+    this->progress.elapsed = elapsed;
+
+    /*std::ostringstream json;
+    json << "{"
+         << "\"type\" : \"progress\",";
+    json << "\"message\" : \"loading FITS\",";
+    json << "\"total\" : " << total << ",";
+    json << "\"running\" : " << running << ",";
+    json << "\"elapsed\" : " << elapsed << "}";*/
+
+    /*bool forced = (running == total) ? true : false;
+    if(boost::shared_ptr<shared_state> _state = state_.lock())
+      _state->send_progress  (json.str(), dataset_id, forced);*/
+
+    /*std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
+    TWebSocketList connections = m_progress[this->dataset_id];
+
+    for (auto it = connections.begin(); it != connections.end(); ++it) {
+      TWebSocket *ws = *it;
+
+      struct UserData *user = (struct UserData *)ws->getUserData();
+
+      if (user != NULL) {
+        if (check_progress_timeout(user->ptr, system_clock::now()) ||
+            (running == total)) {
+          // std::cout << json.str() << std::endl;
+          ws->send(json.str(), uWS::OpCode::TEXT);
+          update_progress_timestamp(user->ptr);
+        }
+      }
+    };*/
+  }
+
+  void FITS::zfp_compress() {
+    printf("[%s]::zfp_compress started.\n", dataset_id.c_str());
+
+    // do nothing for single planes
+    if (depth <= 1)
+      return;
+
+      // use blocks of 4; each zfp_compress_4_frames
+#pragma omp parallel for
+    for (size_t k = 0; k < depth; k += 4)
+      zfp_compress_cube(k);
+
+    printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
+  }
+
+  void FITS::zfp_compress_cube(size_t start_k) {
+    size_t end_k = MIN(start_k + 4, depth);
+
+    for (size_t i = start_k; i < end_k; i++)
+      if (fits_cube[i] == NULL)
+        return;
+
+    // allocate memory for pixels and a mask
+    const size_t plane_size = width * height;
+    const size_t frame_size = plane_size * abs(bitpix / 8);
+
+    Ipp32f *pixels[4];
+    Ipp8u *mask[4];
+
+    bool ok = true;
+
+    for (int i = 0; i < 4; i++) {
+      pixels[i] = ippsMalloc_32f_L(plane_size);
+      if (pixels[i] == NULL)
+        ok = false;
+      else
+        for (size_t j = 0; j < plane_size; j++)
+          pixels[i][j] = 0.0f;
+
+      mask[i] = ippsMalloc_8u_L(plane_size);
+      if (mask[i] == NULL)
+        ok = false;
+      else
+        memset(mask[i], 0, plane_size);
+    }
+
+    if (!ok) {
+      for (int i = 0; i < 4; i++) {
+        if (pixels[i] != NULL)
+          ippsFree(pixels[i]);
+
+        if (mask[i] != NULL)
+          ippsFree(mask[i]);
+      }
+
+      return;
+    }
+
+    // use ispc to fill in the pixels and mask
+    int plane_count = 0;
+    for (size_t frame = start_k; frame < end_k; frame++) {
+      ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+                          datamin, datamax, pixels[plane_count],
+                          mask[plane_count], plane_size);
+
+      plane_count++;
+    }
+
+    // divide the image into 256 x 256 x 4 regions to be compressed individually
+    // a cache scheme will decompress those regions on demand
+    for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+      for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
+        // start a new ZFP stream
+        int encStateSize;
+        IppEncodeZfpState_32f *pEncState;
+        int pComprLen = 0;
+
+        Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * ZFP_CACHE_REGION *
+                                       ZFP_CACHE_REGION * 4);
+        ippsEncodeZfpGetStateSize_32f(&encStateSize);
+        pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+        ippsEncodeZfpInit_32f(
+            pBuffer, sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4),
+            pEncState);
+        // relative accuracy (a Fixed-Precision mode)
+        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
+                             pEncState);
+
+        // ... ZFP compression
+        int x, y;
+        int i, j, k;
+        float val;
+        float block[4 * 4 * 4];
+
+        // compress the pixels with ZFP
+        for (y = 0; y < ZFP_CACHE_REGION; y += 4)
+          for (x = 0; x < ZFP_CACHE_REGION; x += 4) {
+            // fill a 4x4x4 block
+            int offset = 0;
+            for (k = 0; k < 4; k++) {
+              for (j = y; j < y + 4; j++)
+                for (i = x; i < x + 4; i++) {
+                  if (src_x + i >= width || src_y + j >= height)
+                    val = 0.0f;
+                  else {
+                    // adjust the src offset for src_x and src_y
+                    size_t src = (src_y + j) * width + src_x + i;
+                    val = pixels[k][src];
+                  }
+
+                  block[offset++] = val;
+                }
+            }
+
+            ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
+                                 4 * 4 * sizeof(Ipp32f), pEncState);
+          }
+
+        ippsEncodeZfpFlush_32f(pEncState);
+        ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
+        ippsFree(pEncState);
+
+        printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
+               "= %d, "
+               "orig. "
+               "= %zu bytes.\n",
+               ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
+               pComprLen,
+               sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4));
+
+        // release the buffer
+        if (pBuffer != NULL)
+          ippsFree(pBuffer);
+      }
+
+    // compress the four masks with LZ4
+    Ipp8u *pBuffer = NULL;
+    int compressed_size = 0;
+    Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
+
+    size_t mask_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION * sizeof(Ipp8u);
+    int worst_size = LZ4_compressBound(mask_size);
+    pBuffer = ippsMalloc_8u_L(worst_size);
+
+    if (pBuffer != NULL) {
+      for (int k = 0; k < 4; k++) {
+        for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+          for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
+            int offset = 0;
+            char val;
+
+            for (int y = 0; y < ZFP_CACHE_REGION; y++)
+              for (int x = 0; x < ZFP_CACHE_REGION; x++) {
+                if (src_x + x >= width || src_y + y >= height)
+                  val = 0;
+                else {
+                  // adjust the src offset for src_x and src_y
+                  size_t src = (src_y + y) * width + src_x + x;
+                  val = mask[k][src];
+                }
+
+                _mask[offset++] = val;
+              }
+          }
+
+        // _mask has been filled-in; compress it
+        compressed_size =
+            LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
+                            worst_size, LZ4HC_CLEVEL_MAX);
+        printf("block mask size %zu bytes, LZ4-compressed: %d bytes.\n",
+               mask_size, compressed_size);
+      }
+
+      // LZ4 done, release the buffer
+      ippsFree(pBuffer);
+    }
+
     for (int i = 0; i < 4; i++) {
       if (pixels[i] != NULL)
         ippsFree(pixels[i]);
@@ -2588,137 +2725,7 @@ void FITS::zfp_compress_cube(size_t start_k) {
         ippsFree(mask[i]);
     }
 
-    return;
+    // advise the kernel it's OK to release memory
+    for (size_t frame = start_k; frame < end_k; frame++)
+      madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
   }
-
-  // use ispc to fill in the pixels and mask
-  int plane_count = 0;
-  for (size_t frame = start_k; frame < end_k; frame++) {
-    ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
-                        datamin, datamax, pixels[plane_count],
-                        mask[plane_count], plane_size);
-
-    plane_count++;
-  }
-
-  // divide the image into 256 x 256 x 4 regions to be compressed individually
-  // a cache scheme will decompress those regions on demand
-  for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
-    for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
-      // start a new ZFP stream
-      int encStateSize;
-      IppEncodeZfpState_32f *pEncState;
-      int pComprLen = 0;
-
-      Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * ZFP_CACHE_REGION *
-                                     ZFP_CACHE_REGION * 4);
-      ippsEncodeZfpGetStateSize_32f(&encStateSize);
-      pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-      ippsEncodeZfpInit_32f(
-          pBuffer, sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4),
-          pEncState);
-      // relative accuracy (a Fixed-Precision mode)
-      ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
-                           pEncState);
-
-      // ... ZFP compression
-      int x, y;
-      int i, j, k;
-      float val;
-      float block[4 * 4 * 4];
-
-      // compress the pixels with ZFP
-      for (y = 0; y < ZFP_CACHE_REGION; y += 4)
-        for (x = 0; x < ZFP_CACHE_REGION; x += 4) {
-          // fill a 4x4x4 block
-          int offset = 0;
-          for (k = 0; k < 4; k++) {
-            for (j = y; j < y + 4; j++)
-              for (i = x; i < x + 4; i++) {
-                if (src_x + i >= width || src_y + j >= height)
-                  val = 0.0f;
-                else {
-                  // adjust the src offset for src_x and src_y
-                  size_t src = (src_y + j) * width + src_x + i;
-                  val = pixels[k][src];
-                }
-
-                block[offset++] = val;
-              }
-          }
-
-          ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
-                               4 * 4 * sizeof(Ipp32f), pEncState);
-        }
-
-      ippsEncodeZfpFlush_32f(pEncState);
-      ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
-      ippsFree(pEncState);
-
-      printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
-             "= %d, "
-             "orig. "
-             "= %zu bytes.\n",
-             ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
-             pComprLen,
-             sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4));
-
-      // release the buffer
-      if (pBuffer != NULL)
-        ippsFree(pBuffer);
-    }
-
-  // compress the four masks with LZ4
-  Ipp8u *pBuffer = NULL;
-  int compressed_size = 0;
-  Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
-
-  size_t mask_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION * sizeof(Ipp8u);
-  int worst_size = LZ4_compressBound(mask_size);
-  pBuffer = ippsMalloc_8u_L(worst_size);
-
-  if (pBuffer != NULL) {
-    for (int k = 0; k < 4; k++) {
-      for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
-        for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION) {
-          int offset = 0;
-          char val;
-
-          for (int y = 0; y < ZFP_CACHE_REGION; y++)
-            for (int x = 0; x < ZFP_CACHE_REGION; x++) {
-              if (src_x + x >= width || src_y + y >= height)
-                val = 0;
-              else {
-                // adjust the src offset for src_x and src_y
-                size_t src = (src_y + y) * width + src_x + x;
-                val = mask[k][src];
-              }
-
-              _mask[offset++] = val;
-            }
-        }
-
-      // _mask has been filled-in; compress it
-      compressed_size =
-          LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
-                          worst_size, LZ4HC_CLEVEL_MAX);
-      printf("block mask size %zu bytes, LZ4-compressed: %d bytes.\n",
-             mask_size, compressed_size);
-    }
-
-    // LZ4 done, release the buffer
-    ippsFree(pBuffer);
-  }
-
-  for (int i = 0; i < 4; i++) {
-    if (pixels[i] != NULL)
-      ippsFree(pixels[i]);
-
-    if (mask[i] != NULL)
-      ippsFree(mask[i]);
-  }
-
-  // advise the kernel it's OK to release memory
-  for (size_t frame = start_k; frame < end_k; frame++)
-    madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
-}
