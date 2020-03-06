@@ -7,7 +7,6 @@
 #include <math.h>
 #include <mutex>
 #include <optional>
-#include <queue>
 #include <shared_mutex>
 #include <string.h>
 #include <string>
@@ -16,9 +15,10 @@
 #include <zlib.h>
 
 struct zfp_pool_thread {
-  std::thread zfp_thread;   // a compression thread
-  std::queue<int> zfp_fifo; // FIFO
-  std::mutex zfp_mtx;       // protect zfp_queue
+  std::thread zfp_thread; // a compression thread
+  // boost::lockfree::queue<int, boost::lockfree::capacity<1024>> zfp_fifo;
+  std::vector<int> zfp_fifo; // FIFO
+  std::shared_mutex zfp_mtx; // protect zfp_queue
 };
 
 using namespace std::chrono;
@@ -94,6 +94,7 @@ private:
                              float _sensitivity);
   void send_progress_notification(size_t running, size_t total);
   void zfp_compress();
+  void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t frame);
 
 public:
@@ -169,7 +170,7 @@ public:
 
   // ZFP compression
   std::thread compress_thread;
-  std::vector<struct zfp_pool_thread> zfp_pool;
+  std::vector<std::shared_ptr<struct zfp_pool_thread>> zfp_pool;
 
   std::mutex header_mtx;
   std::mutex data_mtx;

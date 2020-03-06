@@ -300,8 +300,8 @@ FITS::~FITS() {
     compress_thread.join();
 
   for (auto &thread : zfp_pool) {
-    if (thread.zfp_thread.joinable())
-      thread.zfp_thread.join();
+    if (thread->zfp_thread.joinable())
+      thread->zfp_thread.join();
   }
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
@@ -1625,6 +1625,24 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
     int max_threads = omp_get_max_threads();
 
+    for (int i = 0; i < max_threads; i++) {
+      std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
+
+      a_thread->zfp_thread =
+          std::thread(&FITS::zfp_compression_thread, this, i);
+
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread->zfp_thread.native_handle(),
+                                SCHED_IDLE, &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_IDLE.\n");
+
+      zfp_pool.push_back(a_thread);
+    }
+
     if (!is_compressed) {
       // pre-allocated floating-point read buffers
       // to reduce RAM thrashing
@@ -1712,7 +1730,10 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         }
 
         // append <start_k> to a ZFP compression queue
-        zfp_compress_cube(start_k);
+        int tid = omp_get_thread_num();
+        std::lock_guard<std::shared_mutex> guard(zfp_pool[tid]->zfp_mtx);
+        zfp_pool[tid]->zfp_fifo.push_back(start_k);
+        // zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -1834,6 +1855,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       for (int i = 0; i < depth; i++)
       printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i],
       mean_spectrum[i], integrated_spectrum[i]); printf("\n");*/
+  }
+
+  // send a termination signal to the ZFP compression pool
+  for (auto &thread : zfp_pool) {
+    std::lock_guard<std::shared_mutex> guard(thread->zfp_mtx);
+    thread->zfp_fifo.push_back(-1);
   }
 
   auto end_t = steady_clock::now();
@@ -2727,4 +2754,22 @@ void FITS::zfp_compress_cube(size_t start_k) {
   // advise the kernel it's OK to release memory
   for (size_t frame = start_k; frame < end_k; frame++)
     madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
+}
+
+void FITS::zfp_compression_thread(int tid) {
+  printf("launched a ZFP compression thread#%d\n", tid);
+
+  // await compression requests
+  bool done = false;
+  int frame;
+
+  /*while (!done) {
+    while (zfp_pool[tid]->zfp_fifo.pop(frame))
+      if (frame == -1)
+        done = true;
+      else
+        zfp_compress_cube(frame);
+}*/
+
+  printf("ZFP compression thread#%d has terminated.\n", tid);
 }
