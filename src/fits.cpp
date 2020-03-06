@@ -1761,67 +1761,65 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
 
-      // ZFP requires blocks-of-4 processing
-      for (size_t k = 0; k < depth; k += 4) {
-        size_t start_k = k;
-        size_t end_k = MIN(k + 4, depth);
+      // allocate {pixel_buf, mask_buf}
+      std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         Ipp32fFree);
+      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
 
-        for (size_t frame = start_k; frame < end_k; frame++) {
-          // allocate {pixel_buf, mask_buf}
-          std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
-                                             Ipp32fFree);
-          std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size),
-                                          Ipp8uFree);
+      if (pixels_buf.get() == NULL || mask_buf.get() == NULL) {
+        printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
+               "buffers.\n",
+               dataset_id.c_str());
+        bSuccess = false;
+      } else
+        // ZFP requires blocks-of-4 processing
+        for (size_t k = 0; k < depth; k += 4) {
+          size_t start_k = k;
+          size_t end_k = MIN(k + 4, depth);
 
-          if (pixels_buf.get() == NULL || mask_buf.get() == NULL) {
-            printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
-                   "buffers.\n",
-                   dataset_id.c_str());
-            bSuccess = false;
-            break;
+          for (size_t frame = start_k; frame < end_k; frame++) {
+            // load data into the buffer sequentially
+            ssize_t bytes_read = gzread(this->compressed_fits_stream,
+                                        pixels_buf.get(), frame_size);
+
+            if (bytes_read != frame_size) {
+              fprintf(stderr,
+                      "%s::CRITICAL: read less than %zd bytes from the FITS "
+                      "data unit\n",
+                      dataset_id.c_str(), bytes_read);
+              bSuccess = false;
+              break;
+            }
+
+            // process the buffer
+            float fmin = FLT_MAX;
+            float fmax = -FLT_MAX;
+            float mean = 0.0f;
+            float integrated = 0.0f;
+
+            float _cdelt3 =
+                this->has_velocity
+                    ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                    : 1.0f;
+
+            ispc::make_image_spectrumF32(
+                (int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale,
+                ignrval, datamin, datamax, _cdelt3, img_pixels, img_mask, fmin,
+                fmax, mean, integrated, plane_size);
+
+            _pmin = MIN(_pmin, fmin);
+            _pmax = MAX(_pmax, fmax);
+            frame_min[frame] = fmin;
+            frame_max[frame] = fmax;
+            mean_spectrum[frame] = mean;
+            integrated_spectrum[frame] = integrated;
+
+            // save a plane to an mmaped-file?
+
+            send_progress_notification(frame, depth);
           }
-
-          // load data into the buffer sequentially
-          ssize_t bytes_read = gzread(this->compressed_fits_stream,
-                                      pixels_buf.get(), frame_size);
-
-          if (bytes_read != frame_size) {
-            fprintf(stderr,
-                    "%s::CRITICAL: read less than %zd bytes from the FITS "
-                    "data unit\n",
-                    dataset_id.c_str(), bytes_read);
-            bSuccess = false;
-            break;
-          }
-
-          // process the buffer
-          float fmin = FLT_MAX;
-          float fmax = -FLT_MAX;
-          float mean = 0.0f;
-          float integrated = 0.0f;
-
-          float _cdelt3 = this->has_velocity
-                              ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                              : 1.0f;
-
-          ispc::make_image_spectrumF32(
-              (int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale,
-              ignrval, datamin, datamax, _cdelt3, img_pixels, img_mask, fmin,
-              fmax, mean, integrated, plane_size);
-
-          _pmin = MIN(_pmin, fmin);
-          _pmax = MAX(_pmax, fmax);
-          frame_min[frame] = fmin;
-          frame_max[frame] = fmax;
-          mean_spectrum[frame] = mean;
-          integrated_spectrum[frame] = integrated;
-
-          // save a plane to an mmaped-file?
-
-          send_progress_notification(frame, depth);
+          // TO-DO: notify ZFP compression threads
         }
-        // TO-DO: notify ZFP compression threads
-      }
     }
 
     dmin = _pmin;
