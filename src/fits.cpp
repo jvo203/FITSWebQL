@@ -299,6 +299,11 @@ FITS::~FITS() {
   if (compress_thread.joinable())
     compress_thread.join();
 
+  for (auto &thread : zfp_pool) {
+    if (thread.zfp_thread.joinable())
+      thread.zfp_thread.join();
+  }
+
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
   // clear the cube containing pointers to mmaped regions
