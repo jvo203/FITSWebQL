@@ -7,14 +7,14 @@
 #include <math.h>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <shared_mutex>
 #include <string.h>
 #include <string>
 #include <thread>
 #include <vector>
 #include <zlib.h>
-
-#include <boost/lockfree/queue.hpp>
+//#include <boost/lockfree/queue.hpp>
 
 using namespace std::chrono;
 
@@ -165,9 +165,10 @@ public:
   // ZFP compression
   std::thread compress_thread;
 
-  // boost::lockfree::queue<int> zfp_queue{100};
-  std::vector<boost::lockfree::queue<int>> zfp_queue;
-  std::vector<std::thread> zfp_pool;
+  // boost::lockfree::queue<int> zfp_queue{1024};
+  std::vector<std::mutex> zfp_mtx;        // protect zfp_queue
+  std::vector<std::queue<int>> zfp_queue; // FIFO
+  std::vector<std::thread> zfp_pool;      // a pool with compression threads
 
   std::mutex header_mtx;
   std::mutex data_mtx;
