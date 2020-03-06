@@ -159,7 +159,10 @@ public:
   std::atomic<bool> has_error;
   std::atomic<bool> processed_header;
   std::atomic<bool> processed_data;
+
+  // ZFP compression
   std::thread compress_thread;
+  std::vector<std::thread> compression_pool;
 
   std::mutex header_mtx;
   std::mutex data_mtx;
