@@ -14,6 +14,8 @@
 #include <vector>
 #include <zlib.h>
 
+#include <boost/lockfree/queue.hpp>
+
 using namespace std::chrono;
 
 #include <ipp.h>
@@ -162,7 +164,9 @@ public:
 
   // ZFP compression
   std::thread compress_thread;
-  std::vector<std::thread> compression_pool;
+
+  boost::lockfree::queue<int> zfp_queue{100};
+  std::vector<std::thread> zfp_pool;
 
   std::mutex header_mtx;
   std::mutex data_mtx;
