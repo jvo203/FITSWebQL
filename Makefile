@@ -11,7 +11,8 @@ INC = -I/usr/include/postgresql -Ilz4
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -l:libpq.so.5 -lssl -lz -l:libnuma.so.1 -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+LIBS = -lsqlite3 -lcurl -lcrypto -lpq -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+#-l:libpq.so.5 -l:libnuma.so.1
 #-lbsd
 #-lstdc++fs
 #-Lzfp-0.5.5/lib -lzfp
@@ -45,7 +46,7 @@ gcc:
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/Cellar/czmq/4.2.0/include -I/usr/local/Cellar/zeromq/4.3.2/include -I/usr/local/Cellar/boost/1.71.0/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPPMAC) $(JEMALLOC)
+	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/Cellar/czmq/4.2.0/include -I/usr/local/Cellar/zeromq/4.3.2/include -I/usr/local/Cellar/boost/1.71.0/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -L/usr/local/lib -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib -L/usr/local/opt/czmq/lib $(IPPMAC) $(JEMALLOC)
 
 #clang -Xpreprocessor -fopenmp test.c -lomp
 
