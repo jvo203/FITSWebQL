@@ -22,7 +22,11 @@
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <experimental/algorithm>
+#else
 #include <parallel/algorithm>
+#endif
 
 char *base64(const unsigned char *input, int length) {
   BIO *bmem, *b64;
@@ -230,18 +234,21 @@ Ipp32f stl_median(std::vector<Ipp32f> &v) {
   Ipp32f medVal = NAN;
 
   size_t n = v.size() / 2;
-  //#ifdef __INTEL_COMPILER
-  //    std::nth_element(pstl::execution::par_unseq, v.begin(), v.begin() + n,
-  //    v.end());
-  //#else
+  #if defined(__APPLE__) && defined(__MACH__)
+    std::nth_element(v.begin(), v.begin() + n, v.end());
+  #else
   __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
-  //#endif
+  #endif
 
   if (v.size() % 2) {
     medVal = v[n];
   } else {
     // even sized vector -> average the two middle values
+#if defined(__APPLE__) && defined(__MACH__)
+    auto max_it = std::max_element(v.begin(), v.begin() + n);
+#else
     auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
+#endif
     medVal = (*max_it + v[n]) / 2.0f;
   }
 
@@ -1633,6 +1640,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
+#if !defined(__APPLE__) || !defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
@@ -1641,6 +1649,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
+#endif
 
       zfp_pool.push_back(std::move(a_thread));
     }
