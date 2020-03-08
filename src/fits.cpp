@@ -1640,7 +1640,16 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
-#if !defined(__APPLE__) || !defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_RR, &param) !=
+          0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_RR.\n");
+#else
       struct sched_param param;
       param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
@@ -1741,9 +1750,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         }
 
         // append <start_k> to a ZFP compression queue
-        /*int tid = omp_get_thread_num();
-        std::lock_guard<std::shared_mutex> guard(zfp_pool[tid]->zfp_mtx);
-        zfp_pool[tid]->zfp_fifo.push_back(start_k);*/
         zfp_queue.push(start_k);
         // zfp_compress_cube(start_k);
       }
