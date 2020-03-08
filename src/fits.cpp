@@ -22,8 +22,6 @@
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
-#include <pthread.h>
-
 #if defined(__APPLE__) && defined(__MACH__)
 #include <experimental/algorithm>
 #else
@@ -1644,7 +1642,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
 #if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
-      param.sched_priority = PTHREAD_MIN_PRIORITY;
+      param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER, &param) !=
           0)
         perror("pthread_setschedparam");
@@ -1653,7 +1651,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                "SCHED_OTHER.\n");
 #else
       struct sched_param param;
-      param.sched_priority = PTHREAD_MIN_PRIORITY;
+      param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
           0)
         perror("pthread_setschedparam");
