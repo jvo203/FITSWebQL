@@ -1643,12 +1643,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 #if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
-      if (pthread_setschedparam(a_thread.native_handle(), SCHED_RR, &param) !=
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_FIFO, &param) !=
           0)
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the zfp_compress thread priority to "
-               "SCHED_RR.\n");
+               "SCHED_FIFO.\n");
 #else
       struct sched_param param;
       param.sched_priority = 0;
