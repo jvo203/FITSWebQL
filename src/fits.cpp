@@ -22,6 +22,8 @@
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
+#include <pthread.h>
+
 #if defined(__APPLE__) && defined(__MACH__)
 #include <experimental/algorithm>
 #else
