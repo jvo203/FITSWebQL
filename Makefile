@@ -1,3 +1,6 @@
+# detect the OS
+UNAME_S := $(shell uname -s)
+
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
 SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
@@ -11,16 +14,32 @@ INC = -I/usr/include/postgresql -Ilz4
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lpq -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
-#-l:libpq.so.5 -l:libnuma.so.1
-#-lbsd
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+
+ifeq ($(UNAME_S),Linux)
+	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lbsd
+endif
+
+ifeq ($(UNAME_S),Darwin)
+	LIBS += -lpq
+endif 
+
 #-lstdc++fs
 #-Lzfp-0.5.5/lib -lzfp
 #-L/usr/local/lib64 -lzfp
 #$(HOME)/uWebSockets/uSockets/*.o
 #-luWS
-IPP = -L${IPPROOT}/lib/intel64 -lippi -lippdc -lipps -lippcore
-IPPMAC = -L${IPPROOT}/lib -lippi -lippdc -lipps -lippcore
+
+ifeq ($(UNAME_S),Linux)
+	IPP = -L${IPPROOT}/lib/intel64
+endif
+
+ifeq ($(UNAME_S),Darwin)
+	IPP = -L${IPPROOT}/lib 
+endif
+
+IPP += -lippi -lippdc -lipps -lippcore
+
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 TARGET=fitswebql
 
@@ -30,23 +49,17 @@ dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 	icpc -g -O3 -xHost -mcmodel large -qopenmp -qopenmp-simd -qopt-streaming-stores auto -funroll-loops -ipo -std=c++17 -fp-model fast -qopt-report=5 -qopt-report-phase=vec $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -ipp $(JEMALLOC)
 
-#$(JEMALLOC) 
-
 llvm:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 	clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
-
-#$(JEMALLOC)
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 	g++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
 
-#$(JEMALLOC)
-
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/Cellar/czmq/4.2.0/include -I/usr/local/Cellar/zeromq/4.3.2/include -I/usr/local/Cellar/boost/1.71.0/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -L/usr/local/lib -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib -L/usr/local/opt/czmq/lib $(IPPMAC) $(JEMALLOC)
+	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -L/usr/local/lib $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP) $(JEMALLOC)
 
 #clang -Xpreprocessor -fopenmp test.c -lomp
 
