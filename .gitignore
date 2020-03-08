@@ -19,6 +19,7 @@
 
 #Apple
 **/*.DS_Store
+fitswebql.dSYM/*
 
 #Microsoft Visual Code IDE
 /.vscode/
