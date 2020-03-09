@@ -235,7 +235,7 @@ Ipp32f stl_median(std::vector<Ipp32f> &v) {
 
   size_t n = v.size() / 2;
   #if defined(__APPLE__) && defined(__MACH__)
-    std::nth_element(v.begin(), v.begin() + n, v.end());
+    std::nth_element(std::execution::par_unseq, v.begin(), v.begin() + n, v.end());
   #else
   __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
   #endif
