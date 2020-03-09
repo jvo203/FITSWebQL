@@ -201,6 +201,7 @@ private:
 
   // mmap pointer to the underlying FITS file
   void *fits_ptr;
+  size_t fits_ptr_size;
 
   // a pointer array to 2D planes in a 3D cube
   std::vector<void *> fits_cube;

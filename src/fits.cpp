@@ -279,6 +279,7 @@ FITS::FITS() {
   this->img_pixels = NULL;
   this->img_mask = NULL;
   this->fits_ptr = nullptr;
+  this->fits_ptr_size = 0;
   this->defaults();
 }
 
@@ -299,6 +300,7 @@ FITS::FITS(std::string id, std::string flux) {
   this->img_pixels = NULL;
   this->img_mask = NULL;
   this->fits_ptr = nullptr;
+  this->fits_ptr_size = 0;
   this->defaults();
 }
 
@@ -316,8 +318,8 @@ FITS::~FITS() {
   // clear the cube containing pointers to mmaped regions
   fits_cube.clear();
 
-  if (fits_ptr != NULL && fits_file_size > 0)
-    munmap(fits_ptr, fits_file_size);
+  if (fits_ptr != NULL && fits_ptr_size > 0)
+    munmap(fits_ptr, fits_ptr_size);
 
   if (fits_file_desc != -1)
     close(fits_file_desc);
@@ -1359,8 +1361,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
   // mmap the FITS file
   if (this->fits_file_desc != -1) {
+    this->fits_ptr_size = this->fits_file_size;
     this->fits_ptr =
-        mmap(nullptr, this->fits_file_size, PROT_READ,
+        mmap(nullptr, this->fits_ptr_size, PROT_READ,
              MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
 
     if (this->fits_ptr == NULL) {
