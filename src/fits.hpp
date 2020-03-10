@@ -14,8 +14,8 @@
 #include <vector>
 #include <zlib.h>
 
-#include <boost/lockfree/queue.hpp>
 #include "fifo.hpp"
+#include <boost/lockfree/queue.hpp>
 
 using namespace std::chrono;
 

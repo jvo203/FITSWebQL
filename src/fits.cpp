@@ -234,11 +234,11 @@ Ipp32f stl_median(std::vector<Ipp32f> &v) {
   Ipp32f medVal = NAN;
 
   size_t n = v.size() / 2;
-  #if defined(__APPLE__) && defined(__MACH__)
-    std::nth_element(v.begin(), v.begin() + n, v.end());
-  #else
+#if defined(__APPLE__) && defined(__MACH__)
+  std::nth_element(v.begin(), v.begin() + n, v.end());
+#else
   __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
-  #endif
+#endif
 
   if (v.size() % 2) {
     medVal = v[n];
@@ -1646,8 +1646,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 #if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
-      if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER, &param) !=
-          0)
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the zfp_compress thread priority to "
@@ -1753,7 +1753,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         }
 
         // append <start_k> to a ZFP compression queue
-        zfp_queue.push(start_k);        
+        zfp_queue.push(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -1807,11 +1807,11 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
 
-      // mmap the FITS file  
+      // mmap the FITS file
       this->fits_ptr_size = this->depth * frame_size;
       this->fits_ptr =
-        mmap(nullptr, this->fits_ptr_size, PROT_READ | PROT_WRITE,
-             MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+          mmap(nullptr, this->fits_ptr_size, PROT_READ | PROT_WRITE,
+               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
       if (this->fits_ptr == NULL) {
         printf("%s::error mmaping ANON memory...\n", dataset_id.c_str());
@@ -1821,7 +1821,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         data_cv.notify_all();
         return;
       } else
-        printf("%s::mmapped ANON <%zu> memory...\n", dataset_id.c_str(), this->fits_ptr_size);
+        printf("%s::mmapped ANON <%zu> memory...\n", dataset_id.c_str(),
+               this->fits_ptr_size);
 
       // allocate {pixel_buf, mask_buf}
       /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
@@ -1842,15 +1843,15 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           for (size_t frame = start_k; frame < end_k; frame++) {
             Ipp32f *pixels_buf = nullptr;
 
-            // point the cube element to an mmaped region            
+            // point the cube element to an mmaped region
             char *ptr = (char *)this->fits_ptr;
-            ptr += frame_size * frame;            
+            ptr += frame_size * frame;
             fits_cube[frame] = ptr;
             pixels_buf = (Ipp32f *)ptr;
 
             // load data into the buffer sequentially
-            ssize_t bytes_read = gzread(this->compressed_fits_stream,
-                                        pixels_buf, frame_size);
+            ssize_t bytes_read =
+                gzread(this->compressed_fits_stream, pixels_buf, frame_size);
 
             if (bytes_read != frame_size) {
               fprintf(stderr,
@@ -1873,9 +1874,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                     : 1.0f;
 
             ispc::make_image_spectrumF32_ro(
-                (int32_t *)pixels_buf, mask_buf.get(), bzero, bscale,
-                ignrval, datamin, datamax, _cdelt3, img_pixels, img_mask, fmin,
-                fmax, mean, integrated, plane_size);
+                (int32_t *)pixels_buf, mask_buf.get(), bzero, bscale, ignrval,
+                datamin, datamax, _cdelt3, img_pixels, img_mask, fmin, fmax,
+                mean, integrated, plane_size);
 
             _pmin = MIN(_pmin, fmin);
             _pmax = MAX(_pmax, fmax);
