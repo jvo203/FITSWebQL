@@ -588,8 +588,14 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
   res->end(stream_generator(queue));
 
   // launch a separate image thread
-  std::thread([queue, fits]() {
+  std::thread([queue, fits, _width, _height]() {
     // calculate a new image size
+    float scale = get_image_scale(_width, _height, fits->width, fits->height);
+    int img_width = roundf(scale * fits->width);
+    int img_height = roundf(scale * fits->height);
+
+    printf("FITS image %d x %d --> %d x %d\n", _width, _height, img_width,
+           img_height);
 
     // downsize + make luminance
 
