@@ -520,11 +520,64 @@ generator_cb stream_generator(struct TransmitQueue *queue) {
   };
 }
 
+inline float get_screen_scale(int x) {
+  // return Math.floor(0.925*x) ;
+  return floorf(0.9f * float(x));
+}
+
+inline float get_image_scale_square(int width, int height, int img_width,
+                                    int img_height) {
+  float screen_dimension = get_screen_scale(MIN(width, height));
+  float image_dimension = MAX(img_width, img_height);
+
+  return screen_dimension / image_dimension;
+}
+
+inline float get_image_scale(int width, int height, int img_width,
+                             int img_height) {
+  if (img_width == img_height)
+    return get_image_scale_square(width, height, img_width, img_height);
+
+  if (img_height < img_width) {
+    float screen_dimension = 0.9f * float(height);
+    float image_dimension = img_height;
+
+    float scale = screen_dimension / image_dimension;
+
+    float new_image_width = scale * img_width;
+
+    if (new_image_width > 0.8f * float(width)) {
+      screen_dimension = 0.8f * float(width);
+      image_dimension = img_width;
+      scale = screen_dimension / image_dimension;
+    }
+
+    return scale;
+  }
+
+  if (img_width < img_height) {
+    float screen_dimension = 0.8f * float(width);
+    float image_dimension = img_width;
+
+    float scale = screen_dimension / image_dimension;
+
+    float new_image_height = scale * img_height;
+
+    if (new_image_height > 0.9f * float(height)) {
+      screen_dimension = 0.9f * float(height);
+      image_dimension = img_height;
+      scale = screen_dimension / image_dimension;
+    }
+
+    return scale;
+  }
+}
+
 void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                   int _height) {
   header_map mime;
-  mime.insert(std::pair<std::string, header_value>("Content-Type",
-                                                   {"image/png", false}));
+  mime.insert(std::pair<std::string, header_value>(
+      "Content-Type", {"application/octet-stream", false}));
   mime.insert(std::pair<std::string, header_value>("Cache-Control",
                                                    {"no-cache", false}));
 
