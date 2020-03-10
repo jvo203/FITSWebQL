@@ -209,3 +209,6 @@ private:
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
 };
+
+IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);

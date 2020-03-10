@@ -597,9 +597,17 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     printf("FITS image %d x %d --> %d x %d\n", _width, _height, img_width,
            img_height);
 
-    // downsize + make luminance
+    size_t plane_size = img_width * img_height;
 
-    // append image bytes to the queue
+    // allocate {pixel_buf, mask_buf}
+    std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
+    std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+
+    if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
+      // downsize float32 pixels and a mask
+
+      // append image bytes to the queue
+    }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
     printf("[stream_image] number of remaining bytes: %zu\n",
