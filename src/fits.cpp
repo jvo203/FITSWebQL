@@ -2812,6 +2812,62 @@ void FITS::zfp_compression_thread(int tid) {
   printf("ZFP compression thread#%d has terminated.\n", tid);
 }
 
+IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
+  int specSize = 0, initSize = 0, bufSize = 0;
+
+  /* Spec and init buffer sizes */
+  IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
+                                           &specSize, &initSize);
+
+  if (status != ippStsNoErr)
+    return status;
+
+  IppiResizeSpec_32f *pSpec = 0;
+  Ipp8u *pInitBuf = 0;
+
+  /* Memory allocation */
+  pInitBuf = ippsMalloc_8u(initSize);
+  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
+
+  if (pInitBuf == NULL || pSpec == NULL) {
+    ippsFree(pInitBuf);
+    ippsFree(pSpec);
+    return ippStsNoMemErr;
+  }
+
+  /* Filter initialization */
+  status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
+  ippsFree(pInitBuf);
+
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  IppiBorderSize borderSize = {0, 0, 0, 0};
+  status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  /*IppiSize dstTileSize, dstLastTileSize;
+
+  int num_threads = omp_get_max_threads();
+
+  int slice = dstSize.height / num_threads;
+  int tail = dstSize.height % num_threads;
+
+  dstTileSize.width = dstSize.width;
+  dstTileSize.height = slice;
+
+  dstLastTileSize.width = dstSize.width;
+  dstLastTileSize.height = slice + tail;*/
+
+  return status;
+}
+
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
