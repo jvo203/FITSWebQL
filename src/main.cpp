@@ -617,12 +617,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       IppiSize srcSize;
       srcSize.width = _width;
       srcSize.height = _height;
-      Ipp32s srcStep = _width;
+      Ipp32s srcStep = srcSize.width;
 
       IppiSize dstSize;
       dstSize.width = img_width;
       dstSize.height = img_height;
-      Ipp32s dstStep = img_width;
+      Ipp32s dstStep = dstSize.width;
 
       IppStatus pixels_stat =
           ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
