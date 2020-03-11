@@ -629,7 +629,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                             pixels_buf.get(), dstSize, dstStep);
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
       // srcStep, mask_buf.get(), dstSize, dstStep);
-      std::cout << "IppStatus = " << pixels_stat << std::endl;
+      printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
 
       // append image bytes to the queue
       if (pixels_stat == ippStsNoErr /* && mask_stat == ippStsNoErr*/) {
