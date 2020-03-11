@@ -2876,6 +2876,15 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
             << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
             << std::endl;
 
+  // loop through the tiles
+
+  ippsFree(pSpec);
+
+  if (pBuffer == NULL)
+    return ippStsNoMemErr;
+
+  ippsFree(pBuffer);
+
   return status;
 }
 
@@ -2973,8 +2982,10 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                              &srcOffset, &srcSizeT);
 
         if (pStatus[i] == ippStsNoErr) {
-          pSrcT = (Ipp32f *)((char *)pSrc + srcOffset.y * srcStep);
-          pDstT = (Ipp32f *)((char *)pDst + dstOffset.y * dstStep);
+          pSrcT =
+              (Ipp32f *)((char *)pSrc + srcOffset.y * srcStep * sizeof(Ipp32f));
+          pDstT =
+              (Ipp32f *)((char *)pDst + dstOffset.y * dstStep * sizeof(Ipp32f));
 
           pOneBuf = pBuffer + i * bufSize1;
 
