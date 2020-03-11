@@ -210,8 +210,8 @@ private:
   // boost::weak_ptr<shared_state> state_;
 };
 
-IppStatus tileResize32f_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
+IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
