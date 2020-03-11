@@ -615,20 +615,11 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       dstSize.height = img_height ;
       Ipp32s dstStep = img_width ;
 
-      IppStatus pixels_stat = tileResize32f_C1R(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
-            
-      srcSize.width = _width ;
-      srcSize.height = _height ;
-      srcStep = _width ;
-      
-      dstSize.width = img_width ;
-      dstSize.height = img_height ;
-      dstStep = img_width ;
-
-      IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);      
+      IppStatus pixels_stat = tileResize32f_C1R(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);            
+      //IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
       // append image bytes to the queue
-      if(pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr) {
+      if(pixels_stat == ippStsNoErr/* && mask_stat == ippStsNoErr*/) {
         // compress the pixels + mask with OpenEXR
 
         // send the data to the web client
