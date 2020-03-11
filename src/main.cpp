@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-10.0"
+#define VERSION_STRING "SV2020-03-11.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -605,6 +605,19 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
       // downsize float32 pixels and a mask
+      IppiSize srcSize ;
+      srcSize.width = _width ;
+      srcSize.height = _height ;
+      Ipp32s srcStep = _width ;
+
+      IppiSize dstSize ;
+      dstSize.width = img_width ;
+      dstSize.height = img_height ;
+      Ipp32s dstStep = img_width ;
+
+
+      IppStatus status = tileResize32f_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
 
       // append image bytes to the queue
     }
