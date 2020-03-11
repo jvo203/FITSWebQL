@@ -615,11 +615,27 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       dstSize.height = img_height ;
       Ipp32s dstStep = img_width ;
 
+      IppStatus pixels_stat = tileResize32f_C1R(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+            
+      srcSize.width = _width ;
+      srcSize.height = _height ;
+      srcStep = _width ;
+      
+      dstSize.width = img_width ;
+      dstSize.height = img_height ;
+      dstStep = img_width ;
 
-      IppStatus status = tileResize32f_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
+      IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);      
 
       // append image bytes to the queue
+      if(pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr) {
+        // compress the pixels + mask with OpenEXR
+
+        // send the data to the web client
+        std::lock_guard<std::mutex> guard(queue->mtx);
+        char* ptr = (char*) pixels_buf.get();
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + plane_size * sizeof(Ipp32f));
+      }
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);

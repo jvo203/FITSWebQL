@@ -184,12 +184,14 @@ public:
   struct Progress progress;
   std::shared_mutex progress_mtx;
 
+  // float32 pixels and a mask
+  Ipp32f *img_pixels;
+  Ipp8u *img_mask;
+
 private:
   // FITS header
   char *header;
   size_t hdr_len;
-  Ipp32f *img_pixels;
-  Ipp8u *img_mask;
 
   // housekeeping
   struct timespec created;
