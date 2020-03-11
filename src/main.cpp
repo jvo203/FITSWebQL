@@ -612,37 +612,42 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
       // downsize float32 pixels and a mask
-      IppiSize srcSize ;
-      srcSize.width = _width ;
-      srcSize.height = _height ;
-      Ipp32s srcStep = _width ;
+      IppiSize srcSize;
+      srcSize.width = _width;
+      srcSize.height = _height;
+      Ipp32s srcStep = _width;
 
-      IppiSize dstSize ;
-      dstSize.width = img_width ;
-      dstSize.height = img_height ;
-      Ipp32s dstStep = img_width ;
+      IppiSize dstSize;
+      dstSize.width = img_width;
+      dstSize.height = img_height;
+      Ipp32s dstStep = img_width;
 
-      IppStatus pixels_stat = tileResize32f_C1R(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);            
-      //IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+      IppStatus pixels_stat =
+          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
+                            pixels_buf.get(), dstSize, dstStep);
+      // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
+      // srcStep, mask_buf.get(), dstSize, dstStep);
 
       // append image bytes to the queue
-      if(pixels_stat == ippStsNoErr/* && mask_stat == ippStsNoErr*/) {
+      if (pixels_stat == ippStsNoErr /* && mask_stat == ippStsNoErr*/) {
         // compress the pixels + mask with OpenEXR
 
         // export EXR in a Y format
-        std::string filename = FITSCACHE + std::string("/") +
-                         boost::replace_all_copy(fits->dataset_id, "/", "_") +
-                         std::string("_resize.exr");
+        std::string filename =
+            FITSCACHE + std::string("/") +
+            boost::replace_all_copy(fits->dataset_id, "/", "_") +
+            std::string("_resize.exr");
         try {
           Header header(img_width, img_height);
           header.compression() = DWAB_COMPRESSION;
-          header.channels().insert("Y", Channel(FLOAT));          
+          header.channels().insert("Y", Channel(FLOAT));
 
           OutputFile file(filename.c_str(), header);
           FrameBuffer frameBuffer;
 
-          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(), sizeof(Ipp32f) * 1,
-                                  sizeof(Ipp32f) * img_width));    
+          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+                                        sizeof(Ipp32f) * 1,
+                                        sizeof(Ipp32f) * img_width));
 
           file.setFrameBuffer(frameBuffer);
           file.writePixels(img_height);
@@ -652,8 +657,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
         // send the data to the web client
         std::lock_guard<std::mutex> guard(queue->mtx);
-        char* ptr = (char*) pixels_buf.get();
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + plane_size * sizeof(Ipp32f));
+        char *ptr = (char *)pixels_buf.get();
+        queue->fifo.insert(queue->fifo.end(), ptr,
+                           ptr + plane_size * sizeof(Ipp32f));
       }
     }
 
