@@ -2868,12 +2868,12 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   int bufSize1, bufSize2;
   ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
   ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
-  Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (numThreads - 1) + bufSize2);
+  Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
 
-  std::cout << "dstTileSize:" << dstTileSize.width << "\t" dstTileSize.height
+  std::cout << "dstTileSize:" << dstTileSize.width << "\t" << dstTileSize.height
             << "\tbufSize1 = " << bufSize1 << std::endl;
-  std::cout << "dstLastTileSize:" << dstLastTileSize.width
-            << "\t" dstLastTileSize.height << "\tbufSize2 = " << bufSize2
+  std::cout << "dstLastTileSize:" << dstLastTileSize.width << "\t"
+            << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
             << std::endl;
 
   return status;
