@@ -2852,7 +2852,7 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
     return status;
   }
 
-  /*IppiSize dstTileSize, dstLastTileSize;
+  IppiSize dstTileSize, dstLastTileSize;
 
   int num_threads = omp_get_max_threads();
 
@@ -2863,7 +2863,18 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   dstTileSize.height = slice;
 
   dstLastTileSize.width = dstSize.width;
-  dstLastTileSize.height = slice + tail;*/
+  dstLastTileSize.height = slice + tail;
+
+  int bufSize1, bufSize2;
+  ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
+  ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
+  Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (numThreads - 1) + bufSize2);
+
+  std::cout << "dstTileSize:" << dstTileSize.width << "\t" dstTileSize.height
+            << "\tbufSize1 = " << bufSize1 << std::endl;
+  std::cout << "dstLastTileSize:" << dstLastTileSize.width
+            << "\t" dstLastTileSize.height << "\tbufSize2 = " << bufSize2
+            << std::endl;
 
   return status;
 }
