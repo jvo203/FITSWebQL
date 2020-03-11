@@ -2982,8 +2982,8 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                              &srcOffset, &srcSizeT);
 
         if (pStatus[i] == ippStsNoErr) {
-          pSrcT = (Ipp32f *)((char *)pSrc + srcOffset.y * srcStep);
-          pDstT = (Ipp32f *)((char *)pDst + dstOffset.y * dstStep);
+          pSrcT = (Ipp32f *)(pSrc + srcOffset.y * srcStep);
+          pDstT = (Ipp32f *)(pDst + dstOffset.y * dstStep);
 
           pOneBuf = pBuffer + i * bufSize1;
 
