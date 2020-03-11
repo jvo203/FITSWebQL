@@ -617,12 +617,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       IppiSize srcSize;
       srcSize.width = _width;
       srcSize.height = _height;
-      Ipp32s srcStep = srcSize.width;
+      Ipp32s srcStep = srcSize.width * sizeof(Ipp32f);
 
       IppiSize dstSize;
       dstSize.width = img_width;
       dstSize.height = img_height;
-      Ipp32s dstStep = dstSize.width;
+      Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
 
       IppStatus pixels_stat =
           tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
