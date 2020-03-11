@@ -578,6 +578,8 @@ inline float get_image_scale(int width, int height, int img_width,
 
     return scale;
   }
+
+  return 1.0f;
 }
 
 void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
