@@ -625,8 +625,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       Ipp32s dstStep = img_width;
 
       IppStatus pixels_stat =
-          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
-                            pixels_buf.get(), dstSize, dstStep);
+          ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
+                             pixels_buf.get(), dstSize, dstStep);
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
       // srcStep, mask_buf.get(), dstSize, dstStep);
 
