@@ -15,9 +15,16 @@
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
+// OpenEXR
 #include <OpenEXR/IlmThread.h>
 #include <OpenEXR/ImfNamespace.h>
 #include <OpenEXR/ImfThreading.h>
+
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfOutputFile.h>
+
+using namespace OPENEXR_IMF_NAMESPACE;
 
 #include <omp.h>
 
@@ -621,6 +628,27 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       // append image bytes to the queue
       if(pixels_stat == ippStsNoErr/* && mask_stat == ippStsNoErr*/) {
         // compress the pixels + mask with OpenEXR
+
+        // export EXR in a Y format
+        std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(fits->dataset_id, "/", "_") +
+                         std::string("_resize.exr");
+        try {
+          Header header(img_width, img_height);
+          header.compression() = DWAB_COMPRESSION;
+          header.channels().insert("Y", Channel(FLOAT));          
+
+          OutputFile file(filename.c_str(), header);
+          FrameBuffer frameBuffer;
+
+          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(), sizeof(Ipp32f) * 1,
+                                  sizeof(Ipp32f) * img_width));    
+
+          file.setFrameBuffer(frameBuffer);
+          file.writePixels(img_height);
+        } catch (const std::exception &exc) {
+          std::cerr << exc.what() << std::endl;
+        }
 
         // send the data to the web client
         std::lock_guard<std::mutex> guard(queue->mtx);
