@@ -632,13 +632,13 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       dstSize.height = img_height;
       Ipp32s dstStep = dstSize.width;
 
-      IppStatus pixels_stat =
-          ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
-                             pixels_buf.get(), dstSize, dstStep);
-
       /*IppStatus pixels_stat =
-          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
-                            pixels_buf.get(), dstSize, dstStep);*/
+          ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
+                             pixels_buf.get(), dstSize, dstStep);*/
+
+      IppStatus pixels_stat =
+          tileResize8u_C1R_32f(fits->img_pixels, srcSize, srcStep,
+                               pixels_buf.get(), dstSize, dstStep);
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
       // srcStep, mask_buf.get(), dstSize, dstStep);
       printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
