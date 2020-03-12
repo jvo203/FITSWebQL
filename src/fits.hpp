@@ -59,6 +59,11 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize8u_C1R_32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
+IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
+                         IppiRect srcROI, Ipp32f *pDst, int dstStep,
+                         IppiSize dstRoiSize, double xFactor, double yFactor,
+                         int interpolation);
+
 struct Progress {
   size_t running;
   size_t total;
