@@ -2909,9 +2909,10 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
       pOneBuf = pBuffer + i * bufSize1;
 
-      pStatus[i] = ippiResizeLanczos_32f_C1R(
-          pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
-          dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
+      pStatus[i] =
+          ippiResizeLanczos_32f_C1R(pSrcT, srcStep /** sizeof(Ipp32f)*/, pDstT,
+                                    dstStep /** sizeof(Ipp32f)*/, dstOffset,
+                                    dstSizeT, border, 0, pSpec, pOneBuf);
     }
   }
 
