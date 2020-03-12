@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-11.0"
+#define VERSION_STRING "SV2020-03-12.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -625,8 +625,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       Ipp32s dstStep = dstSize.width;
 
       IppStatus pixels_stat =
+          ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
+                             pixels_buf.get(), dstSize, dstStep);
+
+      /*IppStatus pixels_stat =
           tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
-                            pixels_buf.get(), dstSize, dstStep);
+                            pixels_buf.get(), dstSize, dstStep);*/
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
       // srcStep, mask_buf.get(), dstSize, dstStep);
       printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
