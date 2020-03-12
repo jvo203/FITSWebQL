@@ -598,6 +598,14 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
   // launch a separate image thread
   std::thread([queue, fits, _width, _height]() {
+    // fill the pixels with dummy values for testing purposes
+    /*size_t offset = 0;
+    for (int i = 0; i < _height; i++)
+      for (int j = 0; j < _width; j++)
+        // fits->img_pixels[offset++] = logf(1.0f + i * j);
+        if (std::isnan(fits->img_pixels[offset]))
+          fits->img_pixels[offset++] = 0.0f;*/
+
     // calculate a new image size
     float scale = get_image_scale(_width, _height, fits->width, fits->height);
     int img_width = roundf(scale * fits->width);
