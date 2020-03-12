@@ -622,7 +622,42 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
       // downsize float32 pixels and a mask
-      IppiSize srcSize;
+
+      // a single-threaded version from the Internet
+      IppStatus pixels_stat;
+      {
+        IppiSize srcSize, dstSize;
+        IppiRect srcRoi; //, dstRoi;
+
+        srcSize.width = _width;
+        srcSize.height = _height;
+        dstSize.width = img_width;
+        dstSize.height = img_height;
+
+        srcRoi.x = 0;
+        srcRoi.y = 0;
+        srcRoi.width = srcSize.width;
+        srcRoi.height = srcSize.height;
+
+        /*dstRoi.x = 0;
+        dstRoi.y = 0;
+        dstRoi.width = dstSize.width;
+        dstRoi.height = dstSize.height;*/
+
+        int srcWidthStep = srcSize.width;
+        int dstWidthStep = dstSize.width;
+
+        double x_factor;
+        double y_factor;
+        x_factor = (double)dstSize.width / srcSize.width;
+        y_factor = (double)dstSize.height / srcSize.height;
+
+        pixels_stat = Resize_32f_C1R(
+            fits->img_pixels, srcSize, srcWidthStep, srcRoi, pixels_buf.get(),
+            dstWidthStep, dstSize, x_factor, y_factor, IPPI_INTER_LANCZOS);
+      }
+
+      /*IppiSize srcSize;
       srcSize.width = _width;
       srcSize.height = _height;
       Ipp32s srcStep = srcSize.width * 3; //???
@@ -636,11 +671,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
                              pixels_buf.get(), dstSize, dstStep);
 
-      /*IppStatus pixels_stat =
-          tileResize8u_C1R_32f(fits->img_pixels, srcSize, srcStep,
-                               pixels_buf.get(), dstSize, dstStep);*/
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
-      // srcStep, mask_buf.get(), dstSize, dstStep);
+      // srcStep, mask_buf.get(), dstSize, dstStep);*/
+
       printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
 
       // append image bytes to the queue
