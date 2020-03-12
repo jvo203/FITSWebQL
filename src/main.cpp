@@ -644,8 +644,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         dstRoi.width = dstSize.width;
         dstRoi.height = dstSize.height;*/
 
-        int srcWidthStep = srcSize.width;
-        int dstWidthStep = dstSize.width;
+        int srcWidthStep = srcSize.width * sizeof(Ippf32);
+        int dstWidthStep = dstSize.width * sizeof(Ippf32);
 
         double x_factor;
         double y_factor;
