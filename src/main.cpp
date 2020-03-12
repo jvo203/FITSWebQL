@@ -603,8 +603,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     int img_width = roundf(scale * fits->width);
     int img_height = roundf(scale * fits->height);
 
-    printf("FITS image %d x %d --> %d x %d\n", _width, _height, img_width,
-           img_height);
+    printf("FITS image re-scaling %f; %d x %d --> %d x %d\n", scale, _width,
+           _height, img_width, img_height);
 
     size_t plane_size = img_width * img_height;
 
