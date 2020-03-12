@@ -2821,6 +2821,8 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
                                            &specSize, &initSize);
 
+  printf("STATUS#1 %d : %s\n", status, ippGetStatusString(status));
+
   if (status != ippStsNoErr)
     return status;
 
@@ -2841,6 +2843,8 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
   ippsFree(pInitBuf);
 
+  printf("STATUS#2 %d : %s\n", status, ippGetStatusString(status));
+
   if (status != ippStsNoErr) {
     ippsFree(pSpec);
     return status;
@@ -2848,6 +2852,8 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   IppiBorderSize borderSize = {0, 0, 0, 0};
   status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
+  printf("STATUS#2 %d : %s\n", status, ippGetStatusString(status));
+
   if (status != ippStsNoErr) {
     ippsFree(pSpec);
     return status;
@@ -2870,6 +2876,10 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   int bufSize1, bufSize2;
   ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
   ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
+
+  bufSize1 *= sizeof(Ipp32f);
+  bufSize2 *= sizeof(Ipp32f);
+
   Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
 
   std::cout << "dstTileSize:" << dstTileSize.width << "\t" << dstTileSize.height
@@ -2895,6 +2905,7 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
     pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
                                          &srcSizeT);
+    printf("STATUS#[%d] %d : %s\n", status, i, ippGetStatusString(pStatus[i]));
 
     if (pStatus[i] == ippStsNoErr) {
       Ipp32f *pSrcT, *pDstT;
@@ -2909,10 +2920,9 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
       pOneBuf = pBuffer + i * bufSize1;
 
-      pStatus[i] =
-          ippiResizeLanczos_32f_C1R(pSrcT, srcStep /** sizeof(Ipp32f)*/, pDstT,
-                                    dstStep /** sizeof(Ipp32f)*/, dstOffset,
-                                    dstSizeT, border, 0, pSpec, pOneBuf);
+      pStatus[i] = ippiResizeLanczos_32f_C1R(
+          pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
+          dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
     }
   }
 
