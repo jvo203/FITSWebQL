@@ -2815,6 +2815,7 @@ void FITS::zfp_compression_thread(int tid) {
 IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                              Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
   int specSize = 0, initSize = 0, bufSize = 0;
+  IppiBorderType border = ippBorderRepl;
 
   /* Spec and init buffer sizes */
   IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
@@ -2855,6 +2856,7 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   IppiSize dstTileSize, dstLastTileSize;
 
   int num_threads = omp_get_max_threads();
+  IppStatus pStatus[num_threads];
 
   int slice = dstSize.height / num_threads;
   int tail = dstSize.height % num_threads;
@@ -2876,7 +2878,42 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
             << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
             << std::endl;
 
-  // loop through the tiles
+// loop through the tiles
+#pragma omp parallel num_threads(num_threads)
+  for (int i = 0; i < num_threads; i++) {
+    IppiPoint dstOffset = {0, 0};
+    IppiPoint srcOffset = {0, 0};
+
+    IppiSize srcSizeT = srcSize;
+    IppiSize dstSizeT = dstTileSize;
+
+    dstSizeT.height = slice;
+    dstOffset.y += i * slice;
+
+    if (i == num_threads - 1)
+      dstSizeT = dstLastTileSize;
+
+    pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
+                                         &srcSizeT);
+
+    if (pStatus[i] == ippStsNoErr) {
+      Ipp32f *pSrcT, *pDstT;
+      Ipp8u *pOneBuf;
+
+      pSrcT = pSrc + srcOffset.y * srcStep;
+      // pDstT = pDst + dstOffset.y * dstStep;
+      if (i == num_threads - 1)
+        pDstT = pDst;
+      else
+        pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+
+      pOneBuf = pBuffer + i * bufSize1;
+
+      pStatus[i] = ippiResizeLanczos_32f_C1R(
+          pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
+          dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
+    }
+  }
 
   ippsFree(pSpec);
 
@@ -2884,6 +2921,12 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
     return ippStsNoMemErr;
 
   ippsFree(pBuffer);
+
+  for (Ipp32u i = 0; i < num_threads; ++i) {
+    /* Return bad status */
+    if (pStatus[i] != ippStsNoErr)
+      return pStatus[i];
+  }
 
   return status;
 }
