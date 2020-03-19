@@ -83,3 +83,9 @@ ippzfp:
 
 resize:
 	icpc -g -O3 -xHost testIPPResize.cpp -ipp
+
+home:
+	g++ -march=native -g -O3 testIPPResize.cpp $(IPP)
+
+mac:
+	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 testIPPResize.cpp $(IPP)
