@@ -80,3 +80,6 @@ cypher:
 
 ippzfp:
 	icpc -g -O3 -xHost testIPPZFP.cpp -ipp
+
+resize:
+	icpc -g -O3 -xHost testIPPResize.cpp -ipp
