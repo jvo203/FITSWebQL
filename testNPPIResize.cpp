@@ -158,7 +158,8 @@ int main() {
 		  nDstStep,
 		  dstSize,
 		  dstROI,
-      NPPI_INTER_LANCZOS
+      NPPI_INTER_LINEAR
+      //NPPI_INTER_LANCZOS
 		  //NPPI_INTER_LANCZOS3_ADVANCED
     );
 
