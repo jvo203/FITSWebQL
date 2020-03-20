@@ -1,4 +1,5 @@
 #include <ipp.h>
+#include <math.h>
 
 #include <fstream>  // ifstream
 #include <iostream> // cout, cerr
@@ -109,7 +110,7 @@ int main() {
     Resize32f(pix32f, srcSize, srcStep, dstPix32f, dstSize, dstStep);
 
     for(size_t i=0; i<plane_size; i++)
-      dstPix8u[i] = (int)dstPix32f[i] ;
+      dstPix8u[i] = roundf(dstPix32f[i]) ;
 
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half_float.pgm";
