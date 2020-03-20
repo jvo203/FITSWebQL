@@ -71,28 +71,32 @@ int main() {
 
   // 8-bit unsigned integer pixels
   {
-    /*IppiSize srcSize;
+    NppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
-    Ipp32s srcStep = srcSize.width;
+    int srcStep = srcSize.width;
 
-    IppiSize dstSize;
+    NppiRect srcROI = {0, 0, srcSize.width, srcSize.height};
+
+    NppiSize dstSize;
     dstSize.width = img_width;
     dstSize.height = img_height;
-    Ipp32s dstStep = dstSize.width;*/
+    int dstStep = dstSize.width;
+
+    NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
     //resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
 
-    /*NppStatus nppiResize_32f_C1R 	( 	const Npp32f *  	pSrc,
-		int  	nSrcStep,
-		NppiSize  	oSrcSize,
-		NppiRect  	oSrcRectROI,
-		Npp32f *  	pDst,
-		int  	nDstStep,
-		NppiSize  	oDstSize,
-		NppiRect  	oDstRectROI,
-		int  	eInterpolation 
-	);*/
+    NppStatus status = nppiResize_8u_C1R 	(pix8u,
+		  srcStep,
+		  srcSize,
+		  srcROI,
+		  dstPix8u,
+		  dstStep,
+		  dstSize,
+		  dstROI,
+		  NPPI_INTER_LANCZOS3_ADVANCED
+    );
 
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half.pgm";
