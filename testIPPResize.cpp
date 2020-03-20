@@ -1,3 +1,5 @@
+#include <netpbm/pgm.h>
+
 #include <ipp.h>
 
 #include <fstream>  // ifstream
@@ -12,61 +14,55 @@ IppStatus Resize8u(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep, Ipp8u *pDst,
                    IppiSize dstSize, Ipp32s dstStep);
 
 IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
+                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);                    
 
 int main() {
-  int x = 0, y = 0, width = 0, height = 0;
-  ifstream infile("zero.pgm");
-  stringstream ss;
-  string inputLine = "";
+  int x = 0, y = 0, width = 0, height = 0, maxval = 0;
 
-  // First line : version
-  getline(infile, inputLine);
+  string inputLine = "";
+  std::string filename = "zero.pgm";
+  std::ifstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+  getline(pgm_file, inputLine);
+
   if (inputLine.compare("P5") != 0)
     cerr << "Version error" << endl;
   else
     cout << "Version : " << inputLine << endl;
 
   // Second line : comment
-  getline(infile, inputLine);
+  getline(pgm_file, inputLine);
   cout << "Comment : " << inputLine << endl;
 
-  // Continue with a stringstream
-  ss << infile.rdbuf();
-  // Third line : size
-  ss >> width >> height;
-  cout << width << " x " << height << endl;
+  pgm_file >> width >> height >> maxval;
+  cout << width << " x " << height << " maxval: " << maxval << endl;
 
-  uint8_t array[height][width];
+  size_t img_size = width * height;
+  uint8_t array[img_size];
 
-  // Following lines : data
-  for (y = 0; y < height; y++)
-    for (x = 0; x < width; x++)
-      ss >> array[y][x];
+  pgm_file.read((char*)array, img_size);
+  pgm_file.close();
 
-  // Now print the array to see the result
-  for (y = 0; y < height; y++) {
-    for (x = 0; x < width; x++) {
-      cout << (int)array[y][x] << " ";
-    }
-    cout << endl;
+  {
+    // export luma to a PGM file for a cross-check
+    std::string filename = "zero_src.pgm";
+    std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+    pgm_file << "P5" << std::endl;
+    pgm_file << width << " " << height << " 255" << std::endl;
+    pgm_file.write((const char *)array, img_size);
+    pgm_file.close();
   }
-  infile.close();
 
   // prepare the source arrays
-  size_t img_size = width * height;
 
   Ipp32f *pix32f = ippsMalloc_32f_L(img_size);
   Ipp8u *pix8u = ippsMalloc_8u_L(img_size);
 
-  size_t offset = 0;
-
-  for (y = 0; y < height; y++)
-    for (x = 0; x < width; x++) {
-      pix8u[offset] = array[y][x];
-      pix32f[offset] = (float)array[y][x];
-      offset++;
-    }
+  for(size_t i=0; i<img_size; i++) {
+    pix8u[i] = array[i];
+    pix32f[i] = (float)array[i];
+  }
 
   // the resize part
   int img_width = width / 2;
@@ -88,7 +84,8 @@ int main() {
     dstSize.height = img_height;
     Ipp32s dstStep = dstSize.width;
 
-    resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
+    //resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
+    Resize8u(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
 
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half.pgm";
@@ -111,6 +108,20 @@ int main() {
     dstSize.width = img_width;
     dstSize.height = img_height;
     Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
+
+    Resize32f(pix32f, srcSize, srcStep, dstPix32f, dstSize, dstStep);
+
+    for(size_t i=0; i<plane_size; i++)
+      dstPix8u[i] = (int)dstPix32f[i] ;
+
+    // export luma to a PGM file for a cross-check
+    std::string filename = "zero_half_float.pgm";
+    std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+    pgm_file << "P5" << std::endl;
+    pgm_file << img_width << " " << img_height << " 255" << std::endl;
+    pgm_file.write((const char *)dstPix8u, plane_size);
+    pgm_file.close();
   }
 
   // release the memory
@@ -242,6 +253,71 @@ IppStatus resizeExample_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   ippsFree(pSpec);
   ippsFree(pBuffer);
+
+  return status;
+}
+
+IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
+  IppStatus status;
+  // IppiPoint srcOffset = {0, 0};
+  IppiPoint dstOffset = {0, 0};
+  IppiBorderSize borderSize = {0, 0, 0, 0};
+  IppiBorderType border = ippBorderRepl;
+  const Ipp32f *pBorderValue = NULL;
+
+  IppiResizeSpec_32f *pSpec = 0;
+  int specSize = 0, initSize = 0, bufSize = 0;
+  Ipp8u *pBuffer = 0;
+  Ipp8u *pInitBuf = 0;
+
+  /* Spec and init buffer sizes */
+  status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0, &specSize,
+                                &initSize);
+
+  if (status != ippStsNoErr)
+    return status;
+
+  /* Memory allocation */
+  pInitBuf = ippsMalloc_8u(initSize);
+  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
+
+  if (pInitBuf == NULL || pSpec == NULL) {
+    ippsFree(pInitBuf);
+    ippsFree(pSpec);
+    return ippStsNoMemErr;
+  }
+
+  /* Filter initialization */
+  status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
+  ippsFree(pInitBuf);
+
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  std::cout << "borderSize: {" << borderSize.borderLeft << ","
+            << borderSize.borderTop << "," << borderSize.borderRight << ","
+            << borderSize.borderBottom << "}" << std::endl;
+
+  ippiResizeGetBufferSize_32f(pSpec, dstSize, ippC1, &bufSize);
+
+  pBuffer = ippsMalloc_8u(bufSize);
+
+  status =
+      ippiResizeLanczos_32f_C1R(pSrc, srcStep, pDst, dstStep, dstOffset, dstSize,
+                               border, pBorderValue, pSpec, pBuffer);
+
+  ippsFree(pBuffer);
+
+  ippsFree(pSpec);
 
   return status;
 }

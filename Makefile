@@ -82,13 +82,13 @@ ippzfp:
 	icpc -g -O3 -xHost testIPPZFP.cpp -ipp
 
 resize:
-	icpc -g -O3 -xHost testIPPResize.cpp -ipp
+	icpc -g -O3 -xHost testIPPResize.cpp -ipp -lnetpbm
 
 home:
-	g++ -march=native -g -O3 testIPPResize.cpp $(IPP)
+	g++ -march=native -g -O3 testIPPResize.cpp $(IPP) -lnetpbm
 
 mac:
-	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 testIPPResize.cpp $(IPP)
+	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 testIPPResize.cpp $(IPP) -lnetpbm
 
 nppi:
 	g++ -march=native -O3 -I/usr/local/cuda/include -I/usr/local/cuda/samples/common/inc testNPPIResize.cpp -L/usr/local/cuda/lib64 -lnppig -lnppisu -lculibos -lcudart_static -lpthread -ldl -lrt
