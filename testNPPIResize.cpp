@@ -1,18 +1,11 @@
-#include <ipp.h>
+extern "C" {
+#include <nppi.h>
+}
 
 #include <fstream>  // ifstream
 #include <iostream> // cout, cerr
 #include <sstream>  // stringstream
 using namespace std;
-
-IppStatus resizeExample_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
-
-IppStatus Resize8u(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep, Ipp8u *pDst,
-                   IppiSize dstSize, Ipp32s dstStep);
-
-IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
 int main() {
   int x = 0, y = 0, width = 0, height = 0;
@@ -56,8 +49,8 @@ int main() {
   // prepare the source arrays
   size_t img_size = width * height;
 
-  Ipp32f *pix32f = ippsMalloc_32f_L(img_size);
-  Ipp8u *pix8u = ippsMalloc_8u_L(img_size);
+  float *pix32f = (float*) calloc(img_size, sizeof(float));
+  uint8_t *pix8u = (uint8_t*) calloc(img_size, sizeof(uint8_t));
 
   size_t offset = 0;
 
@@ -73,12 +66,12 @@ int main() {
   int img_height = height / 2;
   size_t plane_size = img_width * img_height;
 
-  Ipp32f *dstPix32f = ippsMalloc_32f_L(plane_size);
-  Ipp8u *dstPix8u = ippsMalloc_8u_L(plane_size);
+  float *dstPix32f = (float*) calloc(plane_size, sizeof(uint8_t));
+  uint8_t *dstPix8u = (uint8_t*) calloc(plane_size, sizeof(uint8_t));
 
   // 8-bit unsigned integer pixels
   {
-    IppiSize srcSize;
+    /*IppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
     Ipp32s srcStep = srcSize.width;
@@ -86,9 +79,20 @@ int main() {
     IppiSize dstSize;
     dstSize.width = img_width;
     dstSize.height = img_height;
-    Ipp32s dstStep = dstSize.width;
+    Ipp32s dstStep = dstSize.width;*/
 
-    resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
+    //resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
+
+    /*NppStatus nppiResize_32f_C1R 	( 	const Npp32f *  	pSrc,
+		int  	nSrcStep,
+		NppiSize  	oSrcSize,
+		NppiRect  	oSrcRectROI,
+		Npp32f *  	pDst,
+		int  	nDstStep,
+		NppiSize  	oDstSize,
+		NppiRect  	oDstRectROI,
+		int  	eInterpolation 
+	);*/
 
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half.pgm";
@@ -101,7 +105,7 @@ int main() {
   }
 
   // 32-bit floating-point pixels
-  {
+  /*{
     IppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
@@ -111,137 +115,12 @@ int main() {
     dstSize.width = img_width;
     dstSize.height = img_height;
     Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
-  }
+  }*/
 
   // release the memory
-  ippsFree(pix32f);
-  ippsFree(pix8u);
+  free(pix32f);
+  free(pix8u);
 
-  ippsFree(dstPix32f);
-  ippsFree(dstPix8u);
-}
-
-IppStatus Resize8u(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep, Ipp8u *pDst,
-                   IppiSize dstSize, Ipp32s dstStep) {
-  IppStatus status;
-  // IppiPoint srcOffset = {0, 0};
-  IppiPoint dstOffset = {0, 0};
-  IppiBorderSize borderSize = {0, 0, 0, 0};
-  IppiBorderType border = ippBorderRepl;
-  const Ipp8u *pBorderValue = NULL;
-
-  IppiResizeSpec_32f *pSpec = 0;
-  int specSize = 0, initSize = 0, bufSize = 0;
-  Ipp8u *pBuffer = 0;
-  Ipp8u *pInitBuf = 0;
-
-  /* Spec and init buffer sizes */
-  status = ippiResizeGetSize_8u(srcSize, dstSize, ippLanczos, 0, &specSize,
-                                &initSize);
-
-  if (status != ippStsNoErr)
-    return status;
-
-  /* Memory allocation */
-  pInitBuf = ippsMalloc_8u(initSize);
-  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
-
-  if (pInitBuf == NULL || pSpec == NULL) {
-    ippsFree(pInitBuf);
-    ippsFree(pSpec);
-    return ippStsNoMemErr;
-  }
-
-  /* Filter initialization */
-  status = ippiResizeLanczosInit_8u(srcSize, dstSize, 3, pSpec, pInitBuf);
-  ippsFree(pInitBuf);
-
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  status = ippiResizeGetBorderSize_8u(pSpec, &borderSize);
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  std::cout << "borderSize: {" << borderSize.borderLeft << ","
-            << borderSize.borderTop << "," << borderSize.borderRight << ","
-            << borderSize.borderBottom << "}" << std::endl;
-
-  ippiResizeGetBufferSize_8u(pSpec, dstSize, ippC1, &bufSize);
-
-  pBuffer = ippsMalloc_8u(bufSize);
-
-  status =
-      ippiResizeLanczos_8u_C1R(pSrc, srcStep, pDst, dstStep, dstOffset, dstSize,
-                               border, pBorderValue, pSpec, pBuffer);
-
-  ippsFree(pBuffer);
-
-  ippsFree(pSpec);
-
-  return status;
-}
-
-IppStatus resizeExample_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep) {
-  IppiResizeSpec_32f *pSpec = 0;
-  int specSize = 0, initSize = 0, bufSize = 0;
-  Ipp8u *pBuffer = 0;
-  Ipp8u *pInitBuf = 0;
-  Ipp32u numChannels = ippC1;
-  IppiPoint dstOffset = {0, 0};
-  IppStatus status = ippStsNoErr;
-  IppiBorderType border = ippBorderRepl;
-
-  /* Spec and init buffer sizes */
-  status = ippiResizeGetSize_8u(srcSize, dstSize, ippLanczos, 0, &specSize,
-                                &initSize);
-
-  if (status != ippStsNoErr)
-    return status;
-
-  /* Memory allocation */
-  pInitBuf = ippsMalloc_8u(initSize);
-  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
-
-  if (pInitBuf == NULL || pSpec == NULL) {
-    ippsFree(pInitBuf);
-    ippsFree(pSpec);
-    return ippStsNoMemErr;
-  }
-
-  /* Filter initialization */
-  status = ippiResizeLanczosInit_8u(srcSize, dstSize, 3, pSpec, pInitBuf);
-  ippsFree(pInitBuf);
-
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  /* work buffer size */
-  status = ippiResizeGetBufferSize_8u(pSpec, dstSize, numChannels, &bufSize);
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  pBuffer = ippsMalloc_8u(bufSize);
-  if (pBuffer == NULL) {
-    ippsFree(pSpec);
-    return ippStsNoMemErr;
-  }
-
-  /* Resize processing */
-  status = ippiResizeLanczos_8u_C1R(pSrc, srcStep, pDst, dstStep, dstOffset,
-                                    dstSize, border, 0, pSpec, pBuffer);
-
-  ippsFree(pSpec);
-  ippsFree(pBuffer);
-
-  return status;
+  free(dstPix32f);
+  free(dstPix8u);
 }
