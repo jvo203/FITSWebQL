@@ -115,12 +115,24 @@ int main() {
   // 8-bit unsigned integer pixels
   {
     cudaError_t cudaRet ;
-		int 	nSrcStep;
+		int 	nSrcStep, nDstStep;
 		
 		// need to alloc cuda memory for source
 		Npp8u * pSrc = nppiMalloc_8u_C1(width, height, &nSrcStep);
 		
 		printf("nSrcStep %d \n", nSrcStep);
+
+    // Need to copy image from Host to GPU Pay attention GPU memory is in power of 2 thus stride copy is required
+		for(int i=0; i< height; i++)
+			cudaRet = cudaMemcpy(pSrc + i*nSrcStep, pix8u + i*width , width , cudaMemcpyHostToDevice);
+		
+		if (cudaRet != cudaSuccess)
+			throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+	
+		// need to alloc cuda memory for destination
+		Npp8u * pDst = nppiMalloc_8u_C1(img_width, img_height, &nDstStep);
+		
+		printf("nDstStep %d \n", nDstStep);
 
     NppiSize srcSize;
     srcSize.width = width;
@@ -138,12 +150,12 @@ int main() {
 
     // pix8u and dstPix8u need to be pointers to GPU cuda arrays
 
-    NppStatus status = nppiResize_8u_C1R 	(pix8u,
-		  srcStep,
+    NppStatus status = nppiResize_8u_C1R 	(pSrc,
+		  nSrcStep,
 		  srcSize,
 		  srcROI,
-		  dstPix8u,
-		  dstStep,
+		  pDst,
+		  nDstStep,
 		  dstSize,
 		  dstROI,
       NPPI_INTER_LANCZOS
@@ -152,16 +164,27 @@ int main() {
 
     std::cout << "NppStatus = " << status << std::endl;
 
+    if(status == NPP_SUCCESS)
+		{
+      // Need to copy image from GPU to HOST Pay attention GPU memory is in power of 2 thus stride copy is required
+			for(int i=0; i< img_height ; i++)
+				cudaRet = cudaMemcpy(dstPix8u + i*img_width ,pDst + i*nDstStep, img_width, cudaMemcpyDeviceToHost);
+			
+			if (cudaRet != cudaSuccess)
+				throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+
+      // export luma to a PGM file for a cross-check
+      std::string filename = "zero_half_nppi.pgm";
+      std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+      pgm_file << "P5" << std::endl;
+      pgm_file << img_width << " " << img_height << " 255" << std::endl;
+      pgm_file.write((const char *)dstPix8u, plane_size);
+      pgm_file.close();
+    }
+
     nppiFree(pSrc);
-
-    // export luma to a PGM file for a cross-check
-    std::string filename = "zero_half_nppi.pgm";
-    std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
-
-    pgm_file << "P5" << std::endl;
-    pgm_file << img_width << " " << img_height << " 255" << std::endl;
-    pgm_file.write((const char *)dstPix8u, plane_size);
-    pgm_file.close();
+    nppiFree(pDst);
   }
 
   // 32-bit floating-point pixels
