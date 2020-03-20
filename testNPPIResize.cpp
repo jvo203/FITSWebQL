@@ -1,6 +1,6 @@
-extern "C" {
+#include <cuda_runtime.h>
 #include <nppi.h>
-}
+
 
 #include <fstream>  // ifstream
 #include <iostream> // cout, cerr
