@@ -53,7 +53,6 @@ int main() {
   }
 
   // prepare the source arrays
-
   Ipp32f *pix32f = ippsMalloc_32f_L(img_size);
   Ipp8u *pix8u = ippsMalloc_8u_L(img_size);
 
