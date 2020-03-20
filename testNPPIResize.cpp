@@ -129,14 +129,11 @@ int main() {
     NppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
-    int srcStep = srcSize.width;
-
     NppiRect srcROI = {0, 0, srcSize.width, srcSize.height};
 
     NppiSize dstSize;
     dstSize.width = img_width;
     dstSize.height = img_height;
-    int dstStep = dstSize.width;
 
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
@@ -155,7 +152,7 @@ int main() {
 		  //NPPI_INTER_LANCZOS3_ADVANCED
     );
 
-    std::cout << "NppStatus = " << status << std::endl;
+    std::cout << "Npp8u::NppStatus = " << status << std::endl;
 
     if(status == NPP_SUCCESS)
 		{
@@ -181,17 +178,79 @@ int main() {
   }
 
   // 32-bit floating-point pixels
-  /*{
-    IppiSize srcSize;
+  {
+    cudaError_t cudaRet ;
+		int 	nSrcStep, nDstStep;
+		
+		// need to alloc cuda memory for source
+		Npp32f * pSrc = nppiMalloc_32f_C1(width, height, &nSrcStep);
+		
+		printf("nSrcStep %d \n", nSrcStep);
+
+    // Need to copy image from Host to GPU Pay attention GPU memory is in power of 2 thus stride copy is required
+		for(int i=0; i< height; i++)
+			cudaRet = cudaMemcpy(pSrc + i*nSrcStep, pix32f + i*width , width , cudaMemcpyHostToDevice);
+		
+		if (cudaRet != cudaSuccess)
+			throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+	
+		// need to alloc cuda memory for destination
+		Npp32f * pDst = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
+		
+		printf("nDstStep %d \n", nDstStep);
+
+    NppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
-    Ipp32s srcStep = srcSize.width * sizeof(Ipp32f);
+    NppiRect srcROI = {0, 0, srcSize.width, srcSize.height};
 
-    IppiSize dstSize;
+    NppiSize dstSize;
     dstSize.width = img_width;
     dstSize.height = img_height;
-    Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
-  }*/
+    NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
+
+    // pix8u and dstPix8u need to be pointers to GPU cuda arrays
+
+    NppStatus status = nppiResize_32f_C1R 	(pSrc,
+		  nSrcStep,
+		  srcSize,
+		  srcROI,
+		  pDst,
+		  nDstStep,
+		  dstSize,
+		  dstROI,
+      //NPPI_INTER_LINEAR
+      NPPI_INTER_LANCZOS
+		  //NPPI_INTER_LANCZOS3_ADVANCED
+    );
+
+    std::cout << "Npp32f::NppStatus = " << status << std::endl;
+
+    if(status == NPP_SUCCESS)
+		{
+      // Need to copy image from GPU to HOST Pay attention GPU memory is in power of 2 thus stride copy is required
+			for(int i=0; i< img_height ; i++)
+				cudaRet = cudaMemcpy(dstPix32f + i*img_width ,pDst + i*nDstStep, img_width, cudaMemcpyDeviceToHost);
+			
+			if (cudaRet != cudaSuccess)
+				throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+
+      for(size_t i=0; i<plane_size; i++)
+        dstPix8u[i] = roundf(dstPix32f[i]) ;
+
+      // export luma to a PGM file for a cross-check
+      std::string filename = "zero_half_nppi_float.pgm";
+      std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+      pgm_file << "P5" << std::endl;
+      pgm_file << img_width << " " << img_height << " 255" << std::endl;
+      pgm_file.write((const char *)dstPix8u, plane_size);
+      pgm_file.close();
+    }
+
+    nppiFree(pSrc);
+    nppiFree(pDst);
+  }
 
   // release the memory
   free(pix32f);
