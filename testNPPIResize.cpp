@@ -85,8 +85,6 @@ int main() {
 
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
-    //resizeExample_C1R(pix8u, srcSize, srcStep, dstPix8u, dstSize, dstStep);
-
     NppStatus status = nppiResize_8u_C1R 	(pix8u,
 		  srcStep,
 		  srcSize,
