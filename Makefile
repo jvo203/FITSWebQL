@@ -89,3 +89,6 @@ home:
 
 mac:
 	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 testIPPResize.cpp $(IPP)
+
+nppi:
+	g++ -march=native -O3 -I/usr/local/cuda/include testNPPIResize.cpp -L/usr/local/cuda/lib64 -lnppicc_static -lculibos -lcudart_static -lpthread -ldl
