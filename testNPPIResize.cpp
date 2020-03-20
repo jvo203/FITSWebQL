@@ -93,7 +93,8 @@ int main() {
 		  dstStep,
 		  dstSize,
 		  dstROI,
-		  NPPI_INTER_LANCZOS3_ADVANCED
+      NPPI_INTER_LANCZOS
+		  //NPPI_INTER_LANCZOS3_ADVANCED
     );
 
     std::cout << "NppStatus = " << status << std::endl;
