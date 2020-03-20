@@ -2,6 +2,7 @@
 #include <helper_cuda.h>
 #include <nppi.h>
 
+#include <math.h>
 
 #include <fstream>  // ifstream
 #include <iostream> // cout, cerr
@@ -239,7 +240,7 @@ int main() {
         dstPix8u[i] = roundf(dstPix32f[i]) ;
 
       // export luma to a PGM file for a cross-check
-      std::string filename = "zero_half_nppi_float.pgm";
+      std::string filename = "zero_half_float_nppi.pgm";
       std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
       pgm_file << "P5" << std::endl;
