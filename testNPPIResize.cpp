@@ -102,7 +102,9 @@ int main() {
   int img_height = height / 2;
   size_t plane_size = img_width * img_height;
 
-  float *dstPix32f = (float*) calloc(plane_size, sizeof(uint8_t));
+  std::cout << "after downsizing: " << img_width << " x " << img_height << std::endl;
+
+  float *dstPix32f = (float*) calloc(plane_size, sizeof(float));
   uint8_t *dstPix8u = (uint8_t*) calloc(plane_size, sizeof(uint8_t));
 
   // 8-bit unsigned integer pixels
@@ -137,8 +139,6 @@ int main() {
     dstSize.height = img_height;
 
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
-
-    // pix8u and dstPix8u need to be pointers to GPU cuda arrays
 
     NppStatus status = nppiResize_8u_C1R 	(pSrc,
 		  nSrcStep,
@@ -189,11 +189,12 @@ int main() {
 		printf("nSrcStep %d \n", nSrcStep);
 
     // Need to copy image from Host to GPU Pay attention GPU memory is in power of 2 thus stride copy is required
-		for(int i=0; i< height; i++)
-			cudaRet = cudaMemcpy(pSrc + i*nSrcStep, pix32f + i*width , width , cudaMemcpyHostToDevice);
+		for(int i=0; i< height; i++) {
+			cudaRet = cudaMemcpy((char*)pSrc + i*nSrcStep, (char*)pix32f + i*width*sizeof(float), width*sizeof(float), cudaMemcpyHostToDevice);
 		
-		if (cudaRet != cudaSuccess)
-			throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+		  if (cudaRet != cudaSuccess)
+			  throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+    }
 	
 		// need to alloc cuda memory for destination
 		Npp32f * pDst = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
@@ -209,8 +210,6 @@ int main() {
     dstSize.width = img_width;
     dstSize.height = img_height;
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
-
-    // pix8u and dstPix8u need to be pointers to GPU cuda arrays
 
     NppStatus status = nppiResize_32f_C1R 	(pSrc,
 		  nSrcStep,
@@ -230,11 +229,12 @@ int main() {
     if(status == NPP_SUCCESS)
 		{
       // Need to copy image from GPU to HOST Pay attention GPU memory is in power of 2 thus stride copy is required
-			for(int i=0; i< img_height ; i++)
-				cudaRet = cudaMemcpy(dstPix32f + i*img_width ,pDst + i*nDstStep, img_width, cudaMemcpyDeviceToHost);
+			for(int i=0; i< img_height ; i++) {        
+				cudaRet = cudaMemcpy((char*)dstPix32f + i*img_width*sizeof(float) ,(char*)pDst + i*nDstStep, img_width*sizeof(float), cudaMemcpyDeviceToHost);
 			
-			if (cudaRet != cudaSuccess)
-				throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+			  if (cudaRet != cudaSuccess)
+				  throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+      }
 
       for(size_t i=0; i<plane_size; i++)
         dstPix8u[i] = roundf(dstPix32f[i]) ;
