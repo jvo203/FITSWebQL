@@ -1,5 +1,3 @@
-#include <netpbm/pgm.h>
-
 #include <ipp.h>
 
 #include <fstream>  // ifstream
