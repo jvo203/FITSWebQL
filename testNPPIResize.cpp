@@ -50,59 +50,51 @@ int main() {
   if ( devID != 0) 
 	  throw std::runtime_error("cudaDeviceInit fail ");
 		
+  int x = 0, y = 0, width = 0, height = 0, maxval = 0;
 
-  int x = 0, y = 0, width = 0, height = 0;
-  ifstream infile("zero.pgm");
-  stringstream ss;
   string inputLine = "";
+  std::string filename = "zero.pgm";
+  std::ifstream pgm_file(filename, std::ios::out | std::ios::binary);
 
-  // First line : version
-  getline(infile, inputLine);
+  getline(pgm_file, inputLine);
+
   if (inputLine.compare("P5") != 0)
     cerr << "Version error" << endl;
   else
     cout << "Version : " << inputLine << endl;
 
   // Second line : comment
-  getline(infile, inputLine);
+  getline(pgm_file, inputLine);
   cout << "Comment : " << inputLine << endl;
 
-  // Continue with a stringstream
-  ss << infile.rdbuf();
-  // Third line : size
-  ss >> width >> height;
-  cout << width << " x " << height << endl;
+  pgm_file >> width >> height >> maxval;
+  cout << width << " x " << height << " maxval: " << maxval << endl;
 
-  uint8_t array[height][width];
+  size_t img_size = width * height;
+  uint8_t array[img_size];
 
-  // Following lines : data
-  for (y = 0; y < height; y++)
-    for (x = 0; x < width; x++)
-      ss >> array[y][x];
+  pgm_file.read((char*)array, img_size);
+  pgm_file.close();
 
-  // Now print the array to see the result
-  for (y = 0; y < height; y++) {
-    for (x = 0; x < width; x++) {
-      cout << (int)array[y][x] << " ";
-    }
-    cout << endl;
+  {
+    // export luma to a PGM file for a cross-check
+    std::string filename = "zero_src.pgm";
+    std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
+
+    pgm_file << "P5" << std::endl;
+    pgm_file << width << " " << height << " 255" << std::endl;
+    pgm_file.write((const char *)array, img_size);
+    pgm_file.close();
   }
-  infile.close();
 
   // prepare the source arrays
-  size_t img_size = width * height;
-
   float *pix32f = (float*) calloc(img_size, sizeof(float));
   uint8_t *pix8u = (uint8_t*) calloc(img_size, sizeof(uint8_t));
 
-  size_t offset = 0;
-
-  for (y = 0; y < height; y++)
-    for (x = 0; x < width; x++) {
-      pix8u[offset] = array[y][x];
-      pix32f[offset] = (float)array[y][x];
-      offset++;
-    }
+  for(size_t i=0; i<img_size; i++) {
+    pix8u[i] = array[i];
+    pix32f[i] = (float)array[i];
+  }
 
   // the resize part
   int img_width = width / 2;
