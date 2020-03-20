@@ -85,6 +85,8 @@ int main() {
 
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
+    // pix8u and dstPix8u need to be pointers to GPU cuda arrays
+
     NppStatus status = nppiResize_8u_C1R 	(pix8u,
 		  srcStep,
 		  srcSize,
