@@ -96,6 +96,8 @@ int main() {
 		  NPPI_INTER_LANCZOS3_ADVANCED
     );
 
+    std::cout << "NppStatus = " << status << std::endl;
+
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half.pgm";
     std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
