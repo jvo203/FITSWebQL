@@ -114,6 +114,14 @@ int main() {
 
   // 8-bit unsigned integer pixels
   {
+    cudaError_t cudaRet ;
+		int 	nSrcStep;
+		
+		// need to alloc cuda memory for source
+		Npp8u * pSrc = nppiMalloc_8u_C1(width, height, &nSrcStep);
+		
+		printf("nSrcStep %d \n", nSrcStep);
+
     NppiSize srcSize;
     srcSize.width = width;
     srcSize.height = height;
@@ -143,6 +151,8 @@ int main() {
     );
 
     std::cout << "NppStatus = " << status << std::endl;
+
+    nppiFree(pSrc);
 
     // export luma to a PGM file for a cross-check
     std::string filename = "zero_half_nppi.pgm";
