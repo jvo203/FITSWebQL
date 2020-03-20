@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <helper_cuda.h>
 #include <nppi.h>
 
 
@@ -7,7 +8,49 @@
 #include <sstream>  // stringstream
 using namespace std;
 
+inline int findCudaDevice()
+{
+    cudaDeviceProp deviceProp;
+    int devID = 0;
+
+// Otherwise pick the device with highest Gflops/s
+    devID = gpuGetMaxGflopsDeviceId();
+    checkCudaErrors(cudaSetDevice(devID));
+    checkCudaErrors(cudaGetDeviceProperties(&deviceProp, devID));
+    printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n", devID, deviceProp.name, deviceProp.major, deviceProp.minor);
+
+    return devID;
+}    
+
+inline int cudaDeviceInit()
+{
+    int deviceCount;
+    checkCudaErrors(cudaGetDeviceCount(&deviceCount));
+
+    if (deviceCount == 0)
+    {
+        std::cerr << "CUDA error: no devices supporting CUDA." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int dev = findCudaDevice();
+
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, dev);
+    std::cerr << "cudaSetDevice GPU" << dev << " = " << deviceProp.name << std::endl;
+
+    checkCudaErrors(cudaSetDevice(dev));
+
+    return dev;
+}
+
 int main() {
+  // initalize cuda device
+  int devID = cudaDeviceInit();
+  if ( devID != 0) 
+	  throw std::runtime_error("cudaDeviceInit fail ");
+		
+
   int x = 0, y = 0, width = 0, height = 0;
   ifstream infile("zero.pgm");
   stringstream ss;
@@ -102,7 +145,7 @@ int main() {
     std::cout << "NppStatus = " << status << std::endl;
 
     // export luma to a PGM file for a cross-check
-    std::string filename = "zero_half.pgm";
+    std::string filename = "zero_half_nppi.pgm";
     std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
     pgm_file << "P5" << std::endl;
