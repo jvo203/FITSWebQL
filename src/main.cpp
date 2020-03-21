@@ -623,8 +623,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
       // downsize float32 pixels and a mask
       IppiSize srcSize;
-      srcSize.width = _width;
-      srcSize.height = _height;
+      srcSize.width = fits->width;
+      srcSize.height = fits->height;
       Ipp32s srcStep = srcSize.width * sizeof(Ipp32f);
 
       IppiSize dstSize;
