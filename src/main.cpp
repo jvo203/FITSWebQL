@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-12.0"
+#define VERSION_STRING "SV2020-03-21.0"
 #define WASM_STRING "WASM2019-02-08.1"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -622,57 +622,21 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
       // downsize float32 pixels and a mask
-
-      // a single-threaded version from the Internet
-      IppStatus pixels_stat;
-      {
-        IppiSize srcSize, dstSize;
-        IppiRect srcRoi; //, dstRoi;
-
-        srcSize.width = _width;
-        srcSize.height = _height;
-        dstSize.width = img_width;
-        dstSize.height = img_height;
-
-        srcRoi.x = 0;
-        srcRoi.y = 0;
-        srcRoi.width = srcSize.width;
-        srcRoi.height = srcSize.height;
-
-        /*dstRoi.x = 0;
-        dstRoi.y = 0;
-        dstRoi.width = dstSize.width;
-        dstRoi.height = dstSize.height;*/
-
-        int srcWidthStep = srcSize.width * sizeof(Ipp32f);
-        int dstWidthStep = dstSize.width * sizeof(Ipp32f);
-
-        double x_factor;
-        double y_factor;
-        x_factor = (double)dstSize.width / srcSize.width;
-        y_factor = (double)dstSize.height / srcSize.height;
-
-        pixels_stat = Resize_32f_C1R(
-            fits->img_pixels, srcSize, srcWidthStep, srcRoi, pixels_buf.get(),
-            dstWidthStep, dstSize, x_factor, y_factor, IPPI_INTER_LANCZOS);
-      }
-
-      /*IppiSize srcSize;
+      IppiSize srcSize;
       srcSize.width = _width;
       srcSize.height = _height;
-      Ipp32s srcStep = srcSize.width * 3; //???
+      Ipp32s srcStep = srcSize.width * sizeof(Ipp32f);
 
       IppiSize dstSize;
       dstSize.width = img_width;
       dstSize.height = img_height;
-      Ipp32s dstStep = dstSize.width * 3; //???
+      Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
 
       IppStatus pixels_stat =
-          ResizeAndInvert32f(fits->img_pixels, srcSize, srcStep,
-                             pixels_buf.get(), dstSize, dstStep);
+          Resize32f(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
-      // srcStep, mask_buf.get(), dstSize, dstStep);*/
+      // srcStep, mask_buf.get(), dstSize, dstStep);
 
       printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
 

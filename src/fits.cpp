@@ -2877,9 +2877,6 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
   ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
 
-  bufSize1 *= sizeof(Ipp32f);
-  bufSize2 *= sizeof(Ipp32f);
-
   Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
 
   std::cout << "dstTileSize:" << dstTileSize.width << "\t" << dstTileSize.height
@@ -3494,6 +3491,72 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
   // Free memory
   ippsFree(pSpec);
   ippsFree(pBuffer);
+
+  return status;
+}
+
+
+IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
+  IppStatus status;
+  // IppiPoint srcOffset = {0, 0};
+  IppiPoint dstOffset = {0, 0};
+  IppiBorderSize borderSize = {0, 0, 0, 0};
+  IppiBorderType border = ippBorderRepl;
+  const Ipp32f *pBorderValue = NULL;
+
+  IppiResizeSpec_32f *pSpec = 0;
+  int specSize = 0, initSize = 0, bufSize = 0;
+  Ipp8u *pBuffer = 0;
+  Ipp8u *pInitBuf = 0;
+
+  /* Spec and init buffer sizes */
+  status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0, &specSize,
+                                &initSize);
+
+  if (status != ippStsNoErr)
+    return status;
+
+  /* Memory allocation */
+  pInitBuf = ippsMalloc_8u(initSize);
+  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
+
+  if (pInitBuf == NULL || pSpec == NULL) {
+    ippsFree(pInitBuf);
+    ippsFree(pSpec);
+    return ippStsNoMemErr;
+  }
+
+  /* Filter initialization */
+  status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
+  ippsFree(pInitBuf);
+
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  std::cout << "borderSize: {" << borderSize.borderLeft << ","
+            << borderSize.borderTop << "," << borderSize.borderRight << ","
+            << borderSize.borderBottom << "}" << std::endl;
+
+  ippiResizeGetBufferSize_32f(pSpec, dstSize, ippC1, &bufSize);
+
+  pBuffer = ippsMalloc_8u(bufSize);
+
+  status =
+      ippiResizeLanczos_32f_C1R(pSrc, srcStep, pDst, dstStep, dstOffset, dstSize,
+                               border, pBorderValue, pSpec, pBuffer);
+
+  ippsFree(pBuffer);
+
+  ippsFree(pSpec);
 
   return status;
 }

@@ -47,6 +47,9 @@ void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
 
 #define HEIGHT_PER_THREAD 512
 
+IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
+
 IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                              Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
