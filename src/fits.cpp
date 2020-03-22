@@ -2952,7 +2952,6 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
   //int MAX_NUM_THREADS = omp_get_max_threads();
-
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
@@ -2960,7 +2959,6 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
-
   printf("tileResize32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
@@ -3066,8 +3064,8 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
               pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
               dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
 
-          // flip the image
-          ispc::invert_float32(pDstT, dstSizeT.width, dstSizeT.height);    
+          // flip the buffer
+          ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);    
         }
       }
     }
@@ -3092,7 +3090,15 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
-  int MAX_NUM_THREADS = omp_get_max_threads();
+  //int MAX_NUM_THREADS = omp_get_max_threads();
+  int max_threads = omp_get_max_threads();
+
+  // a per-thread limit
+  size_t max_work_size = 1024 * 1024;
+  size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
+  size_t work_size = MIN(plane_size, max_work_size);
+  int MAX_NUM_THREADS = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+  printf("tileResize8u_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
   int specSize = 0, initSize = 0, bufSize = 0;
@@ -3184,13 +3190,21 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = (Ipp8u *)((char *)pSrc + srcOffset.y * srcStep);
-          pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
+          //pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
+
+          if (i == numThreads - 1)
+            pDstT = pDst;
+          else
+            pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
 
           pOneBuf = pBuffer + i * bufSize1;
 
           pStatus[i] = ippiResizeLanczos_8u_C1R(pSrcT, srcStep, pDstT, dstStep,
                                                 dstOffset, dstSizeT, border, 0,
                                                 pSpec, pOneBuf);
+
+          // flip the buffer
+          ispc::mirror_u8(pDstT, dstSizeT.width, dstSizeT.height);    
         }
       }
     }
