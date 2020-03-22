@@ -2878,15 +2878,17 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   dstLastTileSize.width = dstSize.width;
   dstLastTileSize.height = slice + tail;
 
-  int bufSize1, bufSize2;
+  int bufSize1;
   ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
+
+  int bufSize2;
   ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
 
   Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
 
-  std::cout << "dstTileSize:" << dstTileSize.width << "\t" << dstTileSize.height
+  std::cout << "dstTileSize: " << dstTileSize.width << " x " << dstTileSize.height
             << "\tbufSize1 = " << bufSize1 << std::endl;
-  std::cout << "dstLastTileSize:" << dstLastTileSize.width << "\t"
+  std::cout << "dstLastTileSize: " << dstLastTileSize.width << " x "
             << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
             << std::endl;
 
@@ -3040,8 +3042,8 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                              &srcOffset, &srcSizeT);
 
         if (pStatus[i] == ippStsNoErr) {
-          pSrcT = (Ipp32f *)(pSrc + srcOffset.y * srcStep);
-          pDstT = (Ipp32f *)(pDst + dstOffset.y * dstStep);
+          pSrcT = pSrc + srcOffset.y * srcStep;
+          pDstT = pDst + dstOffset.y * dstStep;
 
           pOneBuf = pBuffer + i * bufSize1;
 
