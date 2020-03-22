@@ -2903,7 +2903,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
     pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
                                          &srcSizeT);
-    printf("STATUS#[%d] %d : %s\n", status, i, ippGetStatusString(pStatus[i]));
+    printf("STATUS#[%d] %d : %s\n", i, status, ippGetStatusString(pStatus[i]));
 
     if (pStatus[i] == ippStsNoErr) {
       Ipp32f *pSrcT, *pDstT;
