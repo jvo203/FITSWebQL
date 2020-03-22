@@ -2822,8 +2822,6 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
                                            &specSize, &initSize);
 
-  printf("STATUS#1 %d : %s\n", status, ippGetStatusString(status));
-
   if (status != ippStsNoErr)
     return status;
 
@@ -2844,8 +2842,6 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
   ippsFree(pInitBuf);
 
-  printf("STATUS#2 %d : %s\n", status, ippGetStatusString(status));
-
   if (status != ippStsNoErr) {
     ippsFree(pSpec);
     return status;
@@ -2853,7 +2849,6 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   IppiBorderSize borderSize = {0, 0, 0, 0};
   status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
-  printf("STATUS#2 %d : %s\n", status, ippGetStatusString(status));
 
   if (status != ippStsNoErr) {
     ippsFree(pSpec);
@@ -2862,7 +2857,16 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   IppiSize dstTileSize, dstLastTileSize;
 
-  int num_threads = omp_get_max_threads();
+  int max_threads = omp_get_max_threads();
+
+  // a per-thread limit
+  size_t max_work_size = 1024 * 1024;
+  size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
+  size_t work_size = MIN(plane_size, max_work_size);
+  int num_threads = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+
+  printf("Resize_Invert_32f_C1R::num_threads = %d\n", num_threads);
+
   IppStatus pStatus[num_threads];
 
   int slice = dstSize.height / num_threads;
@@ -2902,9 +2906,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
       dstSizeT = dstLastTileSize;
 
     pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
-                                         &srcSizeT);
-    printf("STATUS#[%d] %d : %s\n", i, status, ippGetStatusString(pStatus[i]));
-
+                                         &srcSizeT);    
     if (pStatus[i] == ippStsNoErr) {
       Ipp32f *pSrcT, *pDstT;
       Ipp8u *pOneBuf;
@@ -2924,7 +2926,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                     dstSizeT, border, pBorderValue, pSpec, pOneBuf);
                                   
       // flip the image
-      ispc::invert_float32(pDst, dstSizeT.width, dstSizeT.height);                                   
+      //ispc::invert_float32(pDst, dstSizeT.width, dstSizeT.height);                                   
     }
   }
 
