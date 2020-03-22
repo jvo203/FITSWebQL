@@ -665,7 +665,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     int img_width = roundf(scale * fits->width);
     int img_height = roundf(scale * fits->height);
 
-    printf("FITS image scaling by %f; %l x %l --> %d x %d\n", scale, fits->width,
+    printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale, fits->width,
            fits->height, img_width, img_height);
 
     size_t plane_size = img_width * img_height;
@@ -688,7 +688,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       Ipp32s dstStep = dstSize.width * sizeof(Ipp32f);
 
       IppStatus pixels_stat =
-          Resize_Invert_32f_C1R(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+          Resize32f(fits->img_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 
       // IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize,
       // srcStep, mask_buf.get(), dstSize, dstStep);
