@@ -16,7 +16,17 @@ uint32_t bswap32(uint32_t u)
   return ((u&0xFF)<<24) | (((u>>8)&0xFF)<<16) | (((u>>16)&0xFF)<<8) | (((u>>24)&0xFF)<<0);
 }
 
-export void invert_float32(uniform float image[], uniform int32 width, uniform int32 height)
+export void mirror_u8(uniform unsigned int8 image[], uniform int32 width, uniform int32 height)
+{  
+  foreach(j = 0 ... height / 2, i = 0 ... width)
+  {
+    unsigned int8 tmp = image[j * width + i];
+    image[j * width + i] = image[(height - 1 - j) * width + i];
+    image[(height - 1 - j) * width + i] = tmp;    
+  }
+}
+
+export void mirror_float32(uniform float image[], uniform int32 width, uniform int32 height)
 {  
   foreach(j = 0 ... height / 2, i = 0 ... width)
   {
