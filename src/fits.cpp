@@ -2816,6 +2816,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                              Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
   int specSize = 0, initSize = 0, bufSize = 0;
   IppiBorderType border = ippBorderRepl;
+  const Ipp32f *pBorderValue = NULL;
 
   /* Spec and init buffer sizes */
   IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
@@ -2920,7 +2921,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
       pStatus[i] =
           ippiResizeLanczos_32f_C1R(pSrcT, srcStep, pDstT,
                                     dstStep , dstOffset,
-                                    dstSizeT, border, 0, pSpec, pOneBuf);
+                                    dstSizeT, border, pBorderValue, pSpec, pOneBuf);
     }
   }
 
