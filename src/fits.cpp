@@ -3555,7 +3555,7 @@ IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   pBuffer = ippsMalloc_8u(bufSize);
 
   status =
-      ippiResizeLanczos_32f_C1R(pSrc, srcStep, pDst, dstStep, dstOffset, dstSize,
+      ippiResizeLanczos_32f_C1R(pSrc, srcStep * sizeof(Ipp32f), pDst, dstStep * sizeof(Ipp32f), dstOffset, dstSize,
                                border, pBorderValue, pSpec, pBuffer);
 
   ippsFree(pBuffer);
