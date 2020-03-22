@@ -2812,7 +2812,7 @@ void FITS::zfp_compression_thread(int tid) {
   printf("ZFP compression thread#%d has terminated.\n", tid);
 }
 
-IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                              Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
   int specSize = 0, initSize = 0, bufSize = 0;
   IppiBorderType border = ippBorderRepl;
@@ -2918,8 +2918,8 @@ IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
       pOneBuf = pBuffer + i * bufSize1;
 
       pStatus[i] =
-          ippiResizeLanczos_32f_C1R(pSrcT, srcStep /** sizeof(Ipp32f)*/, pDstT,
-                                    dstStep /** sizeof(Ipp32f)*/, dstOffset,
+          ippiResizeLanczos_32f_C1R(pSrcT, srcStep, pDstT,
+                                    dstStep , dstOffset,
                                     dstSizeT, border, 0, pSpec, pOneBuf);
     }
   }
