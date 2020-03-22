@@ -2914,11 +2914,11 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
       Ipp8u *pOneBuf;
 
       pSrcT = pSrc + srcOffset.y * srcStep;
-      // pDstT = pDst + dstOffset.y * dstStep;
-      if (i == num_threads - 1)
+      pDstT = pDst + dstOffset.y * dstStep;
+      /*if (i == num_threads - 1)
         pDstT = pDst;
       else
-        pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+        pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;*/
 
       pOneBuf = pBuffer + i * bufSize1;
 
