@@ -2928,7 +2928,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                     dstSizeT, border, pBorderValue, pSpec, pOneBuf);
                                   
       // flip the image
-      //ispc::invert_float32(pDst, dstSizeT.width, dstSizeT.height);                                   
+      //ispc::invert_float32(pDstT, dstSizeT.width, dstSizeT.height);                                   
     }
   }
 
@@ -3053,13 +3053,21 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = pSrc + srcOffset.y * srcStep;
-          pDstT = pDst + dstOffset.y * dstStep;
+          //pDstT = pDst + dstOffset.y * dstStep;
+
+          if (i == numThreads - 1)
+            pDstT = pDst;
+          else
+            pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
 
           pOneBuf = pBuffer + i * bufSize1;
 
           pStatus[i] = ippiResizeLanczos_32f_C1R(
               pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
               dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
+
+          // flip the image
+          ispc::invert_float32(pDstT, dstSizeT.width, dstSizeT.height);    
         }
       }
     }
