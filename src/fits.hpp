@@ -50,7 +50,7 @@ void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
 IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                     Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
-IppStatus ResizeAndInvert32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                              Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
