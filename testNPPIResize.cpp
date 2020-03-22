@@ -224,7 +224,17 @@ int main() {
 		  //NPPI_INTER_LANCZOS3_ADVANCED
     );
 
-    std::cout << "Npp32f::NppStatus = " << status << std::endl;
+    std::cout << "nppiResize_32f_C1R::NppStatus = " << status << std::endl;
+
+    /*status |= nppiMirror_32f_C1R 	( 	const Npp32f *  	pSrc,
+		int  	nSrcStep,
+		Npp32f *  	pDst,
+		int  	nDstStep,
+		NppiSize  	oROI,
+		NppiAxis  	flip 
+	);
+
+    std::cout << "nppiMirror_32f_C1R::NppStatus = " << status << std::endl;*/
 
     if(status == NPP_SUCCESS)
 		{
