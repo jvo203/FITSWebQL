@@ -2922,6 +2922,15 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
           ippiResizeLanczos_32f_C1R(pSrcT, srcStep * sizeof(Ipp32f), pDstT,
                                     dstStep * sizeof(Ipp32f) , dstOffset,
                                     dstSizeT, border, pBorderValue, pSpec, pOneBuf);
+                                  
+      //vertical mirror-image revert the buffer
+      /*unsafe {
+                            spmd::revert_image_u8(
+                                pDst.as_ptr() as *mut u8,
+                                dstSizeT.width,
+                                dstSizeT.height,
+                            )
+                        };*/
     }
   }
 
