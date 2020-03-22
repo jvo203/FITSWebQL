@@ -2951,7 +2951,17 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
-  int MAX_NUM_THREADS = omp_get_max_threads();
+  //int MAX_NUM_THREADS = omp_get_max_threads();
+
+  int max_threads = omp_get_max_threads();
+
+  // a per-thread limit
+  size_t max_work_size = 1024 * 1024;
+  size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
+  size_t work_size = MIN(plane_size, max_work_size);
+  int MAX_NUM_THREADS = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+
+  printf("tileResize32f_C1R::num_threads = %d\n", numMAX_NUM_THREADS_threads);
 
   IppiResizeSpec_32f *pSpec = 0;
   int specSize = 0, initSize = 0, bufSize = 0;
