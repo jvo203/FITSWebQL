@@ -694,7 +694,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         }
       }
     } else {
-      // mirror-flip the pixels_buf and transmit it at its original scale
+      // mirror-flip the pixels_buf, compress with OpenEXR and transmit at
+      // its original scale
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
