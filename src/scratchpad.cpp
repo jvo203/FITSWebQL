@@ -866,7 +866,6 @@ void FITS::from_path_zfp(
   this->timestamp = std::time(nullptr);
 }
 
-
 IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
                          IppiRect srcROI, Ipp32f *pDst, int dstStep,
                          IppiSize dstRoiSize, double xFactor, double yFactor,
@@ -1045,6 +1044,142 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
   // Free memory
   ippsFree(pSpec);
   ippsFree(pBuffer);
+
+  return status;
+}
+
+IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
+                                Ipp32f *pDst, IppiSize dstSize,
+                                Ipp32s dstStep) {
+  int specSize = 0, initSize = 0, bufSize = 0;
+  IppiBorderType border = ippBorderRepl;
+  const Ipp32f *pBorderValue = NULL;
+
+  /* Spec and init buffer sizes */
+  IppStatus status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0,
+                                           &specSize, &initSize);
+
+  if (status != ippStsNoErr)
+    return status;
+
+  IppiResizeSpec_32f *pSpec = 0;
+  Ipp8u *pInitBuf = 0;
+
+  /* Memory allocation */
+  pInitBuf = ippsMalloc_8u(initSize);
+  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
+
+  if (pInitBuf == NULL || pSpec == NULL) {
+    ippsFree(pInitBuf);
+    ippsFree(pSpec);
+    return ippStsNoMemErr;
+  }
+
+  /* Filter initialization */
+  status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
+  ippsFree(pInitBuf);
+
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  IppiBorderSize borderSize = {0, 0, 0, 0};
+  status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
+
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  IppiSize dstTileSize, dstLastTileSize;
+
+  int max_threads = omp_get_max_threads();
+
+  // a per-thread limit
+  size_t max_work_size = 1024 * 1024;
+  size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
+  size_t work_size = MIN(plane_size, max_work_size);
+  int num_threads = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+
+  printf("Resize_Invert_32f_C1R::num_threads = %d\n", num_threads);
+
+  IppStatus pStatus[num_threads];
+
+  int slice = dstSize.height / num_threads;
+  int tail = dstSize.height % num_threads;
+
+  dstTileSize.width = dstSize.width;
+  dstTileSize.height = slice;
+
+  dstLastTileSize.width = dstSize.width;
+  dstLastTileSize.height = slice + tail;
+
+  int bufSize1;
+  ippiResizeGetBufferSize_32f(pSpec, dstTileSize, ippC1, &bufSize1);
+
+  int bufSize2;
+  ippiResizeGetBufferSize_32f(pSpec, dstLastTileSize, ippC1, &bufSize2);
+
+  Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
+
+  std::cout << "dstTileSize: " << dstTileSize.width << " x "
+            << dstTileSize.height << "\tbufSize1 = " << bufSize1 << std::endl;
+  std::cout << "dstLastTileSize: " << dstLastTileSize.width << " x "
+            << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
+            << std::endl;
+
+// loop through the tiles
+#pragma omp parallel num_threads(num_threads)
+  for (int i = 0; i < num_threads; i++) {
+    IppiPoint dstOffset = {0, 0};
+    IppiPoint srcOffset = {0, 0};
+
+    IppiSize srcSizeT = srcSize;
+    IppiSize dstSizeT = dstTileSize;
+
+    dstSizeT.height = slice;
+    dstOffset.y += i * slice;
+
+    if (i == num_threads - 1)
+      dstSizeT = dstLastTileSize;
+
+    pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
+                                         &srcSizeT);
+    if (pStatus[i] == ippStsNoErr) {
+      Ipp32f *pSrcT, *pDstT;
+      Ipp8u *pOneBuf;
+
+      pSrcT = pSrc + srcOffset.y * srcStep;
+      pDstT = pDst + dstOffset.y * dstStep;
+      /*if (i == num_threads - 1)
+        pDstT = pDst;
+      else
+        pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;*/
+
+      pOneBuf = pBuffer + i * bufSize1;
+
+      pStatus[i] = ippiResizeLanczos_32f_C1R(
+          pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
+          dstOffset, dstSizeT, border, pBorderValue, pSpec, pOneBuf);
+
+      // flip the image
+      // ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);
+    }
+  }
+
+  ippsFree(pSpec);
+
+  if (pBuffer == NULL)
+    return ippStsNoMemErr;
+
+  ippsFree(pBuffer);
+
+  for (Ipp32u i = 0; i < num_threads; ++i) {
+    /* Return bad status */
+    if (pStatus[i] != ippStsNoErr)
+      return pStatus[i];
+  }
 
   return status;
 }
