@@ -617,7 +617,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
              fits->width, fits->height, img_width, img_height);
 
-      size_t plane_size = img_width * img_height;
+      size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
@@ -696,6 +696,16 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     } else {
       // mirror-flip the pixels_buf, compress with OpenEXR and transmit at
       // its original scale
+      int img_width = fits->width;
+      int img_height = fits->height;
+
+      size_t plane_size = size_t(img_width) * size_t(img_height);
+
+      // an array to hold a flipped image (its mirror image)
+      std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         ippsFree);
+      // copy and flip the image
+      // memcpy(pixels_buf.get(), fits->img_pixels, plane_size);
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
