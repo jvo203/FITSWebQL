@@ -45,27 +45,11 @@ int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
                     float pmins, float pmax);
 
-#define HEIGHT_PER_THREAD 512
-
-IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
-
-IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
-
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
-
-IppStatus tileResize8u_C1R_32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                               Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
-
-IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
-                         IppiRect srcROI, Ipp32f *pDst, int dstStep,
-                         IppiSize dstRoiSize, double xFactor, double yFactor,
-                         int interpolation);
 
 struct Progress {
   size_t running;
