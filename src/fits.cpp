@@ -2813,7 +2813,8 @@ void FITS::zfp_compression_thread(int tid) {
 }
 
 IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
+                                Ipp32f *pDst, IppiSize dstSize,
+                                Ipp32s dstStep) {
   int specSize = 0, initSize = 0, bufSize = 0;
   IppiBorderType border = ippBorderRepl;
   const Ipp32f *pBorderValue = NULL;
@@ -2886,8 +2887,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   Ipp8u *pBuffer = ippsMalloc_8u(bufSize1 * (num_threads - 1) + bufSize2);
 
-  std::cout << "dstTileSize: " << dstTileSize.width << " x " << dstTileSize.height
-            << "\tbufSize1 = " << bufSize1 << std::endl;
+  std::cout << "dstTileSize: " << dstTileSize.width << " x "
+            << dstTileSize.height << "\tbufSize1 = " << bufSize1 << std::endl;
   std::cout << "dstLastTileSize: " << dstLastTileSize.width << " x "
             << dstLastTileSize.height << "\tbufSize2 = " << bufSize2
             << std::endl;
@@ -2908,7 +2909,7 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
       dstSizeT = dstLastTileSize;
 
     pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
-                                         &srcSizeT);    
+                                         &srcSizeT);
     if (pStatus[i] == ippStsNoErr) {
       Ipp32f *pSrcT, *pDstT;
       Ipp8u *pOneBuf;
@@ -2922,13 +2923,12 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
       pOneBuf = pBuffer + i * bufSize1;
 
-      pStatus[i] =
-          ippiResizeLanczos_32f_C1R(pSrcT, srcStep * sizeof(Ipp32f), pDstT,
-                                    dstStep * sizeof(Ipp32f) , dstOffset,
-                                    dstSizeT, border, pBorderValue, pSpec, pOneBuf);
-                                  
+      pStatus[i] = ippiResizeLanczos_32f_C1R(
+          pSrcT, srcStep * sizeof(Ipp32f), pDstT, dstStep * sizeof(Ipp32f),
+          dstOffset, dstSizeT, border, pBorderValue, pSpec, pOneBuf);
+
       // flip the image
-      //ispc::invert_float32(pDstT, dstSizeT.width, dstSizeT.height);                                   
+      // ispc::invert_float32(pDstT, dstSizeT.width, dstSizeT.height);
     }
   }
 
@@ -2951,14 +2951,15 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
-  //int MAX_NUM_THREADS = omp_get_max_threads();
+  // int MAX_NUM_THREADS = omp_get_max_threads();
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
   size_t max_work_size = 1024 * 1024;
   size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
   size_t work_size = MIN(plane_size, max_work_size);
-  int MAX_NUM_THREADS = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+  int MAX_NUM_THREADS =
+      MAX((int)roundf(float(plane_size) / float(work_size)), 1);
   printf("tileResize32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
@@ -3051,7 +3052,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = pSrc + srcOffset.y * srcStep;
-          //pDstT = pDst + dstOffset.y * dstStep;
+          // pDstT = pDst + dstOffset.y * dstStep;
 
           if (i == numThreads - 1)
             pDstT = pDst;
@@ -3065,7 +3066,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
               dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
 
           // flip the buffer
-          ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);    
+          ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);
         }
       }
     }
@@ -3090,14 +3091,15 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep) {
 
-  //int MAX_NUM_THREADS = omp_get_max_threads();
+  // int MAX_NUM_THREADS = omp_get_max_threads();
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
   size_t max_work_size = 1024 * 1024;
   size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
   size_t work_size = MIN(plane_size, max_work_size);
-  int MAX_NUM_THREADS = MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+  int MAX_NUM_THREADS =
+      MAX((int)roundf(float(plane_size) / float(work_size)), 1);
   printf("tileResize8u_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
@@ -3190,7 +3192,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = (Ipp8u *)((char *)pSrc + srcOffset.y * srcStep);
-          //pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
+          // pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
 
           if (i == numThreads - 1)
             pDstT = pDst;
@@ -3204,7 +3206,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                                 pSpec, pOneBuf);
 
           // flip the buffer
-          ispc::mirror_u8(pDstT, dstSizeT.width, dstSizeT.height);    
+          ispc::mirror_u8(pDstT, dstSizeT.width, dstSizeT.height);
         }
       }
     }
@@ -3349,254 +3351,6 @@ IppStatus tileResize8u_C1R_32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
     if (pStatus[i] != ippStsNoErr)
       return pStatus[i];
   }
-
-  return status;
-}
-
-IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
-                         IppiRect srcROI, Ipp32f *pDst, int dstStep,
-                         IppiSize dstRoiSize, double xFactor, double yFactor,
-                         int interpolation) {
-  IppStatus status = ippStsNoErr;   // status flag
-  IppiResizeSpec_32f *pSpec = NULL; // specification structure buffer
-  int specSize = 0;                 // size of specification structure buffer
-  int initSize = 0; // size of initialization buffer (only cubic and lanzcos
-                    // interpolation type use this)
-  int bufSize = 0;  // size of working buffer
-  Ipp8u *pBuffer = NULL;        // working buffer
-  Ipp8u *pInit = NULL;          // initialization buffer
-  IppiPoint dstOffset = {0, 0}; // offset to destination image, default is {0,0}
-  IppiBorderType borderType = ippBorderRepl; // borderType, default is
-                                             // <span>ippBorderRepl </span>
-  Ipp32f borderValue = 0;                    // border value, default is zero
-  Ipp32u antialiasing = 0;                   // not use antialiasing
-  Ipp32u numChannels = 1; // this function works with 1 channel
-  Ipp32f valueB = 0.0f;   // default value for cubic interpolation type
-  Ipp32f valueC = 0.0f;   // default value for cubic interpolation type
-  Ipp32u numLobes = 2;    // default value for lanczos interpolation type
-  IppiInterpolationType interpolateType; // interpolation type
-  IppiSize srcRoiSize;                   // size of source ROI
-  IppiSize resizeSrcRoiSize;             // size of resize source ROI
-
-  // Check pSrc and pDst not NULL
-  if ((pSrc == NULL) || (pDst == NULL)) {
-    return ippStsNullPtrErr;
-  }
-
-  // Check srcSize and dstRoiSize not have field with zero or negative
-  // number
-  if ((srcSize.width <= 0) || (srcSize.height <= 0) ||
-      (dstRoiSize.width <= 0) || (dstRoiSize.height <= 0)) {
-    return ippStsSizeErr;
-  }
-
-  // Check srcRoi has no intersection with the source image
-  IppiPoint topLeft = {srcROI.x, srcROI.y};
-  IppiPoint topRight = {srcROI.x + srcROI.width, srcROI.y};
-  IppiPoint bottomLeft = {srcROI.x, srcROI.y + srcROI.height};
-  IppiPoint bottomRight = {srcROI.x + srcROI.width, srcROI.y + srcROI.height};
-  if (((topLeft.x < 0 || topLeft.x > srcSize.width) ||
-       (topLeft.y < 0 || topLeft.y > srcSize.height)) &&
-      ((topRight.x < 0 || topRight.x > srcSize.width) ||
-       (topRight.y < 0 || topRight.y > srcSize.height)) &&
-      ((bottomLeft.x < 0 || bottomLeft.x > srcSize.width) ||
-       (bottomLeft.y < 0 || bottomLeft.y > srcSize.height)) &&
-      ((bottomRight.x < 0 || bottomRight.x > srcSize.width) ||
-       (bottomRight.y < 0 || bottomRight.y > srcSize.height))) {
-    return ippStsWrongIntersectROI;
-  }
-
-  // Check xFactor or yFactor is not less than or equal to zero
-  if ((xFactor <= 0) || (yFactor <= 0)) {
-    return ippStsResizeFactorErr;
-  }
-
-  // Get interpolation filter type
-  switch (interpolation) {
-  case IPPI_INTER_NN:
-    interpolateType = ippNearest;
-    break;
-  case IPPI_INTER_LINEAR:
-    interpolateType = ippLinear;
-    break;
-  case IPPI_INTER_CUBIC:
-    interpolateType = ippCubic;
-    break;
-  case IPPI_INTER_SUPER:
-    interpolateType = ippSuper;
-    break;
-  case IPPI_INTER_LANCZOS:
-    interpolateType = ippLanczos;
-    break;
-  default:
-    return ippStsInterpolationErr;
-  }
-
-  // Set pSrcRoi to top-left corner of source ROI
-  Ipp32f *pSrcRoi =
-      (Ipp32f *)((Ipp8u *)pSrc + srcROI.y * srcStep) + srcROI.x * numChannels;
-
-  // Set size of source ROI
-  srcRoiSize.width = srcROI.width;
-  srcRoiSize.height = srcROI.height;
-
-  // Calculate size of resize source ROI
-  resizeSrcRoiSize.width = (int)ceil(srcRoiSize.width * xFactor);
-  resizeSrcRoiSize.height = (int)ceil(srcRoiSize.height * yFactor);
-
-  // Get size of specification structure buffer and initialization buffer.
-  status = ippiResizeGetSize_8u(srcRoiSize, resizeSrcRoiSize, interpolateType,
-                                antialiasing, &specSize, &initSize);
-  if (status != ippStsNoErr) {
-    return status;
-  }
-
-  // Allocate memory for specification structure buffer.
-  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
-  if (pSpec == NULL) {
-    return ippStsNoMemErr;
-  }
-
-  // Initialize specification structure buffer correspond to interpolation
-  // type
-  switch (interpolation) {
-  case IPPI_INTER_NN:
-    status = ippiResizeNearestInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
-    break;
-  case IPPI_INTER_LINEAR:
-    status = ippiResizeLinearInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
-    break;
-  case IPPI_INTER_CUBIC:
-    pInit = ippsMalloc_8u(initSize);
-    status = ippiResizeCubicInit_32f(srcRoiSize, resizeSrcRoiSize, valueB,
-                                     valueC, pSpec, pInit);
-    ippsFree(pInit);
-    break;
-  case IPPI_INTER_SUPER:
-    status = ippiResizeSuperInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
-    break;
-  case IPPI_INTER_LANCZOS:
-    pInit = ippsMalloc_8u(initSize);
-    status = ippiResizeLanczosInit_32f(srcRoiSize, resizeSrcRoiSize, numLobes,
-                                       pSpec, pInit);
-    ippsFree(pInit);
-    break;
-  }
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  // Get work buffer size
-  status = ippiResizeGetBufferSize_8u(pSpec, resizeSrcRoiSize, numChannels,
-                                      &bufSize);
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  // Allocate memory for work buffer.
-  pBuffer = ippsMalloc_8u(bufSize);
-  if (pBuffer == NULL) {
-    ippsFree(pSpec);
-    return ippStsNoMemErr;
-  }
-  // Execute resize processing correspond to interpolation type
-  switch (interpolation) {
-  case IPPI_INTER_NN:
-    status = ippiResizeNearest_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
-                                       dstOffset, dstRoiSize, pSpec, pBuffer);
-    break;
-  case IPPI_INTER_LINEAR:
-    status = ippiResizeLinear_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
-                                      dstOffset, dstRoiSize, borderType,
-                                      &borderValue, pSpec, pBuffer);
-    break;
-  case IPPI_INTER_CUBIC:
-    status = ippiResizeCubic_32f_C1R(pSrcRoi, srcStep, pDst, dstStep, dstOffset,
-                                     dstRoiSize, borderType, &borderValue,
-                                     pSpec, pBuffer);
-    break;
-  case IPPI_INTER_SUPER:
-    status = ippiResizeSuper_32f_C1R(pSrcRoi, srcStep, pDst, dstStep, dstOffset,
-                                     dstRoiSize, pSpec, pBuffer);
-    break;
-  case IPPI_INTER_LANCZOS:
-    status = ippiResizeLanczos_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
-                                       dstOffset, dstRoiSize, borderType,
-                                       &borderValue, pSpec, pBuffer);
-    break;
-  }
-
-  // Free memory
-  ippsFree(pSpec);
-  ippsFree(pBuffer);
-
-  return status;
-}
-
-
-IppStatus Resize32f(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                    Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
-  IppStatus status;
-  // IppiPoint srcOffset = {0, 0};
-  IppiPoint dstOffset = {0, 0};
-  IppiBorderSize borderSize = {0, 0, 0, 0};
-  IppiBorderType border = ippBorderRepl;
-  const Ipp32f *pBorderValue = NULL;
-
-  IppiResizeSpec_32f *pSpec = 0;
-  int specSize = 0, initSize = 0, bufSize = 0;
-  Ipp8u *pBuffer = 0;
-  Ipp8u *pInitBuf = 0;
-
-  /* Spec and init buffer sizes */
-  status = ippiResizeGetSize_32f(srcSize, dstSize, ippLanczos, 0, &specSize,
-                                &initSize);
-
-  if (status != ippStsNoErr)
-    return status;
-
-  /* Memory allocation */
-  pInitBuf = ippsMalloc_8u(initSize);
-  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
-
-  if (pInitBuf == NULL || pSpec == NULL) {
-    ippsFree(pInitBuf);
-    ippsFree(pSpec);
-    return ippStsNoMemErr;
-  }
-
-  /* Filter initialization */
-  status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
-  ippsFree(pInitBuf);
-
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
-  if (status != ippStsNoErr) {
-    ippsFree(pSpec);
-    return status;
-  }
-
-  std::cout << "borderSize: {" << borderSize.borderLeft << ","
-            << borderSize.borderTop << "," << borderSize.borderRight << ","
-            << borderSize.borderBottom << "}" << std::endl;
-
-  ippiResizeGetBufferSize_32f(pSpec, dstSize, ippC1, &bufSize);
-
-  pBuffer = ippsMalloc_8u(bufSize);
-
-  status =
-      ippiResizeLanczos_32f_C1R(pSrc, srcStep * sizeof(Ipp32f), pDst, dstStep * sizeof(Ipp32f), dstOffset, dstSize,
-                               border, pBorderValue, pSpec, pBuffer);
-
-  ippsFree(pBuffer);
-
-  ippsFree(pSpec);
 
   return status;
 }
