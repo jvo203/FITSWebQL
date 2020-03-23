@@ -36,6 +36,15 @@ export void mirror_float32(uniform float image[], uniform int32 width, uniform i
   }
 }
 
+export void copy_mirror_float32(uniform float src[], uniform float dst[], uniform int32 width, uniform int32 height)
+{  
+  foreach(j = 0 ... height / 2, i = 0 ... width)
+  {    
+    dst[j * width + i] = src[(height - 1 - j) * width + i];
+    dst[(height - 1 - j) * width + i] = src[j * width + i];
+  }
+}
+
 export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float& rmin, uniform float& rmax, uniform unsigned int size)
 {    
   varying float vmin = rmin ;
