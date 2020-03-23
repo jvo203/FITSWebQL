@@ -943,9 +943,6 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
       "<link href=\"https://fonts.googleapis.com/css?family=Material+Icons\" "
       "rel=\"stylesheet\"/>\n");
   html.append("<script src=\"https://d3js.org/d3.v5.min.js\"></script>\n");
-  /*html.append("<script "
-              "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
-              "fitswebql/reconnecting-websocket.js\"></script>\n");*/
   html.append("<script "
               "src=\"//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/"
               "numeral.min.js\"></script>\n");
