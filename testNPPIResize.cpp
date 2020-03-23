@@ -119,8 +119,7 @@ int main() {
 
     // Need to copy image from Host to GPU Pay attention GPU memory is in power
     // of 2 thus stride copy is required
-    for (int i = 0; i < height; i++)
-      cudaRet = cudaMemcpy(pSrc + i * nSrcStep, pix8u + i * width, width,
+    cudaRet = cudaMemcpy2D(pSrc, nSrcStep, pix8u, width, width, height,
                            cudaMemcpyHostToDevice);
 
     if (cudaRet != cudaSuccess)
@@ -154,9 +153,8 @@ int main() {
     if (status == NPP_SUCCESS) {
       // Need to copy image from GPU to HOST Pay attention GPU memory is in
       // power of 2 thus stride copy is required
-      for (int i = 0; i < img_height; i++)
-        cudaRet = cudaMemcpy(dstPix8u + i * img_width, pDst + i * nDstStep,
-                             img_width, cudaMemcpyDeviceToHost);
+      cudaRet = cudaMemcpy2D(dstPix8u, img_width, pDst, nDstStep, img_width,
+                             img_height, cudaMemcpyDeviceToHost);
 
       if (cudaRet != cudaSuccess)
         throw std::runtime_error("cudaMemcpyDeviceToHost fail ");
@@ -187,14 +185,12 @@ int main() {
 
     // Need to copy image from Host to GPU Pay attention GPU memory is in power
     // of 2 thus stride copy is required
-    for (int i = 0; i < height; i++) {
-      cudaRet = cudaMemcpy((char *)pSrc + i * nSrcStep,
-                           (char *)pix32f + i * width * sizeof(float),
-                           width * sizeof(float), cudaMemcpyHostToDevice);
+    cudaRet =
+        cudaMemcpy2D(pSrc, nSrcStep, pix32f, width * sizeof(float),
+                     width * sizeof(float), height, cudaMemcpyHostToDevice);
 
-      if (cudaRet != cudaSuccess)
-        throw std::runtime_error("cudaMemcpyHostToDevice fail ");
-    }
+    if (cudaRet != cudaSuccess)
+      throw std::runtime_error("cudaMemcpyHostToDevice fail ");
 
     // need to alloc cuda memory for destination
     Npp32f *pDst = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
@@ -234,14 +230,12 @@ int main() {
     if (status == NPP_SUCCESS && mirrorStatus == NPP_SUCCESS) {
       // Need to copy image from GPU to HOST Pay attention GPU memory is in
       // power of 2 thus stride copy is required
-      for (int i = 0; i < img_height; i++) {
-        cudaRet = cudaMemcpy((char *)dstPix32f + i * img_width * sizeof(float),
-                             (char *)pMirror + i * nDstStep,
-                             img_width * sizeof(float), cudaMemcpyDeviceToHost);
+      cudaRet = cudaMemcpy2D(dstPix32f, img_width * sizeof(float), pMirror,
+                             nDstStep, img_width * sizeof(float), img_height,
+                             cudaMemcpyDeviceToHost);
 
-        if (cudaRet != cudaSuccess)
-          throw std::runtime_error("cudaMemcpyDeviceToHost fail ");
-      }
+      if (cudaRet != cudaSuccess)
+        throw std::runtime_error("cudaMemcpyDeviceToHost fail ");
 
       for (size_t i = 0; i < plane_size; i++)
         dstPix8u[i] = roundf(dstPix32f[i]);
