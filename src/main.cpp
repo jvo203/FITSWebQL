@@ -23,6 +23,7 @@
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfHeader.h>
 #include <OpenEXR/ImfOutputFile.h>
+#include <OpenEXR/ImfStdIO.h>
 
 using namespace OPENEXR_IMF_NAMESPACE;
 
@@ -608,74 +609,92 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
     // calculate a new image size
     float scale = get_image_scale(_width, _height, fits->width, fits->height);
-    int img_width = roundf(scale * fits->width);
-    int img_height = roundf(scale * fits->height);
 
-    printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
-           fits->width, fits->height, img_width, img_height);
+    if (scale < 1.0) {
+      int img_width = roundf(scale * fits->width);
+      int img_height = roundf(scale * fits->height);
 
-    size_t plane_size = img_width * img_height;
+      printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
+             fits->width, fits->height, img_width, img_height);
 
-    // allocate {pixel_buf, mask_buf}
-    std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
-    std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+      size_t plane_size = img_width * img_height;
 
-    if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
-      // downsize float32 pixels and a mask
-      IppiSize srcSize;
-      srcSize.width = fits->width;
-      srcSize.height = fits->height;
-      Ipp32s srcStep = srcSize.width;
+      // allocate {pixel_buf, mask_buf}
+      std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         ippsFree);
+      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
 
-      IppiSize dstSize;
-      dstSize.width = img_width;
-      dstSize.height = img_height;
-      Ipp32s dstStep = dstSize.width;
+      if (pixels_buf.get() != NULL && mask_buf.get() != NULL) {
+        // downsize float32 pixels and a mask
+        IppiSize srcSize;
+        srcSize.width = fits->width;
+        srcSize.height = fits->height;
+        Ipp32s srcStep = srcSize.width;
 
-      IppStatus pixels_stat =
-          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
-                            pixels_buf.get(), dstSize, dstStep);
+        IppiSize dstSize;
+        dstSize.width = img_width;
+        dstSize.height = img_height;
+        Ipp32s dstStep = dstSize.width;
 
-      IppStatus mask_stat = tileResize8u_C1R(fits->img_mask, srcSize, srcStep,
-                                             mask_buf.get(), dstSize, dstStep);
+        IppStatus pixels_stat =
+            tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
+                              pixels_buf.get(), dstSize, dstStep);
 
-      printf(" %d : %s, %d : %s\n", pixels_stat,
-             ippGetStatusString(pixels_stat), mask_stat,
-             ippGetStatusString(mask_stat));
+        IppStatus mask_stat = tileResize8u_C1R(
+            fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
-      // append image bytes to the queue
-      if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr) {
-        // compress the pixels + mask with OpenEXR
+        printf(" %d : %s, %d : %s\n", pixels_stat,
+               ippGetStatusString(pixels_stat), mask_stat,
+               ippGetStatusString(mask_stat));
 
-        // export EXR in a Y format
-        std::string filename =
-            FITSCACHE + std::string("/") +
-            boost::replace_all_copy(fits->dataset_id, "/", "_") +
-            std::string("_resize.exr");
-        try {
-          Header header(img_width, img_height);
-          header.compression() = DWAB_COMPRESSION;
-          header.channels().insert("Y", Channel(FLOAT));
+        // append image bytes to the queue
+        if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr) {
+          // compress the pixels + mask with OpenEXR
 
-          OutputFile file(filename.c_str(), header);
-          FrameBuffer frameBuffer;
+          // export EXR in a Y format
+          std::string filename =
+              FITSCACHE + std::string("/") +
+              boost::replace_all_copy(fits->dataset_id, "/", "_") +
+              std::string("_resize.exr");
 
-          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
-                                        sizeof(Ipp32f) * 1,
-                                        sizeof(Ipp32f) * img_width));
+          // in-memory output
+          StdOSStream oss;
 
-          file.setFrameBuffer(frameBuffer);
-          file.writePixels(img_height);
-        } catch (const std::exception &exc) {
-          std::cerr << exc.what() << std::endl;
+          try {
+            Header header(img_width, img_height);
+            header.compression() = DWAB_COMPRESSION;
+            header.channels().insert("Y", Channel(FLOAT));
+
+            // OutputFile file(filename.c_str(), header);
+            OutputFile file(oss, header);
+            FrameBuffer frameBuffer;
+
+            frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+                                          sizeof(Ipp32f) * 1,
+                                          sizeof(Ipp32f) * img_width));
+
+            file.setFrameBuffer(frameBuffer);
+            file.writePixels(img_height);
+          } catch (const std::exception &exc) {
+            std::cerr << exc.what() << std::endl;
+          }
+
+          std::string output = oss.str();
+          std::cout << "[" << fits->dataset_id
+                    << "]::downsize OpenEXR output: " << output.length()
+                    << " bytes." << std::endl;
+
+          // send the data to the web client
+          std::lock_guard<std::mutex> guard(queue->mtx);
+          const char *ptr = output.c_str();
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+          /*char *ptr = (char *)pixels_buf.get();
+          queue->fifo.insert(queue->fifo.end(), ptr,
+                             ptr + plane_size * sizeof(Ipp32f));*/
         }
-
-        // send the data to the web client
-        std::lock_guard<std::mutex> guard(queue->mtx);
-        char *ptr = (char *)pixels_buf.get();
-        queue->fifo.insert(queue->fifo.end(), ptr,
-                           ptr + plane_size * sizeof(Ipp32f));
       }
+    } else {
+      // mirror-flip the pixels_buf and transmit it at its original scale
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
