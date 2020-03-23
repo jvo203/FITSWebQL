@@ -9,52 +9,51 @@
 #include <sstream>  // stringstream
 using namespace std;
 
-inline int findCudaDevice()
-{
-    cudaDeviceProp deviceProp;
-    int devID = 0;
+inline int findCudaDevice() {
+  cudaDeviceProp deviceProp;
+  int devID = 0;
 
-// Otherwise pick the device with highest Gflops/s
-    devID = gpuGetMaxGflopsDeviceId();
-    checkCudaErrors(cudaSetDevice(devID));
-    checkCudaErrors(cudaGetDeviceProperties(&deviceProp, devID));
-    printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n", devID, deviceProp.name, deviceProp.major, deviceProp.minor);
+  // Otherwise pick the device with highest Gflops/s
+  devID = gpuGetMaxGflopsDeviceId();
+  checkCudaErrors(cudaSetDevice(devID));
+  checkCudaErrors(cudaGetDeviceProperties(&deviceProp, devID));
+  printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n", devID,
+         deviceProp.name, deviceProp.major, deviceProp.minor);
 
-    return devID;
-}    
+  return devID;
+}
 
-inline int cudaDeviceInit()
-{
-    int deviceCount;
-    checkCudaErrors(cudaGetDeviceCount(&deviceCount));
+inline int cudaDeviceInit() {
+  int deviceCount;
+  checkCudaErrors(cudaGetDeviceCount(&deviceCount));
 
-    if (deviceCount == 0)
-    {
-        std::cerr << "CUDA error: no devices supporting CUDA." << std::endl;
-        exit(EXIT_FAILURE);
-    }
+  if (deviceCount == 0) {
+    std::cerr << "CUDA error: no devices supporting CUDA." << std::endl;
+    exit(EXIT_FAILURE);
+  }
 
-    int dev = findCudaDevice();
+  int dev = findCudaDevice();
 
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, dev);
-    std::cerr << "cudaSetDevice GPU" << dev << " = " << deviceProp.name << std::endl;
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, dev);
+  std::cerr << "cudaSetDevice GPU" << dev << " = " << deviceProp.name
+            << std::endl;
 
-    checkCudaErrors(cudaSetDevice(dev));
+  checkCudaErrors(cudaSetDevice(dev));
 
-    return dev;
+  return dev;
 }
 
 int main() {
   // initalize cuda device
   int devID = cudaDeviceInit();
-  if ( devID != 0) 
-	  throw std::runtime_error("cudaDeviceInit fail ");
-		
+  if (devID != 0)
+    throw std::runtime_error("cudaDeviceInit fail ");
+
   int x = 0, y = 0, width = 0, height = 0, maxval = 0;
 
   string inputLine = "";
-  std::string filename = "zero.pgm";
+  std::string filename = "one.pgm";
   std::ifstream pgm_file(filename, std::ios::out | std::ios::binary);
 
   getline(pgm_file, inputLine);
@@ -74,12 +73,12 @@ int main() {
   size_t img_size = width * height;
   uint8_t array[img_size];
 
-  pgm_file.read((char*)array, img_size);
+  pgm_file.read((char *)array, img_size);
   pgm_file.close();
 
   {
     // export luma to a PGM file for a cross-check
-    std::string filename = "zero_src.pgm";
+    std::string filename = "one_src.pgm";
     std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
     pgm_file << "P5" << std::endl;
@@ -89,10 +88,10 @@ int main() {
   }
 
   // prepare the source arrays
-  float *pix32f = (float*) calloc(img_size, sizeof(float));
-  uint8_t *pix8u = (uint8_t*) calloc(img_size, sizeof(uint8_t));
+  float *pix32f = (float *)calloc(img_size, sizeof(float));
+  uint8_t *pix8u = (uint8_t *)calloc(img_size, sizeof(uint8_t));
 
-  for(size_t i=0; i<img_size; i++) {
+  for (size_t i = 0; i < img_size; i++) {
     pix8u[i] = array[i];
     pix32f[i] = (float)array[i];
   }
@@ -102,32 +101,35 @@ int main() {
   int img_height = height / 2;
   size_t plane_size = img_width * img_height;
 
-  std::cout << "after downsizing: " << img_width << " x " << img_height << std::endl;
+  std::cout << "after downsizing: " << img_width << " x " << img_height
+            << std::endl;
 
-  float *dstPix32f = (float*) calloc(plane_size, sizeof(float));
-  uint8_t *dstPix8u = (uint8_t*) calloc(plane_size, sizeof(uint8_t));
+  float *dstPix32f = (float *)calloc(plane_size, sizeof(float));
+  uint8_t *dstPix8u = (uint8_t *)calloc(plane_size, sizeof(uint8_t));
 
   // 8-bit unsigned integer pixels
   {
-    cudaError_t cudaRet ;
-		int 	nSrcStep, nDstStep;
-		
-		// need to alloc cuda memory for source
-		Npp8u * pSrc = nppiMalloc_8u_C1(width, height, &nSrcStep);
-		
-		printf("nSrcStep %d \n", nSrcStep);
+    cudaError_t cudaRet;
+    int nSrcStep, nDstStep;
 
-    // Need to copy image from Host to GPU Pay attention GPU memory is in power of 2 thus stride copy is required
-		for(int i=0; i< height; i++)
-			cudaRet = cudaMemcpy(pSrc + i*nSrcStep, pix8u + i*width , width , cudaMemcpyHostToDevice);
-		
-		if (cudaRet != cudaSuccess)
-			throw std::runtime_error("cudaMemcpyHostToDevice fail ");
-	
-		// need to alloc cuda memory for destination
-		Npp8u * pDst = nppiMalloc_8u_C1(img_width, img_height, &nDstStep);
-		
-		printf("nDstStep %d \n", nDstStep);
+    // need to alloc cuda memory for source
+    Npp8u *pSrc = nppiMalloc_8u_C1(width, height, &nSrcStep);
+
+    printf("nSrcStep %d \n", nSrcStep);
+
+    // Need to copy image from Host to GPU Pay attention GPU memory is in power
+    // of 2 thus stride copy is required
+    for (int i = 0; i < height; i++)
+      cudaRet = cudaMemcpy(pSrc + i * nSrcStep, pix8u + i * width, width,
+                           cudaMemcpyHostToDevice);
+
+    if (cudaRet != cudaSuccess)
+      throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+
+    // need to alloc cuda memory for destination
+    Npp8u *pDst = nppiMalloc_8u_C1(img_width, img_height, &nDstStep);
+
+    printf("nDstStep %d \n", nDstStep);
 
     NppiSize srcSize;
     srcSize.width = width;
@@ -140,32 +142,27 @@ int main() {
 
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
-    NppStatus status = nppiResize_8u_C1R 	(pSrc,
-		  nSrcStep,
-		  srcSize,
-		  srcROI,
-		  pDst,
-		  nDstStep,
-		  dstSize,
-		  dstROI,
-      //NPPI_INTER_LINEAR
-      NPPI_INTER_LANCZOS
-		  //NPPI_INTER_LANCZOS3_ADVANCED
+    NppStatus status = nppiResize_8u_C1R(pSrc, nSrcStep, srcSize, srcROI, pDst,
+                                         nDstStep, dstSize, dstROI,
+                                         // NPPI_INTER_LINEAR
+                                         NPPI_INTER_LANCZOS
+                                         // NPPI_INTER_LANCZOS3_ADVANCED
     );
 
     std::cout << "Npp8u::NppStatus = " << status << std::endl;
 
-    if(status == NPP_SUCCESS)
-		{
-      // Need to copy image from GPU to HOST Pay attention GPU memory is in power of 2 thus stride copy is required
-			for(int i=0; i< img_height ; i++)
-				cudaRet = cudaMemcpy(dstPix8u + i*img_width ,pDst + i*nDstStep, img_width, cudaMemcpyDeviceToHost);
-			
-			if (cudaRet != cudaSuccess)
-				throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+    if (status == NPP_SUCCESS) {
+      // Need to copy image from GPU to HOST Pay attention GPU memory is in
+      // power of 2 thus stride copy is required
+      for (int i = 0; i < img_height; i++)
+        cudaRet = cudaMemcpy(dstPix8u + i * img_width, pDst + i * nDstStep,
+                             img_width, cudaMemcpyDeviceToHost);
+
+      if (cudaRet != cudaSuccess)
+        throw std::runtime_error("cudaMemcpyDeviceToHost fail ");
 
       // export luma to a PGM file for a cross-check
-      std::string filename = "zero_half_nppi.pgm";
+      std::string filename = "one_half_nppi.pgm";
       std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
       pgm_file << "P5" << std::endl;
@@ -180,26 +177,30 @@ int main() {
 
   // 32-bit floating-point pixels
   {
-    cudaError_t cudaRet ;
-		int 	nSrcStep, nDstStep;
-		
-		// need to alloc cuda memory for source
-		Npp32f * pSrc = nppiMalloc_32f_C1(width, height, &nSrcStep);
-		
-		printf("nSrcStep %d \n", nSrcStep);
+    cudaError_t cudaRet;
+    int nSrcStep, nDstStep;
 
-    // Need to copy image from Host to GPU Pay attention GPU memory is in power of 2 thus stride copy is required
-		for(int i=0; i< height; i++) {
-			cudaRet = cudaMemcpy((char*)pSrc + i*nSrcStep, (char*)pix32f + i*width*sizeof(float), width*sizeof(float), cudaMemcpyHostToDevice);
-		
-		  if (cudaRet != cudaSuccess)
-			  throw std::runtime_error("cudaMemcpyHostToDevice fail ");
+    // need to alloc cuda memory for source
+    Npp32f *pSrc = nppiMalloc_32f_C1(width, height, &nSrcStep);
+
+    printf("nSrcStep %d \n", nSrcStep);
+
+    // Need to copy image from Host to GPU Pay attention GPU memory is in power
+    // of 2 thus stride copy is required
+    for (int i = 0; i < height; i++) {
+      cudaRet = cudaMemcpy((char *)pSrc + i * nSrcStep,
+                           (char *)pix32f + i * width * sizeof(float),
+                           width * sizeof(float), cudaMemcpyHostToDevice);
+
+      if (cudaRet != cudaSuccess)
+        throw std::runtime_error("cudaMemcpyHostToDevice fail ");
     }
-	
-		// need to alloc cuda memory for destination
-		Npp32f * pDst = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
-		
-		printf("nDstStep %d \n", nDstStep);
+
+    // need to alloc cuda memory for destination
+    Npp32f *pDst = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
+    Npp32f *pMirror = nppiMalloc_32f_C1(img_width, img_height, &nDstStep);
+
+    printf("nDstStep %d \n", nDstStep);
 
     NppiSize srcSize;
     srcSize.width = width;
@@ -211,46 +212,42 @@ int main() {
     dstSize.height = img_height;
     NppiRect dstROI = {0, 0, dstSize.width, dstSize.height};
 
-    NppStatus status = nppiResize_32f_C1R 	(pSrc,
-		  nSrcStep,
-		  srcSize,
-		  srcROI,
-		  pDst,
-		  nDstStep,
-		  dstSize,
-		  dstROI,
-      //NPPI_INTER_LINEAR
-      NPPI_INTER_LANCZOS
-		  //NPPI_INTER_LANCZOS3_ADVANCED
+    NppStatus status = nppiResize_32f_C1R(pSrc, nSrcStep, srcSize, srcROI, pDst,
+                                          nDstStep, dstSize, dstROI,
+                                          // NPPI_INTER_LINEAR
+                                          NPPI_INTER_LANCZOS
+                                          // NPPI_INTER_LANCZOS3_ADVANCED
     );
 
     std::cout << "nppiResize_32f_C1R::NppStatus = " << status << std::endl;
 
-    /*status |= nppiMirror_32f_C1R 	( 	const Npp32f *  	pSrc,
-		int  	nSrcStep,
-		Npp32f *  	pDst,
-		int  	nDstStep,
-		NppiSize  	oROI,
-		NppiAxis  	flip 
-	);
+    NppiSize oROI = {dstSize.width, dstSize.height};
 
-    std::cout << "nppiMirror_32f_C1R::NppStatus = " << status << std::endl;*/
+    // cannot be done in place, an extra buffer to hold the inverted image must
+    // be used
+    NppStatus mirrorStatus = nppiMirror_32f_C1R(
+        pDst, nDstStep, pMirror, nDstStep, oROI, NPP_HORIZONTAL_AXIS);
 
-    if(status == NPP_SUCCESS)
-		{
-      // Need to copy image from GPU to HOST Pay attention GPU memory is in power of 2 thus stride copy is required
-			for(int i=0; i< img_height ; i++) {        
-				cudaRet = cudaMemcpy((char*)dstPix32f + i*img_width*sizeof(float) ,(char*)pDst + i*nDstStep, img_width*sizeof(float), cudaMemcpyDeviceToHost);
-			
-			  if (cudaRet != cudaSuccess)
-				  throw std::runtime_error("cudaMemcpyDeviceToHost fail ");			
+    std::cout << "nppiMirror_32f_C1R::NppStatus = " << mirrorStatus
+              << std::endl;
+
+    if (status == NPP_SUCCESS && mirrorStatus == NPP_SUCCESS) {
+      // Need to copy image from GPU to HOST Pay attention GPU memory is in
+      // power of 2 thus stride copy is required
+      for (int i = 0; i < img_height; i++) {
+        cudaRet = cudaMemcpy((char *)dstPix32f + i * img_width * sizeof(float),
+                             (char *)pMirror + i * nDstStep,
+                             img_width * sizeof(float), cudaMemcpyDeviceToHost);
+
+        if (cudaRet != cudaSuccess)
+          throw std::runtime_error("cudaMemcpyDeviceToHost fail ");
       }
 
-      for(size_t i=0; i<plane_size; i++)
-        dstPix8u[i] = roundf(dstPix32f[i]) ;
+      for (size_t i = 0; i < plane_size; i++)
+        dstPix8u[i] = roundf(dstPix32f[i]);
 
       // export luma to a PGM file for a cross-check
-      std::string filename = "zero_half_float_nppi.pgm";
+      std::string filename = "one_half_float_nppi.pgm";
       std::fstream pgm_file(filename, std::ios::out | std::ios::binary);
 
       pgm_file << "P5" << std::endl;
@@ -261,6 +258,7 @@ int main() {
 
     nppiFree(pSrc);
     nppiFree(pDst);
+    nppiFree(pMirror);
   }
 
   // release the memory
