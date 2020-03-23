@@ -865,3 +865,186 @@ void FITS::from_path_zfp(
   this->data_cv.notify_all();
   this->timestamp = std::time(nullptr);
 }
+
+
+IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
+                         IppiRect srcROI, Ipp32f *pDst, int dstStep,
+                         IppiSize dstRoiSize, double xFactor, double yFactor,
+                         int interpolation) {
+  IppStatus status = ippStsNoErr;   // status flag
+  IppiResizeSpec_32f *pSpec = NULL; // specification structure buffer
+  int specSize = 0;                 // size of specification structure buffer
+  int initSize = 0; // size of initialization buffer (only cubic and lanzcos
+                    // interpolation type use this)
+  int bufSize = 0;  // size of working buffer
+  Ipp8u *pBuffer = NULL;        // working buffer
+  Ipp8u *pInit = NULL;          // initialization buffer
+  IppiPoint dstOffset = {0, 0}; // offset to destination image, default is {0,0}
+  IppiBorderType borderType = ippBorderRepl; // borderType, default is
+                                             // <span>ippBorderRepl </span>
+  Ipp32f borderValue = 0;                    // border value, default is zero
+  Ipp32u antialiasing = 0;                   // not use antialiasing
+  Ipp32u numChannels = 1; // this function works with 1 channel
+  Ipp32f valueB = 0.0f;   // default value for cubic interpolation type
+  Ipp32f valueC = 0.0f;   // default value for cubic interpolation type
+  Ipp32u numLobes = 2;    // default value for lanczos interpolation type
+  IppiInterpolationType interpolateType; // interpolation type
+  IppiSize srcRoiSize;                   // size of source ROI
+  IppiSize resizeSrcRoiSize;             // size of resize source ROI
+
+  // Check pSrc and pDst not NULL
+  if ((pSrc == NULL) || (pDst == NULL)) {
+    return ippStsNullPtrErr;
+  }
+
+  // Check srcSize and dstRoiSize not have field with zero or negative
+  // number
+  if ((srcSize.width <= 0) || (srcSize.height <= 0) ||
+      (dstRoiSize.width <= 0) || (dstRoiSize.height <= 0)) {
+    return ippStsSizeErr;
+  }
+
+  // Check srcRoi has no intersection with the source image
+  IppiPoint topLeft = {srcROI.x, srcROI.y};
+  IppiPoint topRight = {srcROI.x + srcROI.width, srcROI.y};
+  IppiPoint bottomLeft = {srcROI.x, srcROI.y + srcROI.height};
+  IppiPoint bottomRight = {srcROI.x + srcROI.width, srcROI.y + srcROI.height};
+  if (((topLeft.x < 0 || topLeft.x > srcSize.width) ||
+       (topLeft.y < 0 || topLeft.y > srcSize.height)) &&
+      ((topRight.x < 0 || topRight.x > srcSize.width) ||
+       (topRight.y < 0 || topRight.y > srcSize.height)) &&
+      ((bottomLeft.x < 0 || bottomLeft.x > srcSize.width) ||
+       (bottomLeft.y < 0 || bottomLeft.y > srcSize.height)) &&
+      ((bottomRight.x < 0 || bottomRight.x > srcSize.width) ||
+       (bottomRight.y < 0 || bottomRight.y > srcSize.height))) {
+    return ippStsWrongIntersectROI;
+  }
+
+  // Check xFactor or yFactor is not less than or equal to zero
+  if ((xFactor <= 0) || (yFactor <= 0)) {
+    return ippStsResizeFactorErr;
+  }
+
+  // Get interpolation filter type
+  switch (interpolation) {
+  case IPPI_INTER_NN:
+    interpolateType = ippNearest;
+    break;
+  case IPPI_INTER_LINEAR:
+    interpolateType = ippLinear;
+    break;
+  case IPPI_INTER_CUBIC:
+    interpolateType = ippCubic;
+    break;
+  case IPPI_INTER_SUPER:
+    interpolateType = ippSuper;
+    break;
+  case IPPI_INTER_LANCZOS:
+    interpolateType = ippLanczos;
+    break;
+  default:
+    return ippStsInterpolationErr;
+  }
+
+  // Set pSrcRoi to top-left corner of source ROI
+  Ipp32f *pSrcRoi =
+      (Ipp32f *)((Ipp8u *)pSrc + srcROI.y * srcStep) + srcROI.x * numChannels;
+
+  // Set size of source ROI
+  srcRoiSize.width = srcROI.width;
+  srcRoiSize.height = srcROI.height;
+
+  // Calculate size of resize source ROI
+  resizeSrcRoiSize.width = (int)ceil(srcRoiSize.width * xFactor);
+  resizeSrcRoiSize.height = (int)ceil(srcRoiSize.height * yFactor);
+
+  // Get size of specification structure buffer and initialization buffer.
+  status = ippiResizeGetSize_8u(srcRoiSize, resizeSrcRoiSize, interpolateType,
+                                antialiasing, &specSize, &initSize);
+  if (status != ippStsNoErr) {
+    return status;
+  }
+
+  // Allocate memory for specification structure buffer.
+  pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
+  if (pSpec == NULL) {
+    return ippStsNoMemErr;
+  }
+
+  // Initialize specification structure buffer correspond to interpolation
+  // type
+  switch (interpolation) {
+  case IPPI_INTER_NN:
+    status = ippiResizeNearestInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
+    break;
+  case IPPI_INTER_LINEAR:
+    status = ippiResizeLinearInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
+    break;
+  case IPPI_INTER_CUBIC:
+    pInit = ippsMalloc_8u(initSize);
+    status = ippiResizeCubicInit_32f(srcRoiSize, resizeSrcRoiSize, valueB,
+                                     valueC, pSpec, pInit);
+    ippsFree(pInit);
+    break;
+  case IPPI_INTER_SUPER:
+    status = ippiResizeSuperInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
+    break;
+  case IPPI_INTER_LANCZOS:
+    pInit = ippsMalloc_8u(initSize);
+    status = ippiResizeLanczosInit_32f(srcRoiSize, resizeSrcRoiSize, numLobes,
+                                       pSpec, pInit);
+    ippsFree(pInit);
+    break;
+  }
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  // Get work buffer size
+  status = ippiResizeGetBufferSize_8u(pSpec, resizeSrcRoiSize, numChannels,
+                                      &bufSize);
+  if (status != ippStsNoErr) {
+    ippsFree(pSpec);
+    return status;
+  }
+
+  // Allocate memory for work buffer.
+  pBuffer = ippsMalloc_8u(bufSize);
+  if (pBuffer == NULL) {
+    ippsFree(pSpec);
+    return ippStsNoMemErr;
+  }
+  // Execute resize processing correspond to interpolation type
+  switch (interpolation) {
+  case IPPI_INTER_NN:
+    status = ippiResizeNearest_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
+                                       dstOffset, dstRoiSize, pSpec, pBuffer);
+    break;
+  case IPPI_INTER_LINEAR:
+    status = ippiResizeLinear_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
+                                      dstOffset, dstRoiSize, borderType,
+                                      &borderValue, pSpec, pBuffer);
+    break;
+  case IPPI_INTER_CUBIC:
+    status = ippiResizeCubic_32f_C1R(pSrcRoi, srcStep, pDst, dstStep, dstOffset,
+                                     dstRoiSize, borderType, &borderValue,
+                                     pSpec, pBuffer);
+    break;
+  case IPPI_INTER_SUPER:
+    status = ippiResizeSuper_32f_C1R(pSrcRoi, srcStep, pDst, dstStep, dstOffset,
+                                     dstRoiSize, pSpec, pBuffer);
+    break;
+  case IPPI_INTER_LANCZOS:
+    status = ippiResizeLanczos_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
+                                       dstOffset, dstRoiSize, borderType,
+                                       &borderValue, pSpec, pBuffer);
+    break;
+  }
+
+  // Free memory
+  ippsFree(pSpec);
+  ippsFree(pBuffer);
+
+  return status;
+}
