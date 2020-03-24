@@ -685,12 +685,38 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                     << " bytes." << std::endl;
 
           // send the data to the web client
-          std::lock_guard<std::mutex> guard(queue->mtx);
-          const char *ptr = output.c_str();
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
-          /*char *ptr = (char *)pixels_buf.get();
-          queue->fifo.insert(queue->fifo.end(), ptr,
-                             ptr + plane_size * sizeof(Ipp32f));*/
+          {
+            uint32_t id_length = 3;
+            const char id[] = {'E', 'X', 'R'};
+            uint32_t js_width = img_width;
+            uint32_t js_height = img_height;
+            uint64_t length = output.length();
+
+            std::lock_guard<std::mutex> guard(queue->mtx);
+            const char *ptr;
+
+            ptr = (const char *)&id_length;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = id;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
+
+            ptr = (const char *)&js_width;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = (const char *)&js_height;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = (const char *)&length;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+
+            ptr = output.c_str();
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+
+            /*char *ptr = (char *)pixels_buf.get();
+queue->fifo.insert(queue->fifo.end(), ptr,
+                   ptr + plane_size * sizeof(Ipp32f));*/
+          }
         }
       }
     } else {
@@ -743,9 +769,34 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                   << " bytes." << std::endl;
 
         // send the data to the web client
-        std::lock_guard<std::mutex> guard(queue->mtx);
-        const char *ptr = output.c_str();
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+        {
+          uint32_t id_length = 3;
+          const char id[] = {'E', 'X', 'R'};
+          uint32_t js_width = img_width;
+          uint32_t js_height = img_height;
+          uint64_t length = output.length();
+
+          std::lock_guard<std::mutex> guard(queue->mtx);
+          const char *ptr;
+
+          ptr = (const char *)&id_length;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = id;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
+
+          ptr = (const char *)&js_width;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = (const char *)&js_height;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = (const char *)&length;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+
+          ptr = output.c_str();
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+        }
       }
     }
 
