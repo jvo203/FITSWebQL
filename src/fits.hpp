@@ -45,6 +45,8 @@ int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
                     float pmins, float pmax);
 
+void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height);
+
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                             Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
 
