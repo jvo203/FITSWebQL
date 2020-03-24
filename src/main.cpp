@@ -707,7 +707,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                                          ippsFree);
       // copy and flip the image
       // memcpy(pixels_buf.get(), fits->img_pixels, plane_size);
-      {
+      if (pixels_buf.get() != NULL) {
         int max_threads = omp_get_max_threads();
 
         // a per-thread limit
@@ -737,6 +737,44 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           // flip the buffer
           ispc::copy_mirror_float32(pSrcT, pDstT, img_width, img_height);
         }
+
+        // export the luma to OpenEXR
+        std::string filename =
+            FITSCACHE + std::string("/") +
+            boost::replace_all_copy(fits->dataset_id, "/", "_") +
+            std::string("_mirror.exr");
+
+        // in-memory output
+        StdOSStream oss;
+
+        try {
+          Header header(img_width, img_height);
+          header.compression() = DWAB_COMPRESSION;
+          header.channels().insert("Y", Channel(FLOAT));
+
+          // OutputFile file(filename.c_str(), header);
+          OutputFile file(oss, header);
+          FrameBuffer frameBuffer;
+
+          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+                                        sizeof(Ipp32f) * 1,
+                                        sizeof(Ipp32f) * img_width));
+
+          file.setFrameBuffer(frameBuffer);
+          file.writePixels(img_height);
+        } catch (const std::exception &exc) {
+          std::cerr << exc.what() << std::endl;
+        }
+
+        std::string output = oss.str();
+        std::cout << "[" << fits->dataset_id
+                  << "]::mirror OpenEXR output: " << output.length()
+                  << " bytes." << std::endl;
+
+        // send the data to the web client
+        std::lock_guard<std::mutex> guard(queue->mtx);
+        const char *ptr = output.c_str();
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
       }
     }
 
