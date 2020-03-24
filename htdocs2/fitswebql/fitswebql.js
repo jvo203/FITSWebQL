@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-03-23.0";
+	return "JS2020-03-24.0";
 }
 
 const wasm_supported = (() => {
@@ -115,6 +115,20 @@ var ie = (function () {
 
 	return ((rv > -1) ? rv : undef);
 }());
+
+function getUint64(dataview, byteOffset, littleEndian) {
+	// 64ビット数を2つの32ビット (4バイト) の部分に分割する
+	const left = dataview.getUint32(byteOffset, littleEndian);
+	const right = dataview.getUint32(byteOffset + 4, littleEndian);
+
+	// 2つの32ビットの値を結合する
+	const combined = littleEndian ? left + 2 ** 32 * right : 2 ** 32 * left + right;
+
+	if (!Number.isSafeInteger(combined))
+		console.warn(combined, 'exceeds MAX_SAFE_INTEGER. Precision may be lost');
+
+	return combined;
+}
 
 var colours = ["red", "green", "lightblue"];
 var linedash = [[], [10, 5], [5, 5, 2, 2]];
