@@ -9262,7 +9262,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 				var frame = new Uint8Array(received_msg, offset, image_length);
 				offset += image_length;
 
-				console.log("image frame identifier (HTTP): ", identifier, "width:", width, "height:", height, "frame length:", image_length);
+				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);
 
 				//the TinyEXR decoder part
 
