@@ -9244,7 +9244,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 
 				var offset = 0;
 				var id_length = dv.getUint32(offset, endianness);
-				offset += 8;
+				offset += 4;
 
 				var identifier = new Uint8Array(received_msg, offset, id_length);
 				identifier = new TextDecoder("utf-8").decode(identifier);
@@ -9256,29 +9256,19 @@ function fetch_image(datasetId, index, add_timestamp) {
 				var height = dv.getUint32(offset, endianness);
 				offset += 4;
 
-				var image_length = dv.getUint32(offset, endianness);
+				var image_length = getUint64(dv, offset, endianness);
 				offset += 8;
 
-				var frame = new Uint8Array(received_msg, offset, image_length);//offset by 8 bytes
+				var frame = new Uint8Array(received_msg, offset, image_length);
 				offset += image_length;
 
-				var alpha_length = dv.getUint32(offset, endianness);
-				offset += 8;
+				console.log("image frame identifier (HTTP): ", identifier, "width:", width, "height:", height, "frame length:", image_length);
 
-				var alpha = new Uint8Array(received_msg, offset);
-				console.log("image frame identifier (HTTP): ", identifier, "width:", width, "height:", height, "compressed alpha length:", alpha.length);
+				//the TinyEXR decoder part
 
-				var Buffer = require('buffer').Buffer;
-				var LZ4 = require('lz4');
-
-				var uncompressed = new Buffer(width * height);
-				uncompressedSize = LZ4.decodeBlock(new Buffer(alpha), uncompressed);
-				alpha = uncompressed.slice(0, uncompressedSize);
-
-				//the decoder part
-
-				if (identifier == 'VP9') {
-					var decoder = new OGVDecoderVideoVP9();
+				if (identifier == 'EXR') {
+					console.log("processing a HDR image");
+					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
 
 					decoder.init(function () { console.log("init callback done"); });
@@ -9289,7 +9279,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 							decoder.frameBuffer.y.stride,
 							alpha,
 							index);
-					});
+					});*/
 				}
 			}
 		}
