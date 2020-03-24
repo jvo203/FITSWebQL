@@ -3091,3 +3091,36 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   return status;
 }
+
+void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height) {
+  int max_threads = omp_get_max_threads();
+
+  // a per-thread limit
+  size_t max_work_size = 1024 * 1024;
+  size_t plane_size = size_t(width) * size_t(height);
+  size_t work_size = MIN(plane_size, max_work_size);
+  int MAX_NUM_THREADS =
+      MAX((int)roundf(float(plane_size) / float(work_size)), 1);
+  printf("tileMirror32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
+
+#pragma omp parallel num_threads(MAX_NUM_THREADS)
+  {
+    int tid = omp_get_thread_num();
+    int numThreads = omp_get_num_threads();
+
+    int slice, tail, tileHeight;
+    slice = height / numThreads;
+    tail = height % numThreads;
+
+    tileHeight = slice;
+    if (tid == numThreads - 1)
+      tileHeight += tail;
+
+    Ipp32f *pSrcT, *pDstT;
+    pSrcT = pSrc + tid * slice * width;
+    pDstT = pDst + tid * slice * width;
+
+    // flip the buffer
+    ispc::copy_mirror_float32(pSrcT, pDstT, width, height);
+  }
+}
