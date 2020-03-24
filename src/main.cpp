@@ -706,37 +706,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
       // copy and flip the image
-      // memcpy(pixels_buf.get(), fits->img_pixels, plane_size);
       if (pixels_buf.get() != NULL) {
-        int max_threads = omp_get_max_threads();
-
-        // a per-thread limit
-        size_t max_work_size = 1024 * 1024;
-        size_t work_size = MIN(plane_size, max_work_size);
-        int MAX_NUM_THREADS =
-            MAX((int)roundf(float(plane_size) / float(work_size)), 1);
-        printf("copy_mirror::num_threads = %d\n", MAX_NUM_THREADS);
-
-#pragma omp parallel num_threads(MAX_NUM_THREADS)
-        {
-          int tid = omp_get_thread_num();
-          int numThreads = omp_get_num_threads();
-
-          int slice, tail, tileHeight;
-          slice = img_height / numThreads;
-          tail = img_height % numThreads;
-
-          tileHeight = slice;
-          if (tid == numThreads - 1)
-            tileHeight += tail;
-
-          Ipp32f *pSrcT, *pDstT;
-          pSrcT = fits->img_pixels + tid * slice * img_width;
-          pDstT = pixels_buf.get() + tid * slice * img_width;
-
-          // flip the buffer
-          ispc::copy_mirror_float32(pSrcT, pDstT, img_width, img_height);
-        }
+        tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
+                          img_height);
 
         // export the luma to OpenEXR
         std::string filename =
