@@ -47,7 +47,6 @@ using namespace OPENEXR_IMF_NAMESPACE;
 
 #include <sqlite3.h>
 
-#include "../fits.h"
 #include "fits.hpp"
 //#include "global.h"
 #include "json.h"
