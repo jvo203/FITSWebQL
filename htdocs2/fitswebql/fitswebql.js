@@ -9267,7 +9267,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 				//the TinyEXR decoder part
 
 				if (identifier == 'EXR') {
-					console.log("processing a HDR image");
+					console.log("processing an OpenEXR HDR image");
 					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
 
