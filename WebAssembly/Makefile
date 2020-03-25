@@ -20,8 +20,8 @@ EMFLAGS+=-s NO_FILESYSTEM=1
 
 #EMFLAGS+=-s EXPORT_NAME="EXR"
 
-wasm: main.cc
-	em++ $(EMFLAGS) $< -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+wasm:
+	em++ $(EMFLAGS) colourmap.c main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs2/fitswebql/exr.*.js ../htdocs2/fitswebql/exr.*.js.mem ../htdocs2/fitswebql/exr.*.wasm
