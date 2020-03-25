@@ -1,3 +1,5 @@
+WASM_STRING = WASM2020-03-25.0
+
 INCLUDE=
 #../install-1.38/include
 LIBRARY=
@@ -19,7 +21,7 @@ EMFLAGS+=-s EXPORT_NAME="EXR"
 EMFLAGS+=--bind -DWRAPPER_EMBIND
 
 wasm: main.cc
-	em++ $(EMFLAGS) $< -o exr.js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $< -o exr_$(WASM_STRING).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
-	rm -f exr-wrap.js exr-wrap.js.mem exr-wrap.wasm
+	rm -f exr.js exr.js.mem exr.wasm
