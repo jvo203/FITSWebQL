@@ -11,7 +11,7 @@
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 #define VERSION_STRING "SV2020-03-25.0"
-#define WASM_STRING "WASM2020-03-25.0"
+#define WASM_VERSION "2020.03.25.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
@@ -1095,7 +1095,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
               "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");*/
   html.append("<script "
-              "src=\"exr_" WASM_STRING ".js\"></script>\n");
+              "src=\"exr" WASM_VERSION ".js\"></script>\n");
   html.append(R"(<script>        
         EXR.onRuntimeInitialized = async _ => {
           console.log("WebAssembly initialised.");
