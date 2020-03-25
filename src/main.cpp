@@ -1095,7 +1095,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
               "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");*/
   html.append("<script "
-              "src=\"hevc_" WASM_STRING ".js\"></script>\n");
+              "src=\"exr_" WASM_STRING ".js\"></script>\n");
   html.append(R"(<script>
         Module.onRuntimeInitialized = async _ => {
             /*api = {                
