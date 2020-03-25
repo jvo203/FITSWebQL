@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-03-24.0";
+	return "JS2020-03-25.0";
 }
 
 const wasm_supported = (() => {
@@ -9267,6 +9267,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 				//the TinyEXR decoder part
 				if (identifier == 'EXR') {
 					console.log("processing an OpenEXR HDR image");
+					//console.log('lerp result: ' + Module.lerp(1, 2, 0.5)); // OK
 					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
 
