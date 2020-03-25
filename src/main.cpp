@@ -1091,9 +1091,11 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
   // hevc wasm decoder
-  html.append("<script "
+  /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-              "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");
+              "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");*/
+  html.append("<script "
+              "src=\"hevc_" WASM_STRING ".js\"></script>\n");
   html.append(R"(<script>
         Module.onRuntimeInitialized = async _ => {
             /*api = {                
