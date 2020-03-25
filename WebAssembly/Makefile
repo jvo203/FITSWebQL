@@ -1,4 +1,4 @@
-VERSION = 2020.03.25.0
+VERSION = 20.03.25.0
 
 INCLUDE=
 #../install-1.38/include
@@ -21,7 +21,7 @@ EMFLAGS+=-s EXPORT_NAME="EXR"
 EMFLAGS+=--bind
 
 wasm: main.cc
-	em++ $(EMFLAGS) $< -o ../htdocs2/fitswebql/exr$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $< -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
-	rm -f exr.js exr.js.mem exr.wasm
+	rm -f ../htdocs2/fitswebql/exr.*.js ../htdocs2/fitswebql/exr.*.js.mem ../htdocs2/fitswebql/exr.*.wasm
