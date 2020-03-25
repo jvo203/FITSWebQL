@@ -5,7 +5,7 @@ INCLUDE=
 LIBRARY=
 #../install-1.38/lib
 CXXFLAGS=-std=c++11 -O3
-LDFLAGS=--llvm-lto 1
+LDFLAGS=-lz --llvm-lto 1
 #-lIlmImf-2_2 -lIlmThread-2_2 -lIex-2_2 -lHalf -lz --llvm-lto 1
 
 .PHONY=clean
