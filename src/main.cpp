@@ -1096,13 +1096,14 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");*/
   html.append("<script "
               "src=\"exr_" WASM_STRING ".js\"></script>\n");
-  html.append(R"(<script>
-        Module.onRuntimeInitialized = async _ => {
+  html.append(R"(<script>        
+        EXR.onRuntimeInitialized = async _ => {
+          console.log("WebAssembly initialised.");          
             /*api = {                
                 hevc_init: Module.cwrap('hevc_init', '', []), 
                 hevc_destroy: Module.cwrap('hevc_destroy', '', []),                
                 hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
-            };*/                   
+            };*/                 
         };
     </script>)");
 
