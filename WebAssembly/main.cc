@@ -16,3 +16,14 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+
+#if defined(WRAPPER_EMBIND)
+
+EMSCRIPTEN_BINDINGS(Wrapper) {
+  using namespace emscripten;
+  function("lerp", &lerp);
+}
+
+#endif
