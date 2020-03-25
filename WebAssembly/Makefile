@@ -18,7 +18,7 @@ EMFLAGS+=-s EXPORT_NAME="EXR"
 # embind
 EMFLAGS+=--bind -DWRAPPER_EMBIND
 
-exr-wrap.js: main.cc
+wasm: main.cc
 	em++ $(EMFLAGS) $< -o exr.js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
