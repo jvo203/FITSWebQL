@@ -1092,7 +1092,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
 
   // OpenEXR wasm decoder
   html.append(R"(<script>  
-    api = {
+    var Module = {
       onRuntimeInitialized: function() {
         console.log("WebAssembly initialised.");
         console.log('lerp result: ' + Module.lerp(1, 2, 0.5));
