@@ -4,7 +4,7 @@ INCLUDE=install/include
 LIBRARY=install/lib
 CXXFLAGS=-std=c++11 -O3
 LDFLAGS=-lz --llvm-lto 1
-#-lIlmImf-2_2 -lIlmThread-2_2 -lIex-2_2 -lHalf -lz --llvm-lto 1
+#-lIlmImf-2_2 -lIlmThread-2_2 -lIex-2_2 -lHalf
 
 .PHONY=clean
 
