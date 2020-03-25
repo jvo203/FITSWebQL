@@ -1110,7 +1110,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
     </script>)");
   /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-              "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");*/
+              "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
   html.append("<script "
               "src=\"exr." WASM_VERSION ".js\"></script>\n");
 
