@@ -1,0 +1,335 @@
+--------------------
+./configure --prefix /home/chris/projects/FITSWebQL/WebAssembly/install
+2020年  3月 25日 水曜日 16:59:08 JST
+=== ztest6499.c ===
+extern int getchar();
+int hello() {return getchar();}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c ztest6499.c
+... using gcc
+
+Checking for obsessive-compulsive compiler options...
+=== ztest6499.c ===
+int foo() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 ztest6499.c
+
+Checking for shared library support...
+=== ztest6499.c ===
+extern int getchar();
+int hello() {return getchar();}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -w -c -O3 -fPIC ztest6499.c
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -fPIC -o ztest6499.so ztest6499.o
+Building shared library libz.so.1.2.11 with /home/chris/emsdk/upstream/emscripten/emcc.
+
+=== ztest6499.c ===
+#include <stdio.h>
+#include <stdlib.h>
+size_t dummy = 0;
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 ztest6499.c
+Checking for size_t... Yes.
+
+
+=== ztest6499.c ===
+#include <sys/types.h>
+off64_t dummy = 0;
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking for off64_t... Yes.
+Checking for fseeko... Yes.
+
+=== ztest6499.c ===
+#include <string.h>
+#include <errno.h>
+int main() { return strlen(strerror(errno)); }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -D_LARGEFILE64_SOURCE=1 -o ztest6499 ztest6499.c
+Checking for strerror... Yes.
+
+=== ztest6499.c ===
+#include <unistd.h>
+int main() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking for unistd.h... Yes.
+
+=== ztest6499.c ===
+#include <stdarg.h>
+int main() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking for stdarg.h... Yes.
+
+=== ztest6499.c ===
+#include <stdio.h>
+#include <stdarg.h>
+#include "zconf.h"
+int main()
+{
+#ifndef STDC
+  choke me
+#endif
+  return 0;
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking whether to use vs[n]printf() or s[n]printf()... using vs[n]printf().
+
+=== ztest6499.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return 0;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -D_LARGEFILE64_SOURCE=1 -o ztest6499 ztest6499.c
+Checking for vsnprintf() in stdio.h... Yes.
+
+=== ztest6499.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  int n;
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  n = vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return n;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking for return value of vsnprintf()... Yes.
+
+=== ztest6499.c ===
+#define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
+int ZLIB_INTERNAL foo;
+int main()
+{
+  return 0;
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest6499.c
+Checking for attribute(visibility) support... Yes.
+
+ALL = static shared all64
+AR = /home/chris/emsdk/upstream/emscripten/emar
+ARFLAGS = rc
+CC = /home/chris/emsdk/upstream/emscripten/emcc
+CFLAGS = -O3 -D_LARGEFILE64_SOURCE=1 -DHAVE_HIDDEN
+CPP = /home/chris/emsdk/upstream/emscripten/emcc -E
+EXE =
+LDCONFIG = ldconfig
+LDFLAGS =
+LDSHARED = /home/chris/emsdk/upstream/emscripten/emcc
+LDSHAREDLIBC = -lc
+OBJC = $(OBJZ) $(OBJG)
+PIC_OBJC = $(PIC_OBJZ) $(PIC_OBJG)
+RANLIB = /home/chris/emsdk/upstream/emscripten/emranlib
+SFLAGS = -O3 -fPIC -D_LARGEFILE64_SOURCE=1 -DHAVE_HIDDEN
+SHAREDLIB = libz.so
+SHAREDLIBM = libz.so.1
+SHAREDLIBV = libz.so.1.2.11
+STATICLIB = libz.a
+TEST = all teststatic testshared test64
+VER = 1.2.11
+Z_U4 =
+SRCDIR =
+exec_prefix = ${prefix}
+includedir = ${prefix}/include
+libdir = ${exec_prefix}/lib
+mandir = ${prefix}/share/man
+prefix = /home/chris/projects/FITSWebQL/WebAssembly/install
+sharedlibdir = ${libdir}
+uname = Linux
+--------------------
+
+
+--------------------
+./configure --prefix /home/chris/projects/FITSWebQL/WebAssembly/install
+2020年  3月 25日 水曜日 17:01:46 JST
+=== ztest7249.c ===
+extern int getchar();
+int hello() {return getchar();}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c ztest7249.c
+... using gcc
+
+Checking for obsessive-compulsive compiler options...
+=== ztest7249.c ===
+int foo() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 ztest7249.c
+
+Checking for shared library support...
+=== ztest7249.c ===
+extern int getchar();
+int hello() {return getchar();}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -w -c -O3 -fPIC ztest7249.c
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -fPIC -o ztest7249.so ztest7249.o
+Building shared library libz.so.1.2.11 with /home/chris/emsdk/upstream/emscripten/emcc.
+
+=== ztest7249.c ===
+#include <stdio.h>
+#include <stdlib.h>
+size_t dummy = 0;
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 ztest7249.c
+Checking for size_t... Yes.
+
+
+=== ztest7249.c ===
+#include <sys/types.h>
+off64_t dummy = 0;
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking for off64_t... Yes.
+Checking for fseeko... Yes.
+
+=== ztest7249.c ===
+#include <string.h>
+#include <errno.h>
+int main() { return strlen(strerror(errno)); }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -D_LARGEFILE64_SOURCE=1 -o ztest7249 ztest7249.c
+Checking for strerror... Yes.
+
+=== ztest7249.c ===
+#include <unistd.h>
+int main() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking for unistd.h... Yes.
+
+=== ztest7249.c ===
+#include <stdarg.h>
+int main() { return 0; }
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking for stdarg.h... Yes.
+
+=== ztest7249.c ===
+#include <stdio.h>
+#include <stdarg.h>
+#include "zconf.h"
+int main()
+{
+#ifndef STDC
+  choke me
+#endif
+  return 0;
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking whether to use vs[n]printf() or s[n]printf()... using vs[n]printf().
+
+=== ztest7249.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return 0;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -O3 -D_LARGEFILE64_SOURCE=1 -o ztest7249 ztest7249.c
+Checking for vsnprintf() in stdio.h... Yes.
+
+=== ztest7249.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  int n;
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  n = vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return n;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking for return value of vsnprintf()... Yes.
+
+=== ztest7249.c ===
+#define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
+int ZLIB_INTERNAL foo;
+int main()
+{
+  return 0;
+}
+===
+/home/chris/emsdk/upstream/emscripten/emcc -c -O3 -D_LARGEFILE64_SOURCE=1 ztest7249.c
+Checking for attribute(visibility) support... Yes.
+
+ALL = static shared all64
+AR = /home/chris/emsdk/upstream/emscripten/emar
+ARFLAGS = rc
+CC = /home/chris/emsdk/upstream/emscripten/emcc
+CFLAGS = -O3 -D_LARGEFILE64_SOURCE=1 -DHAVE_HIDDEN
+CPP = /home/chris/emsdk/upstream/emscripten/emcc -E
+EXE =
+LDCONFIG = ldconfig
+LDFLAGS =
+LDSHARED = /home/chris/emsdk/upstream/emscripten/emcc
+LDSHAREDLIBC = -lc
+OBJC = $(OBJZ) $(OBJG)
+PIC_OBJC = $(PIC_OBJZ) $(PIC_OBJG)
+RANLIB = /home/chris/emsdk/upstream/emscripten/emranlib
+SFLAGS = -O3 -fPIC -D_LARGEFILE64_SOURCE=1 -DHAVE_HIDDEN
+SHAREDLIB = libz.so
+SHAREDLIBM = libz.so.1
+SHAREDLIBV = libz.so.1.2.11
+STATICLIB = libz.a
+TEST = all teststatic testshared test64
+VER = 1.2.11
+Z_U4 =
+SRCDIR =
+exec_prefix = ${prefix}
+includedir = ${prefix}/include
+libdir = ${exec_prefix}/lib
+mandir = ${prefix}/share/man
+prefix = /home/chris/projects/FITSWebQL/WebAssembly/install
+sharedlibdir = ${libdir}
+uname = Linux
+--------------------
+
+
+--------------------
+./configure --help
+2020年  3月 25日 水曜日 17:03:50 JST
+usage:
+  configure [--const] [--zprefix] [--prefix=PREFIX]  [--eprefix=EXPREFIX]
+    [--static] [--64] [--libdir=LIBDIR] [--sharedlibdir=LIBDIR]
+    [--includedir=INCLUDEDIR] [--archs="-arch i386 -arch x86_64"]
