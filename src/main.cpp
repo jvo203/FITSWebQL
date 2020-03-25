@@ -1098,7 +1098,8 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"exr_" WASM_STRING ".js\"></script>\n");
   html.append(R"(<script>        
         EXR.onRuntimeInitialized = async _ => {
-          console.log("WebAssembly initialised.");          
+          console.log("WebAssembly initialised.");
+          console.log('lerp result: ' + EXR.lerp(1, 2, 0.5));        
             /*api = {                
                 hevc_init: Module.cwrap('hevc_init', '', []), 
                 hevc_destroy: Module.cwrap('hevc_destroy', '', []),                
