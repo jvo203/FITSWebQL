@@ -10,15 +10,15 @@ LDFLAGS=--llvm-lto 1
 
 .PHONY=clean
 
-EMFLAGS=
+EMFLAGS=--bind
 EMFLAGS+=-s ALLOW_MEMORY_GROWTH=1
 EMFLAGS+=-s NO_EXIT_RUNTIME=1
 EMFLAGS+=-s NO_FILESYSTEM=1
-EMFLAGS+=-s MODULARIZE=1
-#EMFLAGS+=-s EXPORT_NAME="EXR"
 
-# embind
-EMFLAGS+=--bind
+# this is an offending flag!!!
+#EMFLAGS+=-s MODULARIZE=1
+
+#EMFLAGS+=-s EXPORT_NAME="EXR"
 
 wasm: main.cc
 	em++ $(EMFLAGS) $< -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)

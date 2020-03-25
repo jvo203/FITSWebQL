@@ -19,9 +19,10 @@
 
 using namespace emscripten;
 
-float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+float lerp(float a, float b, float t) {
+    return (1 - t) * a + t * b;
+}
 
 EMSCRIPTEN_BINDINGS(Wrapper) {
-  using namespace emscripten;
-  function("lerp", &lerp);
+    function("lerp", &lerp);
 }

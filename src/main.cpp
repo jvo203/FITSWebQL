@@ -1090,29 +1090,48 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
-  // OpenEXR wasm decoder
-  html.append(R"(<script>  
+  // OpenEXR WASM decoder
+  html.append(R"(
+    <script>
     var Module = {
       onRuntimeInitialized: function() {
         console.log("WebAssembly initialised.");
         console.log('lerp result: ' + Module.lerp(1, 2, 0.5));
       }
-    };    
-        /*EXR.onRuntimeInitialized = async _ => {
+    };
+  </script>
+  )");
+  html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");
+  /*html.append("<script "
+  "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
+  "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+
+  // OpenEXR wasm decoder
+  /*html.append(R"(<script>
+    var Module = {
+      onRuntimeInitialized: function() {
+        console.log("WebAssembly initialised.");
+        console.log('lerp result: ' + Module.lerp(1, 2, 0.5));
+      }
+    };
+        EXR.onRuntimeInitialized = async _ => {
           console.log("WebAssembly initialised.");
-          console.log('lerp result: ' + EXR.lerp(1, 2, 0.5));        
-            api = {                
-                hevc_init: Module.cwrap('hevc_init', '', []), 
-                hevc_destroy: Module.cwrap('hevc_destroy', '', []),                
-                hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
+          console.log('lerp result: ' + EXR.lerp(1, 2, 0.5));
+            api = {
+                hevc_init: Module.cwrap('hevc_init', '', []),
+                hevc_destroy: Module.cwrap('hevc_destroy', '', []),
+                hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit',
+    'number', ['number', 'number', 'number', 'number', 'number', 'number',
+    'number', 'string']),
             };
-        };*/
-    </script>)");
+        };
+    </script>)");*/
   /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
               "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
-  html.append("<script "
-              "src=\"exr." WASM_VERSION ".js\"></script>\n");
+  /*html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
 
   // bootstrap
   html.append("<meta name=\"viewport\" content=\"width=device-width, "
