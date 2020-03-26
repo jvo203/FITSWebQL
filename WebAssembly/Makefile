@@ -21,7 +21,7 @@ EMFLAGS+=-s USE_PTHREADS=1 -s WASM_MEM_MAX=2GB
 #EMFLAGS+=-s EXPORT_NAME="EXR"
 
 wasm:
-	em++ $(EMFLAGS) colourmap.c main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) colourmap.cc main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs2/fitswebql/exr.*.js ../htdocs2/fitswebql/exr.*.js.mem ../htdocs2/fitswebql/exr.*.wasm
