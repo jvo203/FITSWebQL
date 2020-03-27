@@ -1,6 +1,6 @@
 VERSION = 20.03.25.0
 
-INCLUDE=
+INCLUDE=./
 #install/include
 LIBRARY=
 #install/lib
