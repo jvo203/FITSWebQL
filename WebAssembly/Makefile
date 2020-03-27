@@ -1,7 +1,7 @@
 VERSION = 20.03.25.0
 
 SRC=OpenEXR/*.cpp
-INCLUDE=./OpenEXR
+INCLUDE=-I./ -I./OpenEXR
 #install/include
 LIBRARY=
 #install/lib
@@ -24,7 +24,7 @@ EMFLAGS+=-s USE_ZLIB=1
 #EMFLAGS+=-s EXPORT_NAME="EXR"
 
 wasm:
-	em++ $(EMFLAGS) $(SRC) colourmap.cc main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js -I$(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $(SRC) colourmap.cc main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs2/fitswebql/exr.*.js ../htdocs2/fitswebql/exr.*.js.mem ../htdocs2/fitswebql/exr.*.wasm
