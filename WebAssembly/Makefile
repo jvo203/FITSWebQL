@@ -1,7 +1,7 @@
 VERSION = 20.03.25.0
 
 SRC=OpenEXR/*.cpp
-INCLUDE=./
+INCLUDE=./OpenEXR
 #install/include
 LIBRARY=
 #install/lib
