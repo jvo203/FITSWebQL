@@ -1,7 +1,9 @@
 VERSION = 20.03.25.0
 
-INCLUDE=install/include
-LIBRARY=install/lib
+INCLUDE=
+#install/include
+LIBRARY=
+#install/lib
 CXXFLAGS=-std=c++11 -O3
 LDFLAGS=-lz --llvm-lto 1
 #-lIlmImf-2_2 -lIlmThread-2_2 -lIex-2_2 -lHalf
@@ -13,7 +15,7 @@ EMFLAGS+=-s ALLOW_MEMORY_GROWTH=1
 EMFLAGS+=-s NO_EXIT_RUNTIME=1
 EMFLAGS+=-s NO_FILESYSTEM=1
 EMFLAGS+=-s USE_PTHREADS=1 -s WASM_MEM_MAX=2GB
-#EMFLAGS+=-s USE_ZLIB=1
+EMFLAGS+=-s USE_ZLIB=1
 
 # this is an offending flag!!!
 #EMFLAGS+=-s MODULARIZE=1
