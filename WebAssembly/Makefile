@@ -1,4 +1,4 @@
-VERSION = 20.03.25.0
+VERSION = 20.03.29.0
 
 SRC=OpenEXR/*.cpp
 INCLUDE=-I./ -I./OpenEXR

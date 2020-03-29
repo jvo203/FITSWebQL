@@ -10,8 +10,8 @@
 #define WSS_PORT 8081
 #define SERVER_STRING                                                          \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-25.0"
-#define WASM_VERSION "20.03.25.0"
+#define VERSION_STRING "SV2020-03-29.0"
+#define WASM_VERSION "20.03.29.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
