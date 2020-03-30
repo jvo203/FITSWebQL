@@ -24,6 +24,7 @@
 #include <OpenEXR/ImfHeader.h>
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfStdIO.h>
+#include <OpenEXR/ImfStandardAttributes.h>
 
 using namespace OPENEXR_IMF_NAMESPACE;
 
