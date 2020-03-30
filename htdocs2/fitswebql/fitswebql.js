@@ -9239,7 +9239,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 			var received_msg = xmlhttp.response;
 
 			if (received_msg instanceof ArrayBuffer) {
-				var dv = new DataView(received_msg);
+				/*var dv = new DataView(received_msg);
 				console.log("FITSImage dataview byte length: ", dv.byteLength);
 
 				var offset = 0;
@@ -9262,38 +9262,40 @@ function fetch_image(datasetId, index, add_timestamp) {
 				var frame = new Uint8Array(received_msg, offset, image_length);
 				offset += image_length;
 
-				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);
+				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);*/
 
-				//the TinyEXR decoder part
-				if (identifier == 'EXR') {
-					Module.ready
-						.then(_ => {
-							console.log("processing an OpenEXR HDR image");
-							let start = performance.now();
-							var image = Module.loadEXRStr(frame);
-							let elapsed = Math.round(performance.now() - start);
-							console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
-							var pixels = image.plane("Y");
-							console.log(pixels);
-							var alpha = image.plane("A");							
-							console.log(alpha);
-							image.delete();
-						})
-						.catch(e => console.error(e));
+				let frame = received_msg;
 
-					/*var decoder = new OGVDecoderVideoVP9();
-					console.log(decoder);
+				// OpenEXR decoder part
+				/*if (identifier == 'EXR') {*/
+				Module.ready
+					.then(_ => {
+						console.log("processing an OpenEXR HDR image");
+						let start = performance.now();
+						var image = Module.loadEXRStr(frame);
+						let elapsed = Math.round(performance.now() - start);
+						console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+						var pixels = image.plane("Y");
+						console.log(pixels);
+						var alpha = image.plane("A");
+						console.log(alpha);
+						image.delete();
+					})
+					.catch(e => console.error(e));
 
-					decoder.init(function () { console.log("init callback done"); });
-					decoder.processFrame(frame, function () {
-						process_image(width, height, decoder.frameBuffer.format.displayWidth,
-							decoder.frameBuffer.format.displayHeight,
-							decoder.frameBuffer.y.bytes,
-							decoder.frameBuffer.y.stride,
-							alpha,
-							index);
-					});*/
-				}
+				/*var decoder = new OGVDecoderVideoVP9();
+				console.log(decoder);
+
+				decoder.init(function () { console.log("init callback done"); });
+				decoder.processFrame(frame, function () {
+					process_image(width, height, decoder.frameBuffer.format.displayWidth,
+						decoder.frameBuffer.format.displayHeight,
+						decoder.frameBuffer.y.bytes,
+						decoder.frameBuffer.y.stride,
+						alpha,
+						index);
+				});*/
+				/*}*/
 			}
 		}
 	}
