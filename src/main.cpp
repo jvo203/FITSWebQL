@@ -1190,41 +1190,10 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   html.append(R"(
     <script>
     Module.ready
-      .then(api => console.log( "WebAssembly initialised." ))
-      .catch(e => console.error(e))
-    /*var wasm_api = {
-      onRuntimeInitialized: function() {
-        console.log("WebAssembly initialised.");        
-      }
-    };*/
+      .then( status => console.log( status ))
+      .catch(e => console.error(e))    
   </script>
   )");
-
-  // OpenEXR wasm decoder
-  /*html.append(R"(<script>
-    var Module = {
-      onRuntimeInitialized: function() {
-        console.log("WebAssembly initialised.");
-        console.log('lerp result: ' + Module.lerp(1, 2, 0.5));
-      }
-    };
-        EXR.onRuntimeInitialized = async _ => {
-          console.log("WebAssembly initialised.");
-          console.log('lerp result: ' + EXR.lerp(1, 2, 0.5));
-            api = {
-                hevc_init: Module.cwrap('hevc_init', '', []),
-                hevc_destroy: Module.cwrap('hevc_destroy', '', []),
-                hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit',
-    'number', ['number', 'number', 'number', 'number', 'number', 'number',
-    'number', 'string']),
-            };
-        };
-    </script>)");*/
-  /*html.append("<script "
-              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-              "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
-  /*html.append("<script "
-              "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
 
   // bootstrap
   html.append("<meta name=\"viewport\" content=\"width=device-width, "
