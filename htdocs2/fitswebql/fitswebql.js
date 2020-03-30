@@ -9274,7 +9274,9 @@ function fetch_image(datasetId, index, add_timestamp) {
 							let elapsed = Math.round(performance.now() - start);
 							console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
 							var pixels = image.plane("Y");
+							var alpha = image.plane("A");
 							console.log(pixels);
+							console.log(alpha);
 							image.delete();
 						})
 						.catch(e => console.error(e));
