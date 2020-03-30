@@ -662,7 +662,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         if (std::isnan(fits->img_pixels[offset]))
           fits->img_pixels[offset++] = 0.0f;*/
 
-    float compression_level = 100.0f; // default is 45.0f
+    float compression_level = 45.0f; //100.0f; // default is 45.0f
 
     // calculate a new image size
     float scale = get_image_scale(_width, _height, fits->width, fits->height);
