@@ -9265,17 +9265,19 @@ function fetch_image(datasetId, index, add_timestamp) {
 				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);
 
 				//the TinyEXR decoder part
-				if (identifier == 'EXR') {					
-					/*wasm_api.then(function () {*/
-					console.log("processing an OpenEXR HDR image");
-					let start = performance.now();
-					var image = Module.loadEXRStr(frame);
-					let elapsed = Math.round(performance.now() - start);
-					console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
-					let pixels = image.plane("Y");
-					console.log(pixels);
-					image.delete();
-					/*});*/
+				if (identifier == 'EXR') {
+					Module.ready
+						.then(_ => {
+							console.log("processing an OpenEXR HDR image");
+							let start = performance.now();
+							var image = Module.loadEXRStr(frame);
+							let elapsed = Math.round(performance.now() - start);
+							console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+							let pixels = image.plane("Y");
+							console.log(pixels);
+							image.delete();
+						})
+						.catch(e => console.error(e));
 
 					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
