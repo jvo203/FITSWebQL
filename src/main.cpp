@@ -732,7 +732,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             Header header(img_width, img_height);
             header.compression() = DWAB_COMPRESSION;
             header.channels().insert("Y", Channel(FLOAT));
-            header.channels().insert("A", Channel(UINT));
+            header.channels().insert("A", Channel(FLOAT));
 
             // OutputFile file(filename.c_str(), header);
             OutputFile file(oss, header);
