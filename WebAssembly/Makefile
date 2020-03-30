@@ -21,7 +21,7 @@ EMFLAGS+=-s USE_ZLIB=1
 #EMFLAGS+=-s EXPORT_NAME="EXR"
 
 wasm:
-	em++ $(EMFLAGS) $(SRC) colourmap.cc main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $(SRC) colourmap.cc main.cc -o ../htdocs2/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs2/fitswebql/exr.*.js ../htdocs2/fitswebql/exr.*.js.mem ../htdocs2/fitswebql/exr.*.wasm

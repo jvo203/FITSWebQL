@@ -9265,7 +9265,8 @@ function fetch_image(datasetId, index, add_timestamp) {
 				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);
 
 				//the TinyEXR decoder part
-				if (identifier == 'EXR') {
+				if (identifier == 'EXR') {					
+					/*wasm_api.then(function () {*/
 					console.log("processing an OpenEXR HDR image");
 					let start = performance.now();
 					var image = Module.loadEXRStr(frame);
@@ -9274,6 +9275,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 					let pixels = image.plane("Y");
 					console.log(pixels);
 					image.delete();
+					/*});*/
 
 					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
@@ -12231,7 +12233,7 @@ function test_webgl_support() {
 	try {
 		var canvas = document.createElement('canvas');
 		return !!window.WebGLRenderingContext && (
-			canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+			canvas.getContext('webgl2') /*|| canvas.getContext('experimental-webgl')*/);
 	} catch (e) { return false; }
 };
 
@@ -12239,7 +12241,7 @@ function enable_3d_view() {
 	has_webgl = false;
 
 	if (test_webgl_support()) {
-		console.log("WebGL supported");
+		console.log("WebGL2 supported");
 
 		/*(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;

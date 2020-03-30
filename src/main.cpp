@@ -1182,22 +1182,23 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
   // OpenEXR WASM decoder
-  html.append(R"(
-    <script>
-    var Module = {
-      onRuntimeInitialized: function() {
-        console.log("WebAssembly initialised.");
-        /*var no_threads = navigator.hardwareConcurrency;
-        Module.enableMultithreading(no_threads);*/
-      }
-    };
-  </script>
-  )");
   html.append("<script "
               "src=\"exr." WASM_VERSION ".js\"></script>\n");
   /*html.append("<script "
   "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
   "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+  html.append(R"(
+    <script>
+    Module.ready
+      .then(api => console.log( "WebAssembly initialised." ))
+      .catch(e => console.error(e))
+    /*var wasm_api = {
+      onRuntimeInitialized: function() {
+        console.log("WebAssembly initialised.");        
+      }
+    };*/
+  </script>
+  )");
 
   // OpenEXR wasm decoder
   /*html.append(R"(<script>
@@ -1272,10 +1273,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
 
   // the page entry point
   html.append(R"(<script>
-        const golden_ratio = 1.6180339887;
-        var ALMAWS = null ;
-        var wsVideo = null ;
-        var wsConn = null ;
+        const golden_ratio = 1.6180339887;        
         var firstTime = true ;
         var has_image = false ;         
         var PROGRESS_VARIABLE = 0.0 ;
@@ -1287,14 +1285,6 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
         var idleResize = -1;
         window.onresize = resizeMe;
         window.onbeforeunload = function() {            
-            if(wsConn != null)
-            {
-                for(let i=0;i<va_count;i++)
-                    wsConn[i].close();
-            }
-
-            if(wsVideo != null)
-                wsVideo.close();
         };
         mainRenderer();
     </script>)");
