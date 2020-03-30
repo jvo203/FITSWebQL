@@ -662,6 +662,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         if (std::isnan(fits->img_pixels[offset]))
           fits->img_pixels[offset++] = 0.0f;*/
 
+    float compression_level = 100.0f;
+
     // calculate a new image size
     float scale = get_image_scale(_width, _height, fits->width, fits->height);
 
@@ -731,6 +733,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           {
             Header header(img_width, img_height);
             header.compression() = DWAB_COMPRESSION;
+            addDwaCompressionLevel(header, compression_level);
             header.channels().insert("Y", Channel(FLOAT));
             header.channels().insert("A", Channel(FLOAT));
 
@@ -835,6 +838,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         {
           Header header(img_width, img_height);
           header.compression() = DWAB_COMPRESSION;
+          addDwaCompressionLevel(header, compression_level);
           header.channels().insert("Y", Channel(FLOAT));
           header.channels().insert("A", Channel(FLOAT));
 
