@@ -9273,7 +9273,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 							var image = Module.loadEXRStr(frame);
 							let elapsed = Math.round(performance.now() - start);
 							console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
-							let pixels = image.plane("Y");
+							var pixels = image.plane("Y");
 							console.log(pixels);
 							image.delete();
 						})
