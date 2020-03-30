@@ -5,6 +5,10 @@
 // colourmaps
 #include "colourmap.h"
 
+#include <OpenEXR/IlmThread.h>
+#include <OpenEXR/ImfNamespace.h>
+#include <OpenEXR/ImfThreading.h>
+
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfHeader.h>
 #include <OpenEXR/ImfIO.h>
@@ -19,16 +23,16 @@
 
 using namespace emscripten;
 
-float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
-
-class BufferAdapter : public OPENEXR_IMF_NAMESPACE::IStream {
+class BufferAdapter : public OPENEXR_IMF_NAMESPACE::IStream
+{
 public:
   BufferAdapter(char *buffer, size_t size)
       : IStream("BufferAdapter"), m_buffer(buffer), m_size(size), m_offset() {}
 
   virtual bool isMemoryMapped() const override { return true; }
 
-  virtual bool read(char c[/*n*/], int n) override {
+  virtual bool read(char c[/*n*/], int n) override
+  {
     std::size_t remaining = m_size - m_offset;
     if (std::size_t(n) > remaining)
       throw std::runtime_error("Out of bounds read request");
@@ -37,7 +41,8 @@ public:
     return n == remaining;
   }
 
-  virtual char *readMemoryMapped(int n) override {
+  virtual char *readMemoryMapped(int n) override
+  {
     std::size_t remaining = m_size - m_offset;
     if (std::size_t(n) > remaining)
       throw std::runtime_error("Out of bounds read request");
@@ -48,7 +53,8 @@ public:
 
   virtual OPENEXR_IMF_NAMESPACE::Int64 tellg() override { return m_offset; }
 
-  virtual void seekg(OPENEXR_IMF_NAMESPACE::Int64 pos) override {
+  virtual void seekg(OPENEXR_IMF_NAMESPACE::Int64 pos) override
+  {
     m_offset = pos;
   }
 
@@ -65,12 +71,14 @@ typedef std::vector<char> Bytes;
 typedef std::vector<float> Pixel;
 typedef std::map<std::string, Pixel> Planes;
 
-struct EXRImage {
+struct EXRImage
+{
   std::size_t width;
   std::size_t height;
   Planes planes;
 
-  emscripten::val plane(std::string const &name) const {
+  emscripten::val plane(std::string const &name) const
+  {
     using namespace emscripten;
     auto it = planes.find(name);
     if (it == planes.end())
@@ -78,7 +86,8 @@ struct EXRImage {
     return val(typed_memory_view(it->second.size(), it->second.data()));
   }
 
-  emscripten::val channels() const {
+  emscripten::val channels() const
+  {
     using namespace emscripten;
     auto c = val::array();
     std::size_t idx = 0;
@@ -88,10 +97,13 @@ struct EXRImage {
   }
 };
 
-EXRImage loadEXRRaw(char const *buffer, std::size_t size) {
+EXRImage loadEXRRaw(char const *buffer, std::size_t size)
+{
   using namespace OPENEXR_IMF_NAMESPACE;
+
   EXRImage image;
-  try {
+  try
+  {
     BufferAdapter bytes(const_cast<char *>(buffer), size);
     InputFile file(bytes);
     auto window = file.header().dataWindow();
@@ -118,23 +130,36 @@ EXRImage loadEXRRaw(char const *buffer, std::size_t size) {
     }
     file.setFrameBuffer(fb);
     file.readPixels(window.min.y, window.max.y);
-  } catch (...) {
+  }
+  catch (...)
+  {
   }
   return image;
 }
 
-EXRImage loadEXRVec(std::vector<char> const &bytes) {
+EXRImage loadEXRVec(std::vector<char> const &bytes)
+{
   return loadEXRRaw(bytes.data(), bytes.size());
 }
 
-EXRImage loadEXRStr(std::string const &bytes) {
+EXRImage loadEXRStr(std::string const &bytes)
+{
 
   return loadEXRRaw(bytes.data(), bytes.size());
 }
 
-EMSCRIPTEN_BINDINGS(Wrapper) {
-  function("lerp", &lerp);
+void enableMultithreading(int no_threads)
+{
+  if (ILMTHREAD_NAMESPACE::supportsThreads())
+  {
+    OPENEXR_IMF_NAMESPACE::setGlobalThreadCount(no_threads);
+    std::cout << "[OpenEXR] number of threads: "
+              << OPENEXR_IMF_NAMESPACE::globalThreadCount() << std::endl;
+  }
+}
 
+EMSCRIPTEN_BINDINGS(Wrapper)
+{
   register_vector<float>("Pixel");
   register_vector<char>("Bytes");
   register_map<std::string, Pixel>("Planes");
@@ -147,4 +172,5 @@ EMSCRIPTEN_BINDINGS(Wrapper) {
   function("loadEXRRaw", &loadEXRRaw, allow_raw_pointer<arg<0>>());
   function("loadEXRVec", &loadEXRVec);
   function("loadEXRStr", &loadEXRStr);
+  function("enableMultithreading", &enableMultithreading);
 }

@@ -9267,12 +9267,14 @@ function fetch_image(datasetId, index, add_timestamp) {
 				//the TinyEXR decoder part
 				if (identifier == 'EXR') {
 					console.log("processing an OpenEXR HDR image");
+					let start = performance.now();
 					var image = Module.loadEXRStr(frame);
-					console.log("image width: ", image.width, " height: ", image.height, " channels: ", image.channels());
+					let elapsed = Math.round(performance.now() - start);
+					console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
 					let pixels = image.plane("Y");
 					console.log(pixels);
 					image.delete();
-					//console.log('lerp result: ' + Module.lerp(1, 2, 0.5)); // OK
+
 					/*var decoder = new OGVDecoderVideoVP9();
 					console.log(decoder);
 
