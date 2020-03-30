@@ -678,7 +678,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      std::shared_ptr<Ipp16u> mask_buf(ippsMalloc_16u_L(plane_size), ippsFree);
+      std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);
 
       if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
       {
@@ -704,11 +704,11 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         {
           // the mask should be filled-in manually based on NaN pixels
           Ipp32f *ptr = pixels_buf.get();
-          Ipp16u *mask = mask_buf.get();
+          Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
           for (size_t i = 0; i < plane_size; i++)
-            mask[i] = std::isnan(ptr[i]) ? 0 : 255;
+            mask[i] = std::isnan(ptr[i]) ? 0.0f : 1.0f;
 
           /*for (int i = 0; i < img_width; i++)
           {
@@ -742,8 +742,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                                           sizeof(Ipp32f) * 1,
                                           sizeof(Ipp32f) * img_width));
 
-            frameBuffer.insert("A", Slice(UINT, (char *)mask_buf.get(), sizeof(Ipp16u) * 1,
-                                          sizeof(Ipp16u) * img_width));
+            frameBuffer.insert("A", Slice(FLOAT, (char *)mask_buf.get(),
+                                          sizeof(Ipp32f) * 1,
+                                          sizeof(Ipp32f) * img_width));
+
+            /*frameBuffer.insert("A", Slice(UINT, (char *)mask_buf.get(), sizeof(Ipp16u) * 1,
+                                          sizeof(Ipp16u) * img_width));*/
 
             file.setFrameBuffer(frameBuffer);
             file.writePixels(img_height);
