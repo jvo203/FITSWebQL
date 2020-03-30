@@ -655,8 +655,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
   std::thread([queue, fits, _width, _height]() {
     // fill the pixels with dummy values for testing purposes
     /*size_t offset = 0;
-    for (int i = 0; i < _height; i++)
-      for (int j = 0; j < _width; j++)
+    for (int i = 0; i < _height; i++) // the range is incorrect
+      for (int j = 0; j < _width; j++) // the range is incorrect
         // fits->img_pixels[offset++] = logf(1.0f + i * j);
         if (std::isnan(fits->img_pixels[offset]))
           fits->img_pixels[offset++] = 0.0f;*/
@@ -677,7 +677,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+      std::shared_ptr<Ipp16u> mask_buf(ippsMalloc_16u_L(plane_size), ippsFree);
 
       if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
       {
@@ -696,19 +696,28 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
                               pixels_buf.get(), dstSize, dstStep);
 
-        IppStatus mask_stat = tileResize8u_C1R(
-            fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+        printf(" %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat));
 
-        printf(" %d : %s, %d : %s\n", pixels_stat,
-               ippGetStatusString(pixels_stat), mask_stat,
-               ippGetStatusString(mask_stat));
-
-        // append image bytes to the queue
-        if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
+        // compress the pixels + mask with OpenEXR
+        if (pixels_stat == ippStsNoErr)
         {
-          // compress the pixels + mask with OpenEXR
+          // the mask should be filled-in manually based on NaN pixels
+          Ipp32f *ptr = pixels_buf.get();
+          Ipp16u *mask = mask_buf.get();
 
-          // export EXR in a Y format
+#pragma omp parallel for simd
+          for (size_t i = 0; i < plane_size; i++)
+            mask[i] = std::isnan(ptr[i]) ? 0 : 255;
+
+          /*for (int i = 0; i < img_width; i++)
+          {
+            Ipp32f pval = pixels_buf.get()[i];
+            Ipp16u mval = mask_buf.get()[i];
+            printf("%f : %d\t", pval, mval);
+          }
+          printf("\n");*/
+
+          // export EXR in a YA format
           std::string filename =
               FITSCACHE + std::string("/") +
               boost::replace_all_copy(fits->dataset_id, "/", "_") +
@@ -722,6 +731,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             Header header(img_width, img_height);
             header.compression() = DWAB_COMPRESSION;
             header.channels().insert("Y", Channel(FLOAT));
+            header.channels().insert("A", Channel(UINT));
 
             // OutputFile file(filename.c_str(), header);
             OutputFile file(oss, header);
@@ -730,6 +740,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
                                           sizeof(Ipp32f) * 1,
                                           sizeof(Ipp32f) * img_width));
+
+            frameBuffer.insert("A", Slice(UINT, (char *)mask_buf.get(), sizeof(Ipp16u) * 1,
+                                          sizeof(Ipp16u) * img_width));
 
             file.setFrameBuffer(frameBuffer);
             file.writePixels(img_height);
