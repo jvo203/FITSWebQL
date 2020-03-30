@@ -746,9 +746,6 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                                           sizeof(Ipp32f) * 1,
                                           sizeof(Ipp32f) * img_width));
 
-            /*frameBuffer.insert("A", Slice(UINT, (char *)mask_buf.get(), sizeof(Ipp16u) * 1,
-                                          sizeof(Ipp16u) * img_width));*/
-
             file.setFrameBuffer(frameBuffer);
             file.writePixels(img_height);
           }
@@ -810,13 +807,26 @@ queue->fifo.insert(queue->fifo.end(), ptr,
       // an array to hold a flipped image (its mirror image)
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      // copy and flip the image
-      if (pixels_buf.get() != NULL)
+
+      // an alpha channel
+      std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size),
+                                       ippsFree);
+
+      // copy and flip the image, fill-in the mask
+      if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
       {
         tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
                           img_height);
 
-        // export the luma to OpenEXR
+        // the mask should be filled-in manually based on NaN pixels
+        Ipp32f *ptr = pixels_buf.get();
+        Ipp32f *mask = mask_buf.get();
+
+#pragma omp parallel for simd
+        for (size_t i = 0; i < plane_size; i++)
+          mask[i] = std::isnan(ptr[i]) ? 0.0f : 1.0f;
+
+        // export the luma+mask to OpenEXR
         std::string filename =
             FITSCACHE + std::string("/") +
             boost::replace_all_copy(fits->dataset_id, "/", "_") +
@@ -830,12 +840,17 @@ queue->fifo.insert(queue->fifo.end(), ptr,
           Header header(img_width, img_height);
           header.compression() = DWAB_COMPRESSION;
           header.channels().insert("Y", Channel(FLOAT));
+          header.channels().insert("A", Channel(FLOAT));
 
           // OutputFile file(filename.c_str(), header);
           OutputFile file(oss, header);
           FrameBuffer frameBuffer;
 
           frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+                                        sizeof(Ipp32f) * 1,
+                                        sizeof(Ipp32f) * img_width));
+
+          frameBuffer.insert("A", Slice(FLOAT, (char *)mask_buf.get(),
                                         sizeof(Ipp32f) * 1,
                                         sizeof(Ipp32f) * img_width));
 
