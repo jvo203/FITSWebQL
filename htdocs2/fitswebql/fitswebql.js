@@ -9248,8 +9248,8 @@ function fetch_image(datasetId, index, add_timestamp) {
 				var str_length = dv.getUint32(offset, endianness);
 				offset += 4;
 
-				tone_mapping.flux = new Uint8Array(received_msg, offset, str_length);
-				flux = new TextDecoder("utf-8").decode(identifier);
+				let flux = new Uint8Array(received_msg, offset, str_length);
+				tone_mapping.flux = new TextDecoder("utf-8").decode(flux);
 				offset += str_length;
 
 				tone_mapping.min = dv.getFloat32(offset, endianness);
