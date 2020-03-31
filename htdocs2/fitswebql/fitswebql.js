@@ -9274,7 +9274,6 @@ function fetch_image(datasetId, index, add_timestamp) {
 				offset += 4;
 
 				var frame = new Uint8Array(received_msg, offset);
-				offset += image_length;
 
 				console.log(tone_mapping);
 
