@@ -772,6 +772,38 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             ptr = (const char *)&length;
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));*/
 
+            // send image tone mapping statistics
+            float tmp = 0.0f;
+            uint32_t str_len = fits->flux.length();
+
+            ptr = (const char *)&str_len;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+            ptr = fits->flux.c_str();
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+
+            ptr = (const char *)&tmp;
+
+            tmp = fits->min;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->max;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->median;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->sensitivity;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->ratio_sensitivity;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->white;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            tmp = fits->black;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
             ptr = output.c_str();
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
           }
@@ -876,6 +908,38 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
           ptr = (const char *)&length;
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));*/
+
+          // send image tone mapping statistics
+          float tmp = 0.0f;
+          uint32_t str_len = fits->flux.length();
+
+          ptr = (const char *)&str_len;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+          ptr = fits->flux.c_str();
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+
+          ptr = (const char *)&tmp;
+
+          tmp = fits->min;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->max;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->median;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->sensitivity;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->ratio_sensitivity;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->white;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->black;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
 
           ptr = output.c_str();
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
