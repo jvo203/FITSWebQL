@@ -702,10 +702,27 @@ function replot_y_axis() {
 	d3.select("#ylabel").text(yLabel + ' ' + fitsData.BTYPE.trim() + " " + bunit);
 }
 
-function process_hdr_image(width, height, pixels, alpha, tone_mapping, index) {
-	let image_bounding_dims = true_image_dimensions(alpha, width, height);
-	var pixel_range = image_pixel_range(pixels, alpha, width, height);
+function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
+	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
+	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
 	console.log(image_bounding_dims, pixel_range);
+
+	imageContainer[index - 1] = { width: img_width, img_height: height, pixels: pixels, alpha: alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+
+	//next display the image
+	if (va_count == 1) {
+		//place the image onto the main canvas
+		var c = document.getElementById('HTMLCanvas');
+		var width = c.width;
+		var height = c.height;
+
+		try {
+			var ctx = c.getContext("webgl2");
+		} catch (e) {
+			console.log("error obtaining webgl2 context:", e);
+			return;
+		}
+	}
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
