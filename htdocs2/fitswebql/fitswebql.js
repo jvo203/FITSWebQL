@@ -705,7 +705,6 @@ function replot_y_axis() {
 function process_hdr_image(width, height, pixels, alpha, tone_mapping, index) {
 	let image_bounding_dims = true_image_dimensions(alpha, width, height);
 	var pixel_range = image_pixel_range(pixels, alpha, width, height);
-	//console.log("min pixel:", pixel_range.min_pixel, "max pixel:", pixel_range.max_pixel);
 	console.log(image_bounding_dims, pixel_range);
 }
 
