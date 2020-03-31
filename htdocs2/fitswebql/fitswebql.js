@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-03-30.0";
+	return "JS2020-03-31.0";
 }
 
 const wasm_supported = (() => {
@@ -9239,35 +9239,46 @@ function fetch_image(datasetId, index, add_timestamp) {
 			var received_msg = xmlhttp.response;
 
 			if (received_msg instanceof ArrayBuffer) {
-				/*var dv = new DataView(received_msg);
+				var dv = new DataView(received_msg);
 				console.log("FITSImage dataview byte length: ", dv.byteLength);
 
+				var tone_mapping = new Object();
+
 				var offset = 0;
-				var id_length = dv.getUint32(offset, endianness);
+				var str_length = dv.getUint32(offset, endianness);
 				offset += 4;
 
-				var identifier = new Uint8Array(received_msg, offset, id_length);
-				identifier = new TextDecoder("utf-8").decode(identifier);
-				offset += id_length;
+				tone_mapping.flux = new Uint8Array(received_msg, offset, str_length);
+				flux = new TextDecoder("utf-8").decode(identifier);
+				offset += str_length;
 
-				var width = dv.getUint32(offset, endianness);
+				tone_mapping.min = dv.getFloat32(offset, endianness);
 				offset += 4;
 
-				var height = dv.getUint32(offset, endianness);
+				tone_mapping.max = dv.getFloat32(offset, endianness);
 				offset += 4;
 
-				var image_length = getUint64(dv, offset, endianness);
-				offset += 8;
+				tone_mapping.median = dv.getFloat32(offset, endianness);
+				offset += 4;
 
-				var frame = new Uint8Array(received_msg, offset, image_length);
+				tone_mapping.sensitivity = dv.getFloat32(offset, endianness);
+				offset += 4;
+
+				tone_mapping.ratio_sensitivity = dv.getFloat32(offset, endianness);
+				offset += 4;
+
+				tone_mapping.white = dv.getFloat32(offset, endianness);
+				offset += 4;
+
+				tone_mapping.black = dv.getFloat32(offset, endianness);
+				offset += 4;
+
+				var frame = new Uint8Array(received_msg, offset);
 				offset += image_length;
 
-				console.log("image identifier: ", identifier, "width:", width, "height:", height, "frame length:", image_length);*/
+				console.log(tone_mapping);
 
-				let frame = received_msg;
-
-				// OpenEXR decoder part
-				/*if (identifier == 'EXR') {*/
+				// OpenEXR decoder part				
 				Module.ready
 					.then(_ => {
 						console.log("processing an OpenEXR HDR image");
@@ -9295,7 +9306,6 @@ function fetch_image(datasetId, index, add_timestamp) {
 						alpha,
 						index);
 				});*/
-				/*}*/
 			}
 		}
 	}
