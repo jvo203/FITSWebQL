@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-30.0"
+#define VERSION_STRING "SV2020-03-31.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -654,14 +654,6 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
   // launch a separate image thread
   std::thread([queue, fits, _width, _height]() {
-    // fill the pixels with dummy values for testing purposes
-    /*size_t offset = 0;
-    for (int i = 0; i < _height; i++) // the range is incorrect
-      for (int j = 0; j < _width; j++) // the range is incorrect
-        // fits->img_pixels[offset++] = logf(1.0f + i * j);
-        if (std::isnan(fits->img_pixels[offset]))
-          fits->img_pixels[offset++] = 0.0f;*/
-
     float compression_level = 45.0f; //100.0f; // default is 45.0f
 
     // calculate a new image size
@@ -705,20 +697,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
         if (pixels_stat == ippStsNoErr)
         {
           // the mask should be filled-in manually based on NaN pixels
-          Ipp32f *ptr = pixels_buf.get();
+          Ipp32f *pixels = pixels_buf.get();
           Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
           for (size_t i = 0; i < plane_size; i++)
-            mask[i] = std::isnan(ptr[i]) ? 0.0f : 1.0f;
-
-          /*for (int i = 0; i < img_width; i++)
-          {
-            Ipp32f pval = pixels_buf.get()[i];
-            Ipp16u mval = mask_buf.get()[i];
-            printf("%f : %d\t", pval, mval);
-          }
-          printf("\n");*/
+            mask[i] = std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
           // export EXR in a YA format
           std::string filename =
@@ -741,11 +725,11 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             OutputFile file(oss, header);
             FrameBuffer frameBuffer;
 
-            frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+            frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels,
                                           sizeof(Ipp32f) * 1,
                                           sizeof(Ipp32f) * img_width));
 
-            frameBuffer.insert("A", Slice(FLOAT, (char *)mask_buf.get(),
+            frameBuffer.insert("A", Slice(FLOAT, (char *)mask,
                                           sizeof(Ipp32f) * 1,
                                           sizeof(Ipp32f) * img_width));
 
@@ -818,12 +802,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                           img_height);
 
         // the mask should be filled-in manually based on NaN pixels
-        Ipp32f *ptr = pixels_buf.get();
+        Ipp32f *pixels = pixels_buf.get();
         Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
         for (size_t i = 0; i < plane_size; i++)
-          mask[i] = std::isnan(ptr[i]) ? 0.0f : 1.0f;
+          mask[i] = std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
         // export the luma+mask to OpenEXR
         std::string filename =
@@ -846,11 +830,11 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           OutputFile file(oss, header);
           FrameBuffer frameBuffer;
 
-          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels_buf.get(),
+          frameBuffer.insert("Y", Slice(FLOAT, (char *)pixels,
                                         sizeof(Ipp32f) * 1,
                                         sizeof(Ipp32f) * img_width));
 
-          frameBuffer.insert("A", Slice(FLOAT, (char *)mask_buf.get(),
+          frameBuffer.insert("A", Slice(FLOAT, (char *)mask,
                                         sizeof(Ipp32f) * 1,
                                         sizeof(Ipp32f) * img_width));
 
