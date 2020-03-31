@@ -702,6 +702,13 @@ function replot_y_axis() {
 	d3.select("#ylabel").text(yLabel + ' ' + fitsData.BTYPE.trim() + " " + bunit);
 }
 
+function process_hdr_image(width, height, pixels, alpha, tone_mapping, index) {
+	let image_bounding_dims = true_image_dimensions(alpha, width, height);
+	var pixel_range = image_pixel_range(pixels, alpha, width, height);
+	//console.log("min pixel:", pixel_range.min_pixel, "max pixel:", pixel_range.max_pixel);
+	console.log(image_bounding_dims, pixel_range);
+}
+
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
 	//let image_bounding_dims = {x1: 0, y1: 0, width: w, height: h};
 	let image_bounding_dims = true_image_dimensions(alpha, width, height);
@@ -2212,22 +2219,22 @@ function fetch_binned_image(dataId) {
 	img.src = url;
 }
 
-function image_pixel_range(bytes, w, h, stride) {
-	var min_pixel = 255;
-	var max_pixel = 0;
+function image_pixel_range(pixels, mask, width, height) {
+	var min_pixel = Number.MAX_VALUE;
+	var max_pixel = -Number.MAX_VALUE;
 
-	for (var j = 0; j < h; j++) {
-		let offset = j * stride;
+	let plane_size = width * height;
 
-		for (var i = 0; i < w; i++) {
-			let pixel = bytes[offset++];
+	for (let i = 0; i < plane_size; i++) {
+		if (mask[i] > 0) {
+			let pixel = pixels[i];
 
 			if (pixel > max_pixel)
 				max_pixel = pixel;
 
 			if (pixel < min_pixel)
 				min_pixel = pixel;
-		};
+		}
 	};
 
 	return { min_pixel: min_pixel, max_pixel: max_pixel };
@@ -9284,27 +9291,20 @@ function fetch_image(datasetId, index, add_timestamp) {
 						let start = performance.now();
 						var image = Module.loadEXRStr(frame);
 						let elapsed = Math.round(performance.now() - start);
+
 						console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+
+						var img_width = image.width;
+						var img_height = image.height;
 						var pixels = image.plane("Y");
-						console.log(pixels);
 						var alpha = image.plane("A");
-						console.log(alpha);
+
 						image.delete();
+
+						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
+
 					})
 					.catch(e => console.error(e));
-
-				/*var decoder = new OGVDecoderVideoVP9();
-				console.log(decoder);
-
-				decoder.init(function () { console.log("init callback done"); });
-				decoder.processFrame(frame, function () {
-					process_image(width, height, decoder.frameBuffer.format.displayWidth,
-						decoder.frameBuffer.format.displayHeight,
-						decoder.frameBuffer.y.bytes,
-						decoder.frameBuffer.y.stride,
-						alpha,
-						index);
-				});*/
 			}
 		}
 	}
