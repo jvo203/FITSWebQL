@@ -730,7 +730,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	}
 }
 
-function webgl1_renderer(index, ctx, width, height, tone) {
+function webgl1_renderer(index, glCtx, width, height, tone) {
 
 }
 
