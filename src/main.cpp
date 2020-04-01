@@ -11,7 +11,7 @@
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 #define VERSION_STRING "SV2020-03-31.0"
-#define WASM_VERSION "20.03.30.0"
+#define WASM_VERSION "20.04.01.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
@@ -1135,6 +1135,14 @@ void serve_file(const request *req, const response *res, std::string uri)
         mime.insert(std::pair<std::string, header_value>(
             "Content-Type", {"application/javascript", false}));
 
+      if (ext == "vert")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"x-shader/x-vertex", false}));
+
+      if (ext == "frag")
+        mime.insert(std::pair<std::string, header_value>(
+            "Content-Type", {"x-shader/x-fragment", false}));
+
       if (ext == "ico")
         mime.insert(std::pair<std::string, header_value>(
             "Content-Type", {"image/x-icon", false}));
@@ -1289,6 +1297,12 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   html.append("<script "
               "src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/"
               "bootstrap.min.js\"></script>\n");
+
+  //GLSL vertex shader
+  html.append("<script id=\"vertex-shader\" src=\"vertex-shader.vert?" VERSION_STRING "\"></script>\n");
+
+  //GLSL fragment shader
+  html.append("<script id=\"fragment-shader\" src=\"fragment-shader.frag?" VERSION_STRING "\"></script>\n");
 
   // FITSWebQL main JavaScript + CSS
   html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
