@@ -359,30 +359,30 @@ void serve_directory(const response *res, std::string dir)
 }
 #endif
 
-void include_file(std::string& html, const char* filename)
+void include_file(std::string &html, std::string filename)
 {
   int fd = -1;
-  void* buffer = NULL ;
+  void *buffer = NULL;
 
   struct stat64 st;
-  stat64(filename, &st);
+  stat64(filename.c_str(), &st);
   long size = st.st_size;
-      
-  fd = open(filename, O_RDONLY) ;
-  if(fd != -1)
-    {
-      buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0) ;
 
-      if(buffer != NULL)
-	      html.append(std::string_view(const char*) buffer, size) ;
-      else
-	      perror("error mapping a file") ;
-      
-      if(munmap(buffer, size) == -1)
-	      perror("un-mapping error") ;
+  fd = open(filename.c_str(), O_RDONLY);
+  if (fd != -1)
+  {
+    buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-      close(fd) ;
-    } ;
+    if (buffer != NULL)
+      html.append((const char *)buffer, size);
+    else
+      perror("error mapping a file");
+
+    if (munmap(buffer, size) == -1)
+      perror("un-mapping error");
+
+    close(fd);
+  };
 }
 
 static int sqlite_callback(void *userp, int argc, char **argv,
@@ -1298,8 +1298,8 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
   html.append("<script "
-  "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-  "fitswebql/webgl-utils.js\"></script>\n");
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
+              "fitswebql/webgl-utils.js\"></script>\n");
 
   // OpenEXR WASM decoder
   html.append("<script "
@@ -1331,12 +1331,12 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
 
   //GLSL vertex shader
   html.append("<script id=\"vertex-shader\" type=\"x-shader/x-vertex\">\n");
-  include_file(html, docs_root + "/fitswebql/vertex-shader.vert") ;
+  include_file(html, docs_root + "/fitswebql/vertex-shader.vert");
   html.append("</script>\n");
 
   //GLSL fragment shader
   html.append("<script id=\"fragment-shader\" type=\"x-shader/x-vertex\">\n");
-  include_file(html, docs_root + "/fitswebql/fragment-shader.frag") ;
+  include_file(html, docs_root + "/fitswebql/fragment-shader.frag");
   html.append("</script>\n");
 
   // FITSWebQL main JavaScript + CSS
