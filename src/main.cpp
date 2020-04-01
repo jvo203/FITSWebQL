@@ -1270,6 +1270,10 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
+  html.append("<script "
+  "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
+  "fitswebql/webgl-utils.js\"></script>\n");
+
   // OpenEXR WASM decoder
   html.append("<script "
               "src=\"exr." WASM_VERSION ".js\"></script>\n");
