@@ -45,6 +45,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #include <dirent.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 
 #include <sqlite3.h>
 
@@ -357,6 +358,32 @@ void serve_directory(const response *res, std::string dir)
   res->end(json.str());
 }
 #endif
+
+void include_file(std::string& html, const char* filename)
+{
+  int fd = -1;
+  void* buffer = NULL ;
+
+  struct stat64 st;
+  stat64(filename, &st);
+  long size = st.st_size;
+      
+  fd = open(filename, O_RDONLY) ;
+  if(fd != -1)
+    {
+      buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0) ;
+
+      if(buffer != NULL)
+	      html.append(std::string_view(const char*) buffer, size) ;
+      else
+	      perror("error mapping a file") ;
+      
+      if(munmap(buffer, size) == -1)
+	      perror("un-mapping error") ;
+
+      close(fd) ;
+    } ;
+}
 
 static int sqlite_callback(void *userp, int argc, char **argv,
                            char **azColName)
@@ -1303,10 +1330,14 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "bootstrap.min.js\"></script>\n");
 
   //GLSL vertex shader
-  html.append("<script id=\"vertex-shader\" type=\"x-shader/x-vertex\" src=\"vertex-shader.vert?" VERSION_STRING "\"></script>\n");
+  html.append("<script id=\"vertex-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/vertex-shader.vert") ;
+  html.append("</script>\n");
 
   //GLSL fragment shader
-  html.append("<script id=\"fragment-shader\" type=\"x-shader/x-vertex\" src=\"fragment-shader.frag?" VERSION_STRING "\"></script>\n");
+  html.append("<script id=\"fragment-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/fragment-shader.frag") ;
+  html.append("</script>\n");
 
   // FITSWebQL main JavaScript + CSS
   html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
@@ -1994,11 +2025,11 @@ int main(int argc, char *argv[])
         push = res.push(ec, "GET", "/fitswebql/fitswebql.js?" VERSION_STRING);
         serve_file(&req, push, "/fitswebql/fitswebql.js");
 
-        push = res.push(ec, "GET", "/fitswebql/vertex-shader.vert?" VERSION_STRING);
+        /*push = res.push(ec, "GET", "/fitswebql/vertex-shader.vert?" VERSION_STRING);
         serve_file(&req, push, "/fitswebql/vertex-shader.vert");
 
         push = res.push(ec, "GET", "/fitswebql/fragment-shader.frag?" VERSION_STRING);
-        serve_file(&req, push, "/fitswebql/fragment-shader.frag");
+        serve_file(&req, push, "/fitswebql/fragment-shader.frag");*/
 
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
