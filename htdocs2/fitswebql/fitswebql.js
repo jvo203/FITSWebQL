@@ -716,10 +716,11 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var width = c.width;
 		var height = c.height;
 
-		if(webgl2) {
+		if (webgl2) {
 			console.log("using a WebGL2 renderer.")
 			var ctx = c.getContext("webgl2");
-		} else if(webgl1) {
+			webgl1_renderer(index, ctx, width, height, tone_mapping);// WebGL1 for now
+		} else if (webgl1) {
 			console.log("using a WebGL1 renderer.")
 			var ctx = c.getContext("webgl");
 			webgl1_renderer(index, ctx, width, height, tone_mapping);
@@ -731,7 +732,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 }
 
 function webgl1_renderer(index, glCtx, width, height, tone) {
-	var image = imageContainer[index - 1] ;
+	var image = imageContainer[index - 1];
 
 	// setup GLSL program
 	/*var shaderScript = document.getElementById("vertex-shader").text;
