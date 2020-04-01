@@ -9,6 +9,5 @@ varying vec2 v_texcoord;
      
 void main() {
      gl_Position = u_matrix * a_position;
-     v_texcoord = a_texcoord;
-     //v_texcoord = (u_texture * vec4(a_texcoord, 0, 1)).xy;
+     v_texcoord = (u_texture * vec4(a_texcoord, 0, 1)).xy;
 }
