@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-03-31.0";
+	return "JS2020-04-01.0";
 }
 
 const wasm_supported = (() => {
@@ -716,13 +716,22 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var width = c.width;
 		var height = c.height;
 
-		try {
+		if(webgl2) {
+			console.log("using a WebGL2 renderer.")
 			var ctx = c.getContext("webgl2");
-		} catch (e) {
-			console.log("error obtaining webgl2 context:", e);
+		} else if(webgl1) {
+			console.log("using a WebGL1 renderer.")
+			var ctx = c.getContext("webgl");
+			webgl1_renderer(index, ctx, width, height, tone_mapping);
+		} else {
+			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 			return;
 		}
 	}
+}
+
+function webgl1_renderer(index, ctx, width, height, tone) {
+
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
@@ -1481,7 +1490,7 @@ function poll_heartbeat() {
 
 			try {
 				d3.select("#heartbeat")
-					.attr("fill", "green")
+					.attr("fill", "grey")
 					.attr("opacity", 1.0)
 					.transition()
 					.duration(1000)
@@ -5475,7 +5484,7 @@ function display_preferences(index) {
 		//.attr("font-size", "0.75em")
 		.attr("font-size", "1.5em")
 		.attr("text-anchor", "start")
-		.attr("fill", "green")
+		.attr("fill", "grey")
 		.attr("stroke", "none")
 		.attr("opacity", 0.0)
 		.html("&#x1f493;");
@@ -12260,11 +12269,27 @@ function contour_surface_webworker() {
 	has_contours = true;
 }
 
+function test_webgl1() {
+	try {
+		var canvas = document.createElement('canvas');
+		return !!window.WebGLRenderingContext && (
+			canvas.getContext('webgl'));
+	} catch (e) { return false; }
+};
+
+function test_webgl2() {
+	try {
+		var canvas = document.createElement('canvas');
+		return !!window.WebGLRenderingContext && (
+			canvas.getContext('webgl2'));
+	} catch (e) { return false; }
+};
+
 function test_webgl_support() {
 	try {
 		var canvas = document.createElement('canvas');
 		return !!window.WebGLRenderingContext && (
-			canvas.getContext('webgl2') /*|| canvas.getContext('experimental-webgl')*/);
+			canvas.getContext('webgl') /*|| canvas.getContext('experimental-webgl')*/);
 	} catch (e) { return false; }
 };
 
@@ -12272,7 +12297,7 @@ function enable_3d_view() {
 	has_webgl = false;
 
 	if (test_webgl_support()) {
-		console.log("WebGL2 supported");
+		console.log("WebGL supported");
 
 		/*(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
@@ -12363,6 +12388,9 @@ function enable_3d_view() {
 }
 
 async*/ function mainRenderer() {
+	webgl1 = test_webgl1();
+	webgl2 = test_webgl2();
+
 	try {
 		enable_3d_view();
 	}
