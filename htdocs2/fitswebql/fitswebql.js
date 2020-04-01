@@ -731,7 +731,13 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 }
 
 function webgl1_renderer(index, glCtx, width, height, tone) {
+	var image = imageContainer[index - 1] ;
 
+	// setup GLSL program
+	/*var shaderScript = document.getElementById("vertex-shader").text;
+	console.log(shaderScript);*/
+	//var vertex = webglUtils.createShaderFromScript(glCtx, "vertex-shader");
+	//var program = webglUtils.createProgramFromScripts(glCtx, ["vertex-shader", "fragment-shader"]);
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
