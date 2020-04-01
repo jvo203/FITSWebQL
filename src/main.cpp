@@ -10,8 +10,8 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-03-31.0"
-#define WASM_VERSION "20.04.01.0"
+#define VERSION_STRING "SV2020-04-01.0"
+#define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
@@ -1989,6 +1989,12 @@ int main(int argc, char *argv[])
 
         push = res.push(ec, "GET", "/fitswebql/fitswebql.js?" VERSION_STRING);
         serve_file(&req, push, "/fitswebql/fitswebql.js");
+
+        push = res.push(ec, "GET", "/fitswebql/vertex-shader.vert?" VERSION_STRING);
+        serve_file(&req, push, "/fitswebql/vertex-shader.vert");
+
+        push = res.push(ec, "GET", "/fitswebql/fragment-shader.frag?" VERSION_STRING);
+        serve_file(&req, push, "/fitswebql/fragment-shader.frag");
 
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
