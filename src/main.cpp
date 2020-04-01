@@ -1137,11 +1137,11 @@ void serve_file(const request *req, const response *res, std::string uri)
 
       if (ext == "vert")
         mime.insert(std::pair<std::string, header_value>(
-            "Content-Type", {"x-shader/x-vertex", false}));
+            "Content-Type", {"text/plain", false}));
 
       if (ext == "frag")
         mime.insert(std::pair<std::string, header_value>(
-            "Content-Type", {"x-shader/x-fragment", false}));
+            "Content-Type", {"text/plain", false}));
 
       if (ext == "ico")
         mime.insert(std::pair<std::string, header_value>(
@@ -1299,10 +1299,10 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "bootstrap.min.js\"></script>\n");
 
   //GLSL vertex shader
-  html.append("<script id=\"vertex-shader\" src=\"vertex-shader.vert?" VERSION_STRING "\"></script>\n");
+  html.append("<script id=\"vertex-shader\" type=\"x-shader/x-vertex\" src=\"vertex-shader.vert?" VERSION_STRING "\"></script>\n");
 
   //GLSL fragment shader
-  html.append("<script id=\"fragment-shader\" src=\"fragment-shader.frag?" VERSION_STRING "\"></script>\n");
+  html.append("<script id=\"fragment-shader\" type=\"x-shader/x-vertex\" src=\"fragment-shader.frag?" VERSION_STRING "\"></script>\n");
 
   // FITSWebQL main JavaScript + CSS
   html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
