@@ -813,13 +813,21 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var height = c.height;
 
 		if (webgl2) {
-			console.log("using a WebGL2 renderer.")
+			console.log("using a WebGL2 renderer.");
 			var ctx = c.getContext("webgl2");
-			webgl1_renderer(index, ctx, width, height);// WebGL1 for now
+
+			// call the WebGL renderer
+			webgl_renderer(index, ctx, width, height);
 		} else if (webgl1) {
-			console.log("using a WebGL1 renderer.")
+			console.log("using a WebGL1 renderer.");
 			var ctx = c.getContext("webgl");
-			webgl1_renderer(index, ctx, width, height);
+
+			// enable floating-point textures
+			ctx.getExtension('OES_texture_float');
+			ctx.getExtension('OES_texture_float_linear');
+
+			// call the WebGL renderer
+			webgl_renderer(index, ctx, width, height);
 		} else {
 			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 			return;
@@ -827,7 +835,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	}
 }
 
-function webgl1_renderer(index, glCtx, width, height) {
+function webgl_renderer(index, gl, width, height) {
 	var image = imageContainer[index - 1];	
 
 	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
@@ -838,7 +846,64 @@ function webgl1_renderer(index, glCtx, width, height) {
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
 	var fragmentShaderCode = document.getElementById("fragment-shader").text;
-	var program = createProgram(glCtx, vertexShaderCode, fragmentShaderCode);
+	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
+
+	// look up where the vertex data needs to go.
+	var positionLocation = gl.getAttribLocation(program, "a_position");
+	var texcoordLocation = gl.getAttribLocation(program, "a_texcoord");
+	
+	// lookup uniforms
+	var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+	var textureLocation = gl.getUniformLocation(program, "u_texture");
+
+	// Create a position buffer
+	var positionBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	// Put a unit quad in the buffer
+	var positions = [
+		0, 0,
+		0, 1,
+		1, 0,
+		1, 0,
+		0, 1,
+		1, 1,
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+	// Create a buffer for texture coords
+	var texcoordBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+	// Put texcoords in the buffer
+	var texcoords = [
+		0, 0,
+		0, 1,
+		1, 0,
+		1, 0,
+		0, 1,
+		1, 1,
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+
+	// load a texture
+	var tex = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, image.img_width, image.img_height, 0, gl.LUMINANCE, gl.FLOAT, image.pixel);
+
+	//WebGL how to convert from clip space to pixels
+	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
+	//glCtx.clear(glCtx.COLOR_BUFFER_BIT);
+
+	// drawRegion (execute the GLSL program)
+	// Tell WebGL to use our shader program pair
+	gl.useProgram(program);
+
+	// Setup the attributes to pull data from our buffers
+    /*glCtx.bindBuffer(glCtx.ARRAY_BUFFER, positionBuffer);
+    glCtx.enableVertexAttribArray(positionLocation);
+    glCtx.vertexAttribPointer(positionLocation, 2, glCtx.FLOAT, false, 0, 0);
+    glCtx.bindBuffer(glCtx.ARRAY_BUFFER, texcoordBuffer);
+    glCtx.enableVertexAttribArray(texcoordLocation);
+    glCtx.vertexAttribPointer(texcoordLocation, 2, glCtx.FLOAT, false, 0, 0);*/
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
