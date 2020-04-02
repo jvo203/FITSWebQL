@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-01.0";
+	return "JS2020-04-02.0";
 }
 
 const wasm_supported = (() => {
@@ -702,12 +702,108 @@ function replot_y_axis() {
 	d3.select("#ylabel").text(yLabel + ' ' + fitsData.BTYPE.trim() + " " + bunit);
 }
 
+/** ---------------------------------------------------------------------
+ * Create and compile an individual shader.
+ * @param gl WebGLRenderingContext The WebGL context.
+ * @param type Number The type of shader, either gl.VERTEX_SHADER or gl.FRAGMENT_SHADER
+ * @param source String The code/text of the shader
+ * @returns WebGLShader A WebGL shader program object.
+ */
+function createAndCompileShader(gl, type, source) {
+	var typeName;
+	switch (type) {
+	  case gl.VERTEX_SHADER:
+		typeName = "Vertex Shader";
+		break;
+	  case gl.FRAGMENT_SHADER:
+		typeName = "Fragment Shader";
+		break;
+	  default:
+		console.error("Invalid type of shader in createAndCompileShader()");
+		return null;
+	}
+  
+	// Create shader object
+	var shader = gl.createShader(type);
+	if (!shader) {
+	  console.error("Fatal error: gl could not create a shader object.");
+	  return null;
+	}
+  
+	// Put the source code into the gl shader object
+	gl.shaderSource(shader, source);
+  
+	// Compile the shader code
+	gl.compileShader(shader);
+  
+	// Check for any compiler errors
+	var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+	if (!compiled) {
+	  // There are errors, so display them
+	  var errors = gl.getShaderInfoLog(shader);
+	  console.error('Failed to compile ' + typeName + ' with these errors:' + errors);
+	  gl.deleteShader(shader);
+	  return null;
+	}
+  
+	return shader;
+  };
+
+/** ---------------------------------------------------------------------
+ * Given two shader programs, create a complete rendering program.
+ * @param gl WebGLRenderingContext The WebGL context.
+ * @param vertexShaderCode String Code for a vertex shader.
+ * @param fragmentShaderCode String Code for a fragment shader.
+ * @returns WebGLProgram A WebGL shader program object.
+ */
+//
+function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
+	// Create the 2 required shaders
+	var vertexShader = createAndCompileShader(gl, gl.VERTEX_SHADER, vertexShaderCode);
+	var fragmentShader = createAndCompileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderCode);
+	if (!vertexShader || !fragmentShader) {
+	  return null;
+	}
+  
+	// Create a WebGLProgram object
+	var program = gl.createProgram();
+	if (!program) {
+	  console.error('Fatal error: Failed to create a program object');
+	  return null;
+	}
+  
+	// Attach the shader objects
+	gl.attachShader(program, vertexShader);
+	gl.attachShader(program, fragmentShader);
+  
+	// Link the WebGLProgram object
+	gl.linkProgram(program);
+  
+	// Check for success
+	var linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+	if (!linked) {
+	  // There were errors, so get the errors and display them.
+	  var error = gl.getProgramInfoLog(program);
+	  console.error('Fatal error: Failed to link program: ' + error);
+	  gl.deleteProgram(program);
+	  gl.deleteShader(fragmentShader);
+	  gl.deleteShader(vertexShader);
+	  return null;
+	}
+  
+	// Remember the shaders. This allows for them to be cleanly deleted.
+	program.vShader = vertexShader;
+	program.fShader = fragmentShader;
+  
+	return program;
+  };
+
 function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
 	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
 	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
 	console.log(image_bounding_dims, pixel_range);
 
-	imageContainer[index - 1] = { width: img_width, img_height: height, pixels: pixels, alpha: alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
 
 	//next display the image
 	if (va_count == 1) {
@@ -719,11 +815,11 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		if (webgl2) {
 			console.log("using a WebGL2 renderer.")
 			var ctx = c.getContext("webgl2");
-			webgl1_renderer(index, ctx, width, height, tone_mapping);// WebGL1 for now
+			webgl1_renderer(index, ctx, width, height);// WebGL1 for now
 		} else if (webgl1) {
 			console.log("using a WebGL1 renderer.")
 			var ctx = c.getContext("webgl");
-			webgl1_renderer(index, ctx, width, height, tone_mapping);
+			webgl1_renderer(index, ctx, width, height);
 		} else {
 			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 			return;
@@ -731,14 +827,18 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	}
 }
 
-function webgl1_renderer(index, glCtx, width, height, tone) {
-	var image = imageContainer[index - 1];
+function webgl1_renderer(index, glCtx, width, height) {
+	var image = imageContainer[index - 1];	
+
+	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
+	var img_width = scale * image.image_bounding_dims.width;
+	var img_height = scale * image.image_bounding_dims.height;
+	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);
 
 	// setup GLSL program
-	/*var shaderScript = document.getElementById("vertex-shader").text;
-	console.log(shaderScript);*/
-	//var vertex = webglUtils.createShaderFromScript(glCtx, "vertex-shader");
-	//var program = webglUtils.createProgramFromScripts(glCtx, ["vertex-shader", "fragment-shader"]);
+	var vertexShaderCode = document.getElementById("vertex-shader").text;
+	var fragmentShaderCode = document.getElementById("fragment-shader").text;
+	var program = createProgram(glCtx, vertexShaderCode, fragmentShaderCode);
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
@@ -795,7 +895,6 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 		ctx.imageSmoothingEnabled = false;
 
 		var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
-
 		var img_width = scale * image_bounding_dims.width;
 		var img_height = scale * image_bounding_dims.height;
 
