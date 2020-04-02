@@ -803,7 +803,19 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
 	console.log(image_bounding_dims, pixel_range);
 
-	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+	// combine pixels with a mask
+	let len = pixels.length;
+	var luma_alpha = new Float32Array(len);
+	let offset = 0;
+
+	for(let i=0;i<len;i++) {
+		let pixel = pixels[i];
+		let mask = alpha[i];
+		luma_alpha[offset++] = pixel;
+		luma_alpha[offset++] = mask;
+	}
+
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, luminance: luma_alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
 
 	//next display the image
 	if (va_count == 1) {
@@ -814,7 +826,11 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 		if (webgl2) {
 			console.log("using a WebGL2 renderer.");
-			var ctx = c.getContext("webgl2");
+			var ctx = c.getContext("webgl");// use WebGL 1 for the time being
+
+			// enable floating-point textures
+			ctx.getExtension('OES_texture_float');
+			ctx.getExtension('OES_texture_float_linear');
 
 			// call the WebGL renderer
 			webgl_renderer(index, ctx, width, height);
@@ -841,7 +857,7 @@ function webgl_renderer(index, gl, width, height) {
 	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
 	var img_width = scale * image.image_bounding_dims.width;
 	var img_height = scale * image.image_bounding_dims.height;
-	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);
+	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);	
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
@@ -889,8 +905,8 @@ function webgl_renderer(index, gl, width, height) {
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, image.img_width, image.img_height, 0, gl.LUMINANCE, gl.FLOAT, image.pixel);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
 
 	//WebGL how to convert from clip space to pixels
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
