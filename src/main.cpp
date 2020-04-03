@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-01.0"
+#define VERSION_STRING "SV2020-04-03.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -1297,16 +1297,18 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
-  html.append("<script "
-              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-              "fitswebql/webgl-utils.js\"></script>\n");
+  /*html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
+              docs_root + "/"
+                          "fitswebql/webgl-utils.js\"></script>\n");*/
 
   // OpenEXR WASM decoder
   html.append("<script "
               "src=\"exr." WASM_VERSION ".js\"></script>\n");
   /*html.append("<script "
-  "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/htdocs2/"
-  "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
+              docs_root + "/"
+                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
   html.append(R"(
     <script>
     Module.ready
