@@ -5673,7 +5673,10 @@ function display_preferences(index) {
 		.attr("fill", "grey")
 		.attr("stroke", "none")
 		.attr("opacity", 0.0)
-		.html("&#x1f493;");
+		//.html("&#x1f493;");// heartbeat
+		//.html("&#9775;");// yin-yang
+		.html("&#x1F517;");// link		
+	//.html("✔");// heavy check
 
 	let fillColour = 'yellow';
 
