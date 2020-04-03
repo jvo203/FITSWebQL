@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-02.0";
+	return "JS2020-04-03.0";
 }
 
 const wasm_supported = (() => {
@@ -712,42 +712,42 @@ function replot_y_axis() {
 function createAndCompileShader(gl, type, source) {
 	var typeName;
 	switch (type) {
-	  case gl.VERTEX_SHADER:
-		typeName = "Vertex Shader";
-		break;
-	  case gl.FRAGMENT_SHADER:
-		typeName = "Fragment Shader";
-		break;
-	  default:
-		console.error("Invalid type of shader in createAndCompileShader()");
-		return null;
+		case gl.VERTEX_SHADER:
+			typeName = "Vertex Shader";
+			break;
+		case gl.FRAGMENT_SHADER:
+			typeName = "Fragment Shader";
+			break;
+		default:
+			console.error("Invalid type of shader in createAndCompileShader()");
+			return null;
 	}
-  
+
 	// Create shader object
 	var shader = gl.createShader(type);
 	if (!shader) {
-	  console.error("Fatal error: gl could not create a shader object.");
-	  return null;
+		console.error("Fatal error: gl could not create a shader object.");
+		return null;
 	}
-  
+
 	// Put the source code into the gl shader object
 	gl.shaderSource(shader, source);
-  
+
 	// Compile the shader code
 	gl.compileShader(shader);
-  
+
 	// Check for any compiler errors
 	var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
 	if (!compiled) {
-	  // There are errors, so display them
-	  var errors = gl.getShaderInfoLog(shader);
-	  console.error('Failed to compile ' + typeName + ' with these errors:' + errors);
-	  gl.deleteShader(shader);
-	  return null;
+		// There are errors, so display them
+		var errors = gl.getShaderInfoLog(shader);
+		console.error('Failed to compile ' + typeName + ' with these errors:' + errors);
+		gl.deleteShader(shader);
+		return null;
 	}
-  
+
 	return shader;
-  };
+};
 
 /** ---------------------------------------------------------------------
  * Given two shader programs, create a complete rendering program.
@@ -762,41 +762,41 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	var vertexShader = createAndCompileShader(gl, gl.VERTEX_SHADER, vertexShaderCode);
 	var fragmentShader = createAndCompileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderCode);
 	if (!vertexShader || !fragmentShader) {
-	  return null;
+		return null;
 	}
-  
+
 	// Create a WebGLProgram object
 	var program = gl.createProgram();
 	if (!program) {
-	  console.error('Fatal error: Failed to create a program object');
-	  return null;
+		console.error('Fatal error: Failed to create a program object');
+		return null;
 	}
-  
+
 	// Attach the shader objects
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);
-  
+
 	// Link the WebGLProgram object
 	gl.linkProgram(program);
-  
+
 	// Check for success
 	var linked = gl.getProgramParameter(program, gl.LINK_STATUS);
 	if (!linked) {
-	  // There were errors, so get the errors and display them.
-	  var error = gl.getProgramInfoLog(program);
-	  console.error('Fatal error: Failed to link program: ' + error);
-	  gl.deleteProgram(program);
-	  gl.deleteShader(fragmentShader);
-	  gl.deleteShader(vertexShader);
-	  return null;
+		// There were errors, so get the errors and display them.
+		var error = gl.getProgramInfoLog(program);
+		console.error('Fatal error: Failed to link program: ' + error);
+		gl.deleteProgram(program);
+		gl.deleteShader(fragmentShader);
+		gl.deleteShader(vertexShader);
+		return null;
 	}
-  
+
 	// Remember the shaders. This allows for them to be cleanly deleted.
 	program.vShader = vertexShader;
 	program.fShader = fragmentShader;
-  
+
 	return program;
-  };
+};
 
 function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
 	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
@@ -804,15 +804,16 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	console.log(image_bounding_dims, pixel_range);
 
 	// combine pixels with a mask
-	let len = pixels.length;
+	let len = pixels.length | 0;
 	var luma_alpha = new Float32Array(len);
-	let offset = 0;
+	let offset = 0 | 0;
 
-	for(let i=0;i<len;i++) {
-		let pixel = pixels[i];
-		let mask = alpha[i];
-		luma_alpha[offset++] = pixel;
-		luma_alpha[offset++] = mask;
+	for (let i = 0 | 0; i < len; i = (i + 1) | 0) {
+		luma_alpha[offset] = pixels[i];
+		offset = (offset + 1) | 0;
+
+		luma_alpha[offset] = alpha[i];
+		offset = (offset + 1) | 0;
 	}
 
 	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, luminance: luma_alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
@@ -852,12 +853,12 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 }
 
 function webgl_renderer(index, gl, width, height) {
-	var image = imageContainer[index - 1];	
+	var image = imageContainer[index - 1];
 
 	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
 	var img_width = scale * image.image_bounding_dims.width;
 	var img_height = scale * image.image_bounding_dims.height;
-	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);	
+	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
@@ -867,7 +868,7 @@ function webgl_renderer(index, gl, width, height) {
 	// look up where the vertex data needs to go.
 	var positionLocation = gl.getAttribLocation(program, "a_position");
 	var texcoordLocation = gl.getAttribLocation(program, "a_texcoord");
-	
+
 	// lookup uniforms
 	var matrixLocation = gl.getUniformLocation(program, "u_matrix");
 	var textureLocation = gl.getUniformLocation(program, "u_texture");
@@ -904,7 +905,7 @@ function webgl_renderer(index, gl, width, height) {
 	var tex = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
 
@@ -11203,7 +11204,7 @@ function show_welcome() {
 	}
 
 	bodyDiv.append("p")
-		.html('For optimum performance we recommend <a href="https://www.google.com/chrome/index.html" style="color:' + textColour + '"><b>Google Chrome</b></a>. Firefox Quantum is pretty much OK. Safari on MacOS works. We do NOT recommend IE.');
+		.html('For optimum performance we recommend <a href="https://www.google.com/chrome/index.html" style="color:' + textColour + '"><b>Google Chrome</b></a>. New Microsoft Edge, Firefox as well as Safari on macOS are supported too. We do NOT recommend MS IE.');
 
 	//bodyDiv.append("hr");    
 
