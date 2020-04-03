@@ -825,19 +825,8 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var width = c.width;
 		var height = c.height;
 
-		if (webgl2) {
-			console.log("using a WebGL2 renderer.");
-			var ctx = c.getContext("webgl");// use WebGL 1 for the time being
-
-			// enable floating-point textures
-			ctx.getExtension('OES_texture_float');
-			ctx.getExtension('OES_texture_float_linear');
-
-			// call the WebGL renderer
-			webgl_renderer(index, ctx, width, height);
-		} else if (webgl1) {
-			console.log("using a WebGL1 renderer.");
-			var ctx = c.getContext("webgl");
+		if (webgl1 || webgl2) {
+			var ctx = c.getContext("webgl");// default to WebGL1 for now
 
 			// enable floating-point textures
 			ctx.getExtension('OES_texture_float');
@@ -908,6 +897,12 @@ function webgl_renderer(index, gl, width, height) {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
+
+	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+	if (status != gl.FRAMEBUFFER_COMPLETE) {
+		console.error(status);
+	}
+
 
 	//WebGL how to convert from clip space to pixels
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
