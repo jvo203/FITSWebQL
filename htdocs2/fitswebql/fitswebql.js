@@ -903,9 +903,9 @@ function webgl_renderer(index, gl, width, height) {
 	// load a texture
 	var tex = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, tex);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);*/
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
 
 	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
@@ -929,13 +929,13 @@ function webgl_renderer(index, gl, width, height) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
+	gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+    gl.enableVertexAttribArray(texcoordLocation);
+    gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+
 	// execute the GLSL program
 	// draw the quad (2 triangles, 6 vertices)
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    /*glCtx.bindBuffer(glCtx.ARRAY_BUFFER, texcoordBuffer);
-    glCtx.enableVertexAttribArray(texcoordLocation);
-    glCtx.vertexAttribPointer(texcoordLocation, 2, glCtx.FLOAT, false, 0, 0);*/
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
