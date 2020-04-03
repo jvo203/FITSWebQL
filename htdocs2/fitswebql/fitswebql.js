@@ -838,7 +838,16 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 			return;
 		}
+
+		has_image = true;
+		hide_hourglass();
 	}
+
+	try {
+		var element = document.getElementById('BackHTMLCanvas');
+		element.parentNode.removeChild(element);
+	}
+	catch (e) { }
 }
 
 function webgl_renderer(index, gl, width, height) {
@@ -906,17 +915,26 @@ function webgl_renderer(index, gl, width, height) {
 
 	//WebGL how to convert from clip space to pixels
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
-	//glCtx.clear(glCtx.COLOR_BUFFER_BIT);
+	//gl.viewport(0,0,img_width,img_height);
+
+	// Clear the canvas
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	// drawRegion (execute the GLSL program)
 	// Tell WebGL to use our shader program pair
 	gl.useProgram(program);
 
 	// Setup the attributes to pull data from our buffers
-    /*glCtx.bindBuffer(glCtx.ARRAY_BUFFER, positionBuffer);
-    glCtx.enableVertexAttribArray(positionLocation);
-    glCtx.vertexAttribPointer(positionLocation, 2, glCtx.FLOAT, false, 0, 0);
-    glCtx.bindBuffer(glCtx.ARRAY_BUFFER, texcoordBuffer);
+	gl.enableVertexAttribArray(positionLocation);
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+	// execute the GLSL program
+	// draw the quad (2 triangles, 6 vertices)
+	gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    /*glCtx.bindBuffer(glCtx.ARRAY_BUFFER, texcoordBuffer);
     glCtx.enableVertexAttribArray(texcoordLocation);
     glCtx.vertexAttribPointer(texcoordLocation, 2, glCtx.FLOAT, false, 0, 0);*/
 }
@@ -5675,8 +5693,8 @@ function display_preferences(index) {
 		.attr("opacity", 0.0)
 		//.html("&#x1f493;");// heartbeat
 		//.html("&#9775;");// yin-yang
-		.html("&#x1F517;");// link		
-	//.html("✔");// heavy check
+		//.html("&#x1F517;");// link		
+		.html("✔");// heavy check
 
 	let fillColour = 'yellow';
 
