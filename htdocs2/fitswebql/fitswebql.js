@@ -913,11 +913,8 @@ function webgl_renderer(index, gl, width, height) {
 		console.error(status);
 	}
 
-
-	//WebGL how to convert from clip space to pixels
-	console.log("gl.viewport:", (width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
+	//WebGL how to convert from clip space to pixels	
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
-	//gl.viewport(0,0,img_width,img_height);
 
 	// Clear the canvas
 	gl.clearColor(0, 0, 0, 0);
