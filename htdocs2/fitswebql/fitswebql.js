@@ -824,6 +824,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var c = document.getElementById('HTMLCanvas');
 		var width = c.width;
 		var height = c.height;
+		console.log("HTMLCanvas:", c);
 
 		if (webgl1 || webgl2) {
 			var ctx = c.getContext("webgl");// default to WebGL1 for now
@@ -876,11 +877,11 @@ function webgl_renderer(index, gl, width, height) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	// Put a unit quad in the buffer
 	var positions = [
-		0, 0,
-		0, 1,
-		1, 0,
-		1, 0,
-		0, 1,
+		-1, -1,
+		-1, 1,
+		1, -1,
+		1, -1,
+		-1, 1,
 		1, 1,
 	];
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
@@ -914,6 +915,7 @@ function webgl_renderer(index, gl, width, height) {
 
 
 	//WebGL how to convert from clip space to pixels
+	console.log("gl.viewport:", (width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
 	//gl.viewport(0,0,img_width,img_height);
 
@@ -5691,10 +5693,10 @@ function display_preferences(index) {
 		.attr("fill", "grey")
 		.attr("stroke", "none")
 		.attr("opacity", 0.0)
-		//.html("&#x1f493;");// heartbeat
+		//.html("&#x1f493;");// heartbeat		
 		//.html("&#9775;");// yin-yang
 		//.html("&#x1F517;");// link		
-		.html("✔");// heavy check
+		.html("&#10003;");// a check mark
 
 	let fillColour = 'yellow';
 
