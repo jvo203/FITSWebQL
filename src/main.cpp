@@ -733,7 +733,7 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
       break;
   }
 
-  printf("image bounding box:\tx1=%ld, x2=%ld, y1=%ld, y2=%ld", x1, x2, y1, y2);
+  printf("image bounding box:\tx1 = %ld, x2 = %ld, y1 = %ld, y2 = %ld\n", x1, x2, y1, y2);
 
   width = labs(x2 - x1) + 1;
   height = labs(y2 - y1) + 1;
