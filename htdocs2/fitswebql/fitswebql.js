@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-03.0";
+	return "JS2020-04-04.0";
 }
 
 const wasm_supported = (() => {
@@ -903,15 +903,15 @@ function webgl_renderer(index, gl, width, height) {
 	// load a texture
 	var tex = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, tex);
-	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);*/
-
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);*/
+
+	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 256, 256, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
 
 	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 	if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -5698,7 +5698,10 @@ function display_preferences(index) {
 		//.html("&#x1f493;");// heartbeat		
 		//.html("&#9775;");// yin-yang
 		//.html("&#x1F517;");// link		
-		.html("&#10003;");// a check mark
+		//.html("&#10003;");// a check mark
+		.html("&#x2714;");// a heavy check mark
+	//.html("&#x1F197;");// OK
+	//.html("&#x1f44c;");// OK hand sign
 
 	let fillColour = 'yellow';
 
