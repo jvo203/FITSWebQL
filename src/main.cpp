@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-03.0"
+#define VERSION_STRING "SV2020-04-04.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -664,6 +664,81 @@ inline float get_image_scale(int width, int height, int img_width,
   return 1.0f;
 }
 
+void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
+{
+  long x1 = 0;
+  long x2 = 0;
+  long y1 = 0;
+  long y2 = 0;
+
+  long x, y;
+  bool found_data;
+
+  long linesize = width;
+  size_t length = width * height;
+
+  //find y1
+  for (size_t i = 0; i < length; i++)
+  {
+    if (alpha[i] > 0)
+    {
+      y1 = (i / linesize);
+      break;
+    }
+  }
+
+  //find y2
+  for (size_t i = length - 1; i >= 0; i--)
+  {
+    if (alpha[i] > 0)
+    {
+      y2 = (i / linesize);
+      break;
+    }
+  }
+
+  //find x1
+  found_data = false;
+  for (x = 0; x < width; x++)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
+        x1 = x;
+        found_data = true;
+        break;
+      }
+    }
+
+    if (found_data)
+      break;
+  }
+
+  //find x2
+  found_data = false;
+  for (x = (width - 1); x >= 0; x--)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
+        x2 = x;
+        found_data = true;
+        break;
+      }
+    }
+
+    if (found_data)
+      break;
+  }
+
+  printf("image bounding box:\tx1=%ld, x2=%ld, y1=%ld, y2=%ld", x1, x2, y1, y2);
+
+  width = labs(x2 - x1) + 1;
+  height = labs(y2 - y1) + 1;
+}
+
 void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                   int _height)
 {
@@ -684,7 +759,10 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     float compression_level = 45.0f; //100.0f; // default is 45.0f
 
     // calculate a new image size
-    float scale = get_image_scale(_width, _height, fits->width, fits->height);
+    long true_width = fits->width;
+    long true_height = fits->height;
+    true_image_dimensions(fits->img_mask, true_width, true_height);
+    float scale = get_image_scale(_width, _height, true_width, true_height);
 
     if (scale < 1.0)
     {
