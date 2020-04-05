@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-04.0";
+	return "JS2020-04-05.0";
 }
 
 const wasm_supported = (() => {
@@ -805,18 +805,18 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 	// combine pixels with a mask
 	let len = pixels.length | 0;
-	var luma_alpha = new Float32Array(len);
+	var texture = new Float32Array(2 * len);
 	let offset = 0 | 0;
 
 	for (let i = 0 | 0; i < len; i = (i + 1) | 0) {
-		luma_alpha[offset] = pixels[i];
+		texture[offset] = pixels[i];
 		offset = (offset + 1) | 0;
 
-		luma_alpha[offset] = alpha[i];
+		texture[offset] = alpha[i];
 		offset = (offset + 1) | 0;
 	}
 
-	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, luminance: luma_alpha, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, tex_width: img_width, tex_height: img_height, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
 
 	//next display the image
 	if (va_count == 1) {
@@ -905,13 +905,12 @@ function webgl_renderer(index, gl, width, height) {
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);*/
+	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);*/
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.img_width, image.img_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 256, 256, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.luminance);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.tex_width, image.tex_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.texture);
 
 	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 	if (status != gl.FRAMEBUFFER_COMPLETE) {
