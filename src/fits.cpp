@@ -2813,7 +2813,7 @@ void FITS::zfp_compression_thread(int tid) {
 }
 
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep) {
+                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror) {
 
   // int MAX_NUM_THREADS = omp_get_max_threads();
   int max_threads = omp_get_max_threads();
@@ -2930,7 +2930,8 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
               dstOffset, dstSizeT, border, 0, pSpec, pOneBuf);
 
           // flip the buffer
-          ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);
+          if (mirror)
+            ispc::mirror_float32(pDstT, dstSizeT.width, dstSizeT.height);
         }
       }
     }
@@ -2953,7 +2954,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 }
 
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep) {
+                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror) {
 
   // int MAX_NUM_THREADS = omp_get_max_threads();
   int max_threads = omp_get_max_threads();
@@ -3070,7 +3071,8 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                                 pSpec, pOneBuf);
 
           // flip the buffer
-          ispc::mirror_u8(pDstT, dstSizeT.width, dstSizeT.height);
+          if (mirror)
+            ispc::mirror_u8(pDstT, dstSizeT.width, dstSizeT.height);
         }
       }
     }

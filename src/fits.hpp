@@ -48,10 +48,10 @@ void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
 void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height);
 
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep);
+                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror = false);
 
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep);
+                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror = false);
 
 struct Progress {
   size_t running;

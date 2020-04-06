@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-04.0"
+#define VERSION_STRING "SV2020-04-06.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -755,7 +755,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
   res->end(stream_generator(queue));
 
   // launch a separate image thread
-  std::thread([queue, fits, _width, _height]() {
+  std::thread([queue, fits, _width, _height]() {    
     float compression_level = 45.0f; //100.0f; // default is 45.0f
 
     // calculate a new image size
@@ -925,26 +925,27 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // an array to hold a flipped image (its mirror image)
-      std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
-                                         ippsFree);
+      /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         ippsFree);*/
 
       // an alpha channel
       std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size),
                                        ippsFree);
 
       // copy and flip the image, fill-in the mask
-      if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+      if (/*pixels_buf.get() != NULL &&*/ mask_buf.get() != NULL)
       {
-        tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
-                          img_height);
+        /*tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
+                          img_height);*/
 
         // the mask should be filled-in manually based on NaN pixels
-        Ipp32f *pixels = pixels_buf.get();
+        Ipp32f *pixels = fits->img_pixels;//pixels_buf.get();
+        Ipp8u* _mask = fits->img_mask;
         Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
         for (size_t i = 0; i < plane_size; i++)
-          mask[i] = std::isnan(pixels[i]) ? 0.0f : 1.0f;
+          mask[i] = _mask[i];//std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
         // export the luma+mask to OpenEXR
         std::string filename =
