@@ -772,12 +772,13 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
              fits->width, fits->height, img_width, img_height);
 
+      size_t orig_size = fits->width * fits->height;
       size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      std::shared_ptr<Ipp32f> src_mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);                                         
+      std::shared_ptr<Ipp32f> src_mask_buf(ippsMalloc_32f_L(orig_size), ippsFree);                                         
       std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);      
 
       if (pixels_buf.get() != NULL && mask_buf.get() != NULL && src_mask_buf.get() != NULL)
@@ -787,7 +788,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           Ipp32f *mask = src_mask_buf.get();
 
 #pragma omp parallel for simd
-          for (size_t i = 0; i < plane_size; i++)
+          for (size_t i = 0; i < orig_size; i++)
             mask[i] = _mask[i];
         }
 
