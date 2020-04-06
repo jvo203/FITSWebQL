@@ -10,6 +10,9 @@ varying vec2 v_texcoord;
      
 void main() {
      gl_Position = a_position;
-     vec2 tex_space = 0.5 * a_position.xy + vec2(0.5, 0.5); // transform [-1, 1] to [0, 1]
-     v_texcoord = tex_space;
+     //v_texcoord = 0.5 * a_position.xy + vec2(0.5, 0.5); // transform [-1, 1] to [0, 1]
+
+     vec2 a = 0.5 * vec2(xmax - xmin, ymax - ymin); 
+     vec2 c = a + vec2(xmin, ymin);
+     v_texcoord = a * a_position.xy + c;     
 }

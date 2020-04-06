@@ -933,10 +933,10 @@ function webgl_renderer(index, gl, width, height) {
 	// Tell WebGL to use our shader program pair
 	gl.useProgram(program);
 
-	let xmin = 0.33;
-	let xmax = 0.8;
+	let xmin = 0.25;
+	let xmax = 0.9;
 	let ymin = 0.1;
-	let ymax = 0.9;
+	let ymax = 0.15;
 
 	gl.uniform1f(locationOfxmin, xmin);
 	gl.uniform1f(locationOfxmax, xmax);
