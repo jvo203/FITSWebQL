@@ -924,24 +924,26 @@ function webgl_renderer(index, gl, width, height) {
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
-	var locationOfxmin = gl.getUniformLocation(program, "xmin");
-	var locationOfxmax = gl.getUniformLocation(program, "xmax");
+	var locationOfxmin = gl.getUniformLocation(program, "xmin");	
 	var locationOfymin = gl.getUniformLocation(program, "ymin");
-	var locationOfymax = gl.getUniformLocation(program, "ymax");
+	var locationOfwidth = gl.getUniformLocation(program, "width");
+	var locationOfheight = gl.getUniformLocation(program, "height");
 
 	// drawRegion (execute the GLSL program)
 	// Tell WebGL to use our shader program pair
 	gl.useProgram(program);
 
-	let xmin = 0.25;
-	let xmax = 0.9;
-	let ymin = 0.1;
-	let ymax = 0.15;
+	let xmin = image.image_bounding_dims.x1 / (image.width - 1)	;
+	let ymin = image.image_bounding_dims.y1 / (image.height - 1) ;
+	let _width = image.image_bounding_dims.width / image.width ;
+	let _height = image.image_bounding_dims.height / image.height ;
 
-	gl.uniform1f(locationOfxmin, xmin);
-	gl.uniform1f(locationOfxmax, xmax);
+	console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
+
+	gl.uniform1f(locationOfxmin, xmin);	
 	gl.uniform1f(locationOfymin, ymin);
-	gl.uniform1f(locationOfymax, ymax);
+	gl.uniform1f(locationOfwidth, _width);
+	gl.uniform1f(locationOfheight, _height);
 
 	// Setup the attributes to pull data from our buffers
 	gl.enableVertexAttribArray(positionLocation);
