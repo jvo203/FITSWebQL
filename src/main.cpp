@@ -772,26 +772,17 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
              fits->width, fits->height, img_width, img_height);
 
-      size_t orig_size = fits->width * fits->height;
+      //size_t orig_size = fits->width * fits->height;
       size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      std::shared_ptr<Ipp32f> src_mask_buf(ippsMalloc_32f_L(orig_size), ippsFree);                                         
-      std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);      
+      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);                                         
+      std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size), ippsFree);      
 
-      if (pixels_buf.get() != NULL && mask_buf.get() != NULL && src_mask_buf.get() != NULL)
-      {
-        {
-          Ipp8u* _mask = fits->img_mask;
-          Ipp32f *mask = src_mask_buf.get();
-
-#pragma omp parallel for simd
-          for (size_t i = 0; i < orig_size; i++)
-            mask[i] = _mask[i];
-        }
-
+      if (pixels_buf.get() != NULL && mask_buf.get() != NULL && mask_buf_32f.get() != NULL)
+      {        
         // downsize float32 pixels and a mask
         IppiSize srcSize;
         srcSize.width = fits->width;
@@ -808,7 +799,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                               pixels_buf.get(), dstSize, dstStep);
 
         IppStatus mask_stat =
-            tileResize32f_C1R(src_mask_buf.get(), srcSize, srcStep,
+            tileResize8u_C1R(fits->img_mask, srcSize, srcStep,
                               mask_buf.get(), dstSize, dstStep);                              
 
         printf(" %d : %s, %d : %s\n", pixels_stat, ippGetStatusString(mask_stat), pixels_stat, ippGetStatusString(mask_stat));
@@ -819,11 +810,12 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           // the mask should be filled-in manually based on NaN pixels
           // not anymore, NaN will be replaced by 0.0 due to unwanted cropping by OpenEXR
           Ipp32f *pixels = pixels_buf.get();
-          Ipp32f *mask = mask_buf.get();
+          Ipp8u *src_mask = mask_buf.get();
+          Ipp32f *mask = mask_buf_32f.get();
 
-/*#pragma omp parallel for simd
+#pragma omp parallel for simd
           for (size_t i = 0; i < plane_size; i++)
-            mask[i] = std::isnan(pixels[i]) ? 0.0f : 1.0f;*/
+            mask[i] = (src_mask[i] == 255) ? 1.0f : 0.0f; //std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
           // export EXR in a YA format
           std::string filename =
@@ -961,7 +953,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
 #pragma omp parallel for simd
         for (size_t i = 0; i < plane_size; i++)
-          mask[i] = _mask[i];//std::isnan(pixels[i]) ? 0.0f : 1.0f;
+          mask[i] = (_mask[i] == 255) ? 1.0f : 0.0f;//std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
         // export the luma+mask to OpenEXR
         std::string filename =
