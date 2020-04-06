@@ -1938,7 +1938,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // replace NaNs with 0.0    
     #pragma omp parallel for simd
     for (size_t i = 0; i < plane_size; i++)
-      if( std::isnan(img_pixels[i]) )
+      if( img_mask[i] == 0 )
         img_pixels[i] = 0.0f;
   } else {
     this->has_error = true;
