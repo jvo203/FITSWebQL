@@ -771,8 +771,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
              fits->width, fits->height, img_width, img_height);
-
-      //size_t orig_size = fits->width * fits->height;
+      
       size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // allocate {pixel_buf, mask_buf}
