@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-05.0";
+	return "JS2020-04-06.0";
 }
 
 const wasm_supported = (() => {
@@ -924,9 +924,24 @@ function webgl_renderer(index, gl, width, height) {
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
+	var locationOfxmin = gl.getUniformLocation(program, "xmin");
+	var locationOfxmax = gl.getUniformLocation(program, "xmax");
+	var locationOfymin = gl.getUniformLocation(program, "ymin");
+	var locationOfymax = gl.getUniformLocation(program, "ymax");
+
 	// drawRegion (execute the GLSL program)
 	// Tell WebGL to use our shader program pair
 	gl.useProgram(program);
+
+	let xmin = 0.33;
+	let xmax = 0.8;
+	let ymin = 0.1;
+	let ymax = 0.9;
+
+	gl.uniform1f(locationOfxmin, xmin);
+	gl.uniform1f(locationOfxmax, xmax);
+	gl.uniform1f(locationOfymin, ymin);
+	gl.uniform1f(locationOfymax, ymax);
 
 	// Setup the attributes to pull data from our buffers
 	gl.enableVertexAttribArray(positionLocation);
