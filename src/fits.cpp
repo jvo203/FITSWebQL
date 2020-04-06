@@ -2916,12 +2916,14 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = pSrc + srcOffset.y * srcStep;
-          // pDstT = pDst + dstOffset.y * dstStep;
-
-          if (i == numThreads - 1)
-            pDstT = pDst;
-          else
-            pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+          if (!mirror)
+            pDstT = pDst + dstOffset.y * dstStep;
+          else {
+            if (i == numThreads - 1)
+              pDstT = pDst;
+            else
+              pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+          }
 
           pOneBuf = pBuffer + i * bufSize1;
 
@@ -3057,12 +3059,15 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
         if (pStatus[i] == ippStsNoErr) {
           pSrcT = (Ipp8u *)((char *)pSrc + srcOffset.y * srcStep);
-          // pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
 
-          if (i == numThreads - 1)
-            pDstT = pDst;
-          else
-            pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+          if (!mirror)
+            pDstT = (Ipp8u *)((char *)pDst + dstOffset.y * dstStep);
+          else {
+            if (i == numThreads - 1)
+              pDstT = pDst;
+            else
+              pDstT = pDst + (dstSize.height - (i + 1) * slice) * dstStep;
+          }
 
           pOneBuf = pBuffer + i * bufSize1;
 
