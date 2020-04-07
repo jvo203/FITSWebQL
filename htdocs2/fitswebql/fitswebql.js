@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-06.0";
+	return "JS2020-04-07.0";
 }
 
 const wasm_supported = (() => {
@@ -816,7 +816,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		offset = (offset + 1) | 0;
 	}
 
-	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, tex_width: img_width, tex_height: img_height, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
 
 	//next display the image
 	if (va_count == 1) {
@@ -910,7 +910,7 @@ function webgl_renderer(index, gl, width, height) {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.tex_width, image.tex_height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.width, image.height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.texture);
 
 	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 	if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -924,7 +924,7 @@ function webgl_renderer(index, gl, width, height) {
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
-	var locationOfxmin = gl.getUniformLocation(program, "xmin");	
+	var locationOfxmin = gl.getUniformLocation(program, "xmin");
 	var locationOfymin = gl.getUniformLocation(program, "ymin");
 	var locationOfwidth = gl.getUniformLocation(program, "width");
 	var locationOfheight = gl.getUniformLocation(program, "height");
@@ -933,14 +933,14 @@ function webgl_renderer(index, gl, width, height) {
 	// Tell WebGL to use our shader program pair
 	gl.useProgram(program);
 
-	let xmin = image.image_bounding_dims.x1 / (image.width - 1)	;
-	let ymin = image.image_bounding_dims.y1 / (image.height - 1) ;
-	let _width = image.image_bounding_dims.width / image.width ;
-	let _height = image.image_bounding_dims.height / image.height ;
+	let xmin = image.image_bounding_dims.x1 / (image.width - 1);
+	let ymin = image.image_bounding_dims.y1 / (image.height - 1);
+	let _width = image.image_bounding_dims.width / image.width;
+	let _height = image.image_bounding_dims.height / image.height;
 
 	console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
 
-	gl.uniform1f(locationOfxmin, xmin);	
+	gl.uniform1f(locationOfxmin, xmin);
 	gl.uniform1f(locationOfymin, ymin);
 	gl.uniform1f(locationOfwidth, _width);
 	gl.uniform1f(locationOfheight, _height);
