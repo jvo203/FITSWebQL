@@ -816,7 +816,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		offset = (offset + 1) | 0;
 	}
 
-	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range };
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
 
 	//next display the image
 	if (va_count == 1) {
@@ -924,10 +924,17 @@ function webgl_renderer(index, gl, width, height) {
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
+	// the image bounding box
 	var locationOfxmin = gl.getUniformLocation(program, "xmin");
 	var locationOfymin = gl.getUniformLocation(program, "ymin");
 	var locationOfwidth = gl.getUniformLocation(program, "width");
 	var locationOfheight = gl.getUniformLocation(program, "height");
+
+	// image tone mapping
+	var locationOfmedian = gl.getUniformLocation(program, "median");
+	var locationOfsensitivity = gl.getUniformLocation(program, "sensitivity");
+	var locationOfwhite = gl.getUniformLocation(program, "white");
+	var locationOfblack = gl.getUniformLocation(program, "black");
 
 	// drawRegion (execute the GLSL program)
 	// Tell WebGL to use our shader program pair
@@ -944,6 +951,15 @@ function webgl_renderer(index, gl, width, height) {
 	gl.uniform1f(locationOfymin, ymin);
 	gl.uniform1f(locationOfwidth, _width);
 	gl.uniform1f(locationOfheight, _height);
+
+	gl.uniform1f(locationOfmedian, image.tone_mapping.median);
+	gl.uniform1f(locationOfwhite, image.tone_mapping.white);
+	gl.uniform1f(locationOfblack, image.tone_mapping.black);
+
+	if (image.tone_mapping.flux == "ratio")
+		gl.uniform1f(locationOfsensitivity, image.tone_mapping.ratio_sensitivity);
+	else
+		gl.uniform1f(locationOfsensitivity, image.tone_mapping.sensitivity);
 
 	// Setup the attributes to pull data from our buffers
 	gl.enableVertexAttribArray(positionLocation);
