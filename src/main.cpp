@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-06.0"
+#define VERSION_STRING "SV2020-04-07.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -1422,9 +1422,27 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   include_file(html, docs_root + "/fitswebql/vertex-shader.vert");
   html.append("</script>\n");
 
-  //GLSL fragment shader
-  html.append("<script id=\"fragment-shader\" type=\"x-shader/x-vertex\">\n");
-  include_file(html, docs_root + "/fitswebql/fragment-shader.frag");
+  //GLSL fragment shaders
+  // tone mappings
+  html.append("<script id=\"ratio-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/ratio-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"logistic-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/logistic-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"square-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/square-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"legacy-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legacy-shader.frag");
+  html.append("</script>\n");
+
+  // colourmaps
+  html.append("<script id=\"greyscale-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/greyscale-shader.frag");
   html.append("</script>\n");
 
   // FITSWebQL main JavaScript + CSS

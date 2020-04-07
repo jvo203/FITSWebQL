@@ -861,7 +861,7 @@ function webgl_renderer(index, gl, width, height) {
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
-	var fragmentShaderCode = document.getElementById("fragment-shader").text;
+	var fragmentShaderCode = document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
 
 	// look up where the vertex data needs to go.
@@ -931,6 +931,13 @@ function webgl_renderer(index, gl, width, height) {
 	var locationOfheight = gl.getUniformLocation(program, "height");
 
 	// image tone mapping
+	if (image.tone_mapping.flux == "legacy") {
+		var locationOfpmin = gl.getUniformLocation(program, "pmin");
+		var locationOfpmax = gl.getUniformLocation(program, "pmax");
+		var locationOflmin = gl.getUniformLocation(program, "lmin");
+		var locationOflmax = gl.getUniformLocation(program, "lmax");
+	}
+
 	var locationOfmedian = gl.getUniformLocation(program, "median");
 	var locationOfsensitivity = gl.getUniformLocation(program, "sensitivity");
 	var locationOfwhite = gl.getUniformLocation(program, "white");
@@ -951,6 +958,13 @@ function webgl_renderer(index, gl, width, height) {
 	gl.uniform1f(locationOfymin, ymin);
 	gl.uniform1f(locationOfwidth, _width);
 	gl.uniform1f(locationOfheight, _height);
+
+	if (image.tone_mapping.flux == "legacy") {
+		gl.uniform1f(locationOfpmin, image.tone_mapping.min);
+		gl.uniform1f(locationOfpmax, image.tone_mapping.max);
+		gl.uniform1f(locationOflmin, 0.5);
+		gl.uniform1f(locationOflmax, 1.5);
+	}
 
 	gl.uniform1f(locationOfmedian, image.tone_mapping.median);
 	gl.uniform1f(locationOfwhite, image.tone_mapping.white);
