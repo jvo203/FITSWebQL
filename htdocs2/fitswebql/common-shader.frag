@@ -72,6 +72,57 @@ vec4 colormap_blue_white_linear(float x, float alpha) {
     return vec4(r, g, b, alpha);
 }
 
+vec4 colormap_hot(float x, float alpha) {
+    float r = clamp(8.0 / 3.0 * x, 0.0, 1.0);
+    float g = clamp(8.0 / 3.0 * x - 1.0, 0.0, 1.0);
+    float b = clamp(4.0 * x - 3.0, 0.0, 1.0);
+    return vec4(r, g, b, alpha);
+}
+
+vec4 colormap_hsv2rgb(float h, float s, float v, float alpha) {
+	float r = v;
+	float g = v;
+	float b = v;
+	if (s > 0.0) {
+		h *= 6.0;
+		int i = int(h);
+		float f = h - float(i);
+		if (i == 1) {
+			r *= 1.0 - s * f;
+			b *= 1.0 - s;
+		} else if (i == 2) {
+			r *= 1.0 - s;
+			b *= 1.0 - s * (1.0 - f);
+		} else if (i == 3) {
+			r *= 1.0 - s;
+			g *= 1.0 - s * f;
+		} else if (i == 4) {
+			r *= 1.0 - s * (1.0 - f);
+			g *= 1.0 - s;
+		} else if (i == 5) {
+			g *= 1.0 - s;
+			b *= 1.0 - s * f;
+		} else {
+			g *= 1.0 - s * (1.0 - f);
+			b *= 1.0 - s;
+		}
+	}
+	return vec4(r, g, b, alpha);
+}
+
+vec4 colormap_rainbow(float x, float alpha) {
+	if (x < 0.0) {
+		return vec4(0.0, 0.0, 0.0, alpha);
+	} else if (1.0 < x) {
+		return vec4(0.0, 0.0, 0.0, alpha);
+	} else {
+		float h = clamp(-9.42274071356572E-01 * x + 8.74326827903982E-01, 0.0, 1.0);
+		float s = 1.0;
+		float v = clamp(4.90125513855204E+00 * x + 9.18879034690780E-03, 0.0, 1.0);
+		return colormap_hsv2rgb(h, s, v, alpha);
+	}
+}
+
 void main() {
      vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour
      float x = (colour.r + colour.g + colour.b) / 3.0;
