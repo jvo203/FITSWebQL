@@ -1477,6 +1477,10 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   include_file(html, docs_root + "/fitswebql/parula-shader.frag");
   html.append("</script>\n");
 
+  html.append("<script id=\"inferno-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/inferno-shader.frag");
+  html.append("</script>\n");
+
   // FITSWebQL main JavaScript + CSS
   html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
   html.append("<link rel=\"stylesheet\" href=\"fitswebql.css?" VERSION_STRING
