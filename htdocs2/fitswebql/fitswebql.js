@@ -6089,7 +6089,7 @@ function display_histogram(index) {
 			.style("padding-left", "0");
 	}
 
-	var colourmap_string = "<option>red</option><option>green</option><option>blue</option><option>greyscale</option><option>negative</option><option disabled>---</option><option>cubehelix</option><option>haxby</option><option>hot</option><option>parula</option><option>rainbow</option><option disabled>---</option><option>inferno</option><option>magma</option><option>plasma</option><option>viridis</option>";
+	var colourmap_string = "<option>red</option><option>green</option><option>blue</option><option>greyscale</option><option>negative</option><option disabled>---</option><option>cubehelix</option><option>haxby</option><option>hot</option><option>jet</option><option>parula</option><option>rainbow</option><option disabled>---</option><option>inferno</option><option>magma</option><option>plasma</option><option>viridis</option>";
 
 	tmpA = imageDropdown.append("li")
 		//.style("background-color", "#FFF")
