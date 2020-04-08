@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-07.0";
+	return "JS2020-04-08.0";
 }
 
 const wasm_supported = (() => {
@@ -861,7 +861,7 @@ function webgl_renderer(index, gl, width, height) {
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
-	var fragmentShaderCode = document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
+	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
 
 	// look up where the vertex data needs to go.
