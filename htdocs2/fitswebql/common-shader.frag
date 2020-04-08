@@ -819,6 +819,65 @@ vec4 colormap_cubehelix(float x, float alpha) {
     return result;
 }
 
+vec4 colormap_haxby(float x, float alpha) {
+    float dx = 1.0 / (64.0 - 1.0);
+
+    if( x < 0.0)
+        return vec4(0,0,0,0);
+
+    if( x < 1.0 * dx) {
+        vec4 x1 = vec4(0.1450980392156863, 0.2235294117647059, 0.6862745098039216, alpha);
+        vec4 x2 = vec4(0.1469654528478058, 0.2671023965141612, 0.7335823218176158, alpha);
+        float a = x / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 2.0 * dx) {        
+        vec4 x1 = vec4(0.1469654528478058, 0.2671023965141612, 0.7335823218176158, alpha);
+        vec4 x2 = vec4(0.1488328664799253, 0.3106753812636166, 0.7808901338313103, alpha);
+        float a = (x - 1.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 3.0 * dx) {                
+        vec4 x1 = vec4(0.1488328664799253, 0.3106753812636166, 0.7808901338313103, alpha);
+        vec4 x2 = vec4(0.1507002801120448, 0.3542483660130719, 0.8281979458450047, alpha);
+        float a = (x - 2.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 4.0 * dx) {                        
+        vec4 x1 = vec4(0.1507002801120448, 0.3542483660130719, 0.8281979458450047, alpha);
+        vec4 x2 = vec4(0.1525676937441643, 0.3978213507625272, 0.875505757858699, alpha);
+        float a = (x - 3.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 5.0 * dx) {                                
+        vec4 x1 = vec4(0.1525676937441643, 0.3978213507625272, 0.875505757858699, alpha);
+        vec4 x2 = vec4(0.1544351073762839, 0.4413943355119826, 0.9228135698723934, alpha);
+        float a = (x - 4.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 6.0 * dx) {                                        
+        vec4 x1 = vec4(0.1544351073762839, 0.4413943355119826, 0.9228135698723934, alpha);
+        vec4 x2 = vec4(0.1563025210084034, 0.4849673202614379, 0.9701213818860878, alpha);
+        float a = (x - 5.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    if( x < 7.0 * dx) {                                                
+        vec4 x1 = vec4(0.1563025210084034, 0.4849673202614379, 0.9701213818860878, alpha);
+        vec4 x2 = vec4(0.1612200435729848, 0.5254901960784314, 0.9860566448801743, alpha);
+        float a = (x - 6.0 * dx) / dx;
+        return mix(x1, x2, a);
+    }
+
+    // the default (unimplemented colour)
+    return vec4(0,0,0,0);
+}
+
 void main() {
      vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour
      float x = (colour.r + colour.g + colour.b) / 3.0;

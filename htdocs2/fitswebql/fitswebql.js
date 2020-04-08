@@ -870,7 +870,7 @@ function webgl_renderer(index, gl, width, height) {
 
 	// lookup uniforms
 	//var matrixLocation = gl.getUniformLocation(program, "u_matrix");
-	var textureLocation = gl.getUniformLocation(program, "u_texture");
+	var textureLocation = gl.getUniformLocation(program, "u_texture");	
 
 	// Create a position buffer
 	var positionBuffer = gl.createBuffer();
@@ -945,7 +945,7 @@ function webgl_renderer(index, gl, width, height) {
 
 	// drawRegion (execute the GLSL program)
 	// Tell WebGL to use our shader program pair
-	gl.useProgram(program);
+	gl.useProgram(program);	
 
 	let xmin = image.image_bounding_dims.x1 / (image.width - 1);
 	let ymin = image.image_bounding_dims.y1 / (image.height - 1);
