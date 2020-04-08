@@ -35,6 +35,14 @@ vec4 colormap_red_white_linear(float x, float alpha) {
     return vec4(g, r, b, alpha);
 }
 
+vec4 colormap_green_white_linear(float x, float alpha) {
+    float t = x * 255.0;
+    float r = clamp(colormap_red(t) / 255.0, 0.0, 1.0);
+    float g = clamp(colormap_green(t) / 255.0, 0.0, 1.0);
+    float b = clamp(colormap_blue(t) / 255.0, 0.0, 1.0);
+    return vec4(r, g, b, alpha);
+}
+
 void main() {
      vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour
      float x = (colour.r + colour.g + colour.b) / 3.0;
