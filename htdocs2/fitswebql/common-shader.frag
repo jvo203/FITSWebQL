@@ -123,7 +123,6 @@ vec4 colormap_rainbow(float x, float alpha) {
 	}
 }
 
-
 vec4 colormap_parula(float x, float alpha) {
     if (x < 0.0) {
         return vec4(0.0, 0.0, 0.0, 0.0);
@@ -790,6 +789,25 @@ vec4 colormap_viridis (float x, float alpha) {
     max(mix(v5,v6,a5)*step(e5,x)*step(x,e6),
     max(mix(v6,v7,a6)*step(e6,x)*step(x,e7),mix(v7,v8,a7)*step(e7,x)*step(x,e8)
   )))))));
+}
+
+/*
+ * Adapted from http://www.mrao.cam.ac.uk/~dag/CUBEHELIX/CubeHelix.m
+ * which is licensed under http://unlicense.org/
+ */
+vec4 colormap_cubehelix(float x, float alpha) {
+    float xclamp = clamp(x, 0.0, 1.0);
+    float angle = 2.0 * 3.1415926 * (4.0 / 3.0 + xclamp);
+    float amp = xclamp * (1.0 - xclamp) / 2.0;
+    vec4 result;
+    float cosangle = cos(angle);
+    float sinangle = sin(angle);
+    result.r = -0.14861 * cosangle + 1.78277 * sinangle;
+    result.g = -0.29227 * cosangle + -0.90649 * sinangle;
+    result.b = 1.97294 * cosangle;
+    result.a = alpha;
+    result = clamp(xclamp + amp * result, 0.0, 1.0);
+    return result;
 }
 
 void main() {
