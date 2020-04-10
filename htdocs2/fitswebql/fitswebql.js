@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-08.0";
+	return "JS2020-04-09.0";
 }
 
 const wasm_supported = (() => {
@@ -826,14 +826,22 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var height = c.height;
 		console.log("HTMLCanvas:", c);
 
-		if (webgl1 || webgl2) {
-			var ctx = c.getContext("webgl");// default to WebGL1 for now
+		if (webgl1) {
+			var ctx = c.getContext("webgl");
 
 			// enable floating-point textures
 			ctx.getExtension('OES_texture_float');
 			ctx.getExtension('OES_texture_float_linear');
 
-			// call the WebGL renderer
+			// call the common WebGL renderer
+			webgl_renderer(index, ctx, width, height);
+		} else if (webgl2) {
+			var ctx = c.getContext("webgl2");
+
+			// needed by gl.checkFramebufferStatus
+			ctx.getExtension('EXT_color_buffer_float');
+
+			// call the common WebGL renderer
 			webgl_renderer(index, ctx, width, height);
 		} else {
 			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
@@ -862,6 +870,29 @@ function webgl_renderer(index, gl, width, height) {
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
 	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
+
+	// WebGL2 accept WebGL1 shaders so there is no need to update the code
+	/*if (webgl2) {		
+		var prefix = "#version 300 es\n";
+		vertexShaderCode = prefix + vertexShaderCode;
+		fragmentShaderCode = prefix + fragmentShaderCode;
+
+		// attribute -> in
+		vertexShaderCode = vertexShaderCode.replace(/attribute/g, "in");
+		fragmentShaderCode = fragmentShaderCode.replace(/attribute/g, "in");
+
+		// varying -> out
+		vertexShaderCode = vertexShaderCode.replace(/varying/g, "out");
+
+		// varying -> in
+		fragmentShaderCode = fragmentShaderCode.replace(/varying/g, "in");
+
+		// texture2D -> texture
+		fragmentShaderCode = fragmentShaderCode.replace(/texture2D/g, "texture");
+
+		// replace gl_FragColor with a custom variable, i.e. outColour
+	}*/
+
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
 
 	// look up where the vertex data needs to go.
