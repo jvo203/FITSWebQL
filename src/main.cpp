@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-08.0"
+#define VERSION_STRING "SV2020-04-09.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -1442,6 +1442,10 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
 
   html.append("<script id=\"legacy-shader\" type=\"x-shader/x-vertex\">\n");
   include_file(html, docs_root + "/fitswebql/legacy-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"linear-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/linear-shader.frag");
   html.append("</script>\n");
 
   // colourmaps
