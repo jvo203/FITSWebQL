@@ -740,7 +740,7 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
 }
 
 void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
-                  int _height)
+                  int _height, float quality)
 {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>(
@@ -755,8 +755,8 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
   res->end(stream_generator(queue));
 
   // launch a separate image thread
-  std::thread([queue, fits, _width, _height]() {    
-    float compression_level = 45.0f; //100.0f; // default is 45.0f
+  std::thread([queue, fits, _width, _height, quality]() {    
+    float compression_level = quality; //100.0f; // default is 45.0f
 
     // calculate a new image size
     long true_width = fits->width;
@@ -2071,6 +2071,7 @@ int main(int argc, char *argv[])
         std::string datasetid;
         int width = 0;
         int height = 0;
+        float quality = 45;
 
         std::vector<std::string> params;
         boost::split(params, query, [](char c) { return c == '&'; });
@@ -2099,12 +2100,17 @@ int main(int argc, char *argv[])
             {
               height = std::stoi(value);
             }
+
+            if (key.find("quality") != std::string::npos)
+            {
+              quality = std::stof(value);
+            }
           }
         }
 
         // process the response
         std::cout << "get_image(" << datasetid << "::" << width
-                  << "::" << height << ")" << std::endl;
+                  << "::" << height << "::" << quality << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
@@ -2125,7 +2131,7 @@ int main(int argc, char *argv[])
               return http_accepted(&res);
             else
               // return http_not_implemented(&res);
-              return stream_image(&res, fits, width, height);
+              return stream_image(&res, fits, width, height, quality);
           }
         }
       }

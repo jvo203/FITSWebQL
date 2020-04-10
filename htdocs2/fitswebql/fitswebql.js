@@ -5921,6 +5921,33 @@ function display_preferences(index) {
 	var tmpA;
 
 	tmpA = prefDropdown.append("li")
+		.attr("id", "image_quality_li")
+		//.style("background-color", "#FFF")
+		.append("a")
+		.style("class", "form-group")
+		.attr("class", "form-horizontal");
+
+	tmpA.append("label")
+		.attr("for", "image_quality")
+		.attr("class", "control-label")
+		.html("image quality:&nbsp; ");
+
+	tmpA.append("select")
+		.attr("id", "image_quality")
+		.attr("onchange", "javascript:change_image_quality();")
+		.html("<option value='45'>high</option><option value='1000'>medium</option><option value='10000'>low</option>");
+
+	document.getElementById('image_quality').value = image_quality;
+
+	if (realtime_video) {
+		d3.select('#video_fps_control_li').style("display", "block");
+	}
+	else {
+		d3.select('#video_fps_control_li').style("display", "none");
+	}
+
+	//----------------------------------------	
+	tmpA = prefDropdown.append("li")
 		.attr("id", "video_fps_control_li")
 		//.style("background-color", "#FFF")
 		.append("a")
@@ -9545,7 +9572,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 
 	var xmlhttp = new XMLHttpRequest();
 
-	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height;
+	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
 	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
@@ -10624,6 +10651,20 @@ function show_fits_header() {
 		if (event.target == modal) {
 			$("#fitsHeader").modal("hide");
 		}
+	}
+}
+
+function change_image_quality() {
+	image_quality = document.getElementById('image_quality').value;
+	localStorage.setItem("image_quality", image_quality);
+
+	display_hourglass();
+
+	if (va_count == 1) {
+		fetch_image(datasetId, 1, false);
+	} else {
+		for (let index = 1; index <= va_count; index++)
+			fetch_image(datasetId[index - 1], index, false);
 	}
 }
 
@@ -12815,6 +12856,13 @@ async*/ function mainRenderer() {
 
 		console.log("colourmap:", result["colourmap"]);
 	}
+
+	if (localStorage.getItem("image_quality") === null) {
+		image_quality = "45";
+		localStorage.setItem("image_quality", image_quality);
+	}
+	else
+		image_quality = localStorage.getItem("image_quality");
 
 	if (localStorage.getItem("video_fps_control") === null) {
 		video_fps_control = "auto";
