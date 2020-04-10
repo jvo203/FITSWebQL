@@ -791,13 +791,22 @@ vec4 colormap_viridis (float x, float alpha) {
   )))))));
 }
 
-vec4 colormap_jet(float x, float alpha) {
+vec4 colormap_jet_prev(float x, float alpha) {
   vec4 result;
   result.r = x < 0.89 ? ((x - 0.35) / 0.31) : (1.0 - (x - 0.89) / 0.11 * 0.5);
   result.g = x < 0.64 ? ((x - 0.125) * 4.0) : (1.0 - (x - 0.64) / 0.27);
   result.b = x < 0.34 ? (0.5 + x * 0.5 / 0.11) : (1.0 - (x - 0.34) / 0.31);
   result.a = alpha;
   return clamp(result, 0.0, 1.0);
+}
+
+vec4 colormap_jet(float x, float alpha) {
+    vec4 result;
+    result.r = (x < 0.7) ? (4.0 * x - 1.5) : (-4.0 * x + 4.5);
+    result.g = (x < 0.5) ? (4.0 * x - 0.5) : (-4.0 * x + 3.5);
+    result.b = (x < 0.3) ? (4.0 * x + 0.5) : (-4.0 * x + 2.5);
+    result.a = alpha;
+    return clamp(result, 0.0, 1.0);
 }
 
 /*
