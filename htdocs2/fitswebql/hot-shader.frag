@@ -1,3 +1,3 @@
-    // red
+    // hot
     gl_FragColor = colormap_hot(pixel, colour.a) ;
 }
