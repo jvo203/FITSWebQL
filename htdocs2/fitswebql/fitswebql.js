@@ -871,7 +871,7 @@ function webgl_renderer(index, gl, width, height) {
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
 	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
 
-	// WebGL2 accept WebGL1 shaders so there is no need to update the code
+	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
 	/*if (webgl2) {		
 		var prefix = "#version 300 es\n";
 		vertexShaderCode = prefix + vertexShaderCode;
