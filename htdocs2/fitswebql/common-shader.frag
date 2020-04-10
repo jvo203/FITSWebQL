@@ -1280,5 +1280,5 @@ vec4 colormap_haxby(float x, float alpha) {
 }
 
 void main() {
-     vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour
-     float x = (colour.r + colour.g + colour.b) / 3.0;
+     vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour     
+     float x = colour.r;     

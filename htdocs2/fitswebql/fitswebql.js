@@ -18,6 +18,11 @@ const wasm_supported = (() => {
 
 console.log(wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported");
 
+String.prototype.insert_at=function(index, string)
+{   
+  return this.substr(0, index) + string + this.substr(index);
+}
+
 Array.prototype.rotate = function (n) {
 	return this.slice(n, this.length).concat(this.slice(0, n));
 }
@@ -826,20 +831,25 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		var height = c.height;
 		console.log("HTMLCanvas:", c);
 
-		if (webgl1) {
+		if (webgl2) {
+			var ctx = c.getContext("webgl2");
+			console.log("process_hdr_image() is using the WebGL2 context.");
+
+			// enable floating-point textures filtering			
+			ctx.getExtension('OES_texture_float_linear');
+
+			// needed by gl.checkFramebufferStatus
+			ctx.getExtension('EXT_color_buffer_float');			
+
+			// call the common WebGL renderer
+			webgl_renderer(index, ctx, width, height);
+		} else if (webgl1) {
 			var ctx = c.getContext("webgl");
+			console.log("process_hdr_image() is using the WebGL1 context.");
 
 			// enable floating-point textures
 			ctx.getExtension('OES_texture_float');
 			ctx.getExtension('OES_texture_float_linear');
-
-			// call the common WebGL renderer
-			webgl_renderer(index, ctx, width, height);
-		} else if (webgl2) {
-			var ctx = c.getContext("webgl2");
-
-			// needed by gl.checkFramebufferStatus
-			ctx.getExtension('EXT_color_buffer_float');
 
 			// call the common WebGL renderer
 			webgl_renderer(index, ctx, width, height);
@@ -869,10 +879,15 @@ function webgl_renderer(index, gl, width, height) {
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
-	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text + document.getElementById(colourmap + "-shader").text;
+	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text;
+
+	if (webgl2)
+		fragmentShaderCode = fragmentShaderCode + "\ncolour.a = colour.g;\n";	
+
+	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
 
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
-	/*if (webgl2) {		
+	if (webgl2) {		
 		var prefix = "#version 300 es\n";
 		vertexShaderCode = prefix + vertexShaderCode;
 		fragmentShaderCode = prefix + fragmentShaderCode;
@@ -890,8 +905,13 @@ function webgl_renderer(index, gl, width, height) {
 		// texture2D -> texture
 		fragmentShaderCode = fragmentShaderCode.replace(/texture2D/g, "texture");
 
-		// replace gl_FragColor with a custom variable, i.e. outColour
-	}*/
+		// replace gl_FragColor with a custom variable, i.e. texColour
+		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor/g, "texColour");
+
+		// add the definition of texColour
+		var pos = fragmentShaderCode.indexOf("void main()");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
+	}
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
 
@@ -941,7 +961,10 @@ function webgl_renderer(index, gl, width, height) {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.width, image.height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.texture);
+	if (webgl2)
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, image.width, image.height, 0, gl.RG, gl.FLOAT, image.texture);
+	else
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, image.width, image.height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, image.texture);
 
 	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 	if (status != gl.FRAMEBUFFER_COMPLETE) {
