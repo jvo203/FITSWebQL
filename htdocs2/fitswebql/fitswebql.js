@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-09.0";
+	return "JS2020-04-13.0";
 }
 
 const wasm_supported = (() => {
@@ -833,6 +833,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 		if (webgl2) {
 			var ctx = c.getContext("webgl2");
+			imageContainer[index - 1].gl = ctx;
 			console.log("process_hdr_image() is using the WebGL2 context.");
 
 			// enable floating-point textures filtering			
@@ -845,6 +846,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 			webgl_renderer(index, ctx, width, height);
 		} else if (webgl1) {
 			var ctx = c.getContext("webgl");
+			imageContainer[index - 1].gl = ctx;
 			console.log("process_hdr_image() is using the WebGL1 context.");
 
 			// enable floating-point textures
