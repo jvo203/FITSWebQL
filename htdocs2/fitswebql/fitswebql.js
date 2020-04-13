@@ -5157,7 +5157,7 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 	flux_elem.attr(info, pos);
 
 	function dropGroup(d) {
-		display_hourglass();
+		/*display_hourglass();
 
 		if (!composite_view) {
 			image_count = va_count - 1;
@@ -5169,7 +5169,7 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 
 			for (let i = 1; i <= va_count; i++)
 				image_refresh(i, false);
-		}
+		}*/
 	}
 
 	function dragGroup(d) {
@@ -5225,6 +5225,17 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 
 		flux_elem.attr("d", path);
 
+		var image = imageContainer[index - 1];
+		
+		image.tone_mapping.black = black;
+		image.tone_mapping.white = white;
+		image.tone_mapping.median = median;
+
+		/*var multiplier = get_noise_sensitivity(noise_sensitivity);
+		if (image.tone_mapping.flux == "ratio")
+			image.tone_mapping.ratio_sensitivity = multiplier;
+		else
+			image.tone_mapping.sensitivity = multiplier;*/
 	}
 
 	var group = g.data(d).append("g")
