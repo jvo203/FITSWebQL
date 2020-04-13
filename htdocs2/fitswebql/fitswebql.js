@@ -5032,51 +5032,13 @@ function change_colourmap(index, recursive) {
 	colourmap = document.getElementById('colourmap' + index).value;
 	localStorage.setItem("colourmap", colourmap);
 
-	var imageCanvas = imageContainer[index - 1].imageCanvas;
-	var imageFrame = imageContainer[index - 1].imageFrame;
-	var alpha = imageContainer[index - 1].alpha;
-	var image_bounding_dims = imageContainer[index - 1].image_bounding_dims;
+	if (imageContainer[index - 1] != null)
+		clear_webgl_buffers(index);
 
-	if ((imageCanvas == null) || !has_image)
-		return;
-
-	var newImageCanvas = document.createElement('canvas');
-	newImageCanvas.style.visibility = "hidden";
-
-	newImageCanvas.width = imageCanvas.width;
-	newImageCanvas.height = imageCanvas.height;
-
-	var context = newImageCanvas.getContext('2d');
-
-	var newImageData = context.createImageData(imageFrame.w, imageFrame.h);
-
-	apply_colourmap(newImageData, colourmap, imageFrame.bytes, imageFrame.w, imageFrame.h, imageFrame.stride, alpha);
-
-	context.putImageData(newImageData, 0, 0);
-
-	imageContainer[index - 1].imageCanvas = newImageCanvas;
-	imageContainer[index - 1].newImageData = newImageData;
+	init_webgl_buffers(index);
 
 	if (va_count == 1) {
-		var c = document.getElementById('HTMLCanvas');
-		var width = c.width;
-		var height = c.height;
-		var ctx = c.getContext("2d");
-
-		ctx.mozImageSmoothingEnabled = false;
-		ctx.webkitImageSmoothingEnabled = false;
-		ctx.msImageSmoothingEnabled = false;
-		ctx.imageSmoothingEnabled = false;
-
-		var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
-		var img_width = scale * image_bounding_dims.width;
-		var img_height = scale * image_bounding_dims.height;
-
-		ctx.drawImage(newImageCanvas, image_bounding_dims.x1, image_bounding_dims.y1, image_bounding_dims.width, image_bounding_dims.height, (width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
-
-		setup_image_selection();
-		setup_viewports();
-		display_legend();
+		//display_legend();
 	}
 	else
 		if (!composite_view) {
