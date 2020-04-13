@@ -5225,8 +5225,9 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 
 		flux_elem.attr("d", path);
 
+		// set image tone mapping
 		var image = imageContainer[index - 1];
-		
+
 		image.tone_mapping.black = black;
 		image.tone_mapping.white = white;
 		image.tone_mapping.median = median;
