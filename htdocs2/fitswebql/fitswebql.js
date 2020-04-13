@@ -845,6 +845,28 @@ function init_webgl_buffers(index) {
 	}
 }
 
+function clear_webgl_buffers(index) {
+	// cancel the animation loop
+	var image = imageContainer[index - 1];
+
+	cancelAnimationFrame(image.loopId);
+
+	var gl = image.gl;
+
+	// position buffer
+	gl.deleteBuffer(image.positionBuffer);
+
+	// texture
+	gl.deleteTexture(image.tex);
+
+	// program
+	gl.deleteShader(image.program.vShader);
+	gl.deleteShader(image.program.fShader);
+	gl.deleteProgram(image.program);
+
+	image.gl = null;
+}
+
 function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
 	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
 	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
@@ -863,7 +885,8 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		offset = (offset + 1) | 0;
 	}
 
-	// clear_webgl_buffers(index);
+	if (imageContainer[index - 1] != null)
+		clear_webgl_buffers(index);
 
 	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
 
@@ -1033,10 +1056,10 @@ function webgl_renderer(index, gl, width, height) {
 		// draw the quad (2 triangles, 6 vertices)
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-		image.animation = requestAnimationFrame(image_rendering_loop);
+		image.loopId = requestAnimationFrame(image_rendering_loop);
 	};
 
-	image.animation = requestAnimationFrame(image_rendering_loop);
+	image.loopId = requestAnimationFrame(image_rendering_loop);
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
