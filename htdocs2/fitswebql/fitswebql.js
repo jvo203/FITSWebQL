@@ -803,26 +803,7 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	return program;
 };
 
-function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
-	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
-	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
-	console.log(image_bounding_dims, pixel_range);
-
-	// combine pixels with a mask
-	let len = pixels.length | 0;
-	var texture = new Float32Array(2 * len);
-	let offset = 0 | 0;
-
-	for (let i = 0 | 0; i < len; i = (i + 1) | 0) {
-		texture[offset] = pixels[i];
-		offset = (offset + 1) | 0;
-
-		texture[offset] = alpha[i];
-		offset = (offset + 1) | 0;
-	}
-
-	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
-
+function init_webgl_buffers(index) {
 	//next display the image
 	if (va_count == 1) {
 		//place the image onto the main canvas
@@ -863,6 +844,31 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		has_image = true;
 		hide_hourglass();
 	}
+}
+
+function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
+	let image_bounding_dims = true_image_dimensions(alpha, img_width, img_height);
+	var pixel_range = image_pixel_range(pixels, alpha, img_width, img_height);
+	console.log(image_bounding_dims, pixel_range);
+
+	// combine pixels with a mask
+	let len = pixels.length | 0;
+	var texture = new Float32Array(2 * len);
+	let offset = 0 | 0;
+
+	for (let i = 0 | 0; i < len; i = (i + 1) | 0) {
+		texture[offset] = pixels[i];
+		offset = (offset + 1) | 0;
+
+		texture[offset] = alpha[i];
+		offset = (offset + 1) | 0;
+	}
+
+	// clear_webgl_buffers(index);
+
+	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
+
+	init_webgl_buffers(index);
 
 	try {
 		var element = document.getElementById('BackHTMLCanvas');
@@ -916,17 +922,15 @@ function webgl_renderer(index, gl, width, height) {
 	}
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
+	image.program = program;
 
 	// look up where the vertex data needs to go.
 	var positionLocation = gl.getAttribLocation(program, "a_position");
-	var texcoordLocation = gl.getAttribLocation(program, "a_texcoord");
-
-	// lookup uniforms
-	//var matrixLocation = gl.getUniformLocation(program, "u_matrix");
-	var textureLocation = gl.getUniformLocation(program, "u_texture");	
 
 	// Create a position buffer
 	var positionBuffer = gl.createBuffer();
+	image.positionBuffer = positionBuffer;
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	// Put a unit quad in the buffer
 	var positions = [
@@ -937,24 +941,12 @@ function webgl_renderer(index, gl, width, height) {
 		-1, 1,
 		1, 1,
 	];
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-	// Create a buffer for texture coords
-	var texcoordBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-	// Put texcoords in the buffer
-	var texcoords = [
-		0, 0,
-		0, 1,
-		1, 0,
-		1, 0,
-		0, 1,
-		1, 1,
-	];
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);	
 
 	// load a texture
 	var tex = gl.createTexture();
+	image.tex = tex;
+	
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -972,6 +964,8 @@ function webgl_renderer(index, gl, width, height) {
 	if (status != gl.FRAMEBUFFER_COMPLETE) {
 		console.error(status);
 	}
+
+	// shoud be done in an animation loop
 
 	//WebGL how to convert from clip space to pixels	
 	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
@@ -1035,10 +1029,6 @@ function webgl_renderer(index, gl, width, height) {
 	gl.enableVertexAttribArray(positionLocation);
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-	/*gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-    gl.enableVertexAttribArray(texcoordLocation);
-    gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);*/
 
 	// execute the GLSL program
 	// draw the quad (2 triangles, 6 vertices)
