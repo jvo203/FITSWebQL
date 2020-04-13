@@ -18,9 +18,8 @@ const wasm_supported = (() => {
 
 console.log(wasm_supported ? "WebAssembly is supported" : "WebAssembly is not supported");
 
-String.prototype.insert_at=function(index, string)
-{   
-  return this.substr(0, index) + string + this.substr(index);
+String.prototype.insert_at = function (index, string) {
+	return this.substr(0, index) + string + this.substr(index);
 }
 
 Array.prototype.rotate = function (n) {
@@ -821,7 +820,7 @@ function init_webgl_buffers(index) {
 			ctx.getExtension('OES_texture_float_linear');
 
 			// needed by gl.checkFramebufferStatus
-			ctx.getExtension('EXT_color_buffer_float');			
+			ctx.getExtension('EXT_color_buffer_float');
 
 			// call the common WebGL renderer
 			webgl_renderer(index, ctx, width, height);
@@ -890,12 +889,12 @@ function webgl_renderer(index, gl, width, height) {
 	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text;
 
 	if (webgl2)
-		fragmentShaderCode = fragmentShaderCode + "\ncolour.a = colour.g;\n";	
+		fragmentShaderCode = fragmentShaderCode + "\ncolour.a = colour.g;\n";
 
 	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
 
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
-	if (webgl2) {		
+	if (webgl2) {
 		var prefix = "#version 300 es\n";
 		vertexShaderCode = prefix + vertexShaderCode;
 		fragmentShaderCode = prefix + fragmentShaderCode;
@@ -941,12 +940,12 @@ function webgl_renderer(index, gl, width, height) {
 		-1, 1,
 		1, 1,
 	];
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);	
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
 	// load a texture
 	var tex = gl.createTexture();
 	image.tex = tex;
-	
+
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -966,73 +965,78 @@ function webgl_renderer(index, gl, width, height) {
 	}
 
 	// shoud be done in an animation loop
+	function image_rendering_loop() {
+		//WebGL how to convert from clip space to pixels	
+		gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
 
-	//WebGL how to convert from clip space to pixels	
-	gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
+		// Clear the canvas
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
 
-	// Clear the canvas
-	gl.clearColor(0, 0, 0, 0);
-	gl.clear(gl.COLOR_BUFFER_BIT);
+		// the image bounding box
+		var locationOfxmin = gl.getUniformLocation(program, "xmin");
+		var locationOfymin = gl.getUniformLocation(program, "ymin");
+		var locationOfwidth = gl.getUniformLocation(program, "width");
+		var locationOfheight = gl.getUniformLocation(program, "height");
 
-	// the image bounding box
-	var locationOfxmin = gl.getUniformLocation(program, "xmin");
-	var locationOfymin = gl.getUniformLocation(program, "ymin");
-	var locationOfwidth = gl.getUniformLocation(program, "width");
-	var locationOfheight = gl.getUniformLocation(program, "height");
+		// image tone mapping
+		if (image.tone_mapping.flux == "legacy") {
+			var locationOfpmin = gl.getUniformLocation(program, "pmin");
+			var locationOfpmax = gl.getUniformLocation(program, "pmax");
+			var locationOflmin = gl.getUniformLocation(program, "lmin");
+			var locationOflmax = gl.getUniformLocation(program, "lmax");
+		}
 
-	// image tone mapping
-	if (image.tone_mapping.flux == "legacy") {
-		var locationOfpmin = gl.getUniformLocation(program, "pmin");
-		var locationOfpmax = gl.getUniformLocation(program, "pmax");
-		var locationOflmin = gl.getUniformLocation(program, "lmin");
-		var locationOflmax = gl.getUniformLocation(program, "lmax");
-	}
+		var locationOfmedian = gl.getUniformLocation(program, "median");
+		var locationOfsensitivity = gl.getUniformLocation(program, "sensitivity");
+		var locationOfwhite = gl.getUniformLocation(program, "white");
+		var locationOfblack = gl.getUniformLocation(program, "black");
 
-	var locationOfmedian = gl.getUniformLocation(program, "median");
-	var locationOfsensitivity = gl.getUniformLocation(program, "sensitivity");
-	var locationOfwhite = gl.getUniformLocation(program, "white");
-	var locationOfblack = gl.getUniformLocation(program, "black");
+		// drawRegion (execute the GLSL program)
+		// Tell WebGL to use our shader program pair
+		gl.useProgram(program);
 
-	// drawRegion (execute the GLSL program)
-	// Tell WebGL to use our shader program pair
-	gl.useProgram(program);	
+		let xmin = image.image_bounding_dims.x1 / (image.width - 1);
+		let ymin = image.image_bounding_dims.y1 / (image.height - 1);
+		let _width = image.image_bounding_dims.width / image.width;
+		let _height = image.image_bounding_dims.height / image.height;
 
-	let xmin = image.image_bounding_dims.x1 / (image.width - 1);
-	let ymin = image.image_bounding_dims.y1 / (image.height - 1);
-	let _width = image.image_bounding_dims.width / image.width;
-	let _height = image.image_bounding_dims.height / image.height;
+		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
 
-	console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
+		gl.uniform1f(locationOfxmin, xmin);
+		gl.uniform1f(locationOfymin, ymin);
+		gl.uniform1f(locationOfwidth, _width);
+		gl.uniform1f(locationOfheight, _height);
 
-	gl.uniform1f(locationOfxmin, xmin);
-	gl.uniform1f(locationOfymin, ymin);
-	gl.uniform1f(locationOfwidth, _width);
-	gl.uniform1f(locationOfheight, _height);
+		if (image.tone_mapping.flux == "legacy") {
+			gl.uniform1f(locationOfpmin, image.tone_mapping.min);
+			gl.uniform1f(locationOfpmax, image.tone_mapping.max);
+			gl.uniform1f(locationOflmin, 0.5);
+			gl.uniform1f(locationOflmax, 1.5);
+		}
 
-	if (image.tone_mapping.flux == "legacy") {
-		gl.uniform1f(locationOfpmin, image.tone_mapping.min);
-		gl.uniform1f(locationOfpmax, image.tone_mapping.max);
-		gl.uniform1f(locationOflmin, 0.5);
-		gl.uniform1f(locationOflmax, 1.5);
-	}
+		gl.uniform1f(locationOfmedian, image.tone_mapping.median);
+		gl.uniform1f(locationOfwhite, image.tone_mapping.white);
+		gl.uniform1f(locationOfblack, image.tone_mapping.black);
 
-	gl.uniform1f(locationOfmedian, image.tone_mapping.median);
-	gl.uniform1f(locationOfwhite, image.tone_mapping.white);
-	gl.uniform1f(locationOfblack, image.tone_mapping.black);
+		if (image.tone_mapping.flux == "ratio")
+			gl.uniform1f(locationOfsensitivity, image.tone_mapping.ratio_sensitivity);
+		else
+			gl.uniform1f(locationOfsensitivity, image.tone_mapping.sensitivity);
 
-	if (image.tone_mapping.flux == "ratio")
-		gl.uniform1f(locationOfsensitivity, image.tone_mapping.ratio_sensitivity);
-	else
-		gl.uniform1f(locationOfsensitivity, image.tone_mapping.sensitivity);
+		// Setup the attributes to pull data from our buffers
+		gl.enableVertexAttribArray(positionLocation);
+		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+		gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-	// Setup the attributes to pull data from our buffers
-	gl.enableVertexAttribArray(positionLocation);
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+		// execute the GLSL program
+		// draw the quad (2 triangles, 6 vertices)
+		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-	// execute the GLSL program
-	// draw the quad (2 triangles, 6 vertices)
-	gl.drawArrays(gl.TRIANGLES, 0, 6);
+		image.animation = requestAnimationFrame(image_rendering_loop);
+	};
+
+	image.animation = requestAnimationFrame(image_rendering_loop);
 }
 
 function process_image(width, height, w, h, bytes, stride, alpha, index) {
