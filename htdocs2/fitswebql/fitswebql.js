@@ -4759,8 +4759,14 @@ function change_tone_mapping(index, recursive) {
 
 	setup_histogram_interaction(index);
 
-	//request an image update from the server
-	image_refresh(index);
+	// set a new tone mapping function 
+	if (imageContainer[index - 1] != null) {
+		imageContainer[index - 1].tone_mapping.flux = document.getElementById('flux' + index).value;
+		clear_webgl_buffers(index);
+	}
+
+	// refresh an image
+	init_webgl_buffers(index);
 
 	//change other datasets too
 	if (va_count > 1 && recursive) {
