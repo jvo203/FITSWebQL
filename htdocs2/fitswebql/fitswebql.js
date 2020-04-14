@@ -814,7 +814,7 @@ function init_webgl_buffers(index) {
 		if (webgl2) {
 			var ctx = c.getContext("webgl2");
 			imageContainer[index - 1].gl = ctx;
-			console.log("process_hdr_image() is using the WebGL2 context.");
+			console.log("init_webgl is using the WebGL2 context.");
 
 			// enable floating-point textures filtering			
 			ctx.getExtension('OES_texture_float_linear');
@@ -827,7 +827,7 @@ function init_webgl_buffers(index) {
 		} else if (webgl1) {
 			var ctx = c.getContext("webgl");
 			imageContainer[index - 1].gl = ctx;
-			console.log("process_hdr_image() is using the WebGL1 context.");
+			console.log("init_webgl is using the WebGL1 context.");
 
 			// enable floating-point textures
 			ctx.getExtension('OES_texture_float');
@@ -1006,6 +1006,7 @@ function webgl_renderer(index, gl, width, height) {
 		if (image.tone_mapping.flux == "legacy") {
 			var locationOfpmin = gl.getUniformLocation(program, "pmin");
 			var locationOfpmax = gl.getUniformLocation(program, "pmax");
+			var locationOfp = gl.getUniformLocation(program, "p");
 			var locationOflmin = gl.getUniformLocation(program, "lmin");
 			var locationOflmax = gl.getUniformLocation(program, "lmax");
 		}
@@ -1034,8 +1035,9 @@ function webgl_renderer(index, gl, width, height) {
 		if (image.tone_mapping.flux == "legacy") {
 			gl.uniform1f(locationOfpmin, image.tone_mapping.min);
 			gl.uniform1f(locationOfpmax, image.tone_mapping.max);
-			gl.uniform1f(locationOflmin, 0.5);
-			gl.uniform1f(locationOflmax, 1.5);
+			gl.uniform1f(locationOfp, image.tone_mapping.p);
+			gl.uniform1f(locationOflmin, image.tone_mapping.lmin);
+			gl.uniform1f(locationOflmax, image.tone_mapping.lmax);
 		}
 
 		gl.uniform1f(locationOfmedian, image.tone_mapping.median);
@@ -5233,6 +5235,11 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 			image.tone_mapping.white = white;
 		}
 
+		if (document.getElementById('flux' + index).value == "legacy") {
+			image.tone_mapping.min = black;
+			image.tone_mapping.max = white;
+		}
+
 		if (document.getElementById('flux' + index).value == "logistic") {
 			image.tone_mapping.median = median;
 		}
@@ -6249,7 +6256,7 @@ function display_histogram(index) {
 		.attr("step", "1")
 		.attr("value", noise_sensitivity)
 		.attr("onmousemove", "javascript:change_noise_sensitivity(false," + index + ");")
-		.attr("onchange", "javascript:change_noise_sensitivity(true," + index + ");");
+		.attr("onchange", "javascript:change_noise_sensitivity(false," + index + ");");// was true
 
 	var mainRect = document.getElementById('mainDiv').getBoundingClientRect();
 	var width = 0.33 * mainRect.width;
@@ -6275,8 +6282,8 @@ function display_histogram(index) {
 		.attr("width", histWidth)
 		.attr("height", histHeight)
 		.attr('style', 'position: relative; left: 1em; top: 1em;');
-		//.style("background-color", "#FFF")
-		//.style("background-color", "rgba(0,0,0,0.4)");
+	//.style("background-color", "#FFF")
+	//.style("background-color", "rgba(0,0,0,0.4)");
 
 	histDiv.append("svg")
 		.attr("id", "HistogramSVG" + index)
@@ -9623,6 +9630,10 @@ function fetch_image(datasetId, index, add_timestamp) {
 				console.log("FITSImage dataview byte length: ", dv.byteLength);
 
 				var tone_mapping = new Object();
+				let p = 0.5;
+				tone_mapping.p = p;
+				tone_mapping.lmin = Math.log(p);
+				tone_mapping.lmax = Math.log(p + 0.5);
 
 				var offset = 0;
 				var str_length = dv.getUint32(offset, endianness);
@@ -10532,9 +10543,25 @@ function change_noise_sensitivity(refresh, index) {
 
 	flux_elem.attr("d", path);
 
+	// set image tone mapping
+	var image = imageContainer[index - 1];
+	let fitsData = fitsContainer[index - 1];
+
+	if (image.tone_mapping.flux == "ratio")
+		image.tone_mapping.ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
+	else
+		image.tone_mapping.sensitivity = multiplier * fitsData.sensitivity;
+
+	if (image.tone_mapping.flux == "legacy") {
+		var p = get_slope_from_multiplier(multiplier);
+		image.tone_mapping.p = p;
+		image.tone_mapping.lmin = Math.log(p);
+		image.tone_mapping.lmax = Math.log(p + 1.0);
+		console.log(p, image.tone_mapping.lmin, image.tone_mapping.lmax);
+	}
+
 	if (refresh) {
 		display_hourglass();
-
 
 		if (!composite_view) {
 			image_count = va_count - 1;
