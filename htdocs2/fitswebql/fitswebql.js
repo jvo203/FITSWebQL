@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-13.0";
+	return "JS2020-04-14.0";
 }
 
 const wasm_supported = (() => {
@@ -5228,15 +5228,23 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 		// set image tone mapping
 		var image = imageContainer[index - 1];
 
-		image.tone_mapping.black = black;
-		image.tone_mapping.white = white;
-		image.tone_mapping.median = median;
+		if (document.getElementById('flux' + index).value == "linear") {
+			image.tone_mapping.black = black;
+			image.tone_mapping.white = white;
+		}
 
-		/*var multiplier = get_noise_sensitivity(noise_sensitivity);
-		if (image.tone_mapping.flux == "ratio")
-			image.tone_mapping.ratio_sensitivity = multiplier;
-		else
-			image.tone_mapping.sensitivity = multiplier;*/
+		if (document.getElementById('flux' + index).value == "logistic") {
+			image.tone_mapping.median = median;
+		}
+
+		if (document.getElementById('flux' + index).value == "ratio") {
+			image.tone_mapping.black = black;
+		}
+
+		if (document.getElementById('flux' + index).value == "square") {
+			image.tone_mapping.black = black;
+			image.tone_mapping.sensitivity = 1 / (white - black);
+		}
 	}
 
 	var group = g.data(d).append("g")
@@ -6267,8 +6275,8 @@ function display_histogram(index) {
 		.attr("width", histWidth)
 		.attr("height", histHeight)
 		.attr('style', 'position: relative; left: 1em; top: 1em;');
-	//.style("background-color", "#FFF")
-	//.style("background-color", "rgba(0,0,0,0.4)");    
+		//.style("background-color", "#FFF")
+		//.style("background-color", "rgba(0,0,0,0.4)");
 
 	histDiv.append("svg")
 		.attr("id", "HistogramSVG" + index)
