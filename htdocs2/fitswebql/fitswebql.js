@@ -10557,7 +10557,7 @@ function change_noise_sensitivity(refresh, index) {
 		image.tone_mapping.p = p;
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
-		console.log(p, image.tone_mapping.lmin, image.tone_mapping.lmax);
+		console.log(image.tone_mapping.p, image.tone_mapping.lmin, image.tone_mapping.lmax);
 	}
 
 	if (refresh) {
