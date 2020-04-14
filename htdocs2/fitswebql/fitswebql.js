@@ -1038,6 +1038,7 @@ function webgl_renderer(index, gl, width, height) {
 			gl.uniform1f(locationOfp, image.tone_mapping.p);
 			gl.uniform1f(locationOflmin, image.tone_mapping.lmin);
 			gl.uniform1f(locationOflmax, image.tone_mapping.lmax);
+			//console.log(image.tone_mapping.p, image.tone_mapping.lmin, image.tone_mapping.lmax);
 		}
 
 		gl.uniform1f(locationOfmedian, image.tone_mapping.median);
@@ -9633,7 +9634,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 				let p = 0.5;
 				tone_mapping.p = p;
 				tone_mapping.lmin = Math.log(p);
-				tone_mapping.lmax = Math.log(p + 0.5);
+				tone_mapping.lmax = Math.log(p + 1.0);
 
 				var offset = 0;
 				var str_length = dv.getUint32(offset, endianness);
