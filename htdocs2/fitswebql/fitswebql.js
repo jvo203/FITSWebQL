@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-14.0";
+	return "JS2020-04-14.1";
 }
 
 const wasm_supported = (() => {
@@ -10555,7 +10555,7 @@ function change_noise_sensitivity(refresh, index) {
 
 	if (image.tone_mapping.flux == "legacy") {
 		var p = get_slope_from_multiplier(multiplier);
-		image.tone_mapping.p = p;
+		//image.tone_mapping.p = p;
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
 		console.log(image.tone_mapping.p, image.tone_mapping.lmin, image.tone_mapping.lmax);
