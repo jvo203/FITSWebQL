@@ -3,7 +3,7 @@ precision mediump float;
 varying vec2 v_texcoord;
 uniform sampler2D u_texture;
 
-uniform vec4 params[2];
+uniform vec4 params;
 
 //IDL green, red, purple
       
@@ -1272,17 +1272,10 @@ vec4 colormap_haxby(float x, float alpha) {
 }
 
 void main() {
-    vec4 legacy = params[0];
-    float pmin = legacy.x;
-    float pmax = legacy.y;
-    float lmin = legacy.z;
-    float lmax = legacy.w;
-
-    vec4 p = params[1];
-    float median = p.x;
-    float sensitivity = p.y;
-    float white = p.z;
-    float black = p.w;
+    float median = params.x;
+    float sensitivity = params.y;
+    float black = params.z;
+    float white = params.w;
 
     vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour     
     float x = colour.r;     

@@ -998,30 +998,11 @@ function webgl_renderer(index, gl, width, height) {
 
 		// the image bounding box
 		var locationOfBox = gl.getUniformLocation(program, "box");
-		console.log("box uniform:", gl.getError(), locationOfBox);
-
-		/*var locationOfxmin = gl.getUniformLocation(program, "xmin");
-		var locationOfymin = gl.getUniformLocation(program, "ymin");
-		var locationOfwidth = gl.getUniformLocation(program, "width");
-		var locationOfheight = gl.getUniformLocation(program, "height");*/
+		//console.log("box uniform:", gl.getError(), locationOfBox);
 
 		// image tone mapping
 		var locationOfParams = gl.getUniformLocation(program, "params");
-		console.log("params uniform", gl.getError(), locationOfParams);
-
-		/*var locationOfmedian = gl.getUniformLocation(program, "median");
-		console.log(gl.getError());
-
-		var locationOfsensitivity = gl.getUniformLocation(program, "sensitivity");
-		console.log(gl.getError());
-
-		var locationOfwhite = gl.getUniformLocation(program, "white");
-		console.log(gl.getError());
-
-		var locationOfblack = gl.getUniformLocation(program, "black");
-		console.log(gl.getError());
-
-		console.log(locationOfmedian, locationOfsensitivity, locationOfwhite, locationOfblack);*/
+		//console.log("params uniform", gl.getError(), locationOfParams);
 
 		// drawRegion (execute the GLSL program)
 		// Tell WebGL to use our shader program pair
@@ -1033,23 +1014,26 @@ function webgl_renderer(index, gl, width, height) {
 		let _height = image.image_bounding_dims.height / image.height;
 
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
-
-		/*gl.uniform1f(locationOfxmin, xmin);
-		gl.uniform1f(locationOfymin, ymin);
-		gl.uniform1f(locationOfwidth, _width);
-		gl.uniform1f(locationOfheight, _height);*/
 		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
 
-		if (image.tone_mapping.flux == "ratio")
-			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax, image.tone_mapping.median, image.tone_mapping.white, image.tone_mapping.black, image.tone_mapping.ratio_sensitivity];
-		else
-			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax, image.tone_mapping.median, image.tone_mapping.white, image.tone_mapping.black, image.tone_mapping.sensitivity];
-
-		gl.uniform4fv(locationOfParams, params);
-
 		if (image.tone_mapping.flux == "legacy") {
-			console.log(gl.getUniform(program, locationOfParams));
+			gl.uniform4fv(locationOfParams, [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax]);
+			/*console.log("params validation");
+			console.log(params);
+			console.log(gl.getUniform(program, locationOfParams));*/
+		} else {
+			if (image.tone_mapping.flux == "ratio")
+				var params = [image.tone_mapping.median, image.tone_mapping.ratio_sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+			else
+				var params = [image.tone_mapping.median, image.tone_mapping.sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+
+			gl.uniform4fv(locationOfParams, params);
+
+			/*console.log("params validation");
+			console.log(params);
+			console.log(gl.getUniform(program, locationOfParams));*/
 		}
+
 		// Setup the attributes to pull data from our buffers
 		gl.enableVertexAttribArray(positionLocation);
 		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
