@@ -998,11 +998,9 @@ function webgl_renderer(index, gl, width, height) {
 
 		// the image bounding box
 		var locationOfBox = gl.getUniformLocation(program, "box");
-		//console.log("box uniform:", gl.getError(), locationOfBox);
 
 		// image tone mapping
 		var locationOfParams = gl.getUniformLocation(program, "params");
-		//console.log("params uniform", gl.getError(), locationOfParams);
 
 		// drawRegion (execute the GLSL program)
 		// Tell WebGL to use our shader program pair
@@ -1017,10 +1015,8 @@ function webgl_renderer(index, gl, width, height) {
 		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
 
 		if (image.tone_mapping.flux == "legacy") {
-			gl.uniform4fv(locationOfParams, [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax]);
-			/*console.log("params validation");
-			console.log(params);
-			console.log(gl.getUniform(program, locationOfParams));*/
+			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax];
+			gl.uniform4fv(locationOfParams, params);
 		} else {
 			if (image.tone_mapping.flux == "ratio")
 				var params = [image.tone_mapping.median, image.tone_mapping.ratio_sensitivity, image.tone_mapping.black, image.tone_mapping.white];
@@ -1028,10 +1024,6 @@ function webgl_renderer(index, gl, width, height) {
 				var params = [image.tone_mapping.median, image.tone_mapping.sensitivity, image.tone_mapping.black, image.tone_mapping.white];
 
 			gl.uniform4fv(locationOfParams, params);
-
-			/*console.log("params validation");
-			console.log(params);
-			console.log(gl.getUniform(program, locationOfParams));*/
 		}
 
 		// Setup the attributes to pull data from our buffers
@@ -10542,7 +10534,6 @@ function change_noise_sensitivity(refresh, index) {
 		let p = get_slope_from_multiplier(multiplier);
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
-		console.log(multiplier, image.tone_mapping.lmin, image.tone_mapping.lmax);
 	}
 
 	if (refresh) {
