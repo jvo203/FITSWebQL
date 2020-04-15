@@ -5,7 +5,6 @@ uniform sampler2D u_texture;
 
 uniform float pmin;
 uniform float pmax;
-uniform float p;
 uniform float lmin;
 uniform float lmax;
 

@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-14.1";
+	return "JS2020-04-15.0";
 }
 
 const wasm_supported = (() => {
@@ -1006,7 +1006,6 @@ function webgl_renderer(index, gl, width, height) {
 		if (image.tone_mapping.flux == "legacy") {
 			var locationOfpmin = gl.getUniformLocation(program, "pmin");
 			var locationOfpmax = gl.getUniformLocation(program, "pmax");
-			var locationOfp = gl.getUniformLocation(program, "p");
 			var locationOflmin = gl.getUniformLocation(program, "lmin");
 			var locationOflmax = gl.getUniformLocation(program, "lmax");
 		}
@@ -1034,11 +1033,10 @@ function webgl_renderer(index, gl, width, height) {
 
 		if (image.tone_mapping.flux == "legacy") {
 			gl.uniform1f(locationOfpmin, image.tone_mapping.min);
-			gl.uniform1f(locationOfpmax, image.tone_mapping.max);
-			gl.uniform1f(locationOfp, image.tone_mapping.p);
+			gl.uniform1f(locationOfpmax, image.tone_mapping.max);			
 			gl.uniform1f(locationOflmin, image.tone_mapping.lmin);
 			gl.uniform1f(locationOflmax, image.tone_mapping.lmax);
-			//console.log(image.tone_mapping.p, image.tone_mapping.lmin, image.tone_mapping.lmax);
+			//console.log(image.tone_mapping.lmin, image.tone_mapping.lmax);
 		}
 
 		gl.uniform1f(locationOfmedian, image.tone_mapping.median);
@@ -9631,8 +9629,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 				console.log("FITSImage dataview byte length: ", dv.byteLength);
 
 				var tone_mapping = new Object();
-				let p = 0.5;
-				tone_mapping.p = p;
+				let p = 0.5;				
 				tone_mapping.lmin = Math.log(p);
 				tone_mapping.lmax = Math.log(p + 1.0);
 
@@ -9685,6 +9682,8 @@ function fetch_image(datasetId, index, add_timestamp) {
 						var alpha = image.plane("A");
 
 						image.delete();
+
+						console.log(pixels, alpha);
 
 						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
 
@@ -10554,11 +10553,10 @@ function change_noise_sensitivity(refresh, index) {
 		image.tone_mapping.sensitivity = multiplier * fitsData.sensitivity;
 
 	if (image.tone_mapping.flux == "legacy") {
-		var p = get_slope_from_multiplier(multiplier);
-		//image.tone_mapping.p = p;
+		let p = get_slope_from_multiplier(multiplier);
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
-		console.log(image.tone_mapping.p, image.tone_mapping.lmin, image.tone_mapping.lmax);
+		console.log(multiplier, image.tone_mapping.lmin, image.tone_mapping.lmax);
 	}
 
 	if (refresh) {
