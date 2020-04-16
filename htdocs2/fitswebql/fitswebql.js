@@ -11478,13 +11478,13 @@ function setup_help() {
 		.html("The image quality can be adjusted via <i>Preferences/image quality</i>");
 
 	bodyDiv.append("p")
-		.html("<b>high</b>: image sizes 300KB〜500KB, <em>DWAB_COMPRESSION = 45</em>");
+		.html("<b>high</b>: image sizes 300KB〜500KB, <em>DWAB COMPRESSION = 45</em>");
 
 	bodyDiv.append("p")
-		.html("<b>medium</b>: image sizes around 200KB, <em>DWAB_COMPRESSION = 1000</em>");
+		.html("<b>medium</b>: image sizes around 200KB, <em>DWAB COMPRESSION = 1000</em>");
 
 	bodyDiv.append("p")
-		.html("<b>low</b>: around 25KB-large images with visible artifacts, <em>DWAB_COMPRESSION = 10000</em>");
+		.html("<b>low</b>: around 25KB-large images with visible artifacts, <em>DWAB COMPRESSION = 10000</em>");
 
 	bodyDiv.append("hr");
 
