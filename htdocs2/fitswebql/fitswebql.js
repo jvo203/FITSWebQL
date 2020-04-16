@@ -11340,7 +11340,7 @@ function show_welcome() {
 
 	headerDiv.append("h2")
 		.attr("align", "center")
-		.html('WELCOME TO FITSWEBQL SE');
+		.html('WELCOME TO FITSWEBQL SE β');
 
 	var bodyDiv = contentDiv.append("div")
 		.attr("id", "modal-body")
