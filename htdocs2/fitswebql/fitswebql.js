@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-15.0";
+	return "JS2020-04-16.0";
 }
 
 const wasm_supported = (() => {
@@ -9659,9 +9659,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 						var pixels = image.plane("Y");
 						var alpha = image.plane("A");
 
-						image.delete();
-
-						console.log(pixels, alpha);
+						image.delete();						
 
 						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
 

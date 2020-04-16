@@ -1271,11 +1271,6 @@ vec4 colormap_haxby(float x, float alpha) {
     return vec4(0,0,0,0);
 }
 
-void main() {
-    float median = params.x;
-    float sensitivity = params.y;
-    float black = params.z;
-    float white = params.w;
-
+void main() {    
     vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour     
     float x = colour.r;     

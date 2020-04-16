@@ -1,3 +1,6 @@
+     float sensitivity = params.y;
+     float black = params.z;
+    
      float pixel = (x - black) * sensitivity;
 
      if (pixel > 0.0)
