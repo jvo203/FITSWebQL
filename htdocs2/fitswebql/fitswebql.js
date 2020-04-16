@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-16.0";
+	return "JS2020-04-16.1";
 }
 
 const wasm_supported = (() => {
@@ -806,13 +806,29 @@ function init_webgl_buffers(index) {
 	//next display the image
 	if (va_count == 1) {
 		//place the image onto the main canvas
-		var c = document.getElementById('HTMLCanvas');
-		var width = c.width;
-		var height = c.height;
-		console.log("HTMLCanvas:", c);
+		var canvas = document.getElementById('HTMLCanvas');
+		var width = canvas.width;
+		var height = canvas.height;
+		console.log("HTMLCanvas:", canvas);
+
+		if (webgl1 || webgl2) {
+			canvas.addEventListener("webglcontextlost", function (event) {
+				event.preventDefault();
+
+				var image = imageContainer[index - 1];
+				cancelAnimationFrame(image.loopId);
+				console.err("HTMLCanvas: webglcontextlost");
+			}, false);
+
+			canvas.addEventListener(
+				"webglcontextrestored", function () {
+					console.log("HTMLCanvas: webglcontextrestored");
+					init_webgl_buffers(index);
+				}, false);
+		}
 
 		if (webgl2) {
-			var ctx = c.getContext("webgl2");
+			var ctx = canvas.getContext("webgl2");
 			imageContainer[index - 1].gl = ctx;
 			console.log("init_webgl is using the WebGL2 context.");
 
@@ -825,7 +841,7 @@ function init_webgl_buffers(index) {
 			// call the common WebGL renderer
 			webgl_renderer(index, ctx, width, height);
 		} else if (webgl1) {
-			var ctx = c.getContext("webgl");
+			var ctx = canvas.getContext("webgl");
 			imageContainer[index - 1].gl = ctx;
 			console.log("init_webgl is using the WebGL1 context.");
 
@@ -5787,10 +5803,10 @@ function display_preferences(index) {
 		.attr("stroke", "none")
 		.attr("opacity", 0.0)
 		//.html("&#x1f493;");// heartbeat		
-		//.html("&#9775;");// yin-yang
-		//.html("&#x1F517;");// link		
-		//.html("&#10003;");// a check mark
-		.html("&#x2714;");// a heavy check mark
+		.html("&#9775;");// yin-yang
+	//.html("&#x1F517;");// link		
+	//.html("&#10003;");// a check mark
+	//.html("&#x2714;");// a heavy check mark
 	//.html("&#x1F197;");// OK
 	//.html("&#x1f44c;");// OK hand sign
 
@@ -6161,7 +6177,7 @@ function display_histogram(index) {
 			.style("padding-left", "0");
 	}
 
-	var colourmap_string = "<option>red</option><option>green</option><option>blue</option><option>greyscale</option><option>negative</option><option disabled>---</option><option>cubehelix</option><option>haxby</option><option>hot</option><option>jet</option><option>parula</option><option>rainbow</option><option disabled>---</option><option>inferno</option><option>magma</option><option>plasma</option><option>viridis</option>";
+	var colourmap_string = "<option>red</option><option>green</option><option>blue</option><option>greyscale</option><option>negative</option><option disabled>---</option><option>cubehelix</option><option>haxby</option><option>hot</option><option>parula</option><option>rainbow</option><option disabled>---</option><option>inferno</option><option>magma</option><option>plasma</option><option>viridis</option>";
 
 	tmpA = imageDropdown.append("li")
 		//.style("background-color", "#FFF")
