@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-13.0"
+#define VERSION_STRING "SV2020-04-16.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -1534,7 +1534,12 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   html.append("data-root-path='/" + std::string("fitswebql") +
               "/' data-server-version='" + VERSION_STRING +
               "' data-server-string='" + SERVER_STRING +
-              "' data-server-mode='" + "SERVER" + "' data-has-fits='" +
+#ifdef LOCAL
+              "' data-server-mode='" + "LOCAL" + 
+#else
+              "' data-server-mode='" + "SERVER" + 
+#endif
+              "' data-has-fits='" +
               std::to_string(has_fits) + "'></div>\n");
 
   html.append("<script>var WS_SOCKET = 'wss://'; WS_PORT = " +

@@ -9659,7 +9659,7 @@ function fetch_image(datasetId, index, add_timestamp) {
 						var pixels = image.plane("Y");
 						var alpha = image.plane("A");
 
-						image.delete();						
+						image.delete();
 
 						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
 
@@ -11356,10 +11356,13 @@ function show_welcome() {
 		.attr("class", "list-group-item list-group-item-success")
 		.html('<h4>Server-side code changed from Rust to C/C++ for extra performance</h4>');
 
-	let textColour = 'yellow';
+	ul.append("li")
+		.attr("class", "list-group-item list-group-item-success")
+		.html('<h4>32-bit floating-point High Dynamic Range images compressed with <a href="https://en.wikipedia.org/wiki/OpenEXR"><em>OpenEXR</em></a></h4>');
 
-	if (theme == 'bright')
-		textColour = 'red';
+	ul.append("li")
+		.attr("class", "list-group-item list-group-item-success")
+		.html('<h4>HDR image rendering with WebGL</h4>');
 
 	if (!isLocal) {
 		ul.append("li")
@@ -11369,6 +11372,11 @@ function show_welcome() {
 
 	bodyDiv.append("h3")
 		.text("Browser recommendation");
+
+	let textColour = 'yellow';
+
+	if (theme == 'bright')
+		textColour = 'red';
 
 	if (!wasm_supported) {
 		bodyDiv.append("p")
@@ -11462,6 +11470,23 @@ function setup_help() {
 
 	bodyDiv.append("hr");
 
+	bodyDiv.append("h3")
+		.attr("id", "h3")
+		.text("OpenEXR Image Quality");
+
+	bodyDiv.append("p")
+		.html("The image quality can be adjusted via <i>Preferences/image quality</i>");
+
+	bodyDiv.append("p")
+		.html("<b>high</b>: image sizes 300KB〜500KB, <em>DWAB_COMPRESSION = 45</em>");
+
+	bodyDiv.append("p")
+		.html("<b>medium</b>: image sizes around 200KB, <em>DWAB_COMPRESSION = 1000</em>");
+
+	bodyDiv.append("p")
+		.html("<b>low</b>: around 25KB-large images with visible artifacts, <em>DWAB_COMPRESSION = 10000</em>");
+
+	bodyDiv.append("hr");
 
 	bodyDiv.append("h3")
 		.attr("id", "h3")
