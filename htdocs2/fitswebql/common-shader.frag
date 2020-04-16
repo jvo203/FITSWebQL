@@ -814,9 +814,9 @@ vec4 colormap_cubehelix(float x, float alpha) {
     float sinangle = sin(angle);
     result.r = -0.14861 * cosangle + 1.78277 * sinangle;
     result.g = -0.29227 * cosangle + -0.90649 * sinangle;
-    result.b = 1.97294 * cosangle;
-    result.a = alpha;
+    result.b = 1.97294 * cosangle;    
     result = clamp(xclamp + amp * result, 0.0, 1.0);
+    result.a = alpha;
     return result;
 }
 
