@@ -1810,18 +1810,46 @@ function poll_heartbeat() {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
 
-			try {
+			/*try {
 				d3.select("#heartbeat")
 					.attr("fill", "grey")
 					.attr("opacity", 1.0)
 					.transition()
 					.duration(1000)
 					.attr("opacity", 0.1);
-			} catch (e) { }
-		}
+			} catch (e) { }*/
 
-		if (xmlhttp.readyState == 4) {
-			setTimeout(poll_heartbeat, 2000 + RRT);
+			d3.select("#heartbeat")
+				.attr("fill", "grey")
+				.attr("opacity", 1.0)
+				//.html("&#x1f493;");// heartbeat
+				.html("&#9775;");// yin-yang
+			//.html("&#x1f44c;");// OK hand sign
+
+			setTimeout(function () {
+				d3.select("#heartbeat")
+					.attr("fill", "grey")
+					.attr("opacity", 1.0)
+					.html("&#x1F197;");// OK
+
+				setTimeout(function () {
+					d3.select("#heartbeat")
+						.attr("opacity", 0.0);
+
+					setTimeout(poll_heartbeat, 1000 + RRT);
+				}, 500);
+			}, 500);
+
+		};
+
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 404) {
+			// display an error
+			d3.select("#heartbeat")
+				.attr("fill", "red")
+				.attr("opacity", 1.0)
+				.html("&#9747;");// Saltire (Saint Andrew's Cross)
+
+			setTimeout(poll_heartbeat, 10000 + RRT);
 		}
 	}
 
