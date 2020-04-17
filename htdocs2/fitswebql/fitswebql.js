@@ -802,7 +802,7 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	return program;
 };
 
-function init_webgl_buffers(index) {
+function init_webgl_image_buffers(index) {
 	//place the image onto the main canvas
 	var canvas = document.getElementById('HTMLCanvas');
 	var width = canvas.width;
@@ -821,7 +821,7 @@ function init_webgl_buffers(index) {
 		canvas.addEventListener(
 			"webglcontextrestored", function () {
 				console.log("HTMLCanvas: webglcontextrestored");
-				init_webgl_buffers(index);
+				init_webgl_image_buffers(index);
 			}, false);
 	}
 
@@ -837,7 +837,7 @@ function init_webgl_buffers(index) {
 		ctx.getExtension('EXT_color_buffer_float');
 
 		// call the common WebGL renderer
-		webgl_renderer(index, ctx, width, height);
+		webgl_image_renderer(index, ctx, width, height);
 	} else if (webgl1) {
 		var ctx = canvas.getContext("webgl");
 		imageContainer[index - 1].gl = ctx;
@@ -848,14 +848,14 @@ function init_webgl_buffers(index) {
 		ctx.getExtension('OES_texture_float_linear');
 
 		// call the common WebGL renderer
-		webgl_renderer(index, ctx, width, height);
+		webgl_image_renderer(index, ctx, width, height);
 	} else {
 		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 		return;
 	}
 }
 
-function clear_webgl_buffers(index) {
+function clear_webgl_image_buffers(index) {
 	// cancel the animation loop
 	var image = imageContainer[index - 1];
 
@@ -896,13 +896,13 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	}
 
 	if (imageContainer[index - 1] != null)
-		clear_webgl_buffers(index);
+		clear_webgl_image_buffers(index);
 
 	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
 
 	//next display the image
 	if (va_count == 1) {
-		init_webgl_buffers(index);
+		init_webgl_image_buffers(index);
 
 		has_image = true;
 		hide_hourglass();
@@ -915,7 +915,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	catch (e) { }
 }
 
-function webgl_renderer(index, gl, width, height) {
+function webgl_image_renderer(index, gl, width, height) {
 	var image = imageContainer[index - 1];
 
 	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
@@ -4757,7 +4757,7 @@ function change_tone_mapping(index, recursive) {
 	// set a new tone mapping function 
 	if (imageContainer[index - 1] != null && fitsContainer[index - 1] != null) {
 		var image = imageContainer[index - 1];
-		var fitsData = fitsContainer[index - 1];		
+		var fitsData = fitsContainer[index - 1];
 
 		// copy/reset the settings
 		image.tone_mapping.flux = document.getElementById('flux' + index).value;
@@ -4774,11 +4774,11 @@ function change_tone_mapping(index, recursive) {
 		image.tone_mapping.sensitivity = fitsData.sensitivity;
 		image.tone_mapping.ratio_sensitivity = fitsData.ratio_sensitivity;
 
-		clear_webgl_buffers(index);
+		clear_webgl_image_buffers(index);
 	}
 
 	// refresh an image
-	init_webgl_buffers(index);
+	init_webgl_image_buffers(index);
 
 	//change other datasets too
 	if (va_count > 1 && recursive) {
@@ -5051,9 +5051,9 @@ function change_colourmap(index, recursive) {
 	localStorage.setItem("colourmap", colourmap);
 
 	if (imageContainer[index - 1] != null)
-		clear_webgl_buffers(index);
+		clear_webgl_image_buffers(index);
 
-	init_webgl_buffers(index);
+	init_webgl_image_buffers(index);
 
 	if (va_count == 1) {
 		//display_legend();
