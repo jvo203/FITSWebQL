@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-17.0";
+	return "JS2020-04-17.1";
 }
 
 const wasm_supported = (() => {
@@ -909,6 +909,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		display_legend();
 
 		has_image = true;
+
 		hide_hourglass();
 	}
 
@@ -1826,15 +1827,24 @@ function poll_heartbeat() {
 			d3.select("#heartbeat")
 				.attr("fill", "grey")
 				.attr("opacity", 1.0)
-				.html("&#x1F197;");// OK				
+				.attr('class', 'glyphicon')
+				//.text('\ue143');// an empty heart
+				.text('\ue005');// a full heart
 
 			setTimeout(function () {
 				d3.select("#heartbeat")
-					.attr("opacity", 0.0);
+					.attr("fill", "grey")
+					.attr("opacity", 1.0)
+					.attr('class', 'glyphicon')
+					.text('\ue144');// link
 
-				setTimeout(poll_heartbeat, 1500 + RRT);
+				setTimeout(function () {
+					d3.select("#heartbeat")
+						.attr("opacity", 0.0);
+
+					setTimeout(poll_heartbeat, 1000 + RRT);
+				}, 500);
 			}, 500);
-
 		};
 
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 0) {
@@ -5842,13 +5852,7 @@ function display_preferences(index) {
 		.attr("fill", "grey")
 		.attr("stroke", "none")
 		.attr("opacity", 0.0)
-		//.html("&#x1f493;");// heartbeat		
-		.html("&#9775;");// yin-yang
-	//.html("&#x1F517;");// link		
-	//.html("&#10003;");// a check mark
-	//.html("&#x2714;");// a heavy check mark
-	//.html("&#x1F197;");// OK
-	//.html("&#x1f44c;");// OK hand sign
+		.text("");
 
 	let fillColour = 'yellow';
 
