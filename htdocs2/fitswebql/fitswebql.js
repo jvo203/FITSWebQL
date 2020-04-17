@@ -1828,8 +1828,8 @@ function poll_heartbeat() {
 				d3.select("#heartbeat")
 					.attr("opacity", 0.0);
 
-				setTimeout(poll_heartbeat, 1000 + RRT);
-			}, 1000);
+				setTimeout(poll_heartbeat, 1500 + RRT);
+			}, 500);
 
 		};
 
