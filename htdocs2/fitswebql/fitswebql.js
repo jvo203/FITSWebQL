@@ -1822,23 +1822,14 @@ function poll_heartbeat() {
 			d3.select("#heartbeat")
 				.attr("fill", "grey")
 				.attr("opacity", 1.0)
-				//.html("&#x1f493;");// heartbeat
-				.html("&#9775;");// yin-yang
-			//.html("&#x1f44c;");// OK hand sign
+				.html("&#x1F197;");// OK				
 
 			setTimeout(function () {
 				d3.select("#heartbeat")
-					.attr("fill", "grey")
-					.attr("opacity", 1.0)
-					.html("&#x1F197;");// OK
+					.attr("opacity", 0.0);
 
-				setTimeout(function () {
-					d3.select("#heartbeat")
-						.attr("opacity", 0.0);
-
-					setTimeout(poll_heartbeat, 1000 + RRT);
-				}, 500);
-			}, 500);
+				setTimeout(poll_heartbeat, 1000 + RRT);
+			}, 1000);
 
 		};
 
