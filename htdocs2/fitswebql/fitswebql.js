@@ -904,6 +904,10 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 	if (va_count == 1) {
 		init_webgl_image_buffers(index);
 
+		setup_image_selection();
+
+		display_legend();
+
 		has_image = true;
 		hide_hourglass();
 	}
@@ -1833,12 +1837,12 @@ function poll_heartbeat() {
 
 		};
 
-		if (xmlhttp.readyState == 4 && xmlhttp.status == 404) {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 0) {
 			// display an error
 			d3.select("#heartbeat")
 				.attr("fill", "red")
 				.attr("opacity", 1.0)
-				.html("&#9747;");// Saltire (Saint Andrew's Cross)
+				.html("&#x274c;");// Cross Mark
 
 			setTimeout(poll_heartbeat, 10000 + RRT);
 		}
@@ -9121,12 +9125,12 @@ function setup_image_selection() {
 			//updateKalman() ;
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-			var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+			//var imageCanvas = imageContainer[va_count - 1].imageCanvas;
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
-			var orig_x = x * fitsData.width / imageCanvas.width;
-			var orig_y = y * fitsData.height / imageCanvas.height;
+			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
+			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
 
 			try {
 				let raText = 'RA N/A';
@@ -9198,31 +9202,23 @@ function setup_image_selection() {
 				var pixel_range = imageContainer[index - 1].pixel_range;
 				var min_pixel = pixel_range.min_pixel;
 				var max_pixel = pixel_range.max_pixel;
-				var imageFrame = imageContainer[index - 1].imageFrame;
+				var imageFrame = imageContainer[index - 1];
 
-				var alpha_coord = Math.round(y) * imageFrame.w + Math.round(x);
-				var pixel_coord = Math.round(y) * imageFrame.stride + Math.round(x);
+				var alpha_coord = Math.round(y) * imageFrame.width + Math.round(x);
+				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
 
-				var pixel = imageFrame.bytes[pixel_coord];
-				var alpha = imageContainer[index - 1].alpha[alpha_coord];
-				var pixelVal = get_pixel_flux(pixel, index);
-				var prefix = "";
-
-				if (pixel == max_pixel)
-					prefix = "≥";
-
-				if (pixel == min_pixel)
-					prefix = "≤";
+				var pixel = imageFrame.pixels[pixel_coord];
+				var alpha = imageFrame.alpha[alpha_coord];
 
 				let bunit = fitsData.BUNIT.trim();
 				if (fitsData.depth > 1 && has_velocity_info)
 					bunit += '•km/s';
 
-				if (alpha > 0 && !isNaN(pixelVal)) {
+				if (alpha > 0 && !isNaN(pixel)) {
 					//d3.select("#pixel").text(prefix + pixelVal.toPrecision(3) + " " + bunit).attr("opacity", 1.0) ;
 					if (va_count > 1)
 						pixelText += PR[index - 1 % PR.length];
-					pixelText += prefix + pixelVal.toPrecision(3) + " ";
+					pixelText += pixel.toPrecision(3) + " ";
 					displayPixel = displayPixel && true;
 				}
 				else {
