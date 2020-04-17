@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-16.1";
+	return "JS2020-04-17.0";
 }
 
 const wasm_supported = (() => {
@@ -803,61 +803,55 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 };
 
 function init_webgl_buffers(index) {
-	//next display the image
-	if (va_count == 1) {
-		//place the image onto the main canvas
-		var canvas = document.getElementById('HTMLCanvas');
-		var width = canvas.width;
-		var height = canvas.height;
-		console.log("HTMLCanvas:", canvas);
+	//place the image onto the main canvas
+	var canvas = document.getElementById('HTMLCanvas');
+	var width = canvas.width;
+	var height = canvas.height;
+	console.log("HTMLCanvas:", canvas);
 
-		if (webgl1 || webgl2) {
-			canvas.addEventListener("webglcontextlost", function (event) {
-				event.preventDefault();
+	if (webgl1 || webgl2) {
+		canvas.addEventListener("webglcontextlost", function (event) {
+			event.preventDefault();
 
-				var image = imageContainer[index - 1];
-				cancelAnimationFrame(image.loopId);
-				console.err("HTMLCanvas: webglcontextlost");
+			var image = imageContainer[index - 1];
+			cancelAnimationFrame(image.loopId);
+			console.err("HTMLCanvas: webglcontextlost");
+		}, false);
+
+		canvas.addEventListener(
+			"webglcontextrestored", function () {
+				console.log("HTMLCanvas: webglcontextrestored");
+				init_webgl_buffers(index);
 			}, false);
+	}
 
-			canvas.addEventListener(
-				"webglcontextrestored", function () {
-					console.log("HTMLCanvas: webglcontextrestored");
-					init_webgl_buffers(index);
-				}, false);
-		}
+	if (webgl2) {
+		var ctx = canvas.getContext("webgl2");
+		imageContainer[index - 1].gl = ctx;
+		console.log("init_webgl is using the WebGL2 context.");
 
-		if (webgl2) {
-			var ctx = canvas.getContext("webgl2");
-			imageContainer[index - 1].gl = ctx;
-			console.log("init_webgl is using the WebGL2 context.");
+		// enable floating-point textures filtering			
+		ctx.getExtension('OES_texture_float_linear');
 
-			// enable floating-point textures filtering			
-			ctx.getExtension('OES_texture_float_linear');
+		// needed by gl.checkFramebufferStatus
+		ctx.getExtension('EXT_color_buffer_float');
 
-			// needed by gl.checkFramebufferStatus
-			ctx.getExtension('EXT_color_buffer_float');
+		// call the common WebGL renderer
+		webgl_renderer(index, ctx, width, height);
+	} else if (webgl1) {
+		var ctx = canvas.getContext("webgl");
+		imageContainer[index - 1].gl = ctx;
+		console.log("init_webgl is using the WebGL1 context.");
 
-			// call the common WebGL renderer
-			webgl_renderer(index, ctx, width, height);
-		} else if (webgl1) {
-			var ctx = canvas.getContext("webgl");
-			imageContainer[index - 1].gl = ctx;
-			console.log("init_webgl is using the WebGL1 context.");
+		// enable floating-point textures
+		ctx.getExtension('OES_texture_float');
+		ctx.getExtension('OES_texture_float_linear');
 
-			// enable floating-point textures
-			ctx.getExtension('OES_texture_float');
-			ctx.getExtension('OES_texture_float_linear');
-
-			// call the common WebGL renderer
-			webgl_renderer(index, ctx, width, height);
-		} else {
-			console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
-			return;
-		}
-
-		has_image = true;
-		hide_hourglass();
+		// call the common WebGL renderer
+		webgl_renderer(index, ctx, width, height);
+	} else {
+		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
+		return;
 	}
 }
 
@@ -906,7 +900,13 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
 
-	init_webgl_buffers(index);
+	//next display the image
+	if (va_count == 1) {
+		init_webgl_buffers(index);
+
+		has_image = true;
+		hide_hourglass();
+	}
 
 	try {
 		var element = document.getElementById('BackHTMLCanvas');
@@ -4755,8 +4755,25 @@ function change_tone_mapping(index, recursive) {
 	setup_histogram_interaction(index);
 
 	// set a new tone mapping function 
-	if (imageContainer[index - 1] != null) {
-		imageContainer[index - 1].tone_mapping.flux = document.getElementById('flux' + index).value;
+	if (imageContainer[index - 1] != null && fitsContainer[index - 1] != null) {
+		var image = imageContainer[index - 1];
+		var fitsData = fitsContainer[index - 1];		
+
+		// copy/reset the settings
+		image.tone_mapping.flux = document.getElementById('flux' + index).value;
+
+		let p = 0.5;
+		image.tone_mapping.lmin = Math.log(p);
+		image.tone_mapping.lmax = Math.log(p + 1.0);
+
+		image.tone_mapping.min = fitsData.min;
+		image.tone_mapping.max = fitsData.max;
+		image.tone_mapping.black = fitsData.black;
+		image.tone_mapping.white = fitsData.white;
+		image.tone_mapping.median = fitsData.median;
+		image.tone_mapping.sensitivity = fitsData.sensitivity;
+		image.tone_mapping.ratio_sensitivity = fitsData.ratio_sensitivity;
+
 		clear_webgl_buffers(index);
 	}
 
@@ -6213,7 +6230,7 @@ function display_histogram(index) {
 	tmpA.append("select")
 		//.attr("class", "form-control")
 		.attr("id", "flux" + index)
-		.attr("onchange", "javascript:image_count=0;display_hourglass();change_tone_mapping(" + index + ",true);")
+		.attr("onchange", "javascript:image_count=0;change_tone_mapping(" + index + ",true);")
 		.html("<option value='linear'>linear</option><option value='legacy'>logarithmic</option><option value='logistic'>logistic</option><option value='ratio'>ratio</option><option value='square'>square</option>");//<option value='log'>log</option>
 
 	document.getElementById('flux' + index).value = fitsData.flux;
