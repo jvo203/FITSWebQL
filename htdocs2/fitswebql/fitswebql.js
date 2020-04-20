@@ -12306,7 +12306,7 @@ function display_legend() {
 	group.append("g")
 		.attr("class", "colouraxis")
 		.attr("id", "legendaxis")
-		.style("stroke-width", emStrokeWidth/2)
+		.style("stroke-width", emStrokeWidth / 2)
 		.attr("transform", "translate(" + ((width - img_width) / 2 - 1.5 * rectWidth) + "," + 0.1 * height + ")")
 		.call(colourAxis);
 
@@ -12403,7 +12403,7 @@ function init_webgl_legend_buffers(index) {
 	}
 }
 
-function clear_webgl_legend_buffers(index) {	
+function clear_webgl_legend_buffers(index) {
 	var image = imageContainer[index - 1];
 
 	var gl = image.legend_gl;
@@ -12453,6 +12453,7 @@ function webgl_legend_renderer(index, gl, width, height) {
 		var pos = fragmentShaderCode.indexOf("void main()");
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
 
+		// remove the alpha blending multiplier
 		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/, "");
 	}
 
