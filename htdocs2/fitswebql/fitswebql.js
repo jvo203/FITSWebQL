@@ -906,9 +906,11 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 		setup_image_selection();
 
-		display_legend();
-
 		has_image = true;
+
+		//setup_viewports();
+
+		display_legend();
 
 		hide_hourglass();
 	}
@@ -12236,6 +12238,22 @@ function display_legend() {
 		.attr("id", "legend")
 		.attr("opacity", 1.0);
 
+	// append a WebGL legend div
+	group.append("foreignObject")
+		.attr("id", "legendObject")
+		.attr("x", x)
+		.attr("y", 0.1 * height)
+		.attr("width", rectWidth)
+		.attr("height", legendHeight)
+		.append("xhtml:div")
+		.attr("id", "legendDiv")
+		.append("canvas")
+		.attr("id", "legendCanvas")
+		.attr("width", rectWidth)
+		.attr("height", legendHeight);
+
+	init_webgl_legend_buffers(1);
+
 	let strokeColour = 'white';
 
 	if (theme == 'bright')
@@ -12331,6 +12349,59 @@ function display_legend() {
 				elem.attr("opacity", 0);
 		}
 	}
+}
+
+function init_webgl_legend_buffers(index) {
+	//place the image onto the main canvas
+	var canvas = document.getElementById('legendCanvas');
+	var width = canvas.width;
+	var height = canvas.height;
+	console.log("legendCanvas:", canvas);
+
+	if (webgl1 || webgl2) {
+		canvas.addEventListener("webglcontextlost", function (event) {
+			event.preventDefault();
+			console.err("legendCanvas: webglcontextlost");
+		}, false);
+
+		canvas.addEventListener(
+			"webglcontextrestored", function () {
+				console.log("legendCanvas: webglcontextrestored");
+				init_webgl_legend_buffers(index);
+			}, false);
+	}
+
+	if (webgl2) {
+		var ctx = canvas.getContext("webgl2");
+		console.log("init_webgl is using the WebGL2 context.");
+
+		// enable floating-point textures filtering			
+		ctx.getExtension('OES_texture_float_linear');
+
+		// needed by gl.checkFramebufferStatus
+		ctx.getExtension('EXT_color_buffer_float');
+
+		// call the common WebGL renderer
+		webgl_legend_renderer(index, ctx, width, height);
+	} else if (webgl1) {
+		var ctx = canvas.getContext("webgl");
+		console.log("init_webgl is using the WebGL1 context.");
+
+		// enable floating-point textures
+		ctx.getExtension('OES_texture_float');
+		ctx.getExtension('OES_texture_float_linear');
+
+		// call the common WebGL renderer
+		webgl_legend_renderer(index, ctx, width, height);
+	} else {
+		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
+		return;
+	}
+}
+
+function webgl_legend_renderer(index, gl, width, height) {
+	var image = imageContainer[index - 1];
+
 }
 
 function get_slope_from_multiplier(value) {
