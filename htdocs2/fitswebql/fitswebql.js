@@ -12454,7 +12454,7 @@ function webgl_legend_renderer(index, gl, width, height) {
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
 
 		// remove the alpha blending multiplier
-		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/, "");
+		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/g, "");
 	}
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
