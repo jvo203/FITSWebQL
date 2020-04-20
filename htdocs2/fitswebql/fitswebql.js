@@ -12427,6 +12427,9 @@ function webgl_legend_renderer(index, gl, width, height) {
 	var fragmentShaderCode = document.getElementById("legend-common-shader").text;
 	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
 
+	// remove the alpha blending multiplier
+	fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/g, "");
+
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
 	if (webgl2) {
 		var prefix = "#version 300 es\n";
@@ -12452,9 +12455,6 @@ function webgl_legend_renderer(index, gl, width, height) {
 		// add the definition of texColour
 		var pos = fragmentShaderCode.indexOf("void main()");
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
-
-		// remove the alpha blending multiplier
-		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/g, "");
 	}
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
