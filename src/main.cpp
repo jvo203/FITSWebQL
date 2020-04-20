@@ -1422,9 +1422,17 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
   include_file(html, docs_root + "/fitswebql/vertex-shader.vert");
   html.append("</script>\n");
 
+  html.append("<script id=\"legend-vertex-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legend-vertex-shader.vert");
+  html.append("</script>\n");
+
   //GLSL fragment shaders
   html.append("<script id=\"common-shader\" type=\"x-shader/x-vertex\">\n");
   include_file(html, docs_root + "/fitswebql/common-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"legend-common-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legend-common-shader.frag");
   html.append("</script>\n");
 
   // tone mappings
