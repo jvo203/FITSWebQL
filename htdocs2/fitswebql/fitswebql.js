@@ -12402,6 +12402,10 @@ function init_webgl_legend_buffers(index) {
 function webgl_legend_renderer(index, gl, width, height) {
 	var image = imageContainer[index - 1];
 
+	// setup GLSL program
+	var vertexShaderCode = document.getElementById("legend-vertex-shader").text;
+	var fragmentShaderCode = document.getElementById("legend-common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text;
+
 }
 
 function get_slope_from_multiplier(value) {
