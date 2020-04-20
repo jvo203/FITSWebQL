@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-17.1";
+	return "JS2020-04-20.0";
 }
 
 const wasm_supported = (() => {
@@ -1827,7 +1827,6 @@ function poll_heartbeat() {
 			d3.select("#heartbeat")
 				.attr("fill", "grey")
 				.attr("opacity", 1.0)
-				.attr('class', 'glyphicon')
 				//.text('\ue143');// an empty heart
 				.text('\ue005');// a full heart
 
@@ -1835,7 +1834,6 @@ function poll_heartbeat() {
 				d3.select("#heartbeat")
 					.attr("fill", "grey")
 					.attr("opacity", 1.0)
-					.attr('class', 'glyphicon')
 					.text('\ue144');// link
 
 				setTimeout(function () {
@@ -5842,6 +5840,7 @@ function display_preferences(index) {
 
 	group.append("text")
 		.attr("id", "heartbeat")
+		.attr('class', 'glyphicon')
 		.attr("x", emFontSize / 4)
 		//.attr("y", offset)//"0.75em")
 		.attr("y", (svgHeight - offset / 4))
@@ -12228,8 +12227,8 @@ function display_legend() {
 	var min_pixel = pixel_range.min_pixel;
 	var max_pixel = pixel_range.max_pixel;
 
-	for (var i = 0; i < divisions; i++)
-		newData.push(min_pixel + (max_pixel - min_pixel) * i / (divisions - 1));
+	/*for (var i = 0; i < divisions; i++)
+		newData.push(min_pixel + (max_pixel - min_pixel) * i / (divisions - 1));*/
 
 	var x = Math.max(0.05 * width, (width - img_width) / 2 - 1.5 * rectWidth);
 
@@ -12242,7 +12241,7 @@ function display_legend() {
 	if (theme == 'bright')
 		strokeColour = 'black';
 
-	group.selectAll('rect')
+	/*group.selectAll('rect')
 		.data(newData)
 		.enter()
 		.append('rect')
@@ -12253,7 +12252,7 @@ function display_legend() {
 		//.attr("stroke", strokeColour)
 		//.attr("stroke-width", 0.1)
 		.attr("stroke", "none")
-		.attr('fill', function (d, i) { return interpolate_colourmap(d, colourmap, 1.0); });
+		.attr('fill', function (d, i) { return interpolate_colourmap(d, colourmap, 1.0); });*/
 
 	var colourScale = d3.scaleLinear()
 		.range([0.8 * height, 0])
