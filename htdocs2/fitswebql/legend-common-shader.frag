@@ -1,9 +1,6 @@
 precision mediump float;
 
 varying vec2 v_texcoord;
-uniform sampler2D u_texture;
-
-uniform vec4 params;
 
 //IDL green, red, purple
       
@@ -1271,6 +1268,7 @@ vec4 colormap_haxby(float x, float alpha) {
     return vec4(0,0,0,0);
 }
 
-void main() {    
-    vec4 colour = texture2D(u_texture, v_texcoord);// the raw floating-point colour     
-    float x = colour.r;     
+void main() {
+    float alpha = v_texcoord.x; // linear alpha blending at first         
+    float pixel = v_texcoord.y;
+    vec4 colour = texture2D(0, 0, 0, alpha);    
