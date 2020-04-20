@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-16.0"
+#define VERSION_STRING "SV2020-04-20.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -755,7 +755,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
   res->end(stream_generator(queue));
 
   // launch a separate image thread
-  std::thread([queue, fits, _width, _height, quality]() {    
+  std::thread([queue, fits, _width, _height, quality]() {
     float compression_level = quality; //100.0f; // default is 45.0f
 
     // calculate a new image size
@@ -771,17 +771,17 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
              fits->width, fits->height, img_width, img_height);
-      
+
       size_t plane_size = size_t(img_width) * size_t(img_height);
 
       // allocate {pixel_buf, mask_buf}
       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          ippsFree);
-      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);                                         
-      std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size), ippsFree);      
+      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+      std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size), ippsFree);
 
       if (pixels_buf.get() != NULL && mask_buf.get() != NULL && mask_buf_32f.get() != NULL)
-      {        
+      {
         // downsize float32 pixels and a mask
         IppiSize srcSize;
         srcSize.width = fits->width;
@@ -799,7 +799,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
         IppStatus mask_stat =
             tileResize8u_C1R(fits->img_mask, srcSize, srcStep,
-                              mask_buf.get(), dstSize, dstStep);                              
+                             mask_buf.get(), dstSize, dstStep);
 
         printf(" %d : %s, %d : %s\n", pixels_stat, ippGetStatusString(mask_stat), pixels_stat, ippGetStatusString(mask_stat));
 
@@ -946,13 +946,13 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
                           img_height);*/
 
         // the mask should be filled-in manually based on NaN pixels
-        Ipp32f *pixels = fits->img_pixels;//pixels_buf.get();
-        Ipp8u* _mask = fits->img_mask;
+        Ipp32f *pixels = fits->img_pixels; //pixels_buf.get();
+        Ipp8u *_mask = fits->img_mask;
         Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
         for (size_t i = 0; i < plane_size; i++)
-          mask[i] = (_mask[i] == 255) ? 1.0f : 0.0f;//std::isnan(pixels[i]) ? 0.0f : 1.0f;
+          mask[i] = (_mask[i] == 255) ? 1.0f : 0.0f; //std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
         // export the luma+mask to OpenEXR
         std::string filename =
@@ -1535,9 +1535,9 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
               "/' data-server-version='" + VERSION_STRING +
               "' data-server-string='" + SERVER_STRING +
 #ifdef LOCAL
-              "' data-server-mode='" + "LOCAL" + 
+              "' data-server-mode='" + "LOCAL" +
 #else
-              "' data-server-mode='" + "SERVER" + 
+              "' data-server-mode='" + "SERVER" +
 #endif
               "' data-has-fits='" +
               std::to_string(has_fits) + "'></div>\n");
