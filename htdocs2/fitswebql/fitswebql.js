@@ -5083,13 +5083,15 @@ function change_colourmap(index, recursive) {
 	colourmap = document.getElementById('colourmap' + index).value;
 	localStorage.setItem("colourmap", colourmap);
 
-	if (imageContainer[index - 1] != null)
+	if (imageContainer[index - 1] != null) {
 		clear_webgl_image_buffers(index);
+		clear_webgl_legend_buffers(index);
+	}
 
 	init_webgl_image_buffers(index);
 
 	if (va_count == 1) {
-		//display_legend();
+		display_legend();
 	}
 	else
 		if (!composite_view) {
@@ -12304,7 +12306,7 @@ function display_legend() {
 	group.append("g")
 		.attr("class", "colouraxis")
 		.attr("id", "legendaxis")
-		.style("stroke-width", emStrokeWidth)
+		.style("stroke-width", emStrokeWidth/2)
 		.attr("transform", "translate(" + ((width - img_width) / 2 - 1.5 * rectWidth) + "," + 0.1 * height + ")")
 		.call(colourAxis);
 
@@ -12373,6 +12375,7 @@ function init_webgl_legend_buffers(index) {
 
 	if (webgl2) {
 		var ctx = canvas.getContext("webgl2");
+		imageContainer[index - 1].legend_gl = ctx;
 		console.log("init_webgl is using the WebGL2 context.");
 
 		// enable floating-point textures filtering			
@@ -12385,6 +12388,7 @@ function init_webgl_legend_buffers(index) {
 		webgl_legend_renderer(index, ctx, width, height);
 	} else if (webgl1) {
 		var ctx = canvas.getContext("webgl");
+		imageContainer[index - 1].legend_gl = ctx;
 		console.log("init_webgl is using the WebGL1 context.");
 
 		// enable floating-point textures
@@ -12399,13 +12403,99 @@ function init_webgl_legend_buffers(index) {
 	}
 }
 
+function clear_webgl_legend_buffers(index) {	
+	var image = imageContainer[index - 1];
+
+	var gl = image.legend_gl;
+
+	// position buffer
+	gl.deleteBuffer(image.legend_positionBuffer);
+
+	// program
+	gl.deleteShader(image.legend_program.vShader);
+	gl.deleteShader(image.legend_program.fShader);
+	gl.deleteProgram(image.legend_program);
+
+	image.legend_gl = null;
+}
+
 function webgl_legend_renderer(index, gl, width, height) {
 	var image = imageContainer[index - 1];
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("legend-vertex-shader").text;
-	var fragmentShaderCode = document.getElementById("legend-common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text;
+	var fragmentShaderCode = document.getElementById("legend-common-shader").text;
+	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
 
+	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
+	if (webgl2) {
+		var prefix = "#version 300 es\n";
+		vertexShaderCode = prefix + vertexShaderCode;
+		fragmentShaderCode = prefix + fragmentShaderCode;
+
+		// attribute -> in
+		vertexShaderCode = vertexShaderCode.replace(/attribute/g, "in");
+		fragmentShaderCode = fragmentShaderCode.replace(/attribute/g, "in");
+
+		// varying -> out
+		vertexShaderCode = vertexShaderCode.replace(/varying/g, "out");
+
+		// varying -> in
+		fragmentShaderCode = fragmentShaderCode.replace(/varying/g, "in");
+
+		// texture2D -> texture
+		fragmentShaderCode = fragmentShaderCode.replace(/texture2D/g, "texture");
+
+		// replace gl_FragColor with a custom variable, i.e. texColour
+		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor/g, "texColour");
+
+		// add the definition of texColour
+		var pos = fragmentShaderCode.indexOf("void main()");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
+	}
+
+	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
+	image.legend_program = program;
+
+	// look up where the vertex data needs to go.
+	var positionLocation = gl.getAttribLocation(program, "a_position");
+
+	// Create a position buffer
+	var positionBuffer = gl.createBuffer();
+	image.legend_positionBuffer = positionBuffer;
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	// Put a unit quad in the buffer
+	var positions = [
+		-1, -1,
+		-1, 1,
+		1, -1,
+		1, -1,
+		-1, 1,
+		1, 1,
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+	// no need for an animation loop, just handle the lost context
+	//WebGL how to convert from clip space to pixels	
+	gl.viewport(0, 0, width, height);
+
+	// Clear the canvas
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	// drawRegion (execute the GLSL program)
+	// Tell WebGL to use our shader program pair
+	gl.useProgram(program);
+
+	// Setup the attributes to pull data from our buffers
+	gl.enableVertexAttribArray(positionLocation);
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+	// execute the GLSL program
+	// draw the quad (2 triangles, 6 vertices)
+	gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
 function get_slope_from_multiplier(value) {
