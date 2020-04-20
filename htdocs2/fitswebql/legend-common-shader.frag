@@ -1271,6 +1271,6 @@ vec4 colormap_haxby(float x, float alpha) {
 void main() {
     //float alpha = v_texcoord.x; // linear alpha blending at first
     //float alpha = smoothstep(0.0, 1.0, v_texcoord.x); // smooth gradient
-    float alpha = 1.0 / (1.0 + exp(-7.5 * (v_texcoord.x-0.5))); // linear alpha blending at first  
+    float alpha = 1.0 / (1.0 + exp(-10.0 * (v_texcoord.x-0.5))); // linear alpha blending at first  
     float pixel = v_texcoord.y;
     vec4 colour = vec4(0, 0, 0, alpha);

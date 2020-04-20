@@ -12452,6 +12452,8 @@ function webgl_legend_renderer(index, gl, width, height) {
 		// add the definition of texColour
 		var pos = fragmentShaderCode.indexOf("void main()");
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
+
+		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor.rgb *= gl_FragColor.a;/, "");
 	}
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
