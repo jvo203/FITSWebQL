@@ -12228,15 +12228,11 @@ function display_legend() {
 	var divisions = 64;//100
 	var legendHeight = 0.8 * height;
 	var rectHeight = legendHeight / divisions;
-	var rectWidth = 5 * rectHeight;//0.05*width;
-	var newData = [];
+	var rectWidth = 5 * rectHeight;//0.05*width;	
 
 	var pixel_range = imageContainer[va_count - 1].pixel_range;
 	var min_pixel = pixel_range.min_pixel;
 	var max_pixel = pixel_range.max_pixel;
-
-	/*for (var i = 0; i < divisions; i++)
-		newData.push(min_pixel + (max_pixel - min_pixel) * i / (divisions - 1));*/
 
 	var x = Math.max(0.05 * width, (width - img_width) / 2 - 1.5 * rectWidth);
 
@@ -12264,19 +12260,6 @@ function display_legend() {
 
 	if (theme == 'bright')
 		strokeColour = 'black';
-
-	/*group.selectAll('rect')
-		.data(newData)
-		.enter()
-		.append('rect')
-		.attr("x", x)
-		.attr("y", function (d, i) { return (0.9 * height - (i + 1) * rectHeight); })
-		.attr("height", (rectHeight + 1))
-		.attr("width", rectWidth)
-		//.attr("stroke", strokeColour)
-		//.attr("stroke-width", 0.1)
-		.attr("stroke", "none")
-		.attr('fill', function (d, i) { return interpolate_colourmap(d, colourmap, 1.0); });*/
 
 	var colourScale = d3.scaleLinear()
 		.range([0.8 * height, 0])

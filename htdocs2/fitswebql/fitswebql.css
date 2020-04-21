@@ -332,10 +332,9 @@ opacity: 0.75;
 }
 
 .colouraxis text {
-    font: 1.0em Inconsolata;/*was 1.25*/
-    stroke: black;
-    fill: currentColor;
-    stroke-width: 0.25;
+    font: 1.0em Inconsolata;/*was 1.25*/    
+    stroke: none;
+    fill: currentColor;    
     font-weight: bold;
 }
 
