@@ -5421,7 +5421,7 @@ function get_pixel_flux(pixel, index) {
 
 	multiplier = get_noise_sensitivity(noise_sensitivity);
 
-	return get_flux(pixel / 255, flux, black, white, median, multiplier, index);
+	return get_flux(pixel, flux, black, white, median, multiplier, index);
 }
 
 function get_flux_value_legacy(value, black, white, multiplier) {
@@ -12228,11 +12228,7 @@ function display_legend() {
 	var divisions = 64;//100
 	var legendHeight = 0.8 * height;
 	var rectHeight = legendHeight / divisions;
-	var rectWidth = 5 * rectHeight;//0.05*width;	
-
-	var pixel_range = imageContainer[va_count - 1].pixel_range;
-	var min_pixel = pixel_range.min_pixel;
-	var max_pixel = pixel_range.max_pixel;
+	var rectWidth = 5 * rectHeight;//0.05*width;
 
 	var x = Math.max(0.05 * width, (width - img_width) / 2 - 1.5 * rectWidth);
 
@@ -12277,8 +12273,7 @@ function display_legend() {
 			if (d == 1)
 				prefix = "≥";
 
-			var pixel = min_pixel + d * (max_pixel - min_pixel);
-			var pixelVal = get_pixel_flux(pixel, va_count);
+			var pixelVal = get_pixel_flux(d, va_count);
 
 			var number;
 
