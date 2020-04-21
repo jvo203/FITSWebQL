@@ -4,7 +4,7 @@
      float pixel = (x - black) * sensitivity;
 
      if (pixel > 0.0)
-          pixel = clamp(pixel * pixel, 0.0, 1.0);
+          pixel = pixel * pixel;
      else
           pixel = 0.0;
 

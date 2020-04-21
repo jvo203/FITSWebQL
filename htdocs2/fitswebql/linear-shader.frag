@@ -2,6 +2,6 @@
      float white = params.w;
      
      float slope = 1.0 / (white - black);
-     float pixel = clamp((x - black) * slope, 0.0, 1.0);
+     float pixel = (x - black) * slope;
 
      // to be glued together with a separate colourmap shader
