@@ -5301,6 +5301,8 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 			image.tone_mapping.black = black;
 			image.tone_mapping.sensitivity = 1 / (white - black);
 		}
+
+		update_legend();
 	}
 
 	var group = g.data(d).append("g")
@@ -10593,6 +10595,8 @@ function change_noise_sensitivity(refresh, index) {
 		image.tone_mapping.lmax = Math.log(p + 1.0);
 	}
 
+	update_legend();
+
 	if (refresh) {
 		display_hourglass();
 
@@ -12216,6 +12220,12 @@ function display_legend() {
 	}
 
 	try {
+		clear_webgl_legend_buffers(va_count);
+	}
+	catch (e) {
+	}
+
+	try {
 		d3.select("#legend").remove();
 	}
 	catch (e) {
@@ -12225,11 +12235,8 @@ function display_legend() {
 	var width = parseFloat(svg.attr("width"));
 	var height = parseFloat(svg.attr("height"));
 
-	var divisions = 64;//100
 	var legendHeight = 0.8 * height;
-	var rectHeight = legendHeight / divisions;
-	var rectWidth = 5 * rectHeight;//0.05*width;
-
+	var rectWidth = 5 * legendHeight / 64;
 	var x = Math.max(0.05 * width, (width - img_width) / 2 - 1.5 * rectWidth);
 
 	var group = svg.append("g")
@@ -12250,16 +12257,23 @@ function display_legend() {
 		.attr("width", rectWidth)
 		.attr("height", legendHeight);
 
-	init_webgl_legend_buffers(1);
+	init_webgl_legend_buffers(va_count);
 
 	let strokeColour = 'white';
 
 	if (theme == 'bright')
 		strokeColour = 'black';
 
+	var upper_range;
+
+	if (flux == "ratio")
+		upper_range = 0.999;
+	else
+		upper_range = 1.0;
+
 	var colourScale = d3.scaleLinear()
 		.range([0.8 * height, 0])
-		.domain([0, 1]);
+		.domain([0, upper_range]);
 
 	var colourAxis = d3.axisRight(colourScale)
 		.tickSizeOuter([0])
@@ -12333,6 +12347,88 @@ function display_legend() {
 				elem.attr("opacity", 0);
 		}
 	}
+}
+
+function update_legend() {
+	try {
+		var flux = document.getElementById('flux' + va_count).value
+	}
+	catch (e) {
+		console.log('flux not available yet');
+		return;
+	};
+
+	try {
+		d3.select("#legendaxis").remove();
+	}
+	catch (e) {
+	}
+
+	var rect = d3.select("#image_rectangle");
+
+	try {
+		var img_width = parseFloat(rect.attr("width"));
+	}
+	catch (e) {
+		console.log('image_rectangle not available yet');
+		return;
+	}
+
+	var svg = d3.select("#BackgroundSVG");
+	var width = parseFloat(svg.attr("width"));
+	var height = parseFloat(svg.attr("height"));
+
+	var legendHeight = 0.8 * height;
+	var rectWidth = 5 * legendHeight / 64;
+
+	var group = d3.select("#legend");
+
+	let strokeColour = 'white';
+
+	if (theme == 'bright')
+		strokeColour = 'black';
+
+	var upper_range;
+
+	if (flux == "ratio")
+		upper_range = 0.999;
+	else
+		upper_range = 1.0;
+
+	var colourScale = d3.scaleLinear()
+		.range([0.8 * height, 0])
+		.domain([0, upper_range]);
+
+	var colourAxis = d3.axisRight(colourScale)
+		.tickSizeOuter([0])
+		.tickSizeInner([0])
+		.tickFormat(function (d) {
+			var prefix = "";
+
+			if (d == 0)
+				prefix = "≤";
+
+			if (d == 1)
+				prefix = "≥";
+
+			var pixelVal = get_pixel_flux(d, va_count);
+
+			var number;
+
+			if (Math.abs(pixelVal) <= 0.001 || Math.abs(pixelVal) >= 1000)
+				number = pixelVal.toExponential(3);
+			else
+				number = pixelVal.toPrecision(3);
+
+			return prefix + number;
+		});
+
+	group.append("g")
+		.attr("class", "colouraxis")
+		.attr("id", "legendaxis")
+		.style("stroke-width", emStrokeWidth / 2)
+		.attr("transform", "translate(" + ((width - img_width) / 2 - 1.5 * rectWidth) + "," + 0.1 * height + ")")
+		.call(colourAxis);
 }
 
 function init_webgl_legend_buffers(index) {
