@@ -895,8 +895,12 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 		offset = (offset + 1) | 0;
 	}
 
-	if (imageContainer[index - 1] != null)
+	if (imageContainer[index - 1] != null) {
 		clear_webgl_image_buffers(index);
+
+		// re-use the existing tone mapping settings if possible
+		tone_mapping = imageContainer[index - 1].tone_mapping;
+	}
 
 	imageContainer[index - 1] = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture, image_bounding_dims: image_bounding_dims, pixel_range: pixel_range, tone_mapping: tone_mapping };
 
