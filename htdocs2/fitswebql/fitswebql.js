@@ -914,8 +914,6 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 		//setup_viewports();
 
-		display_legend();
-
 		hide_hourglass();
 	}
 
@@ -1041,14 +1039,18 @@ function webgl_image_renderer(index, gl, width, height) {
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
 		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
 
+		// get the multiplier
+		var noise_sensitivity = document.getElementById('sensitivity' + index).value;
+		var multiplier = get_noise_sensitivity(noise_sensitivity);
+
 		if (image.tone_mapping.flux == "legacy") {
 			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax];
 			gl.uniform4fv(locationOfParams, params);
 		} else {
 			if (image.tone_mapping.flux == "ratio")
-				var params = [image.tone_mapping.median, image.tone_mapping.ratio_sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+				var params = [image.tone_mapping.median, multiplier * image.tone_mapping.ratio_sensitivity, image.tone_mapping.black, image.tone_mapping.white];
 			else
-				var params = [image.tone_mapping.median, image.tone_mapping.sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+				var params = [image.tone_mapping.median, multiplier * image.tone_mapping.sensitivity, image.tone_mapping.black, image.tone_mapping.white];
 
 			gl.uniform4fv(locationOfParams, params);
 		}
@@ -5191,7 +5193,7 @@ function change_colourmap(index, recursive) {
 }
 
 function add_histogram_line(g, pos, width, height, offset, info, position, addLine, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 
 	//slider size
 	var side = 0.67 * emFontSize;
@@ -5465,7 +5467,7 @@ function get_flux_value_square(value, black, white) {
 }
 
 function get_flux(value, flux, black, white, median, multiplier, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	let sensitivity = multiplier * fitsData.sensitivity;
 	let ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
 	var min = fitsData.min;
@@ -5497,7 +5499,7 @@ function get_flux(value, flux, black, white, median, multiplier, index) {
 }
 
 function get_flux_path_square(width, height, min, max, black, white, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	var lower = min + black / width * (max - min);
 	var upper = min + white / width * (max - min);
 
@@ -5528,7 +5530,7 @@ function get_flux_path_square(width, height, min, max, black, white, index) {
 }
 
 function get_flux_path_ratio(width, height, min, max, black, multiplier, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	var sensitivity = multiplier * fitsData.ratio_sensitivity;
 	var threshold = min + black / width * (max - min);
 
@@ -5553,7 +5555,7 @@ function get_flux_path_ratio(width, height, min, max, black, multiplier, index) 
 }
 
 function get_flux_path_logistic(width, height, min, max, median, multiplier, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	var sensitivity = multiplier * fitsData.sensitivity;
 	var threshold = min + median / width * (max - min);
 
@@ -5580,7 +5582,7 @@ function get_flux_path_logistic(width, height, min, max, median, multiplier, ind
 }
 
 function get_flux_path_log(width, height, min, max, black, white, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	var lower = min + black / width * (max - min);
 	var upper = min + white / width * (max - min);
 
@@ -5649,7 +5651,7 @@ function get_flux_path_linear(width, height, black, white) {
 }
 
 function get_flux_path(width, height, flux, black, white, median, multiplier, index) {
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 	var min = fitsData.min;
 	var max = fitsData.max;
 
@@ -5704,7 +5706,7 @@ function setup_histogram_interaction(index) {
 	var group = svg.append("g")
 		.attr("id", "interaction" + index);
 
-	let fitsData = fitsContainer[index - 1];
+	let fitsData = imageContainer[index - 1].tone_mapping;
 
 	console.log("min:", fitsData.min, "max:", fitsData.max, "median:", fitsData.median, "black:", fitsData.black, "white:", fitsData.white);
 
@@ -6167,14 +6169,22 @@ function display_preferences(index) {
 }
 
 function display_histogram(index) {
-	let fitsData = fitsContainer[index - 1];//va_count
+	let fitsData = fitsContainer[index - 1];
+	let imageData = imageContainer[index - 1];
 
 	if (fitsData == null) {
-		console.log("display_histogram: NULL fitsData.");
+		console.log("[display_histogram] NULL fitsData.");
 		return;
 	}
 	else
-		console.log("display_histogram: fitsData OK.");
+		console.log("[display_histogram] fitsData OK.");
+
+	if (imageData == null) {
+		console.log("[display_histogram] NULL imageData.");
+		return;
+	}
+	else
+		console.log("[display_histogram] imageData OK.");
 
 	var imageDropdown = d3.select("#imageDropdown");
 
@@ -6269,12 +6279,13 @@ function display_histogram(index) {
 		.attr("onchange", "javascript:image_count=0;change_tone_mapping(" + index + ",true);")
 		.html("<option value='linear'>linear</option><option value='legacy'>logarithmic</option><option value='logistic'>logistic</option><option value='ratio'>ratio</option><option value='square'>square</option>");//<option value='log'>log</option>
 
-	document.getElementById('flux' + index).value = fitsData.flux;
+	document.getElementById('flux' + index).value = imageData.tone_mapping.flux;
 	//document.querySelectorAll('[value="' + fitsData.flux + '"]')[0].text = fitsData.flux + ' (default)' ;
 
 	var display;
+	var tone_mapping = imageData.tone_mapping;
 
-	if (fitsData.flux == 'linear' || fitsData.flux == 'log' || fitsData.flux == 'square')
+	if (tone_mapping.flux == 'linear' || tone_mapping.flux == 'square')
 		display = "none";
 	else
 		display = "block";
@@ -9617,7 +9628,7 @@ function fetch_spectral_lines(datasetId, freq_start, freq_end) {
 	xmlhttp.send();
 };
 
-function fetch_image_spectrum(datasetId, index, add_timestamp) {
+function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 	var rect = document.getElementById('mainDiv').getBoundingClientRect();
 	var width = rect.width - 20;
 	var height = rect.height - 20;
@@ -9625,6 +9636,10 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 	var xmlhttp = new XMLHttpRequest();
 
 	var url = 'image_spectrum?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
+
+	if (fetch_data)
+		url += '&fetch_data=true';
+
 	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
@@ -9649,14 +9664,14 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 502) {
 			console.log("Connection error, re-fetching image after 1 second.");
 			setTimeout(function () {
-				fetch_image_spectrum(datasetId, index, true);
+				fetch_image_spectrum(datasetId, index, fetch_data, true);
 			}, 1000);
 		}
 
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 202) {
 			console.log("Server not ready, long-polling image again after 500ms.");
 			setTimeout(function () {
-				fetch_image_spectrum(datasetId, index, false);
+				fetch_image_spectrum(datasetId, index, fetch_data, false);
 			}, 500);
 		}
 
@@ -9741,6 +9756,109 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 				console.log(fitsData);
 
 				// handle the fitsData part
+				fitsContainer[index - 1] = fitsData;
+				optical_view = fitsData.is_optical;
+
+				if (!isLocal) {
+					let filesize = fitsData.filesize;
+					let strFileSize = numeral(filesize).format('0.0b');
+					d3.select("#FITS").html("full download (" + strFileSize + ")");
+				}
+
+				{
+					frame_reference_unit(index);
+
+					//rescale CRVAL3 and CDELT3
+					fitsData.CRVAL3 *= frame_multiplier;
+					fitsData.CDELT3 *= frame_multiplier;
+
+					frame_reference_type(index);
+
+					console.log("has_freq:", has_frequency_info, "has_vel:", has_velocity_info);
+				}
+
+				if (index == va_count)
+					display_dataset_info();
+
+				if (va_count == 1 || composite_view) {
+					try {
+						if (index == va_count)
+							display_scale_info();
+					}
+					catch (err) {
+					};
+				};
+
+				display_preferences(index);
+
+				/*try {
+					display_cd_gridlines();
+				}
+				catch (err) {
+					display_gridlines();
+				};
+
+				display_beam();*/
+
+				display_FITS_header(index);
+
+				if (!composite_view)
+					add_line_label(index);
+
+				frame_start = 0;
+				frame_end = fitsData.depth - 1;
+
+				if (fitsData.depth > 1) {
+					//insert a spectrum object to the spectrumContainer at <index-1>
+					mean_spectrumContainer[index - 1] = fitsData.mean_spectrum;
+					integrated_spectrumContainer[index - 1] = fitsData.integrated_spectrum;
+
+					spectrum_count++;
+
+					if (va_count == 1) {
+						setup_axes();
+
+						if (intensity_mode == "mean")
+							plot_spectrum([fitsData.mean_spectrum]);
+
+						if (intensity_mode == "integrated")
+							plot_spectrum([fitsData.integrated_spectrum]);
+
+						if (molecules.length > 0)
+							display_molecules();
+					}
+					else {
+						if (spectrum_count == va_count) {
+							console.log("mean spectrumContainer:", mean_spectrumContainer);
+							console.log("integrated spectrumContainer:", integrated_spectrumContainer);
+
+							//display an RGB legend in place of REF FRQ			
+							display_composite_legend();
+
+							if (composite_view)
+								display_rgb_legend();
+
+							setup_axes();
+
+							if (intensity_mode == "mean")
+								plot_spectrum(mean_spectrumContainer);
+
+							if (intensity_mode == "integrated")
+								plot_spectrum(integrated_spectrumContainer);
+
+							if (molecules.length > 0)
+								display_molecules();
+						}
+					}
+				}
+				else {
+					spectrum_count++;
+
+					if (spectrum_count == va_count) {
+						if (composite_view)
+							display_rgb_legend();
+					}
+				}
 
 				// OpenEXR decoder part				
 				Module.ready
@@ -9760,6 +9878,10 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 						image.delete();
 
 						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
+
+						display_histogram(index);
+
+						display_legend();
 
 					})
 					.catch(e => console.error(e));
@@ -10582,7 +10704,6 @@ function updateKalman() {
 
 function change_noise_sensitivity(refresh, index) {
 	noise_sensitivity = document.getElementById('sensitivity' + index).value;
-
 	var multiplier = get_noise_sensitivity(noise_sensitivity);
 	document.getElementById('sensitivityInput' + index).innerHTML = get_noise_sensitivity_string(noise_sensitivity, 2);
 
@@ -10619,12 +10740,12 @@ function change_noise_sensitivity(refresh, index) {
 
 	// set image tone mapping
 	var image = imageContainer[index - 1];
-	let fitsData = fitsContainer[index - 1];
+	/*let fitsData = fitsContainer[index - 1];
 
 	if (image.tone_mapping.flux == "ratio")
 		image.tone_mapping.ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
 	else
-		image.tone_mapping.sensitivity = multiplier * fitsData.sensitivity;
+		image.tone_mapping.sensitivity = multiplier * fitsData.sensitivity;*/
 
 	if (image.tone_mapping.flux == "legacy") {
 		let p = get_slope_from_multiplier(multiplier);
@@ -10769,10 +10890,10 @@ function change_image_quality() {
 	display_hourglass();
 
 	if (va_count == 1) {
-		fetch_image_spectrum(datasetId, 1, false);
+		fetch_image_spectrum(datasetId, 1, false, false);
 	} else {
 		for (let index = 1; index <= va_count; index++)
-			fetch_image_spectrum(datasetId[index - 1], index, false);
+			fetch_image_spectrum(datasetId[index - 1], index, false, false);
 	}
 }
 
@@ -11858,7 +11979,7 @@ function display_FITS_header(index) {
 	let fitsData = fitsContainer[index - 1];
 
 	try {
-		fitsHeader = new Uint8Array(window.atob(fitsData.HEADER.replace(/\s/g, '')).split("").map(function (c) {
+		/*fitsHeader = new Uint8Array(window.atob(fitsData.HEADER.replace(/\s/g, '')).split("").map(function (c) {
 			return c.charCodeAt(0);
 		}));
 
@@ -11876,8 +11997,9 @@ function display_FITS_header(index) {
 			fitsHeader = '';
 			for (var i = 0; i < uncompressed.length; i++)
 				fitsHeader += String.fromCharCode(uncompressed[i]);
-		};
+		};*/
 
+		var fitsHeader = fitsData.HEADER;
 		var headerText = document.getElementById('headerText#' + index);
 		headerText.innerHTML = fitsHeader.trim().replace(/(.{80})/g, "$1<br>");
 
@@ -13631,8 +13753,7 @@ async*/ function mainRenderer() {
 		if (va_count == 1) {
 			poll_progress(datasetId, 1);
 
-			fetch_image_spectrum(datasetId, 1, false);
-			//fetch_spectrum(datasetId, 1, false);
+			fetch_image_spectrum(datasetId, 1, true, false);
 
 			fetch_spectral_lines(datasetId, 0, 0);
 		}
@@ -13642,8 +13763,7 @@ async*/ function mainRenderer() {
 
 				poll_progress(datasetId.rotate(index - 1)[0], index);
 
-				fetch_image_spectrum(datasetId[index - 1], index, false);
-				//fetch_spectrum(datasetId[index - 1], index, false);
+				fetch_image_spectrum(datasetId[index - 1], index, true, false);
 			}
 		}
 

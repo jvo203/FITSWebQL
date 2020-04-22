@@ -740,7 +740,7 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
 }
 
 void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int _width,
-                           int _height, float quality)
+                           int _height, float quality, bool fetch_data)
 {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>(
@@ -755,7 +755,7 @@ void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int 
   res->end(stream_generator(queue));
 
   // launch a separate image thread
-  std::thread([queue, fits, _width, _height, quality]() {
+  std::thread([queue, fits, _width, _height, quality, fetch_data]() {
     float compression_level = quality; //100.0f; // default is 45.0f
 
     // calculate a new image size
@@ -925,6 +925,7 @@ void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int 
           }
 
           // add compressed FITS data, a spectrum and a histogram
+          if (fetch_data)
           {
             std::ostringstream json;
             fits->to_json(json);
@@ -1101,6 +1102,7 @@ void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int 
         }
 
         // add compressed FITS data, a spectrum and a histogram
+        if (fetch_data)
         {
           std::ostringstream json;
           fits->to_json(json);
@@ -2161,6 +2163,7 @@ int main(int argc, char *argv[])
         int width = 0;
         int height = 0;
         float quality = 45;
+        bool fetch_data = false;
 
         std::vector<std::string> params;
         boost::split(params, query, [](char c) { return c == '&'; });
@@ -2194,12 +2197,18 @@ int main(int argc, char *argv[])
             {
               quality = std::stof(value);
             }
+
+            if (key.find("fetch_data") != std::string::npos)
+            {
+              if (value == "true")
+                fetch_data = true;
+            }
           }
         }
 
         // process the response
         std::cout << "get_image(" << datasetid << "::" << width
-                  << "::" << height << "::" << quality << ")" << std::endl;
+                  << "::" << height << "::" << quality << "::" << (fetch_data ? "true" : "false") << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
@@ -2220,7 +2229,7 @@ int main(int argc, char *argv[])
               return http_accepted(&res);
             else
               // return http_not_implemented(&res);
-              return stream_image_spectrum(&res, fits, width, height, quality);
+              return stream_image_spectrum(&res, fits, width, height, quality, fetch_data);
           }
         }
       }
