@@ -9791,15 +9791,6 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 				display_preferences(index);
 
-				/*try {
-					display_cd_gridlines();
-				}
-				catch (err) {
-					display_gridlines();
-				};
-
-				display_beam();*/
-
 				display_FITS_header(index);
 
 				if (!composite_view)
@@ -9882,6 +9873,15 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 						display_histogram(index);
 
 						display_legend();
+
+						/*try {
+							display_cd_gridlines();
+						}
+						catch (err) {
+							display_gridlines();
+						};
+
+						display_beam();*/
 
 					})
 					.catch(e => console.error(e));
