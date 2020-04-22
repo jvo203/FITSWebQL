@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-04-20.0"
+#define VERSION_STRING "SV2020-04-22.0"
 #define WASM_VERSION "20.03.30.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -739,8 +739,8 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
   height = labs(y2 - y1) + 1;
 }
 
-void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
-                  int _height, float quality)
+void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int _width,
+                           int _height, float quality)
 {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>(
@@ -887,6 +887,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
             // send image tone mapping statistics
             float tmp = 0.0f;
             uint32_t str_len = fits->flux.length();
+            uint64_t img_len = output.length();
 
             ptr = (const char *)&str_len;
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
@@ -915,6 +916,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
 
             tmp = fits->black;
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+            ptr = (const char *)&img_len;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
 
             ptr = output.c_str();
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
@@ -1025,6 +1029,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           // send image tone mapping statistics
           float tmp = 0.0f;
           uint32_t str_len = fits->flux.length();
+          uint64_t img_len = output.length();
 
           ptr = (const char *)&str_len;
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
@@ -1054,6 +1059,9 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
           tmp = fits->black;
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
 
+          ptr = (const char *)&img_len;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+
           ptr = output.c_str();
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
         }
@@ -1061,7 +1069,7 @@ void stream_image(const response *res, std::shared_ptr<FITS> fits, int _width,
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
-    printf("[stream_image] number of remaining bytes: %zu\n",
+    printf("[stream_image_spectrum] number of remaining bytes: %zu\n",
            queue->fifo.size());
 
     // end of chunked encoding
@@ -2076,7 +2084,7 @@ int main(int argc, char *argv[])
         return;
       }
 
-      if (uri.find("/get_image") != std::string::npos)
+      if (uri.find("/get_image_spectrum") != std::string::npos)
       {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
@@ -2144,7 +2152,7 @@ int main(int argc, char *argv[])
               return http_accepted(&res);
             else
               // return http_not_implemented(&res);
-              return stream_image(&res, fits, width, height, quality);
+              return stream_image_spectrum(&res, fits, width, height, quality);
           }
         }
       }

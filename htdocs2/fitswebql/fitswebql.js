@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-21.0";
+	return "JS2020-04-22.0";
 }
 
 const wasm_supported = (() => {
@@ -9617,14 +9617,14 @@ function fetch_spectral_lines(datasetId, freq_start, freq_end) {
 	xmlhttp.send();
 };
 
-function fetch_image(datasetId, index, add_timestamp) {
+function fetch_image_spectrum(datasetId, index, add_timestamp) {
 	var rect = document.getElementById('mainDiv').getBoundingClientRect();
 	var width = rect.width - 20;
 	var height = rect.height - 20;
 
 	var xmlhttp = new XMLHttpRequest();
 
-	var url = 'get_image?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
+	var url = 'get_image_spectrum?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
 	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
@@ -9649,14 +9649,14 @@ function fetch_image(datasetId, index, add_timestamp) {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 502) {
 			console.log("Connection error, re-fetching image after 1 second.");
 			setTimeout(function () {
-				fetch_image(datasetId, index, true);
+				fetch_image_spectrum(datasetId, index, true);
 			}, 1000);
 		}
 
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 202) {
 			console.log("Server not ready, long-polling image again after 500ms.");
 			setTimeout(function () {
-				fetch_image(datasetId, index, false);
+				fetch_image_spectrum(datasetId, index, false);
 			}, 500);
 		}
 
@@ -9701,7 +9701,11 @@ function fetch_image(datasetId, index, add_timestamp) {
 				tone_mapping.black = dv.getFloat32(offset, endianness);
 				offset += 4;
 
-				var frame = new Uint8Array(received_msg, offset);
+				var img_length = getUint64(dv, offset, endianness);
+				offset += 8;
+
+				var frame = new Uint8Array(received_msg, offset, img_length);
+				offset += img_length;
 
 				console.log(tone_mapping);
 
@@ -10732,10 +10736,10 @@ function change_image_quality() {
 	display_hourglass();
 
 	if (va_count == 1) {
-		fetch_image(datasetId, 1, false);
+		fetch_image_spectrum(datasetId, 1, false);
 	} else {
 		for (let index = 1; index <= va_count; index++)
-			fetch_image(datasetId[index - 1], index, false);
+			fetch_image_spectrum(datasetId[index - 1], index, false);
 	}
 }
 
@@ -13594,8 +13598,7 @@ async*/ function mainRenderer() {
 		if (va_count == 1) {
 			poll_progress(datasetId, 1);
 
-			fetch_image(datasetId, 1, false);
-
+			fetch_image_spectrum(datasetId, 1, false);
 			fetch_spectrum(datasetId, 1, false);
 
 			fetch_spectral_lines(datasetId, 0, 0);
@@ -13606,8 +13609,7 @@ async*/ function mainRenderer() {
 
 				poll_progress(datasetId.rotate(index - 1)[0], index);
 
-				fetch_image(datasetId[index - 1], index, false);
-
+				fetch_image_spectrum(datasetId[index - 1], index, false);
 				fetch_spectrum(datasetId[index - 1], index, false);
 			}
 		}
