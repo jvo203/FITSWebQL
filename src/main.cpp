@@ -923,6 +923,40 @@ void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int 
             ptr = output.c_str();
             queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
           }
+
+          // add compressed FITS data, a spectrum and a histogram
+          {
+            std::ostringstream json;
+            fits->to_json(json);
+
+            // LZ4-compress json
+            Ipp8u *json_lz4 = NULL;
+            uint32_t json_size = json.tellp();
+            uint32_t compressed_size = 0;
+
+            // LZ4-compress json data
+            int worst_size = LZ4_compressBound(json_size);
+            json_lz4 = ippsMalloc_8u_L(worst_size);
+
+            if (json_lz4 != NULL)
+            {
+              // compress the header with LZ4
+              compressed_size = LZ4_compress_HC((const char *)json.str().c_str(), (char *)json_lz4,
+                                                json_size, worst_size, LZ4HC_CLEVEL_MAX);
+
+              printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n", json_size,
+                     compressed_size);
+
+              // append json to the trasmission queue
+              std::lock_guard<std::mutex> guard(queue->mtx);
+
+              const char *ptr = (const char *)&json_size;
+              queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+              queue->fifo.insert(queue->fifo.end(), json_lz4, json_lz4 + compressed_size);
+
+              ippsFree(json_lz4);
+            }
+          }
         }
       }
     }
@@ -1064,6 +1098,40 @@ void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int 
 
           ptr = output.c_str();
           queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+        }
+
+        // add compressed FITS data, a spectrum and a histogram
+        {
+          std::ostringstream json;
+          fits->to_json(json);
+
+          // LZ4-compress json
+          Ipp8u *json_lz4 = NULL;
+          uint32_t json_size = json.tellp();
+          uint32_t compressed_size = 0;
+
+          // LZ4-compress json data
+          int worst_size = LZ4_compressBound(json_size);
+          json_lz4 = ippsMalloc_8u_L(worst_size);
+
+          if (json_lz4 != NULL)
+          {
+            // compress the header with LZ4
+            compressed_size = LZ4_compress_HC((const char *)json.str().c_str(), (char *)json_lz4,
+                                              json_size, worst_size, LZ4HC_CLEVEL_MAX);
+
+            printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n", json_size,
+                   compressed_size);
+
+            // append json to the trasmission queue
+            std::lock_guard<std::mutex> guard(queue->mtx);
+
+            const char *ptr = (const char *)&json_size;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+            queue->fifo.insert(queue->fifo.end(), json_lz4, json_lz4 + compressed_size);
+
+            ippsFree(json_lz4);
+          }
         }
       }
     }
@@ -2084,7 +2152,7 @@ int main(int argc, char *argv[])
         return;
       }
 
-      if (uri.find("/get_image_spectrum") != std::string::npos)
+      if (uri.find("/image_spectrum") != std::string::npos)
       {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);

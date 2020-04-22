@@ -14,6 +14,9 @@
 #include <vector>
 #include <zlib.h>
 
+#include "lz4.h"
+#include "lz4hc.h"
+
 //#include "fifo.hpp"
 #include <boost/lockfree/queue.hpp>
 
@@ -53,19 +56,22 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror = false);
 
-struct Progress {
+struct Progress
+{
   size_t running;
   size_t total;
   double elapsed;
 
-  Progress() {
+  Progress()
+  {
     running = 0;
     total = 0;
     elapsed = 0.0;
   }
 };
 
-class FITS {
+class FITS
+{
 public:
   FITS();
   FITS(std::string id, std::string flux);

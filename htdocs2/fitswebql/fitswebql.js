@@ -9624,7 +9624,7 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 
 	var xmlhttp = new XMLHttpRequest();
 
-	var url = 'get_image_spectrum?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
+	var url = 'image_spectrum?datasetId=' + encodeURIComponent(datasetId) + '&width=' + width + '&height=' + height + '&quality=' + image_quality;
 	url += '&' + encodeURIComponent(get_js_version());
 
 	if (add_timestamp)
@@ -9661,6 +9661,9 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 		}
 
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			document.getElementById('welcome').style.display = "none";
+			console.log('hiding the loading progress, style =', document.getElementById('welcome').style.display);
+
 			var received_msg = xmlhttp.response;
 
 			if (received_msg instanceof ArrayBuffer) {
@@ -9708,6 +9711,36 @@ function fetch_image_spectrum(datasetId, index, add_timestamp) {
 				offset += img_length;
 
 				console.log(tone_mapping);
+
+				var data_len = dv.getUint32(offset, endianness);
+				offset += 4;
+
+				var data = new Uint8Array(received_msg, offset);
+				console.log("FITS data length:", data_len);
+
+				// decompress the FITS data etc.
+				var Buffer = require('buffer').Buffer;
+				var LZ4 = require('lz4');
+
+				var uncompressed = new Buffer(data_len);
+				uncompressedSize = LZ4.decodeBlock(data, uncompressed);
+				uncompressed = uncompressed.slice(0, uncompressedSize);
+
+				var fitsData;
+
+				try {
+					fitsData = String.fromCharCode.apply(null, uncompressed);
+				}
+				catch (err) {
+					fitsData = '';
+					for (var i = 0; i < uncompressed.length; i++)
+						fitsData += String.fromCharCode(uncompressed[i]);
+				};
+
+				fitsData = JSON.parse(fitsData);
+				console.log(fitsData);
+
+				// handle the fitsData part
 
 				// OpenEXR decoder part				
 				Module.ready
@@ -13599,7 +13632,7 @@ async*/ function mainRenderer() {
 			poll_progress(datasetId, 1);
 
 			fetch_image_spectrum(datasetId, 1, false);
-			fetch_spectrum(datasetId, 1, false);
+			//fetch_spectrum(datasetId, 1, false);
 
 			fetch_spectral_lines(datasetId, 0, 0);
 		}
@@ -13610,7 +13643,7 @@ async*/ function mainRenderer() {
 				poll_progress(datasetId.rotate(index - 1)[0], index);
 
 				fetch_image_spectrum(datasetId[index - 1], index, false);
-				fetch_spectrum(datasetId[index - 1], index, false);
+				//fetch_spectrum(datasetId[index - 1], index, false);
 			}
 		}
 
