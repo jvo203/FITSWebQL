@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-22.0";
+	return "JS2020-04-23.0";
 }
 
 const wasm_supported = (() => {
@@ -9727,127 +9727,135 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 				console.log(tone_mapping);
 
-				var data_len = dv.getUint32(offset, endianness);
-				offset += 4;
-
-				var data = new Uint8Array(received_msg, offset);
-				console.log("FITS data length:", data_len);
-
-				// decompress the FITS data etc.
-				var Buffer = require('buffer').Buffer;
-				var LZ4 = require('lz4');
-
-				var uncompressed = new Buffer(data_len);
-				uncompressedSize = LZ4.decodeBlock(data, uncompressed);
-				uncompressed = uncompressed.slice(0, uncompressedSize);
-
-				var fitsData;
+				var has_data = true;
 
 				try {
-					fitsData = String.fromCharCode.apply(null, uncompressed);
-				}
-				catch (err) {
-					fitsData = '';
-					for (var i = 0; i < uncompressed.length; i++)
-						fitsData += String.fromCharCode(uncompressed[i]);
-				};
+					var data_len = dv.getUint32(offset, endianness);
+					offset += 4;
 
-				fitsData = JSON.parse(fitsData);
-				console.log(fitsData);
-
-				// handle the fitsData part
-				fitsContainer[index - 1] = fitsData;
-				optical_view = fitsData.is_optical;
-
-				if (!isLocal) {
-					let filesize = fitsData.filesize;
-					let strFileSize = numeral(filesize).format('0.0b');
-					d3.select("#FITS").html("full download (" + strFileSize + ")");
+					var data = new Uint8Array(received_msg, offset);
+					console.log("FITS data length:", data_len);
+				} catch (err) {
+					has_data = false;
 				}
 
-				{
-					frame_reference_unit(index);
+				if (has_data) {
+					// decompress the FITS data etc.
+					var Buffer = require('buffer').Buffer;
+					var LZ4 = require('lz4');
 
-					//rescale CRVAL3 and CDELT3
-					fitsData.CRVAL3 *= frame_multiplier;
-					fitsData.CDELT3 *= frame_multiplier;
+					var uncompressed = new Buffer(data_len);
+					uncompressedSize = LZ4.decodeBlock(data, uncompressed);
+					uncompressed = uncompressed.slice(0, uncompressedSize);
 
-					frame_reference_type(index);
+					var fitsData;
 
-					console.log("has_freq:", has_frequency_info, "has_vel:", has_velocity_info);
-				}
-
-				if (index == va_count)
-					display_dataset_info();
-
-				if (va_count == 1 || composite_view) {
 					try {
-						if (index == va_count)
-							display_scale_info();
+						fitsData = String.fromCharCode.apply(null, uncompressed);
 					}
 					catch (err) {
+						fitsData = '';
+						for (var i = 0; i < uncompressed.length; i++)
+							fitsData += String.fromCharCode(uncompressed[i]);
 					};
-				};
 
-				display_preferences(index);
+					fitsData = JSON.parse(fitsData);
+					console.log(fitsData);
 
-				display_FITS_header(index);
+					// handle the fitsData part
+					fitsContainer[index - 1] = fitsData;
+					optical_view = fitsData.is_optical;
 
-				if (!composite_view)
-					add_line_label(index);
-
-				frame_start = 0;
-				frame_end = fitsData.depth - 1;
-
-				if (fitsData.depth > 1) {
-					//insert a spectrum object to the spectrumContainer at <index-1>
-					mean_spectrumContainer[index - 1] = fitsData.mean_spectrum;
-					integrated_spectrumContainer[index - 1] = fitsData.integrated_spectrum;
-
-					spectrum_count++;
-
-					if (va_count == 1) {
-						setup_axes();
-
-						if (intensity_mode == "mean")
-							plot_spectrum([fitsData.mean_spectrum]);
-
-						if (intensity_mode == "integrated")
-							plot_spectrum([fitsData.integrated_spectrum]);
-
-						if (molecules.length > 0)
-							display_molecules();
+					if (!isLocal) {
+						let filesize = fitsData.filesize;
+						let strFileSize = numeral(filesize).format('0.0b');
+						d3.select("#FITS").html("full download (" + strFileSize + ")");
 					}
-					else {
-						if (spectrum_count == va_count) {
-							console.log("mean spectrumContainer:", mean_spectrumContainer);
-							console.log("integrated spectrumContainer:", integrated_spectrumContainer);
 
-							//display an RGB legend in place of REF FRQ			
-							display_composite_legend();
+					{
+						frame_reference_unit(index);
 
-							if (composite_view)
-								display_rgb_legend();
+						//rescale CRVAL3 and CDELT3
+						fitsData.CRVAL3 *= frame_multiplier;
+						fitsData.CDELT3 *= frame_multiplier;
 
+						frame_reference_type(index);
+
+						console.log("has_freq:", has_frequency_info, "has_vel:", has_velocity_info);
+					}
+
+					if (index == va_count)
+						display_dataset_info();
+
+					if (va_count == 1 || composite_view) {
+						try {
+							if (index == va_count)
+								display_scale_info();
+						}
+						catch (err) {
+						};
+					};
+
+					display_preferences(index);
+
+					display_FITS_header(index);
+
+					if (!composite_view)
+						add_line_label(index);
+
+					frame_start = 0;
+					frame_end = fitsData.depth - 1;
+
+					if (fitsData.depth > 1) {
+						//insert a spectrum object to the spectrumContainer at <index-1>
+						mean_spectrumContainer[index - 1] = fitsData.mean_spectrum;
+						integrated_spectrumContainer[index - 1] = fitsData.integrated_spectrum;
+
+						spectrum_count++;
+
+						if (va_count == 1) {
 							setup_axes();
 
 							if (intensity_mode == "mean")
-								plot_spectrum(mean_spectrumContainer);
+								plot_spectrum([fitsData.mean_spectrum]);
 
 							if (intensity_mode == "integrated")
-								plot_spectrum(integrated_spectrumContainer);
+								plot_spectrum([fitsData.integrated_spectrum]);
 
 							if (molecules.length > 0)
 								display_molecules();
 						}
-					}
-				}
-				else {
-					spectrum_count++;
+						else {
+							if (spectrum_count == va_count) {
+								console.log("mean spectrumContainer:", mean_spectrumContainer);
+								console.log("integrated spectrumContainer:", integrated_spectrumContainer);
 
-					if (spectrum_count == va_count) {
-						if (composite_view)
-							display_rgb_legend();
+								//display an RGB legend in place of REF FRQ			
+								display_composite_legend();
+
+								if (composite_view)
+									display_rgb_legend();
+
+								setup_axes();
+
+								if (intensity_mode == "mean")
+									plot_spectrum(mean_spectrumContainer);
+
+								if (intensity_mode == "integrated")
+									plot_spectrum(integrated_spectrumContainer);
+
+								if (molecules.length > 0)
+									display_molecules();
+							}
+						}
+					}
+					else {
+						spectrum_count++;
+
+						if (spectrum_count == va_count) {
+							if (composite_view)
+								display_rgb_legend();
+						}
 					}
 				}
 
@@ -9870,11 +9878,10 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 						process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
 
-						display_histogram(index);
+						if (has_data) {
+							display_histogram(index);
 
-						display_legend();
-
-						/*try {
+							/*try {
 							display_cd_gridlines();
 						}
 						catch (err) {
@@ -9882,6 +9889,9 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 						};
 
 						display_beam();*/
+						}
+
+						display_legend();
 
 					})
 					.catch(e => console.error(e));
