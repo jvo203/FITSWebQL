@@ -3211,10 +3211,11 @@ function display_gridlines() {
 				if (d == 0.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
+
 				var tmp = image_bounding_dims.x1 + d * (image_bounding_dims.width - 1);
-				var orig_x = tmp * fitsData.width / imageCanvas.width;
+				var orig_x = tmp * fitsData.width / image.width;
 
 				try {
 					if (fitsData.CTYPE1.indexOf("RA") > -1) {
@@ -3259,10 +3260,11 @@ function display_gridlines() {
 				if (d == 0.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
+
 				var tmp = image_bounding_dims.x1 + d * (image_bounding_dims.width - 1);
-				var orig_x = tmp * fitsData.width / imageCanvas.width;
+				var orig_x = tmp * fitsData.width / image.width;
 
 				try {
 					if (fitsData.CTYPE1.indexOf("RA") > -1) {
@@ -3302,57 +3304,18 @@ function display_gridlines() {
 	}
 
 	// Add the Y Axis
-	/*if (!composite_view) {
-		var yAxis = d3.axisRight(y)
-			.tickSize(width)
-			.tickFormat(function (d) {
-				if (d == 0.0 || d == 1.0)
-					return "";
-
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-				var tmp = image_bounding_dims.y1 + d * (image_bounding_dims.height - 1);
-				var orig_y = tmp * fitsData.height / imageCanvas.height;
-
-				try {
-					return y2dms(orig_y);
-				}
-				catch (err) {
-					console.log(err);
-				}
-
-				return "";
-			});
-
-		svg.append("g")
-			.attr("class", "gridlines")
-			.attr("id", "dec_axis")
-			.style("fill", fillColour)
-			.style("stroke", strokeColour)
-			.style("stroke-width", 1.0)
-			.attr("opacity", 1.0)
-			.attr("transform", "translate(" + (x_offset) + ",0)")
-			.call(yAxis)
-			.selectAll("text")
-			.attr("y", 0)
-			.attr("x", 0)
-			.style("fill", fillColour)
-			.attr("dx", "-.35em")
-			//.attr("dy", "-0.35em")
-			//.attr("transform", "rotate(-45)")
-			.style("text-anchor", "end");//was end, dx -.35, dy 0
-	}
-	else*/ {
+	{
 		var yAxis = d3.axisLeft(y)
 			.tickSize(width)
 			.tickFormat(function (d) {
 				if (d == 0.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
+
 				var tmp = image_bounding_dims.y1 + d * (image_bounding_dims.height - 1);
-				var orig_y = tmp * fitsData.height / imageCanvas.height;
+				var orig_y = tmp * fitsData.height / image.height;
 
 				try {
 					return y2dms(orig_y);
@@ -3486,8 +3449,8 @@ function display_cd_gridlines() {
 				if (d == -1.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
 
 				var dx = d * Math.cos(angle / toDegrees);
 				var dy = d * Math.sin(angle / toDegrees);
@@ -3496,8 +3459,8 @@ function display_cd_gridlines() {
 				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
 				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
 
-				var orig_x = tmpx * fitsData.width / imageCanvas.width;
-				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+				var orig_x = tmpx * fitsData.width / image.width;
+				var orig_y = tmpy * fitsData.height / image.height;
 
 				//use the CD scale matrix
 				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
@@ -3540,8 +3503,8 @@ function display_cd_gridlines() {
 				if (d == -1.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
 
 				var dx = d * Math.cos(angle / toDegrees);
 				var dy = d * Math.sin(angle / toDegrees);
@@ -3550,8 +3513,8 @@ function display_cd_gridlines() {
 				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
 				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
 
-				var orig_x = tmpx * fitsData.width / imageCanvas.width;
-				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+				var orig_x = tmpx * fitsData.width / image.width;
+				var orig_y = tmpy * fitsData.height / image.height;
 
 				//use the CD scale matrix
 				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
@@ -3589,60 +3552,15 @@ function display_cd_gridlines() {
 	}
 
 	// Add the Y Axis
-	/*if (!composite_view) {
-		var yAxis = d3.axisRight(y)
-			.tickSize(width)
-			.tickFormat(function (d) {
-				if (d == -1.0 || d == 1.0)
-					return "";
-
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-
-				var dx = d * Math.sin(angle / toDegrees);
-				var dy = d * Math.cos(angle / toDegrees);
-
-				//convert dx, dy to a 0 .. 1 range
-				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
-				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
-
-				var orig_x = tmpx * fitsData.width / imageCanvas.width;
-				var orig_y = tmpy * fitsData.height / imageCanvas.height;
-
-				//use the CD scale matrix
-				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
-
-				if (fitsData.CTYPE2.indexOf("DEC") > -1 || fitsData.CTYPE2.indexOf("GLAT") > -1 || fitsData.CTYPE2.indexOf("ELAT") > -1)
-					return RadiansPrintDMS(radec[1]);
-				else return "";
-			});
-
-		svg.append("g")
-			.attr("class", "gridlines")
-			.attr("id", "dec_axis")
-			.style("fill", fillColour)
-			.style("stroke", strokeColour)
-			.style("stroke-width", 1.0)
-			.attr("opacity", 1.0)
-			.attr("transform", " translate(" + (x_offset) + "," + (y_offset) + ")" + ' rotate(' + angle + ' ' + (width / 2) + ' ' + (height / 2) + ')')
-			.call(yAxis)
-			.selectAll("text")
-			.attr("y", 0)
-			.attr("x", 0)
-			.style("fill", fillColour)
-			.attr("dx", "-.35em")
-			//.attr("dy", "-0.35em")
-			.style("text-anchor", "end");//was end, dx -.35, dy 0
-	}
-	else*/ {
+	{
 		var yAxis = d3.axisLeft(y)
 			.tickSize(width)
 			.tickFormat(function (d) {
 				if (d == -1.0 || d == 1.0)
 					return "";
 
-				var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-				var imageCanvas = imageContainer[va_count - 1].imageCanvas;
+				var image = imageContainer[va_count - 1];
+				var image_bounding_dims = image.image_bounding_dims;
 
 				var dx = d * Math.sin(angle / toDegrees);
 				var dy = d * Math.cos(angle / toDegrees);
@@ -3651,8 +3569,8 @@ function display_cd_gridlines() {
 				var tmpx = image_bounding_dims.x1 + (dx + 1) / 2 * (image_bounding_dims.width - 1);
 				var tmpy = image_bounding_dims.y1 + (dy + 1) / 2 * (image_bounding_dims.height - 1);
 
-				var orig_x = tmpx * fitsData.width / imageCanvas.width;
-				var orig_y = tmpy * fitsData.height / imageCanvas.height;
+				var orig_x = tmpx * fitsData.width / image.width;
+				var orig_y = tmpy * fitsData.height / image.height;
 
 				//use the CD scale matrix
 				let radec = CD_matrix(orig_x, fitsData.height - orig_y);
@@ -9869,12 +9787,12 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 						if (has_data) {
 							display_histogram(index);
 
-							/*try {
-							display_cd_gridlines();
-						}
-						catch (err) {
-							display_gridlines();
-						};*/
+							try {
+								display_cd_gridlines();
+							}
+							catch (err) {
+								display_gridlines();
+							};
 
 							display_beam();
 						}
