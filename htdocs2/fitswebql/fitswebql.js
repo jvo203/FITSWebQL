@@ -3717,15 +3717,13 @@ function display_beam() {
 	var elem = d3.select("#image_rectangle");
 	var img_width = parseFloat(elem.attr("width"));
 	var img_height = parseFloat(elem.attr("height"));
-	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-	var scale = (imageCanvas.width / fitsData.width) * (img_width / image_bounding_dims.width);
+
+	var image = imageContainer[va_count - 1];
+	var image_bounding_dims = image.image_bounding_dims;
+	var scale = (image.width / fitsData.width) * (img_width / image_bounding_dims.width);
 
 	//display telescope beam
 	if (fitsData.BMIN > 0.0 && fitsData.BMAJ > 0.0) {
-		var x_offset = parseFloat(elem.attr("x"));
-		var y_offset = parseFloat(elem.attr("y"));
-
 		var svg = d3.select("#BackgroundSVG");
 		var width = parseFloat(svg.attr("width"));
 		var height = parseFloat(svg.attr("height"));
@@ -3737,7 +3735,6 @@ function display_beam() {
 		var rx = 0.5 * scale * fitsData.BMAJ / Math.abs(fitsData.CDELT1);
 		var ry = 0.5 * scale * fitsData.BMIN / Math.abs(fitsData.CDELT2);
 		var max_dim = Math.max(rx, ry);
-		var min_dim = Math.min(rx, ry);
 
 		var beam_multiplier = 1.0;
 		var beam_reduce = false;
@@ -3788,7 +3785,7 @@ function display_beam() {
 			strokeColour = 'black';
 		}
 
-		var beam = svg.append("ellipse")
+		svg.append("ellipse")
 			.attr("cx", cx)
 			.attr("cy", cy)
 			.attr("rx", rx)
@@ -3799,7 +3796,7 @@ function display_beam() {
 
 		rectSize = Math.max(rectSize, 0.0075 * width);//10
 
-		var rect = svg.append("rect")
+		svg.append("rect")
 			.attr("x", cx - rectSize)
 			.attr("y", cy - rectSize)
 			.attr("width", 2 * rectSize)
@@ -9877,9 +9874,9 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 						}
 						catch (err) {
 							display_gridlines();
-						};
+						};*/
 
-						display_beam();*/
+							display_beam();
 						}
 
 						display_legend();
