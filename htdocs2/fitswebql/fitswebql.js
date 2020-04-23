@@ -4794,24 +4794,15 @@ function change_tone_mapping(index, recursive) {
 	setup_histogram_interaction(index);
 
 	// set a new tone mapping function 
-	if (imageContainer[index - 1] != null && fitsContainer[index - 1] != null) {
+	if (imageContainer[index - 1] != null) {
 		var image = imageContainer[index - 1];
-		var fitsData = fitsContainer[index - 1];
 
-		// copy/reset the settings
 		image.tone_mapping.flux = document.getElementById('flux' + index).value;
 
+		// reset the legacy settings
 		let p = 0.5;
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
-
-		image.tone_mapping.min = fitsData.min;
-		image.tone_mapping.max = fitsData.max;
-		image.tone_mapping.black = fitsData.black;
-		image.tone_mapping.white = fitsData.white;
-		image.tone_mapping.median = fitsData.median;
-		image.tone_mapping.sensitivity = fitsData.sensitivity;
-		image.tone_mapping.ratio_sensitivity = fitsData.ratio_sensitivity;
 
 		clear_webgl_image_buffers(index);
 	}
