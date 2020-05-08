@@ -12,7 +12,7 @@ INC = -I/usr/include/postgresql -Ilz4
 #-I$(HOME)/uWebSockets/uSockets/src
 #-Imongoose
 #-Ibm-3.20.0/src
-DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
+DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DPRODUCTION -DCLUSTER
 #-D_GLIBCXX_PARALLEL
 LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR`
 #-lIlmImf -lIlmThread -lHalf
