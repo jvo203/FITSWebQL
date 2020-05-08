@@ -12,7 +12,7 @@
 // Options / configuration based on O.S. / compiler
 /////////////////////
 
-#define HAVE_PTHREAD 0
+// #define HAVE_PTHREAD 1
 #define HAVE_POSIX_SEMAPHORES 1
 
 //
