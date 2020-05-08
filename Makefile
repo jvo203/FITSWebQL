@@ -14,7 +14,8 @@ INC = -I/usr/include/postgresql -Ilz4
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system -lIlmImf -lIlmThread -lHalf
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR`
+#-lIlmImf -lIlmThread -lHalf
 
 ifeq ($(UNAME_S),Linux)
 	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lbsd
