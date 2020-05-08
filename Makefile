@@ -19,7 +19,6 @@ LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboo
 
 ifeq ($(UNAME_S),Linux)
 	LIBS += -l:libpq.so.5 -l:libnuma.so.1
-# -lbsd
 endif
 
 ifeq ($(UNAME_S),Darwin)
