@@ -912,7 +912,7 @@ function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, i
 
 		has_image = true;
 
-		//setup_viewports();
+		setup_viewports();
 
 		hide_hourglass();
 	}
@@ -3767,9 +3767,11 @@ function zoom_beam() {
 			.attr("opacity", opacity);
 
 		var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-		var imageCanvas = imageContainer[va_count - 1].imageCanvas;
 		var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
-		var fitsSize = clipSize * fitsData.width / imageCanvas.width;
+
+		var elem = d3.select("#image_rectangle");
+		var canvas_width = parseFloat(elem.attr("width"));
+		var fitsSize = clipSize * fitsData.width / canvas_width;
 
 		var rx = 0.5 * fitsData.BMAJ / Math.abs(fitsData.CDELT1);
 		var ry = 0.5 * fitsData.BMIN / Math.abs(fitsData.CDELT2);
@@ -7611,10 +7613,9 @@ function setup_viewports() {
 	var width = parseFloat(svg.attr("width"));
 	var height = parseFloat(svg.attr("height"));
 
-	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-	var scale = get_image_scale(width, height, imageCanvas.width, imageCanvas.height);
-	var img_width = scale * imageCanvas.width;
-	var img_height = scale * imageCanvas.height;
+	var elem = d3.select("#image_rectangle");
+	var img_width = parseFloat(elem.attr("width"));
+	var img_height = parseFloat(elem.attr("height"));
 	var zoomed_size = get_zoomed_size(width, height, img_width, img_height);
 
 	if (zoom_shape == "square") {
@@ -8733,7 +8734,7 @@ function setup_image_selection() {
 				let data = image_stack.pop();
 				image_stack = [];
 
-				ctx.clearRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
+				/*ctx.clearRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
 
 				var imageCanvas;
 
@@ -8761,7 +8762,7 @@ function setup_image_selection() {
 					ctx.clip();
 					ctx.drawImage(imageCanvas, data.x - data.clipSize, data.y - data.clipSize, 2 * data.clipSize + 1, 2 * data.clipSize + 1, data.px, data.py, data.zoomed_size, data.zoomed_size);
 					ctx.restore();
-				}
+				}*/
 			}
 			catch (e) {
 				//console.log(e) ;
@@ -9043,7 +9044,6 @@ function setup_image_selection() {
 			//updateKalman() ;
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-			//var imageCanvas = imageContainer[va_count - 1].imageCanvas;
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
@@ -9227,9 +9227,13 @@ function setup_image_selection() {
 				var pred_x = image_bounding_dims.x1 + (pred_mouse_x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 				var pred_y = image_bounding_dims.y1 + (pred_mouse_y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
-				var fitsX = pred_x * fitsData.width / imageCanvas.width;//x or pred_x
-				var fitsY = pred_y * fitsData.height / imageCanvas.height;//y or pred_y
-				var fitsSize = clipSize * fitsData.width / imageCanvas.width;
+				var elem = d3.select("#image_rectangle");
+				var canvas_width = parseFloat(elem.attr("width"));
+				var canvas_height = parseFloat(elem.attr("height"));
+
+				var fitsX = pred_x * fitsData.width / canvas_width;//x or pred_x
+				var fitsY = pred_y * fitsData.height / canvas_height;//y or pred_y
+				var fitsSize = clipSize * fitsData.width / canvas_width;
 
 				fitsX = Math.round(fitsX);
 				fitsY = Math.round(fitsY);
@@ -9259,11 +9263,12 @@ function setup_image_selection() {
 						/*let frame_bounds = get_frame_bounds(data_band_lo, data_band_hi, index) ;
 						console.log("frame_bounds:", frame_bounds) ;*/
 
-						if (wsConn[index].readyState == 1) {
+						// fire off an HTTP/2 request
+						/*if (wsConn[index].readyState == 1) {
 							let strRequest = 'x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&image=false&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 
 							wsConn[index].send('[spectrum] ' + strRequest + '&timestamp=' + performance.now());
-						}
+						}*/
 					}
 				}
 
@@ -10347,12 +10352,13 @@ function imageTimeout() {
 
 	let fitsData = fitsContainer[va_count - 1];
 	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
 	var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
 	var img_width = scale * image_bounding_dims.width;
 	var img_height = scale * image_bounding_dims.height;
 
 	var rect_elem = d3.select("#image_rectangle");
+	var canvas_width = parseFloat(rect_elem.attr("width"));
+	var canvas_height = parseFloat(rect_elem.attr("height"));
 
 	var x = image_bounding_dims.x1 + (mouse_position.x - rect_elem.attr("x")) / rect_elem.attr("width") * (image_bounding_dims.width - 1);
 	var y = image_bounding_dims.y1 + (mouse_position.y - rect_elem.attr("y")) / rect_elem.attr("height") * (image_bounding_dims.height - 1);
@@ -10363,9 +10369,9 @@ function imageTimeout() {
 	var sel_width = clipSize * scale;
 	var sel_height = clipSize * scale;
 
-	var fitsX = x * fitsData.width / imageCanvas.width;
-	var fitsY = y * fitsData.height / imageCanvas.height;
-	var fitsSize = clipSize * fitsData.width / imageCanvas.width;
+	var fitsX = x * fitsData.width / canvas_width;
+	var fitsY = y * fitsData.height / canvas_height;
+	var fitsSize = clipSize * fitsData.width / canvas_width;
 
 	fitsX = Math.round(fitsX);
 	fitsY = Math.round(fitsY);
@@ -10411,7 +10417,8 @@ function imageTimeout() {
 
 		var strRequest = 'x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&image=true&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id + '&timestamp=' + performance.now();
 
-		wsConn[index].send('[spectrum] ' + strRequest);
+		// fire off an HTTP/2 request
+		//wsConn[index].send('[spectrum] ' + strRequest);
 	}
 
 	if (moving || streaming)
@@ -10445,7 +10452,7 @@ function imageTimeout() {
 
 	var imageCanvas;
 
-	if (composite_view)
+	/*if (composite_view)
 		imageCanvas = compositeCanvas;
 	else
 		imageCanvas = imageContainer[va_count - 1].imageCanvas;//if composite_view use compositeCanvas
@@ -10466,7 +10473,7 @@ function imageTimeout() {
 		ctx.clip();
 		ctx.drawImage(imageCanvas, x - clipSize, y - clipSize, 2 * clipSize + 1, 2 * clipSize + 1, px, py, zoomed_size, zoomed_size);
 		ctx.restore();
-	}
+	}*/
 }
 
 function resetKalman() {
