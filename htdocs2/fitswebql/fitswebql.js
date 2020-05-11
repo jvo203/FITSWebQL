@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-04-23.0";
+	return "JS2020-05-11.0";
 }
 
 const wasm_supported = (() => {
@@ -1118,7 +1118,6 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 		var height = c.height;
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -1168,7 +1167,6 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 			var height = c.height;
 			var ctx = c.getContext("2d");
 
-			ctx.mozImageSmoothingEnabled = false;
 			ctx.webkitImageSmoothingEnabled = false;
 			ctx.msImageSmoothingEnabled = false;
 			ctx.imageSmoothingEnabled = false;
@@ -1255,7 +1253,6 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 				var height = c.height;
 				var ctx = c.getContext("2d");
 
-				ctx.mozImageSmoothingEnabled = false;
 				ctx.webkitImageSmoothingEnabled = false;
 				ctx.msImageSmoothingEnabled = false;
 				ctx.imageSmoothingEnabled = false;
@@ -1346,7 +1343,6 @@ function process_video(index) {
 		var height = c.height;
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -1388,7 +1384,6 @@ function process_video(index) {
 	var height = c.height;
 	var ctx = c.getContext("2d");
 
-	ctx.mozImageSmoothingEnabled = false;
 	ctx.webkitImageSmoothingEnabled = false;
 	ctx.msImageSmoothingEnabled = false;
 	ctx.imageSmoothingEnabled = false;
@@ -1455,7 +1450,6 @@ function process_viewport_canvas(viewportCanvas, index) {
 		var height = c.height;
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -1496,7 +1490,6 @@ function process_viewport_canvas(viewportCanvas, index) {
 		var c = document.getElementById("ZOOMCanvas");
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -1644,7 +1637,6 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 		var height = c.height;
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -1685,7 +1677,6 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 		var c = document.getElementById("ZOOMCanvas");
 		var ctx = c.getContext("2d");
 
-		ctx.mozImageSmoothingEnabled = false;
 		ctx.webkitImageSmoothingEnabled = false;
 		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
@@ -2589,7 +2580,6 @@ function fetch_binned_image(dataId) {
 			var height = c.height;
 			var ctx = c.getContext("2d");
 
-			ctx.mozImageSmoothingEnabled = false;
 			ctx.webkitImageSmoothingEnabled = false;
 			ctx.msImageSmoothingEnabled = false;
 			ctx.imageSmoothingEnabled = false;
@@ -5017,7 +5007,6 @@ function change_colourmap(index, recursive) {
 			var height = c.height;
 			var ctx = c.getContext("2d");
 
-			ctx.mozImageSmoothingEnabled = false;
 			ctx.webkitImageSmoothingEnabled = false;
 			ctx.msImageSmoothingEnabled = false;
 			ctx.imageSmoothingEnabled = false;
@@ -8648,7 +8637,6 @@ function setup_image_selection() {
 	var c = document.getElementById("ZOOMCanvas");
 	var ctx = c.getContext("2d");
 
-	ctx.mozImageSmoothingEnabled = false;
 	ctx.webkitImageSmoothingEnabled = false;
 	ctx.msImageSmoothingEnabled = false;
 	ctx.imageSmoothingEnabled = false;
@@ -10014,7 +10002,6 @@ function refresh_tiles(index) {
 	var height = c.height;
 	var ctx = c.getContext("2d");
 
-	ctx.mozImageSmoothingEnabled = false;
 	ctx.webkitImageSmoothingEnabled = false;
 	ctx.msImageSmoothingEnabled = false;
 	ctx.imageSmoothingEnabled = false;
@@ -10350,7 +10337,6 @@ function imageTimeout() {
 	var c = document.getElementById("ZOOMCanvas");
 	var ctx = c.getContext("2d");
 
-	ctx.mozImageSmoothingEnabled = false;
 	ctx.webkitImageSmoothingEnabled = false;
 	ctx.msImageSmoothingEnabled = false;
 	ctx.imageSmoothingEnabled = false;
@@ -12334,11 +12320,6 @@ function display_legend() {
 
 	init_webgl_legend_buffers(va_count);
 
-	let strokeColour = 'white';
-
-	if (theme == 'bright')
-		strokeColour = 'black';
-
 	var upper_range;
 
 	if (flux == "ratio")
@@ -12378,7 +12359,7 @@ function display_legend() {
 		.attr("class", "colouraxis")
 		.attr("id", "legendaxis")
 		.style("stroke-width", emStrokeWidth / 2)
-		.attr("transform", "translate(" + ((width - img_width) / 2 - 1.5 * rectWidth) + "," + 0.1 * height + ")")
+		.attr("transform", "translate(" + ((width - img_width) / 2 - 2.0 * rectWidth) + "," + 0.1 * height + ")")
 		.call(colourAxis);
 
 	let fitsData = fitsContainer[va_count - 1];
