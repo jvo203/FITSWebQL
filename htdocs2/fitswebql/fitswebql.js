@@ -8731,10 +8731,10 @@ function setup_image_selection() {
 
 			//image
 			try {
-				let data = image_stack.pop();
+				/*let data = image_stack.pop();
 				image_stack = [];
 
-				/*ctx.clearRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
+				ctx.clearRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
 
 				var imageCanvas;
 
@@ -9155,21 +9155,8 @@ function setup_image_selection() {
 					d3.select("#pixel").text("").attr("opacity", 0.0);
 			}
 
-			now = performance.now();
-			elapsed = performance.now() - then;
-
-			if (elapsed > fpsInterval + computed + processed && !mousedown)//+ latency, computed, processed
+			//viewport collision detection
 			{
-				then = now - (elapsed % fpsInterval);
-				//ALMAWS.send('[mouse] t=' + now + ' x=' + offset[0] + ' y=' + offset[1]);
-
-				console.log("refresh interval: " + elapsed.toFixed(3) + " [ms]", "fps = ", Math.round(1000 / elapsed));
-
-				if (!initKalmanFilter)
-					initKalman();
-
-				updateKalman();
-				//viewport collision detection
 				var collision_detected = false;
 
 				if (zoom_shape == "square") {
@@ -9212,10 +9199,61 @@ function setup_image_selection() {
 					//ctx.clearRect(0, 0, c.width, c.height);
 					swap_viewports();
 				}
+			}
 
-				var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
+			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
+
+			// update image updates
+			if (!mousedown) {
 				var sel_width = clipSize * scale;
 				var sel_height = clipSize * scale;
+
+				x = Math.round(x);
+				y = Math.round(y);
+				clipSize = Math.round(clipSize);
+
+				if (zoom_shape == "square")
+					zoom_element.attr("x", mouse_position.x - sel_width).attr("y", mouse_position.y - sel_height).attr("width", 2 * sel_width).attr("height", 2 * sel_height).attr("opacity", 1.0);
+
+				if (zoom_shape == "circle")
+					zoom_element.attr("cx", Math.round(mouse_position.x)).attr("cy", Math.round(mouse_position.y)).attr("r", Math.round(sel_width)).attr("opacity", 1.0);
+
+				var px, py;
+
+				var zoomed_size = Math.round(get_zoomed_size(width, height, img_width, img_height));
+
+				if (zoom_location == "upper") {
+					px = emStrokeWidth;
+					py = emStrokeWidth;
+				}
+				else {
+					px = width - 1 - emStrokeWidth - zoomed_size;
+					py = height - 1 - emStrokeWidth - zoomed_size;
+				}
+
+				zoomed_size = Math.round(zoomed_size);
+				px = Math.round(px);
+				py = Math.round(py);
+
+				//image_stack.push({ x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size });
+				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };
+			}
+
+			now = performance.now();
+			elapsed = performance.now() - then;
+
+			// predict future mouse positions, send spectrum update requests
+			if (elapsed > fpsInterval + computed + processed && !mousedown)//+ latency, computed, processed
+			{
+				then = now - (elapsed % fpsInterval);
+				//ALMAWS.send('[mouse] t=' + now + ' x=' + offset[0] + ' y=' + offset[1]);
+
+				console.log("refresh interval: " + elapsed.toFixed(3) + " [ms]", "fps = ", Math.round(1000 / elapsed));
+
+				if (!initKalmanFilter)
+					initKalman();
+
+				updateKalman();
 
 				var pred_mouse_x = Math.round(mouse_position.x + last_x.elements[2] * latency);
 				var pred_mouse_y = Math.round(mouse_position.y + last_x.elements[3] * latency);
@@ -9223,10 +9261,6 @@ function setup_image_selection() {
 				//var pred_mouse_y = Math.round(mouse_position.y + last_x.elements[1] * latency + 0.5 * last_x.elements[3] * latency * latency) ;
 
 				//console.log("latency = ", latency.toFixed(1), "[ms]", "mx = ", mouse_position.x, "px = ", pred_mouse_x, "my = ", mouse_position.y, "py = ", pred_mouse_y) ;
-
-				var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
-				var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
-
 				var pred_x = image_bounding_dims.x1 + (pred_mouse_x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 				var pred_y = image_bounding_dims.y1 + (pred_mouse_y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
@@ -9241,10 +9275,6 @@ function setup_image_selection() {
 				fitsX = Math.round(fitsX);
 				fitsY = Math.round(fitsY);
 				fitsSize = Math.round(fitsSize);
-
-				x = Math.round(x);
-				y = Math.round(y);
-				clipSize = Math.round(clipSize);
 
 				//console.log('active', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 				//let strLog = 'active x = ' + x + ' y = '+ y + ' clipSize = ' + clipSize + ' fitsX = ' + fitsX + ' fitsY = ' + fitsY + ' fitsSize = ' + fitsSize + ' pred_x = ' + pred_x + ' pred_y = ' + pred_y + ' pred_mouse_x = ' + pred_mouse_x + ' pred_mouse_y = ' + pred_mouse_y ;
@@ -9274,35 +9304,6 @@ function setup_image_selection() {
 						}*/
 					}
 				}
-
-				if (zoom_shape == "square")
-					zoom_element.attr("x", mouse_position.x - sel_width).attr("y", mouse_position.y - sel_height).attr("width", 2 * sel_width).attr("height", 2 * sel_height).attr("opacity", 1.0);
-
-				if (zoom_shape == "circle")
-					zoom_element.attr("cx", Math.round(mouse_position.x)).attr("cy", Math.round(mouse_position.y)).attr("r", Math.round(sel_width)).attr("opacity", 1.0);
-				//zoom_element.attr("cx", pred_mouse_x).attr("cy", pred_mouse_y).attr("r", Math.round(sel_width)).attr("opacity", 1.0);
-
-				var px, py;
-
-				var zoomed_size = Math.round(get_zoomed_size(width, height, img_width, img_height));
-
-				if (zoom_location == "upper") {
-					px = emStrokeWidth;
-					py = emStrokeWidth;
-				}
-				else {
-					px = width - 1 - emStrokeWidth - zoomed_size;
-					py = height - 1 - emStrokeWidth - zoomed_size;
-				}
-
-				zoomed_size = Math.round(zoomed_size);
-				px = Math.round(px);
-				py = Math.round(py);
-
-				//console.log(x-clipSize, y-clipSize, px, py, 2*clipSize, zoomed_size) ;		
-
-				image_stack.push({ x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size });
-				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, zoomed_size: zoomed_size };
 			}
 
 			idleMouse = setTimeout(imageTimeout, 250);//was 250ms + latency
