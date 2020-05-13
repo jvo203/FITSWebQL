@@ -8836,6 +8836,10 @@ function setup_image_selection() {
 		.on("mouseenter", function () {
 			hide_navigation_bar();
 
+			// cancel the animation loop
+			var image = imageContainer[va_count - 1];
+			cancelAnimationFrame(image.loopId);
+
 			try {
 				zoom_beam();
 			}
@@ -8976,6 +8980,8 @@ function setup_image_selection() {
 					}
 				}
 			}
+
+			init_webgl_image_buffers(va_count);
 		})
 		.on("mousemove", function () {
 			if (!autoscale && d3.event.shiftKey) {
@@ -9117,9 +9123,6 @@ function setup_image_selection() {
 			var displayPixel = true;
 			var PR = ["R:", "G:", "B:"];
 			for (let index = 1; index <= va_count; index++) {
-				var pixel_range = imageContainer[index - 1].pixel_range;
-				var min_pixel = pixel_range.min_pixel;
-				var max_pixel = pixel_range.max_pixel;
 				var imageFrame = imageContainer[index - 1];
 
 				var alpha_coord = Math.round(y) * imageFrame.width + Math.round(x);
