@@ -802,6 +802,82 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	return program;
 };
 
+function init_webgl_viewport_buffers() {
+	//place the image onto the main canvas
+	var canvas = document.getElementById('ZOOMCanvas');
+	var width = canvas.width;
+	var height = canvas.height;
+	console.log("ZOOMCanvas:", canvas);
+
+	if (webgl1 || webgl2) {
+		canvas.addEventListener("webglcontextlost", function (event) {
+			event.preventDefault();
+
+			cancelAnimationFrame(viewport.loopId);
+			console.err("ZOOMCanvas: webglcontextlost");
+		}, false);
+
+		canvas.addEventListener(
+			"webglcontextrestored", function () {
+				console.log("ZOOMCanvas: webglcontextrestored");
+				init_webgl_viewport_buffers();
+			}, false);
+	}
+
+	if (webgl2) {
+		var ctx = canvas.getContext("webgl2");
+		viewport.gl = ctx;
+		console.log("init_webgl is using the WebGL2 context.");
+
+		// enable floating-point textures filtering			
+		ctx.getExtension('OES_texture_float_linear');
+
+		// needed by gl.checkFramebufferStatus
+		ctx.getExtension('EXT_color_buffer_float');
+
+		// call the common WebGL renderer
+		webgl_viewport_renderer(ctx, width, height);
+	} else if (webgl1) {
+		var ctx = canvas.getContext("webgl");
+		viewport.gl = ctx;
+		console.log("init_webgl is using the WebGL1 context.");
+
+		// enable floating-point textures
+		ctx.getExtension('OES_texture_float');
+		ctx.getExtension('OES_texture_float_linear');
+
+		// call the common WebGL renderer
+		webgl_viewport_renderer(ctx, width, height);
+	} else {
+		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
+		return;
+	}
+}
+
+function clear_webgl_viewport_buffers() {
+	// cancel the animation loop
+	cancelAnimationFrame(viewport.loopId);
+
+	var gl = viewport.gl;
+
+	// position buffer
+	if (viewport.positionBuffer != undefined)
+		gl.deleteBuffer(viewport.positionBuffer);
+
+	// texture
+	if (viewport.tex != undefined)
+		gl.deleteTexture(viewport.tex);
+
+	// program
+	if (viewport.program != undefined) {
+		gl.deleteShader(viewport.program.vShader);
+		gl.deleteShader(viewport.program.fShader);
+		gl.deleteProgram(viewport.program);
+	}
+
+	viewport.gl = null;
+}
+
 function init_webgl_image_buffers(index) {
 	//place the image onto the main canvas
 	var canvas = document.getElementById('HTMLCanvas');
@@ -1488,12 +1564,6 @@ function process_viewport_canvas(viewportCanvas, index) {
 	if (viewport_count == va_count) {
 		//place the viewport onto the ZOOM Canvas
 		var c = document.getElementById("ZOOMCanvas");
-		var ctx = c.getContext("2d");
-
-		ctx.webkitImageSmoothingEnabled = false;
-		ctx.msImageSmoothingEnabled = false;
-		ctx.imageSmoothingEnabled = false;
-
 		var width = c.width;
 		var height = c.height;
 
@@ -1675,12 +1745,6 @@ function process_viewport(width, height, w, h, bytes, stride, alpha, index, swap
 	if (viewport_count == va_count) {
 		//place the viewport onto the ZOOM Canvas
 		var c = document.getElementById("ZOOMCanvas");
-		var ctx = c.getContext("2d");
-
-		ctx.webkitImageSmoothingEnabled = false;
-		ctx.msImageSmoothingEnabled = false;
-		ctx.imageSmoothingEnabled = false;
-
 		var width = c.width;
 		var height = c.height;
 
@@ -7702,11 +7766,12 @@ function setup_viewports() {
 }
 
 function swap_viewports() {
-	var canvas = document.getElementById("ZOOMCanvas");
+	// needs to be done in WebGL
+	/*var canvas = document.getElementById("ZOOMCanvas");
 	var ctx = canvas.getContext('2d');
 	var width = canvas.width;
 	var height = canvas.height;
-	ctx.clearRect(0, 0, width, height);
+	ctx.clearRect(0, 0, width, height);*/
 
 	d3.select("#" + zoom_location + "Cross").attr("opacity", 0.0);
 	d3.select("#" + zoom_location + "Beam").attr("opacity", 0.0);
@@ -7754,11 +7819,12 @@ function fits_subregion_start() {
 	d3.select("#dec").text("");
 
 	{
-		var c = document.getElementById("ZOOMCanvas");
+		// needs to be done in WebGL
+		/*var c = document.getElementById("ZOOMCanvas");
 		var ctx = c.getContext("2d");
 		var width = c.width;
 		var height = c.height;
-		ctx.clearRect(0, 0, width, height);
+		ctx.clearRect(0, 0, width, height);*/
 	}
 
 	{
@@ -7791,11 +7857,12 @@ function fits_subregion_drag() {
 	d3.select("#dec").text("");
 
 	{
-		var c = document.getElementById("ZOOMCanvas");
+		// needs to be done in WebGL
+		/*var c = document.getElementById("ZOOMCanvas");
 		var ctx = c.getContext("2d");
 		var width = c.width;
 		var height = c.height;
-		ctx.clearRect(0, 0, width, height);
+		ctx.clearRect(0, 0, width, height);*/
 	}
 
 	{
@@ -8635,13 +8702,6 @@ function setup_image_selection() {
 	}
 	catch (e) { };
 
-	var c = document.getElementById("ZOOMCanvas");
-	var ctx = c.getContext("2d");
-
-	ctx.webkitImageSmoothingEnabled = false;
-	ctx.msImageSmoothingEnabled = false;
-	ctx.imageSmoothingEnabled = false;
-
 	var svg = d3.select("#FrontSVG");
 	var width = parseFloat(svg.attr("width"));
 	var height = parseFloat(svg.attr("height"));
@@ -8883,9 +8943,14 @@ function setup_image_selection() {
 				initKalman();
 
 			resetKalman();
+
+			init_webgl_viewport_buffers();
 		})
 		.on("mouseleave", function () {
 			clearTimeout(idleMouse);
+
+			// clear the ZOOMCanvas in WebGL
+			clear_webgl_viewport_buffers();
 
 			if (!d3.event.shiftKey)
 				windowLeft = true;
@@ -8900,9 +8965,6 @@ function setup_image_selection() {
 				viewport_zoom_settings = null;
 				zoom_element.attr("opacity", 0.0);
 			};
-			requestAnimationFrame(function () {
-				ctx.clearRect(0, 0, width, height);
-			});
 
 			d3.select("#" + zoom_location).style("stroke", "transparent");
 			d3.select("#" + zoom_location + "Cross").attr("opacity", 0.0);
@@ -9047,7 +9109,6 @@ function setup_image_selection() {
 				return;
 
 			mouse_position = { x: offset[0], y: offset[1] };
-			//updateKalman() ;
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
@@ -10342,13 +10403,6 @@ function imageTimeout() {
 	//d3.select("#image_rectangle").style('cursor','crosshair');
 
 	console.log("mouse position: ", mouse_position);
-
-	var c = document.getElementById("ZOOMCanvas");
-	var ctx = c.getContext("2d");
-
-	ctx.webkitImageSmoothingEnabled = false;
-	ctx.msImageSmoothingEnabled = false;
-	ctx.imageSmoothingEnabled = false;
 
 	var svg = d3.select("#FrontSVG");
 	var width = parseFloat(svg.attr("width"));
@@ -13330,6 +13384,7 @@ async*/ function mainRenderer() {
 		image_stack = [];
 		video_stack = [];
 		viewport_zoom_settings = null;
+		viewport = {};
 		zoom_dims = null;
 		zoom_location = 'lower';
 		zoom_scale = 25;
