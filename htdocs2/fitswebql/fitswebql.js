@@ -818,8 +818,13 @@ function webgl_viewport_renderer(gl, width, height) {
 	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
 
 	// grey-out pixels for alpha = 0.0
-	var pos = fragmentShaderCode.lastIndexOf("}");// find the last '}'
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);");
+	var pos = fragmentShaderCode.lastIndexOf("}");
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
+
+	/*if (zoom_shape == "circle") {
+		pos = fragmentShaderCode.lastIndexOf("}");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (v_texcoord.z < 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");
+	}*/
 
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
 	if (webgl2) {
@@ -847,8 +852,6 @@ function webgl_viewport_renderer(gl, width, height) {
 		var pos = fragmentShaderCode.indexOf("void main()");
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
 	}
-
-	console.log(fragmentShaderCode);
 
 	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
 	viewport.program = program;

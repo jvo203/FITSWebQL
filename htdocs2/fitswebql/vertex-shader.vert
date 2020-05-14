@@ -5,7 +5,7 @@ attribute vec4 a_position;
 
 uniform vec4 box;
 
-varying vec2 v_texcoord;
+varying vec4 v_texcoord;
      
 void main() {
      float xmin = box.x;
@@ -19,5 +19,8 @@ void main() {
      // apply an image bounding box
      vec2 a = 0.5 * vec2(width, height); 
      vec2 c = a + vec2(xmin, ymin);
-     v_texcoord = a * a_position.xy + c;     
+     v_texcoord.xy = a * a_position.xy + c;
+
+     // pass the original coordinates to the circular viewport
+     v_texcoord.zw = a_position.xy;
 }
