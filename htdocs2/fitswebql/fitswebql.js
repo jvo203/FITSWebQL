@@ -9276,12 +9276,14 @@ function setup_image_selection() {
 			mouse_position = { x: offset[0], y: offset[1] };
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
+			
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
 			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
 			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
-			
+
 			try {
 				let raText = 'RA N/A';
 				let decText = 'DEC N/A';
@@ -9426,9 +9428,7 @@ function setup_image_selection() {
 					swap_viewports();
 				}
 			}
-
-			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
-
+			
 			// update image updates
 			if (!mousedown) {
 				var sel_width = clipSize * scale;
