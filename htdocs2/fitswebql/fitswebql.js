@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-14.0";
+	return "JS2020-05-15.0";
 }
 
 const wasm_supported = (() => {
@@ -821,10 +821,10 @@ function webgl_viewport_renderer(gl, width, height) {
 	var pos = fragmentShaderCode.lastIndexOf("}");
 	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
 
-	/*if (zoom_shape == "circle") {
+	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
-		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (v_texcoord.z < 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");
-	}*/
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "float r_x = v_texcoord.z;\n float r_y = v_texcoord.w;\n if (r_x * r_x + r_y * r_y > 1.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");
+	}
 
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
 	if (webgl2) {
