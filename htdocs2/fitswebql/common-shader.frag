@@ -1274,8 +1274,4 @@ vec4 colormap_haxby(float x, float alpha) {
 void main() {
     vec4 colour = texture2D(u_texture, v_texcoord.xy);// the raw floating-point colour
 
-    // clip the coordinates
-    if(v_texcoord.x < 0.0 || v_texcoord.x > 1.0 || v_texcoord.y < 0.0 || v_texcoord.y > 1.0)
-        colour = vec4(0.0, 0.0, 0.0, 0.0);
-
     float x = colour.r;
