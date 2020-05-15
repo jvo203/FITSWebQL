@@ -9275,6 +9275,13 @@ function setup_image_selection() {
 
 			mouse_position = { x: offset[0], y: offset[1] };
 
+			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
+			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
+
+			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
+			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
+			
 			try {
 				let raText = 'RA N/A';
 				let decText = 'DEC N/A';
@@ -9379,14 +9386,14 @@ function setup_image_selection() {
 				var collision_detected = false;
 
 				if (zoom_shape == "square") {
-					var w1 = parseFloat(zoom_element.attr("width"));
-					var h1 = parseFloat(zoom_element.attr("height"));
+					let w1 = parseFloat(zoom_element.attr("width"));
+					let h1 = parseFloat(zoom_element.attr("height"));
 
-					var tmp = d3.select("#" + zoom_location);
-					var x2 = parseFloat(tmp.attr("x"));
-					var y2 = parseFloat(tmp.attr("y"));
-					var w2 = parseFloat(tmp.attr("width"));
-					var h2 = parseFloat(tmp.attr("height"));
+					let tmp = d3.select("#" + zoom_location);
+					let x2 = parseFloat(tmp.attr("x"));
+					let y2 = parseFloat(tmp.attr("y"));
+					let w2 = parseFloat(tmp.attr("width"));
+					let h2 = parseFloat(tmp.attr("height"));
 
 					if (zoom_location == "upper")
 						if (((offset[0] - w1 / 2) < (x2 + w2)) && (offset[1] - h1 / 2) < (y2 + h2))
@@ -9398,17 +9405,17 @@ function setup_image_selection() {
 				}
 
 				if (zoom_shape == "circle") {
-					var r1 = parseFloat(zoom_element.attr("r"));
+					let r1 = parseFloat(zoom_element.attr("r"));
 
-					var tmp = d3.select("#" + zoom_location);
+					let tmp = d3.select("#" + zoom_location);
 
-					var x = parseFloat(tmp.attr("cx"));
-					var y = parseFloat(tmp.attr("cy"));
-					var r2 = parseFloat(tmp.attr("r"));
+					let x = parseFloat(tmp.attr("cx"));
+					let y = parseFloat(tmp.attr("cy"));
+					let r2 = parseFloat(tmp.attr("r"));
 
-					var dx = offset[0] - x;
-					var dy = offset[1] - y;
-					var rSq = dx * dx + dy * dy;
+					let dx = offset[0] - x;
+					let dy = offset[1] - y;
+					let rSq = dx * dx + dy * dy;
 
 					if (rSq < (r1 + r2) * (r1 + r2))
 						collision_detected = true;
@@ -9419,13 +9426,6 @@ function setup_image_selection() {
 					swap_viewports();
 				}
 			}
-
-			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
-
-			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
-			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
 
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
