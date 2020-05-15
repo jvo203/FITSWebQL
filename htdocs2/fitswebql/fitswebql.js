@@ -927,13 +927,13 @@ function webgl_viewport_renderer(gl, width, height) {
 		// Tell WebGL to use our shader program pair
 		gl.useProgram(program);
 
-		let xmin = image.image_bounding_dims.x1 / (image.width - 1);
-		let ymin = image.image_bounding_dims.y1 / (image.height - 1);
-		let _width = image.image_bounding_dims.width / image.width;
-		let _height = image.image_bounding_dims.height / image.height;
+		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 1);
+		let ymin = (viewport_zoom_settings.y + viewport_zoom_settings.clipSize) / (image.height - 1);		
+		let _width = (2 * viewport_zoom_settings.clipSize + 1) / image.width;
+		let _height = (2 * viewport_zoom_settings.clipSize + 1)/ image.height;
 
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
-		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
+		gl.uniform4fv(locationOfBox, [xmin, 1.0 - ymin, _width, _height]);
 
 		// get the multiplier
 		var noise_sensitivity = document.getElementById('sensitivity' + index).value;
@@ -9275,13 +9275,6 @@ function setup_image_selection() {
 
 			mouse_position = { x: offset[0], y: offset[1] };
 
-			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
-			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
-
-			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
-			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
-
 			try {
 				let raText = 'RA N/A';
 				let decText = 'DEC N/A';
@@ -9427,6 +9420,13 @@ function setup_image_selection() {
 				}
 			}
 
+			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
+			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
+
+			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
+			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
+
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
 			// update image updates
@@ -9462,7 +9462,7 @@ function setup_image_selection() {
 				py = Math.round(py);
 
 				//image_stack.push({ x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size });
-				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };
+				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };				
 			}
 
 			now = performance.now();
