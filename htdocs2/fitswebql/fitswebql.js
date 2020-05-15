@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-15.0";
+	return "JS2020-05-15.1";
 }
 
 const wasm_supported = (() => {
@@ -802,11 +802,13 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	return program;
 };
 
-function webgl_viewport_renderer(gl, width, height) {
+function webgl_viewport_renderer(gl, height) {
 	var image = imageContainer[va_count - 1];
 
-	if (image == null)
+	if (image == null) {
+		console.log("webgl_viewport_renderer: null image");
 		return;
+	}
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
@@ -860,7 +862,7 @@ function webgl_viewport_renderer(gl, width, height) {
 	var positionLocation = gl.getAttribLocation(program, "a_position");
 
 	// Create a position buffer
-	var positionBuffer = gl.createBuffer();
+	var positionBuffer = gl.createBuffer();	
 	viewport.positionBuffer = positionBuffer;
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -898,8 +900,9 @@ function webgl_viewport_renderer(gl, width, height) {
 	}
 
 	// shoud be done in an animation loop
-	function viewport_rendering_loop() {
+	function viewport_rendering_loop() {		
 		if (viewport_zoom_settings == null) {
+			console.log("webgl_viewport_renderer: null viewport_zoom_settings");
 			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 			return;
 		}
@@ -967,9 +970,8 @@ function webgl_viewport_renderer(gl, width, height) {
 }
 
 function init_webgl_viewport_buffers() {
-	//place the image onto the main canvas
+	// place the viewport onto the zoom canvas
 	var canvas = document.getElementById('ZOOMCanvas');
-	var width = canvas.width;
 	var height = canvas.height;
 
 	if (webgl1 || webgl2) {
@@ -999,7 +1001,7 @@ function init_webgl_viewport_buffers() {
 		ctx.getExtension('EXT_color_buffer_float');
 
 		// call the common WebGL renderer
-		webgl_viewport_renderer(ctx, width, height);
+		webgl_viewport_renderer(ctx, height);
 	} else if (webgl1) {
 		var ctx = canvas.getContext("webgl");
 		viewport.gl = ctx;
@@ -1010,7 +1012,7 @@ function init_webgl_viewport_buffers() {
 		ctx.getExtension('OES_texture_float_linear');
 
 		// call the common WebGL renderer
-		webgl_viewport_renderer(ctx, width, height);
+		webgl_viewport_renderer(ctx, height);
 	} else {
 		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 		return;
@@ -7930,6 +7932,7 @@ function setup_viewports() {
 function swap_viewports() {
 	if (viewport != null) {
 		// Clear the ZOOM Canvas
+		console.log("clearing the ZOOM Canvas");
 		var gl = viewport.gl;
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
@@ -7982,6 +7985,7 @@ function fits_subregion_start() {
 
 	if (viewport != null) {
 		// Clear the ZOOM Canvas
+		console.log("clearing the ZOOM Canvas");
 		var gl = viewport.gl;
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
@@ -8018,6 +8022,7 @@ function fits_subregion_drag() {
 
 	if (viewport != null) {
 		// Clear the ZOOM Canvas
+		console.log("clearing the ZOOM Canvas");
 		var gl = viewport.gl;
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
@@ -8935,10 +8940,6 @@ function setup_image_selection() {
 
 	//set up the spectrum rendering loop
 	function update_spectrum() {
-
-		if (!windowLeft)
-			requestAnimationFrame(update_spectrum);
-
 		spec_now = performance.now();
 		spec_elapsed = spec_now - spec_then;
 
@@ -9030,6 +9031,9 @@ function setup_image_selection() {
 			}
 
 		}
+
+		if (!windowLeft)
+			requestAnimationFrame(update_spectrum);
 	}
 
 	//svg image rectangle for zooming-in
@@ -9110,6 +9114,7 @@ function setup_image_selection() {
 			// clear the ZOOMCanvas in WebGL
 			if (viewport != null) {
 				// Clear the ZOOM Canvas
+				console.log("clearing the ZOOM Canvas");
 				var gl = viewport.gl;
 				gl.clearColor(0, 0, 0, 0);
 				gl.clear(gl.COLOR_BUFFER_BIT);
