@@ -1276,6 +1276,6 @@ void main() {
 
     // clip the coordinates
     if(v_texcoord.x < 0.0 || v_texcoord.x > 1.0 || v_texcoord.y < 0.0 || v_texcoord.y > 1.0)
-        colour.a = 0.0;
+        colour = vec4(0.0, 0.0, 0.0, 0.0);
 
     float x = colour.r;
