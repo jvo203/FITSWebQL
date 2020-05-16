@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-15.1";
+	return "JS2020-05-16.0";
 }
 
 const wasm_supported = (() => {
@@ -9058,9 +9058,8 @@ function setup_image_selection() {
 		.on("mouseenter", function () {
 			hide_navigation_bar();
 
-			// cancel the animation loop
-			var image = imageContainer[va_count - 1];
-			cancelAnimationFrame(image.loopId);
+			// cancel the image animation loop
+			clear_webgl_image_buffers(va_count);
 
 			try {
 				zoom_beam();
