@@ -742,7 +742,7 @@ function createAndCompileShader(gl, type, source) {
 
 	// Check for any compiler errors
 	var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-	if (!compiled) {
+	if (!compiled && !gl.isContextLost()) {
 		// There are errors, so display them
 		var errors = gl.getShaderInfoLog(shader);
 		console.error('Failed to compile ' + typeName + ' with these errors:' + errors);
@@ -785,7 +785,7 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 
 	// Check for success
 	var linked = gl.getProgramParameter(program, gl.LINK_STATUS);
-	if (!linked) {
+	if (!linked && !gl.isContextLost()) {
 		// There were errors, so get the errors and display them.
 		var error = gl.getProgramInfoLog(program);
 		console.error('Fatal error: Failed to link program: ' + error);
@@ -803,6 +803,9 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 };
 
 function webgl_viewport_renderer(gl, height) {
+	// a hack to make a viewport display in Apple Safari!!!
+	document.getElementById('menu').style.display = "block";
+	
 	var image = imageContainer[va_count - 1];
 
 	if (image == null) {
@@ -827,6 +830,13 @@ function webgl_viewport_renderer(gl, height) {
 		pos = fragmentShaderCode.lastIndexOf("}");
 		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "float r_x = v_texcoord.z;\n float r_y = v_texcoord.w;\n if (r_x * r_x + r_y * r_y > 1.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");
 	}
+
+	// testing purposes
+	/*{
+		pos = fragmentShaderCode.lastIndexOf("}");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "gl_FragColor.rgba = vec4(255.0, 0.0, 0.0, 0.5);\n");
+	}*/
+
 
 	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
 	if (webgl2) {
@@ -862,7 +872,7 @@ function webgl_viewport_renderer(gl, height) {
 	var positionLocation = gl.getAttribLocation(program, "a_position");
 
 	// Create a position buffer
-	var positionBuffer = gl.createBuffer();	
+	var positionBuffer = gl.createBuffer();
 	viewport.positionBuffer = positionBuffer;
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -900,7 +910,7 @@ function webgl_viewport_renderer(gl, height) {
 	}
 
 	// shoud be done in an animation loop
-	function viewport_rendering_loop() {		
+	function viewport_rendering_loop() {
 		if (viewport_zoom_settings == null) {
 			console.log("webgl_viewport_renderer: null viewport_zoom_settings");
 			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
@@ -931,9 +941,9 @@ function webgl_viewport_renderer(gl, height) {
 		gl.useProgram(program);
 
 		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 1);
-		let ymin = (viewport_zoom_settings.y + viewport_zoom_settings.clipSize) / (image.height - 1);		
+		let ymin = (viewport_zoom_settings.y + viewport_zoom_settings.clipSize) / (image.height - 1);
 		let _width = (2 * viewport_zoom_settings.clipSize + 1) / image.width;
-		let _height = (2 * viewport_zoom_settings.clipSize + 1)/ image.height;
+		let _height = (2 * viewport_zoom_settings.clipSize + 1) / image.height;
 
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
 		gl.uniform4fv(locationOfBox, [xmin, 1.0 - ymin, _width, _height]);
@@ -963,10 +973,14 @@ function webgl_viewport_renderer(gl, height) {
 		// draw the quad (2 triangles, 6 vertices)
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
+		// a hack to make a viewport display in Apple Safari!!!
+		document.getElementById('menu').style.display = "block";
+		document.getElementById('menu').style.display = "none";
+
 		viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 	};
 
-	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);	
 }
 
 function init_webgl_viewport_buffers() {
@@ -9104,7 +9118,7 @@ function setup_image_selection() {
 				initKalman();
 
 			resetKalman();
-
+			
 			init_webgl_viewport_buffers();
 		})
 		.on("mouseleave", function () {
@@ -9281,7 +9295,7 @@ function setup_image_selection() {
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
-			
+
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
@@ -9432,7 +9446,7 @@ function setup_image_selection() {
 					swap_viewports();
 				}
 			}
-			
+
 			// update image updates
 			if (!mousedown) {
 				var sel_width = clipSize * scale;
@@ -9466,7 +9480,7 @@ function setup_image_selection() {
 				py = Math.round(py);
 
 				//image_stack.push({ x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size });
-				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };				
+				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };
 			}
 
 			now = performance.now();
