@@ -803,9 +803,6 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 };
 
 function webgl_viewport_renderer(gl, height) {
-	// a hack to make a viewport display in Apple Safari!!!
-	document.getElementById('menu').style.display = "block";
-	
 	var image = imageContainer[va_count - 1];
 
 	if (image == null) {
@@ -973,19 +970,16 @@ function webgl_viewport_renderer(gl, height) {
 		// draw the quad (2 triangles, 6 vertices)
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-		// a hack to make a viewport display in Apple Safari!!!
-		document.getElementById('menu').style.display = "block";
-		document.getElementById('menu').style.display = "none";
-
 		viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 	};
 
-	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);	
+	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 }
 
 function init_webgl_viewport_buffers() {
 	// place the viewport onto the zoom canvas
 	var canvas = document.getElementById('ZOOMCanvas');
+	canvas.style.display = "block";// a hack needed by Apple Safari
 	var height = canvas.height;
 
 	if (webgl1 || webgl2) {
@@ -9118,7 +9112,7 @@ function setup_image_selection() {
 				initKalman();
 
 			resetKalman();
-			
+
 			init_webgl_viewport_buffers();
 		})
 		.on("mouseleave", function () {
