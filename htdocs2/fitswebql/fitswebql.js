@@ -1054,6 +1054,7 @@ function clear_webgl_viewport_buffers() {
 function init_webgl_image_buffers(index) {
 	//place the image onto the main canvas
 	var canvas = document.getElementById('HTMLCanvas');
+	canvas.style.display = "block";// a hack needed by Apple Safari
 	var width = canvas.width;
 	var height = canvas.height;
 
@@ -12733,6 +12734,7 @@ function update_legend() {
 function init_webgl_legend_buffers(index) {
 	//place the image onto the main canvas
 	var canvas = document.getElementById('legendCanvas');
+	canvas.style.display = "block";// a hack needed by Apple Safari
 	var width = canvas.width;
 	var height = canvas.height;
 
