@@ -906,12 +906,24 @@ function webgl_viewport_renderer(gl, height) {
 		console.error(status);
 	}
 
+	var last_viewport_loop = 0;
+
 	// shoud be done in an animation loop
 	function viewport_rendering_loop() {
 		if (viewport_zoom_settings == null) {
 			console.log("webgl_viewport_renderer: null viewport_zoom_settings");
 			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 			return;
+		}
+
+		let now = performance.now();
+
+		// limit the FPS
+		if (now - last_viewport_loop < 1000 / 30) {
+			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+			return;
+		} else {
+			last_viewport_loop = now;
 		}
 
 		let index = va_count;
@@ -1261,8 +1273,20 @@ function webgl_image_renderer(index, gl, width, height) {
 		console.error(status);
 	}
 
+	var last_image_loop = 0;
+
 	// shoud be done in an animation loop
-	function image_rendering_loop() {
+	function image_rendering_loop() {		
+		let now = performance.now();
+
+		// limit the FPS
+		if (now - last_image_loop < 1000 / 30) {
+			image.loopId = requestAnimationFrame(image_rendering_loop);
+			return;
+		} else {
+			last_image_loop = now;
+		}
+
 		//WebGL how to convert from clip space to pixels	
 		gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
 
