@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-16.0";
+	return "JS2020-05-18.0";
 }
 
 const wasm_supported = (() => {
@@ -12553,6 +12553,7 @@ function display_legend() {
 		.attr("height", legendHeight);
 
 	init_webgl_legend_buffers(va_count);
+	clear_webgl_legend_buffers(va_count);
 
 	var upper_range;
 
@@ -12717,7 +12718,7 @@ function update_legend() {
 		.attr("class", "colouraxis")
 		.attr("id", "legendaxis")
 		.style("stroke-width", emStrokeWidth / 2)
-		.attr("transform", "translate(" + ((width - img_width) / 2 - 1.5 * rectWidth) + "," + 0.1 * height + ")")
+		.attr("transform", "translate(" + ((width - img_width) / 2 - 2.0 * rectWidth) + "," + 0.1 * height + ")")
 		.call(colourAxis);
 }
 
