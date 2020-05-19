@@ -744,7 +744,7 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
   height = labs(y2 - y1) + 1;
 }
 
-void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int dx, float quality, bool image_update, int x1, int x2, int y1, int y2, float frame_start, float frame_end, float ref_freq, beam_shape beam, intensity_mode intensity, int seq, float timestamp)
+void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int dx, float quality, bool image_update, int x1, int x2, int y1, int y2, double frame_start, double frame_end, double ref_freq, beam_shape beam, intensity_mode intensity, int seq, float timestamp)
 {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>(
@@ -2339,9 +2339,9 @@ int main(int argc, char *argv[])
         int x2 = -1;
         int y1 = -1;
         int y2 = -1;
-        float frame_start = 0;
-        float frame_end = 0;
-        float ref_freq = 0;
+        double frame_start = 0;
+        double frame_end = 0;
+        double ref_freq = 0;
         float timestamp = 0;
         intensity_mode intensity = mean;
         beam_shape beam = square;
@@ -2390,13 +2390,13 @@ int main(int argc, char *argv[])
               y2 = std::stoi(value);
 
             if (key.find("frame_start") != std::string::npos)
-              frame_start = std::stof(value);
+              frame_start = std::stod(value);
 
             if (key.find("frame_end") != std::string::npos)
-              frame_end = std::stof(value);
+              frame_end = std::stod(value);
 
             if (key.find("ref_freq") != std::string::npos)
-              ref_freq = std::stof(value);
+              ref_freq = std::stod(value);
 
             if (key.find("timestamp") != std::string::npos)
               timestamp = std::stof(value);
