@@ -759,7 +759,7 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
   res->end(stream_generator(queue));
 
   // launch a separate spectrum/viewport thread
-  std::thread([queue, fits, dx, quality, image_update]() {
+  std::thread([queue, fits, dx, quality, image_update, x1, x2, y1, y2, frame_start, frame_end, ref_freq, beam, intensity, seq, timestamp]() {
     float compression_level = quality; //100.0f; // default is 45.0f
 
     // (...)
@@ -2407,7 +2407,7 @@ int main(int argc, char *argv[])
         }
 
         // process the response
-        std::cout << "realtime(" << datasetid << "::" << dx
+        std::cout << "query(" << datasetid << "::" << dx
                   << "::" << quality << "::" << (image_update ? "true" : "false")
                   << "::<" << x1 << "-" << x2 << "," << y1 << "-" << y2
                   << ">::" << frame_start << "::" << frame_end << "::" << ref_freq
