@@ -744,6 +744,23 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
   height = labs(y2 - y1) + 1;
 }
 
+void stream_realtime_image_viewport(const response *res, std::shared_ptr<FITS> fits, int dx, float quality, bool image_update, int x1, int x2, int y1, int y2, float frame_start, float frame_end, float ref_freq, beam_shape beam, intensity_mode intensity, int seq, float timestamp)
+{
+  header_map mime;
+  mime.insert(std::pair<std::string, header_value>(
+      "Content-Type", {"application/octet-stream", false}));
+  mime.insert(std::pair<std::string, header_value>("Cache-Control",
+                                                   {"no-cache", false}));
+
+  res->write_head(200, mime);
+
+  struct TransmitQueue *queue = new TransmitQueue();
+
+  res->end(stream_generator(queue));
+
+  // launch a separate spectrum/viewport thread
+}
+
 void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int _width,
                            int _height, float quality, bool fetch_data)
 {
@@ -2399,8 +2416,8 @@ int main(int argc, char *argv[])
             if (!fits->has_data)
               return http_not_found(&res);
             else
-              return http_not_implemented(&res);
-            //return stream_image_spectrum(&res, fits, width, height, quality, fetch_data);
+              //return http_not_implemented(&res);
+              return stream_realtime_image_viewport(&res, fits, dx, quality, image_update, x1, x2, y1, y2, frame_start, frame_end, ref_freq, beam, intensity, seq, timestamp);
           }
         }
       }
