@@ -107,6 +107,7 @@ private:
   void frame_reference_unit();
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
+  void get_bounds(float frame_start, float frame_end, float ref_freq, int& start, int& end) ;
   void make_image_statistics();
   void make_image_luma();
   void make_exr_image();
