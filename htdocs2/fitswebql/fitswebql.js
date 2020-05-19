@@ -9566,7 +9566,7 @@ function setup_image_selection() {
 						var range = get_axes_range(width, height);
 						var dx = range.xMax - range.xMin;
 
-						var url = 'realtime?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=false&quality=' + image_quality;
+						var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=false&quality=' + image_quality;
 						url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 						url += '&timestamp=' + performance.now();
 
