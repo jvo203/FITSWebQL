@@ -762,6 +762,9 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
   std::thread([queue, fits, dx, quality, image_update, x1, x2, y1, y2, frame_start, frame_end, ref_freq, beam, intensity, seq, timestamp]() {
     float compression_level = quality; //100.0f; // default is 45.0f
 
+    int start, end;
+    fits->get_fits_bounds(frame_start, frame_end, ref_freq, start, end);
+
     // (...)
 
     std::lock_guard<std::mutex> guard(queue->mtx);
