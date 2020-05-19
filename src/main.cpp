@@ -763,7 +763,7 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     float compression_level = quality; //100.0f; // default is 45.0f
 
     int start, end;
-    fits->get_fits_bounds(frame_start, frame_end, ref_freq, start, end);
+    fits->get_bounds(frame_start, frame_end, ref_freq, start, end);
 
     // (...)
 
