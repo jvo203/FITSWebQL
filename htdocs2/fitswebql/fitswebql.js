@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-18.0";
+	return "JS2020-05-19.0";
 }
 
 const wasm_supported = (() => {
@@ -1276,7 +1276,7 @@ function webgl_image_renderer(index, gl, width, height) {
 	var last_image_loop = 0;
 
 	// shoud be done in an animation loop
-	function image_rendering_loop() {		
+	function image_rendering_loop() {
 		let now = performance.now();
 
 		// limit the FPS
@@ -9287,7 +9287,10 @@ function setup_image_selection() {
 			if (fitsData == null)
 				return;
 
-			document.getElementById("SpectrumCanvas").getContext('2d').globalAlpha = 1.0;
+			var elem = document.getElementById("SpectrumCanvas");
+			elem.getContext('2d').globalAlpha = 1.0;
+			var width = elem.width;
+			var height = elem.height;
 
 			moving = true;
 			clearTimeout(idleMouse);
@@ -9559,12 +9562,27 @@ function setup_image_selection() {
 						/*let frame_bounds = get_frame_bounds(data_band_lo, data_band_hi, index) ;
 						console.log("frame_bounds:", frame_bounds) ;*/
 
-						// fire off an HTTP/2 request
-						/*if (wsConn[index].readyState == 1) {
-							let strRequest = 'x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&image=false&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+						// fire off an HTTP/2 PUT request						
+						var range = get_axes_range(width, height);
+						var dx = range.xMax - range.xMin;
 
-							wsConn[index].send('[spectrum] ' + strRequest + '&timestamp=' + performance.now());
-						}*/
+						var url = 'realtime?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=false&quality=' + image_quality;
+						url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+						url += '&timestamp=' + performance.now();
+
+						var xmlhttp = new XMLHttpRequest();
+
+						xmlhttp.onreadystatechange = function () {
+							if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+								var received_msg = xmlhttp.response;
+								console.log(received_msg);
+							}
+						}
+
+						xmlhttp.open("PUT", url, true);//"PUT" to disable caching
+						//xmlhttp.responseType = 'arraybuffer';
+						xmlhttp.timeout = 0;
+						xmlhttp.send();
 					}
 				}
 			}
