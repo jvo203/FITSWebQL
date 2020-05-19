@@ -759,6 +759,18 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
   res->end(stream_generator(queue));
 
   // launch a separate spectrum/viewport thread
+  std::thread([queue, fits, dx, quality, image_update]() {
+    float compression_level = quality; //100.0f; // default is 45.0f
+
+    // (...)
+
+    std::lock_guard<std::mutex> guard(queue->mtx);
+    printf("[stream_realtime_image_spectrum] number of remaining bytes: %zu\n",
+           queue->fifo.size());
+
+    // end of chunked encoding
+    queue->eof = true;
+  }).detach();
 }
 
 void stream_image_spectrum(const response *res, std::shared_ptr<FITS> fits, int _width,
@@ -2310,7 +2322,7 @@ int main(int argc, char *argv[])
       }
 
       // real-time spectrum/viewport updates
-      if (uri.find("/realtime") != std::string::npos)
+      if (uri.find("/realtime_image_spectrum") != std::string::npos)
       {
         auto uri = req.uri();
         auto query = percent_decode(uri.raw_query);
