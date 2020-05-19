@@ -99,6 +99,7 @@ public:
   void from_path_mmap(std::string path, bool is_compressed, std::string flux,
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
+  void get_bounds(double frame_start, double frame_end, double ref_freq, int& start, int& end) ;
   void to_json(std::ostringstream &json);
 
 private:
@@ -107,7 +108,6 @@ private:
   void frame_reference_unit();
   void frame_reference_type();
   bool process_fits_header_unit(const char *buf);
-  void get_bounds(float frame_start, float frame_end, float ref_freq, int& start, int& end) ;
   void make_image_statistics();
   void make_image_luma();
   void make_exr_image();
