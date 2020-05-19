@@ -2299,6 +2299,7 @@ int main(int argc, char *argv[])
         auto query = percent_decode(uri.raw_query);
 
         std::string datasetid;
+        int seq = -1;
         int dx = 0;
         float quality = 45;
         bool image_update = false;
@@ -2309,6 +2310,9 @@ int main(int argc, char *argv[])
         float frame_start = 0;
         float frame_end = 0;
         float ref_freq = 0;
+        float timestamp = 0;
+        intensity_mode intensity = mean;
+        beam_shape beam = square;
 
         std::vector<std::string> params;
         boost::split(params, query, [](char c) { return c == '&'; });
@@ -2325,6 +2329,9 @@ int main(int argc, char *argv[])
 
             if (key.find("dataset") != std::string::npos)
               datasetid = value;
+
+            if (key.find("seq") != std::string::npos)
+              seq = std::stoi(value);
 
             if (key.find("dx") != std::string::npos)
               dx = std::stoi(value);
@@ -2358,6 +2365,15 @@ int main(int argc, char *argv[])
 
             if (key.find("ref_freq") != std::string::npos)
               ref_freq = std::stof(value);
+
+            if (key.find("timestamp") != std::string::npos)
+              timestamp = std::stof(value);
+
+            if (key.find("beam") != std::string::npos)
+              beam = (strcasecmp("circle", value.c_str()) == 0) ? circle : square;
+
+            if (key.find("intensity") != std::string::npos)
+              intensity = (strcasecmp("integrated", value.c_str()) == 0) ? integrated : mean;
           }
         }
 
@@ -2366,7 +2382,9 @@ int main(int argc, char *argv[])
                   << "::" << quality << "::" << (image_update ? "true" : "false")
                   << "::<" << x1 << "-" << x2 << "," << y1 << "-" << y2
                   << ">::" << frame_start << "::" << frame_end << "::" << ref_freq
-                  << ")" << std::endl;
+                  << "::" << (beam == circle ? "circle" : "square")
+                  << "::" << (intensity == integrated ? "integrated" : "mean")
+                  << "::" seq << "::" << timestamp << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
