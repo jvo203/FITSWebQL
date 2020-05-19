@@ -529,6 +529,10 @@ void FITS::frame_reference_unit()
   };
 }
 
+void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end)
+{
+}
+
 void FITS::get_frequency_range(double &freq_start, double &freq_end)
 {
   if (has_velocity)
