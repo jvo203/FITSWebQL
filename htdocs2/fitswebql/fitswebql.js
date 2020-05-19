@@ -9580,7 +9580,7 @@ function setup_image_selection() {
 						}
 
 						xmlhttp.open("PUT", url, true);//"PUT" to disable caching
-						//xmlhttp.responseType = 'arraybuffer';
+						xmlhttp.responseType = 'arraybuffer';
 						xmlhttp.timeout = 0;
 						xmlhttp.send();
 					}
