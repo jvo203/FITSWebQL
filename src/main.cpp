@@ -2302,6 +2302,13 @@ int main(int argc, char *argv[])
         int dx = 0;
         float quality = 45;
         bool image_update = false;
+        int x1 = -1;
+        int x2 = -1;
+        int y1 = -1;
+        int y2 = -1;
+        float frame_start = 0;
+        float frame_end = 0;
+        float ref_freq = 0;
 
         std::vector<std::string> params;
         boost::split(params, query, [](char c) { return c == '&'; });
@@ -2317,31 +2324,49 @@ int main(int argc, char *argv[])
             std::string value = s.substr(pos + 1, std::string::npos);
 
             if (key.find("dataset") != std::string::npos)
-            {
               datasetid = value;
-            }
 
             if (key.find("dx") != std::string::npos)
-            {
               dx = std::stoi(value);
-            }
 
             if (key.find("quality") != std::string::npos)
-            {
               quality = std::stof(value);
-            }
 
             if (key.find("image") != std::string::npos)
             {
               if (value == "true")
                 image_update = true;
             }
+
+            if (key.find("x1") != std::string::npos)
+              x1 = std::stoi(value);
+
+            if (key.find("x2") != std::string::npos)
+              x2 = std::stoi(value);
+
+            if (key.find("y1") != std::string::npos)
+              y1 = std::stoi(value);
+
+            if (key.find("y2") != std::string::npos)
+              y2 = std::stoi(value);
+
+            if (key.find("frame_start") != std::string::npos)
+              frame_start = std::stof(value);
+
+            if (key.find("frame_end") != std::string::npos)
+              frame_end = std::stof(value);
+
+            if (key.find("ref_freq") != std::string::npos)
+              ref_freq = std::stof(value);
           }
         }
 
         // process the response
         std::cout << "realtime(" << datasetid << "::" << dx
-                  << "::" << quality << "::" << (image_update ? "true" : "false") << ")" << std::endl;
+                  << "::" << quality << "::" << (image_update ? "true" : "false")
+                  << "::<" << x1 << "-" << x2 << "," << y1 << "-" << y2
+                  << ">::" << frame_start << "::" << frame_end << "::" << ref_freq
+                  << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
