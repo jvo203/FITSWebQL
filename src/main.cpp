@@ -10,7 +10,7 @@
 #define WSS_PORT 8081
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-05-08.0"
+#define VERSION_STRING "SV2020-05-19.0"
 #define WASM_VERSION "20.05.08.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
@@ -2288,6 +2288,76 @@ int main(int argc, char *argv[])
               return http_accepted(&res);
             else
               return get_spectrum(&res, fits);
+          }
+        }
+      }
+
+      // real-time spectrum/viewport updates
+      if (uri.find("/realtime") != std::string::npos)
+      {
+        auto uri = req.uri();
+        auto query = percent_decode(uri.raw_query);
+
+        std::string datasetid;
+        int dx = 0;
+        float quality = 45;
+        bool image_update = false;
+
+        std::vector<std::string> params;
+        boost::split(params, query, [](char c) { return c == '&'; });
+
+        for (auto const &s : params)
+        {
+          // find '='
+          size_t pos = s.find("=");
+
+          if (pos != std::string::npos)
+          {
+            std::string key = s.substr(0, pos);
+            std::string value = s.substr(pos + 1, std::string::npos);
+
+            if (key.find("dataset") != std::string::npos)
+            {
+              datasetid = value;
+            }
+
+            if (key.find("dx") != std::string::npos)
+            {
+              dx = std::stoi(value);
+            }
+
+            if (key.find("quality") != std::string::npos)
+            {
+              quality = std::stof(value);
+            }
+
+            if (key.find("image") != std::string::npos)
+            {
+              if (value == "true")
+                image_update = true;
+            }
+          }
+        }
+
+        // process the response
+        std::cout << "realtime(" << datasetid << "::" << dx
+                  << "::" << quality << "::" << (image_update ? "true" : "false") << ")" << std::endl;
+
+        auto fits = get_dataset(datasetid);
+
+        if (fits == nullptr)
+          return http_not_found(&res);
+        else
+        {
+          if (fits->has_error)
+            return http_not_found(&res);
+          else
+          {
+            if (!fits->has_data)
+              return http_not_found(&res);
+            else
+              return http_not_implemented(&res);
+            //return stream_image_spectrum(&res, fits, width, height, quality, fetch_data);
           }
         }
       }
