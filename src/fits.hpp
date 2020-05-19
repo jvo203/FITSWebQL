@@ -70,6 +70,18 @@ struct Progress
   }
 };
 
+enum intensity_mode
+{
+  mean,
+  integrated
+};
+
+enum beam_shape
+{
+  square,
+  circle
+};
+
 class FITS
 {
 public:
