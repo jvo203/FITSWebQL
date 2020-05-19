@@ -2431,8 +2431,10 @@ int main(int argc, char *argv[])
             if (!fits->has_data)
               return http_not_found(&res);
             else
-              //return http_not_implemented(&res);
+            {
+              fits->update_timestamp();
               return stream_realtime_image_spectrum(&res, fits, dx, quality, image_update, x1, x2, y1, y2, frame_start, frame_end, ref_freq, beam, intensity, seq, timestamp);
+            }
           }
         }
       }
