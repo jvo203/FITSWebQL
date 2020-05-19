@@ -2384,7 +2384,7 @@ int main(int argc, char *argv[])
                   << ">::" << frame_start << "::" << frame_end << "::" << ref_freq
                   << "::" << (beam == circle ? "circle" : "square")
                   << "::" << (intensity == integrated ? "integrated" : "mean")
-                  << "::" seq << "::" << timestamp << ")" << std::endl;
+                  << "::" << seq << "::" << timestamp << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
