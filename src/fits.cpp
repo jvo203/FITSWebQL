@@ -2980,7 +2980,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   this->progress.elapsed = elapsed;
 }
 
-std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam)
+std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed)
 {
   std::shared_ptr<Ipp32f> null_result;
 
@@ -3064,6 +3064,8 @@ std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, i
                           steady_clock::period::num /
                           static_cast<double>(steady_clock::period::den);
   double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  elapsed = elapsedMilliseconds;
 
   return spectrum_buf;
 }
