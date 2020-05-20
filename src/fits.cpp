@@ -529,7 +529,7 @@ void FITS::frame_reference_unit()
   };
 }
 
-void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end)
+void FITS::get_spectrum_range(double frame_start, double frame_end, double ref_freq, int &start, int &end)
 {
   if (depth <= 1)
   {
@@ -540,7 +540,7 @@ void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int
 
   int _start, _end;
 
-  if (has_velocity && ref_freq > 0.0f)
+  if (has_velocity && ref_freq > 0.0)
   {
     get_freq2vel_bounds(frame_start, frame_end, ref_freq, _start, _end);
 
@@ -550,7 +550,7 @@ void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int
     return;
   }
 
-  if (has_frequency && ref_freq > 0.0f)
+  if (has_frequency && ref_freq > 0.0)
   {
     get_frequency_bounds(frame_start, frame_end, _start, _end);
 
@@ -571,11 +571,173 @@ void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int
   }
 }
 
+void FITS::get_freq2vel_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end)
+{
+  if (!has_header)
+  {
+    start = 0;
+    end = 0;
+    return;
+  }
+
+  if (depth <= 1)
+  {
+    start = 0;
+    end = 0;
+    return;
+  }
+
+  if ((restfrq <= 0.0) && (ref_freq <= 0.0))
+  {
+    start = 0;
+    end = depth - 1;
+    return;
+  }
+
+  double c = 299792458; //speed of light [m/s]
+  double fRatio;
+  double v1, v2;
+  double RESTFRQ;
+
+  if (ref_freq > 0.0)
+    RESTFRQ = ref_freq;
+  else
+    RESTFRQ = this->restfrq;
+
+  fRatio = frame_start / RESTFRQ;
+  v1 = (1.0 - fRatio * fRatio) / (1.0 + fRatio * fRatio) * c;
+
+  fRatio = frame_end / RESTFRQ;
+  v2 = (1.0 - fRatio * fRatio) / (1.0 + fRatio * fRatio) * c;
+
+  double x1, x2;
+
+  x1 = crpix3 + (v1 - crval3 * frame_multiplier) / (cdelt3 * frame_multiplier) - 1.0;
+  x2 = crpix3 + (v2 - crval3 * frame_multiplier) / (cdelt3 * frame_multiplier) - 1.0;
+
+  start = (int)round(x1);
+  end = (int)round(x2);
+
+  if (cdelt3 < 0.0)
+  {
+    start = depth - 1 - start;
+    end = depth - 1 - end;
+  };
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  start = MAX(start, 0);
+  start = MIN(start, depth - 1);
+
+  end = MAX(end, 0);
+  end = MIN(end, depth - 1);
+
+  std::cout << "<" << frame_start << "," << frame_end << ">\tstart = " << start << "\tend = " << end << std::endl;
+
+  return;
+}
+
+void FITS::get_frequency_bounds(double freq_start, double freq_end, int &start, int &end)
+{
+  if (FPzero(freq_start) || FPzero(freq_end))
+  {
+    start = 0;
+    end = depth - 1;
+    return;
+  }
+
+  double f1 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (1.0 - crpix3);
+  double f2 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (double(depth) - crpix3);
+
+  double band_lo = MIN(f1, f2);
+  double band_hi = MAX(f1, f2);
+
+  if (cdelt3 > 0.0)
+  {
+    start = (int)round((freq_start - band_lo) / (band_hi - band_lo) * double(depth - 1));
+    end = (int)round((freq_end - band_lo) / (band_hi - band_lo) * double(depth - 1));
+  }
+  else
+  {
+    start = (int)round((band_hi - freq_start) / (band_hi - band_lo) * double(depth - 1));
+    end = (int)round((band_hi - freq_end) / (band_hi - band_lo) * double(depth - 1));
+  };
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  start = MAX(start, 0);
+  start = MIN(start, depth - 1);
+
+  end = MAX(end, 0);
+  end = MIN(end, depth - 1);
+
+  std::cout << "<" << band_lo << "," << band_hi << ">\tdepth = " << depth << "\tstart = " << start << "\tend = " << end << std::endl;
+}
+
+void FITS::get_velocity_bounds(double vel_start, double vel_end, int &start, int &end)
+{
+  if (!has_header)
+  {
+    start = 0;
+    end = 0;
+    return;
+  }
+
+  if (depth <= 1)
+  {
+    start = 0;
+    end = 0;
+    return;
+  }
+
+  double v1 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (1.0 - crpix3);
+  double v2 = crval3 * frame_multiplier + cdelt3 * frame_multiplier * (double(depth) - crpix3);
+
+  double band_lo = MIN(v1, v2);
+  double band_hi = MAX(v1, v2);
+
+  if (cdelt3 > 0.0)
+  {
+    start = (int)round((vel_start - band_lo) / (band_hi - band_lo) * double(depth - 1));
+    end = (int)round((vel_end - band_lo) / (band_hi - band_lo) * double(depth - 1));
+  }
+  else
+  {
+    start = (int)round((band_hi - vel_start) / (band_hi - band_lo) * double(depth - 1));
+    end = (int)round((band_hi - vel_end) / (band_hi - band_lo) * double(depth - 1));
+  };
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  start = MAX(start, 0);
+  start = MIN(start, depth - 1);
+
+  end = MAX(end, 0);
+  end = MIN(end, depth - 1);
+
+  std::cout << "<" << band_lo << "," << band_hi << ">\tdepth = " << depth << "\tstart = " << start << "\tend = " << end << std::endl;
+}
+
 void FITS::get_frequency_range(double &freq_start, double &freq_end)
 {
   if (has_velocity)
   {
-    double c = 299792458.0; // speed of light [m/s]
+    double c = 299792458; // speed of light [m/s]
 
     double v1 =
         crval3 * frame_multiplier + cdelt3 * frame_multiplier * (1.0 - crpix3);

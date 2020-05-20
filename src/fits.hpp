@@ -99,7 +99,7 @@ public:
   void from_path_mmap(std::string path, bool is_compressed, std::string flux,
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
-  void get_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end);
+  void get_spectrum_range(double frame_start, double frame_end, double ref_freq, int &start, int &end);
   void to_json(std::ostringstream &json);
 
 private:
