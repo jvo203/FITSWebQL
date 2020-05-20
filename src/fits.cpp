@@ -531,6 +531,44 @@ void FITS::frame_reference_unit()
 
 void FITS::get_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end)
 {
+  if (depth <= 1)
+  {
+    start = 0;
+    end = 0;
+    return;
+  }
+
+  int _start, _end;
+
+  if (has_velocity && ref_freq > 0.0f)
+  {
+    get_freq2vel_bounds(frame_start, frame_end, ref_freq, _start, _end);
+
+    start = _start;
+    end = _end;
+
+    return;
+  }
+
+  if (has_frequency && ref_freq > 0.0f)
+  {
+    get_frequency_bounds(frame_start, frame_end, _start, _end);
+
+    start = _start;
+    end = _end;
+
+    return;
+  }
+
+  if (has_velocity)
+  {
+    get_velocity_bounds(frame_start, frame_end, _start, _end);
+
+    start = _start;
+    end = _end;
+
+    return;
+  }
 }
 
 void FITS::get_frequency_range(double &freq_start, double &freq_end)
