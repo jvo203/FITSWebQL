@@ -100,7 +100,7 @@ public:
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
   void get_spectrum_range(double frame_start, double frame_end, double ref_freq, int &start, int &end);
-  std::shared_ptr<Ipp32f> get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam);
+  std::shared_ptr<Ipp32f> get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed);
   void to_json(std::ostringstream &json);
 
 private:
