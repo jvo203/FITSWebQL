@@ -7,11 +7,12 @@
 
 #define BEACON_PORT 50000
 #define HTTPS_PORT 8080
-#define WSS_PORT 8081
+
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
-#define VERSION_STRING "SV2020-05-19.0"
+
 #define WASM_VERSION "20.05.08.0"
+#define VERSION_STRING "SV2020-05-20.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
@@ -1664,9 +1665,6 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
 #endif
               "' data-has-fits='" +
               std::to_string(has_fits) + "'></div>\n");
-
-  html.append("<script>var WS_SOCKET = 'wss://'; WS_PORT = " +
-              std::to_string(WSS_PORT) + ";</script>");
 
   // the page entry point
   html.append(R"(<script>
