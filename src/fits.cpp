@@ -2982,6 +2982,86 @@ void FITS::send_progress_notification(size_t running, size_t total)
 
 void FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam)
 {
+  //sanity checks
+  if (bitpix != -32)
+    return;
+
+  if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
+    return;
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  // passed the sanity checks
+  int length = end - start + 1;
+
+  std::shared_ptr<Ipp32f> spectrum_buf(ippsMalloc_32f(length), Ipp32fFree);
+  float *spectrum = spectrum_buf.get();
+
+  if (spectrum == NULL)
+    return;
+
+  size_t total_size = height * width;
+
+  int _x1 = MAX(0, x1);
+  int _y1 = MAX(0, y1);
+  int _x2 = MIN(width, x2);
+  int _y2 = MIN(height, y2);
+
+  //include at least one pixel
+  if (_x1 == _x2)
+    _x2 = _x1 + 1;
+
+  if (_y1 == _y2)
+    _y2 = _y1 + 1;
+
+  bool average = (intensity == mean) ? true : false;
+
+  int _cx = 0;
+  int _cy = 0;
+  int _r = 0;
+  int _r2 = 0;
+
+  if (beam == circle)
+  {
+    //calculate the centre and squared radius
+    _cx = (_x1 + _x2) >> 1;
+    _cy = (_y1 + _y2) >> 1;
+    _r = MIN((_x2 - _x1) >> 1, (_y2 - _y1) >> 1);
+    _r2 = _r * _r;
+  };
+
+  auto start_t = steady_clock::now();
+
+  float cdelt3 = (has_velocity && depth > 1) ? cdelt3 * frame_multiplier / 1000.0f : 1.0f;
+
+#pragma omp parallel for
+  for (size_t i = start; i <= end; i++)
+  {
+    float spectrum_value = 0.0f;
+
+    if (fits_cube[i] != NULL)
+    {
+      if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, datamin, datamax, width, total_size, 0, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, cdelt3);
+
+      if (beam == square)
+        spectrum_value = ispc::calculate_square_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, datamin, datamax, width, total_size, 0, _x1, _x2, _y1, _y2, average, cdelt3);
+    }
+
+    spectrum[i - start] = spectrum_value;
+  }
+
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 }
 
 void FITS::zfp_compress()
