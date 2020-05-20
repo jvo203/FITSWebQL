@@ -766,9 +766,22 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     int start, end;
     fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-    // (...)
+    if (image_update)
+    {
+      std::lock_guard<std::mutex> guard(queue->mtx);
+      // append the compressed viewport
+    }
+
+    // calculate a viewport spectrum
+    if (fits->depth > 1)
+    {
+      fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam);
+    }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
+
+    // append the spectrum
+
     printf("[stream_realtime_image_spectrum] number of remaining bytes: %zu\n",
            queue->fifo.size());
 
