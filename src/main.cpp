@@ -764,6 +764,8 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     float compression_level = quality; //100.0f; // default is 45.0f
 
     int start, end;
+    double elapsed;
+
     fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
     if (image_update)
@@ -775,7 +777,6 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     // calculate a viewport spectrum
     if (fits->depth > 1)
     {
-      double elapsed;
       fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsed);
     }
 
