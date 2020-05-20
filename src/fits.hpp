@@ -99,7 +99,7 @@ public:
   void from_path_mmap(std::string path, bool is_compressed, std::string flux,
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
-  void get_bounds(double frame_start, double frame_end, double ref_freq, int& start, int& end) ;
+  void get_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end);
   void to_json(std::ostringstream &json);
 
 private:
@@ -107,6 +107,9 @@ private:
   const char *check_null(const char *str);
   void frame_reference_unit();
   void frame_reference_type();
+  void get_freq2vel_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end);
+  void get_frequency_bounds(double freq_start, double freq_end, int &start, int &end);
+  void get_velocity_bounds(double vel_start, double vel_end, int &start, int &end);
   bool process_fits_header_unit(const char *buf);
   void make_image_statistics();
   void make_image_luma();
