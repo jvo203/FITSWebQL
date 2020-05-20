@@ -399,3 +399,65 @@ export void image_to_luminance_f32_logarithmic_inplace(uniform float cubeData[],
       cubeData[j] = 0 ;
   }
 } ;
+
+export uniform float calculate_square_spectrumF32(uniform int32 cubeData[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int64 width, uniform unsigned int64 total_size, uniform unsigned int64 frame, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform bool average, uniform float cdelt3)
+{
+  uniform unsigned int64 offset = frame*total_size ;
+  float partial_sum = 0.0f ;
+  unsigned int64 partial_count = 0 ;
+  
+  foreach (y=y1 ... y2, x=x1 ... x2)
+    {      
+      float tmp = bzero + floatbits(bswap32(cubeData[offset+y*width+x])) * bscale ;
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
+      
+      partial_sum += nan ? 0.0f : tmp ;
+      partial_count += nan ? 0 : 1 ;
+    } ;
+
+  uniform float sum = reduce_add(partial_sum) ;
+  uniform int64 count = reduce_add(partial_count) ;
+
+  if(count > 0)
+    {
+      if(average)
+	return sum / (float) count ;
+      else
+	return sum * cdelt3 ;
+    }
+  else
+    return 0.0f ;
+} ;
+
+export uniform float calculate_radial_spectrumF32(uniform int32 cubeData[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int64 width, uniform unsigned int64 total_size, uniform unsigned int64 frame, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform int cx, uniform int cy, uniform int r2, uniform bool average, uniform float cdelt3)
+{
+  uniform unsigned int64 offset = frame*total_size ;
+  float partial_sum = 0.0f ;
+  unsigned int64 partial_count = 0 ;
+  
+  foreach (y=y1 ... y2, x=x1 ... x2)
+    {      
+      float tmp = bzero + floatbits(bswap32(cubeData[offset+y*width+x])) * bscale ;
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
+
+      float dist2 = (cx-x)*(cx-x) + (cy-y)*(cy-y) ;
+      bool exclude = (dist2 > r2) ;
+      //tmp = (dist2 <= r2) ? tmp : 0.0f ;
+      
+      partial_sum += (nan || exclude) ? 0.0f : tmp ;
+      partial_count += (nan || exclude) ? 0 : 1 ;
+    } ;
+
+  uniform float sum = reduce_add(partial_sum) ;
+  uniform int64 count = reduce_add(partial_count) ;
+
+  if(count > 0)
+    {
+      if(average)
+	return sum / (float) count ;
+      else
+	return sum * cdelt3 ;
+    }
+  else
+    return 0.0f ;
+} ;
