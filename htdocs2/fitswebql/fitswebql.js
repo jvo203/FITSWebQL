@@ -2188,11 +2188,11 @@ function process_message(index, received_msg) {
 
 	var dv = new DataView(received_msg);
 
-	latency = performance.now() - dv.getFloat32(0, endianness);	
+	latency = performance.now() - dv.getFloat32(0, endianness);
 	recv_seq_id = dv.getUint32(4, endianness);
 	var type = dv.getUint32(8, endianness);
 
-	console.log("recv_seq_id: " + recv_seq_id +  " http/2 latency = " + latency.toFixed(1) + " [ms]");
+	console.log("recv_seq_id: " + recv_seq_id + " http/2 latency = " + latency.toFixed(1) + " [ms]");
 
 	//spectrum
 	if (type == 0) {
@@ -2203,8 +2203,16 @@ function process_message(index, received_msg) {
 		//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
 		if (!windowLeft) {
+			console.log(spectrum);
 			spectrum_stack[index].push({ spectrum: spectrum, id: recv_seq_id });
 			console.log("index:", index, "spectrum_stack length:", spectrum_stack[index].length);
+
+			/*var data = [ spectrum ];
+			
+			plot_spectrum(data);
+			replot_y_axis();
+
+			last_spectrum = data;*/
 		};
 
 		return;
@@ -9010,45 +9018,6 @@ function setup_image_selection() {
 			spec_then = spec_now - (spec_elapsed % fpsInterval);
 			//console.log("spectrum interval: " + spec_elapsed.toFixed(3) + " [ms]", "fps = ", Math.round(1000 / spec_elapsed)) ;
 
-			//image
-			try {
-				/*let data = image_stack.pop();
-				image_stack = [];
-
-				ctx.clearRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
-
-				var imageCanvas;
-
-				if (composite_view)
-					imageCanvas = compositeCanvas;
-				else
-					imageCanvas = imageContainer[va_count - 1].imageCanvas;//if composite_view use compositeCanvas
-
-				if (zoom_shape == "square") {
-					ctx.fillStyle = "rgba(0,0,0,0.3)";
-					ctx.fillRect(data.px, data.py, data.zoomed_size, data.zoomed_size);
-
-					ctx.drawImage(imageCanvas, data.x - data.clipSize, data.y - data.clipSize, 2 * data.clipSize + 1, 2 * data.clipSize + 1, data.px, data.py, data.zoomed_size, data.zoomed_size);
-				}
-
-				if (zoom_shape == "circle") {
-					ctx.save();
-					ctx.beginPath();
-					ctx.arc(data.px + data.zoomed_size / 2, data.py + data.zoomed_size / 2, data.zoomed_size / 2, 0, 2 * Math.PI, true);
-
-					ctx.fillStyle = "rgba(0,0,0,0.3)";
-					ctx.fill();
-
-					ctx.closePath();
-					ctx.clip();
-					ctx.drawImage(imageCanvas, data.x - data.clipSize, data.y - data.clipSize, 2 * data.clipSize + 1, 2 * data.clipSize + 1, data.px, data.py, data.zoomed_size, data.zoomed_size);
-					ctx.restore();
-				}*/
-			}
-			catch (e) {
-				//console.log(e) ;
-			}
-
 			//spectrum
 			try {
 				let go_ahead = true;
@@ -9085,8 +9054,6 @@ function setup_image_selection() {
 					replot_y_axis();
 
 					last_spectrum = data;
-				} else {
-					console.log("go_ahead == false");
 				}
 
 			}
