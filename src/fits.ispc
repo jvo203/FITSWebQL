@@ -408,7 +408,7 @@ export uniform float calculate_square_spectrumF32(uniform int32 src[], uniform f
   
   foreach (y=y1 ... y2, x=x1 ... x2)
     {      
-      float tmp = bzero + bscale * floatbits(bswap32(cubeData[offset+y*width+x]));
+      float tmp = bzero + bscale * floatbits(bswap32(src[offset+y*width+x]));
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       
       partial_sum += nan ? 0.0f : tmp ;
@@ -437,7 +437,7 @@ export uniform float calculate_radial_spectrumF32(uniform int32 src[], uniform f
   
   foreach (y=y1 ... y2, x=x1 ... x2)
     {      
-      float tmp = bzero + bscale * floatbits(bswap32(csrc[offset+y*width+x]));
+      float tmp = bzero + bscale * floatbits(bswap32(src[offset+y*width+x]));
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
       float dist2 = (cx-x)*(cx-x) + (cy-y)*(cy-y) ;
