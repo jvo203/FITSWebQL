@@ -777,7 +777,8 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     // calculate a viewport spectrum
     if (fits->depth > 1)
     {
-      fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsed);
+      std::vector<float> spectrum = fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsed);
+      std::cout << "spectrum length = " << spectrum.size() << " elapsed time: " << elapsed << " [ms]" << std::endl;
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);

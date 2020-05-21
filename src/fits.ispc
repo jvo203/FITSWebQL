@@ -421,9 +421,9 @@ export uniform float calculate_square_spectrumF32(uniform int32 cubeData[], unif
   if(count > 0)
     {
       if(average)
-	return sum / (float) count ;
+	      return sum / (float) count ;
       else
-	return sum * cdelt3 ;
+	      return sum * cdelt3 ;
     }
   else
     return 0.0f ;
@@ -454,9 +454,9 @@ export uniform float calculate_radial_spectrumF32(uniform int32 cubeData[], unif
   if(count > 0)
     {
       if(average)
-	return sum / (float) count ;
+	      return sum / (float) count ;
       else
-	return sum * cdelt3 ;
+	      return sum * cdelt3 ;
     }
   else
     return 0.0f ;
