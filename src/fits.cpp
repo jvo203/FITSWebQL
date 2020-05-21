@@ -3005,8 +3005,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   // resize the spectrum vector
   spectrum.resize(length, 0);
 
-  size_t total_size = height * width;
-
   std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " << y2 << std::endl;
 
   int _x1 = MAX(0, x1);
@@ -3053,10 +3051,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
     if (fits_cube[i] != NULL)
     {
       if (beam == circle)
-        spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, total_size, 0, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, cdelt3);
+        spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, cdelt3);
 
       if (beam == square)
-        spectrum_value = ispc::calculate_square_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, total_size, 0, _x1, _x2, _y1, _y2, average, cdelt3);
+        spectrum_value = ispc::calculate_square_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, average, cdelt3);
     }
 
     spectrum[i - start] = spectrum_value;
