@@ -779,12 +779,15 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     {
       std::vector<float> spectrum = fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsed);
       std::cout << "spectrum length = " << spectrum.size() << " elapsed time: " << elapsed << " [ms]" << std::endl;
+
+      // append the spectrum to the HTTP/2 response queue
+      if (spectrum.size() > 0)
+      {
+        std::lock_guard<std::mutex> guard(queue->mtx);
+      }
     }
 
     std::lock_guard<std::mutex> guard(queue->mtx);
-
-    // append the spectrum
-
     printf("[stream_realtime_image_spectrum] number of remaining bytes: %zu\n",
            queue->fifo.size());
 
