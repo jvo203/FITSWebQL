@@ -2980,16 +2980,16 @@ void FITS::send_progress_notification(size_t running, size_t total)
   this->progress.elapsed = elapsed;
 }
 
-std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed)
+std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed)
 {
-  std::shared_ptr<Ipp32f> null_result;
+  std::vector<float> spectrum;
 
   //sanity checks
   if (bitpix != -32)
-    return null_result;
+    return spectrum;
 
   if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
-    return null_result;
+    return spectrum;
 
   if (end < start)
   {
@@ -3001,11 +3001,8 @@ std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, i
   // passed the sanity checks
   int length = end - start + 1;
 
-  std::shared_ptr<Ipp32f> spectrum_buf(ippsMalloc_32f(length), Ipp32fFree);
-  float *spectrum = spectrum_buf.get();
-
-  if (spectrum == NULL)
-    return null_result;
+  // resize the spectrum vector
+  spectrum.resize(length, 0);
 
   size_t total_size = height * width;
 
@@ -3067,7 +3064,7 @@ std::shared_ptr<Ipp32f> FITS::get_spectrum(int start, int end, int x1, int y1, i
 
   elapsed = elapsedMilliseconds;
 
-  return spectrum_buf;
+  return spectrum;
 }
 
 void FITS::zfp_compress()
