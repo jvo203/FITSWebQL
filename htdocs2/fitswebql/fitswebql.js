@@ -2188,10 +2188,11 @@ function process_message(index, received_msg) {
 
 	var dv = new DataView(received_msg);
 
-	latency = performance.now() - dv.getFloat32(0, endianness);
-	console.log("[http/2] latency = " + latency.toFixed(1) + " [ms]");
+	latency = performance.now() - dv.getFloat32(0, endianness);	
 	recv_seq_id = dv.getUint32(4, endianness);
 	var type = dv.getUint32(8, endianness);
+
+	console.log("recv_seq_id: " + recv_seq_id +  " http/2 latency = " + latency.toFixed(1) + " [ms]");
 
 	//spectrum
 	if (type == 0) {
@@ -9084,6 +9085,8 @@ function setup_image_selection() {
 					replot_y_axis();
 
 					last_spectrum = data;
+				} else {
+					console.log("go_ahead == false");
 				}
 
 			}
