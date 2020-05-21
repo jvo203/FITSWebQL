@@ -764,7 +764,7 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     float compression_level = quality; //100.0f; // default is 45.0f
 
     int start, end;
-    double elapsed;
+    double elapsedMilliseconds;
 
     fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
@@ -777,13 +777,34 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     // calculate a viewport spectrum
     if (fits->depth > 1)
     {
-      std::vector<float> spectrum = fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsed);
-      std::cout << "spectrum length = " << spectrum.size() << " elapsed time: " << elapsed << " [ms]" << std::endl;
+      std::vector<float> spectrum = fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
+      std::cout << "spectrum length = " << spectrum.size() << " elapsed time: " << elapsedMilliseconds << " [ms]" << std::endl;
 
       // append the spectrum to the HTTP/2 response queue
       if (spectrum.size() > 0)
       {
+        float ts = timestamp;
+        uint32_t id = seq;
+        uint32_t msg_type = 0;
+        float elapsed = elapsedMilliseconds;
+
         std::lock_guard<std::mutex> guard(queue->mtx);
+        const char *ptr;
+
+        ptr = (const char *)&ts;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
+
+        ptr = (const char *)&id;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+        ptr = (const char *)&msg_type;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+        ptr = (const char *)&elapsed;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
+
+        ptr = (const char *)spectrum.data();
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + spectrum.size() * sizeof(float));
       }
     }
 
