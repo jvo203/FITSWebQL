@@ -3056,7 +3056,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
         spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, cdelt3);
 
       if (beam == square)
-        spectrum_value = ispc::calculate_square_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, average, cdelt3);
+        spectrum_value = ispc::calculate_square_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, average, cdelt3);      
     }
 
     spectrum[i - start] = spectrum_value;
