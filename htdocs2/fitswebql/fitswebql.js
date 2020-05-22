@@ -2203,7 +2203,7 @@ function process_message(index, received_msg) {
 		//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
 		if (!windowLeft) {
-			console.log(spectrum);
+			//console.log(spectrum);
 			spectrum_stack[index].push({ spectrum: spectrum, id: recv_seq_id });
 			console.log("index:", index, "spectrum_stack length:", spectrum_stack[index].length);
 
