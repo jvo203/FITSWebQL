@@ -3005,14 +3005,14 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   // resize the spectrum vector
   spectrum.resize(length, 0);
 
-  std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " << y2 << std::endl;
+  //std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " << y2 << std::endl;
 
   int _x1 = MAX(0, x1);
   int _y1 = MAX(0, y1);
   int _x2 = MIN(width, x2);
   int _y2 = MIN(height, y2);
 
-  std::cout << "[get_spectrum]#1 " << _x1 << " " << _x2 << " " << _y1 << " " << _y2 << std::endl;
+  //std::cout << "[get_spectrum]#1 " << _x1 << " " << _x2 << " " << _y1 << " " << _y2 << std::endl;
 
   //include at least one pixel
   if (_x1 == _x2)
@@ -3021,7 +3021,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   if (_y1 == _y2)
     _y2 = _y1 + 1;
 
-  std::cout << "[get_spectrum]#2 " << _x1 << " " << _x2 << " " << _y1 << " " << _y2 << std::endl;
+  //std::cout << "[get_spectrum]#2 " << _x1 << " " << _x2 << " " << _y1 << " " << _y2 << std::endl;
 
   bool average = (intensity == mean) ? true : false;
 
