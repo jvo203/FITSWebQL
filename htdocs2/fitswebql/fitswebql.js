@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-22.0";
+	return "JS2020-05-22.1";
 }
 
 const wasm_supported = (() => {
@@ -2203,11 +2203,11 @@ function process_message(index, received_msg) {
 		//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
 		if (!windowLeft) {
-			//console.log(spectrum);
+			console.log(spectrum);
 			spectrum_stack[index].push({ spectrum: spectrum, id: recv_seq_id });
 			console.log("index:", index, "spectrum_stack length:", spectrum_stack[index].length);
 
-			/*var data = [ spectrum ];
+			/*var data = [ spectrum ]
 			
 			plot_spectrum(data);
 			replot_y_axis();
@@ -9391,8 +9391,8 @@ function setup_image_selection() {
 			for (let index = 1; index <= va_count; index++) {
 				var imageFrame = imageContainer[index - 1];
 
-				var alpha_coord = Math.round(y) * imageFrame.width + Math.round(x);
-				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
+				var alpha_coord = Math.round(imageFrame.height - y) * imageFrame.width + Math.round(x);
+				var pixel_coord = Math.round(imageFrame.height - y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
 				var alpha = imageFrame.alpha[alpha_coord];
