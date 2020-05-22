@@ -10682,11 +10682,30 @@ function imageTimeout() {
 	sent_seq_id++;
 
 	for (let index = 0; index < va_count; index++) {
+		var dataId = datasetId;
+		if (va_count > 1)
+			dataId = datasetId[index];
 
-		var strRequest = 'x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&image=true&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id + '&timestamp=' + performance.now();
+		// fire off an HTTP/2 PUT request						
+		var range = get_axes_range(width, height);
+		var dx = range.xMax - range.xMin;
 
-		// fire off an HTTP/2 request
-		//wsConn[index].send('[spectrum] ' + strRequest);
+		var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=true&quality=' + image_quality;
+		url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+		url += '&timestamp=' + performance.now();
+
+		var xmlhttp = new XMLHttpRequest();
+
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				process_message(index, xmlhttp.response);
+			}
+		}
+
+		xmlhttp.open("PUT", url, true);//"PUT" to disable caching
+		xmlhttp.responseType = 'arraybuffer';
+		xmlhttp.timeout = 0;
+		xmlhttp.send();
 	}
 
 	if (moving || streaming)
