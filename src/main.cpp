@@ -779,12 +779,7 @@ void stream_realtime_image_spectrum(const response *res, std::shared_ptr<FITS> f
     {
       std::vector<float> spectrum = fits->get_spectrum(start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
 
-      bool is_null = true;
-      for (int i = 0; i < spectrum.size(); i++)
-        if (!FPzero(spectrum[i]))
-          is_null = false;
-
-      std::cout << "spectrum length = " << spectrum.size() << " is_null: " << is_null << " elapsed time: " << elapsedMilliseconds << " [ms]" << std::endl;
+      std::cout << "spectrum length = " << spectrum.size() << " elapsed time: " << elapsedMilliseconds << " [ms]" << std::endl;
 
       // append the spectrum to the HTTP/2 response queue
       if (spectrum.size() > 0)
