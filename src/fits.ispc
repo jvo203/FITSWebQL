@@ -400,7 +400,7 @@ export void image_to_luminance_f32_logarithmic_inplace(uniform float cubeData[],
   }
 } ;
 
-export uniform float calculate_square_spectrumF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int64 width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform bool average, uniform float cdelt3)
+export uniform float calculate_square_spectrumF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform bool average, uniform float cdelt3)
 {
   float partial_sum = 0.0f ;
   unsigned int64 partial_count = 0 ;
@@ -428,7 +428,7 @@ export uniform float calculate_square_spectrumF32(uniform int32 src[], uniform f
     return 0.0f ;
 } ;
 
-export uniform float calculate_radial_spectrumF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int64 width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform int cx, uniform int cy, uniform int r2, uniform bool average, uniform float cdelt3)
+export uniform float calculate_radial_spectrumF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform int cx, uniform int cy, uniform int r2, uniform bool average, uniform float cdelt3)
 {
   float partial_sum = 0.0f ;
   unsigned int64 partial_count = 0 ;
@@ -447,7 +447,7 @@ export uniform float calculate_radial_spectrumF32(uniform int32 src[], uniform f
     } ;
 
   uniform float sum = reduce_add(partial_sum) ;
-  uniform int64 count = reduce_add(partial_count) ;
+  uniform int64 count = reduce_add(partial_count) ;  
 
   if(count > 0)
     {
