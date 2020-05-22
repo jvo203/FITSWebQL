@@ -9391,8 +9391,8 @@ function setup_image_selection() {
 			for (let index = 1; index <= va_count; index++) {
 				var imageFrame = imageContainer[index - 1];
 
-				var alpha_coord = Math.round(imageFrame.height - y) * imageFrame.width + Math.round(x);
-				var pixel_coord = Math.round(imageFrame.height - y) * imageFrame.width + Math.round(x);
+				var alpha_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
+				var pixel_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
 				var alpha = imageFrame.alpha[alpha_coord];
