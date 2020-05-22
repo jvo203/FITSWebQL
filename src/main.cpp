@@ -1968,7 +1968,7 @@ int main(int argc, char *argv[])
   int no_threads = MAX(std::thread::hardware_concurrency() / 2, 1);
 
   http2_server = new http2();
-  //http2_server->num_threads(no_threads);
+  http2_server->num_threads(no_threads);
 
 #ifdef LOCAL
   http2_server->handle(
