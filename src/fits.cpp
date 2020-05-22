@@ -3037,6 +3037,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
     _cy = (_y1 + _y2) >> 1;
     _r = MIN((_x2 - _x1) >> 1, (_y2 - _y1) >> 1);
     _r2 = _r * _r;
+
+    printf("cx = %d\tcy = %d\tr = %d\n", _cx, _cy, _r);
   };
 
   auto start_t = steady_clock::now();
