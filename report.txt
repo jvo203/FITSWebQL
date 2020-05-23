@@ -1,0 +1,12 @@
+query(orion_all_05kms::1025::45::false::<X:> 785..883,Y:> 1635..1733>::250::19750::0::circle::integrated::558::23374)
+[New Thread 0x7fffba47f700 (LWP 7253)]
+<250,19750>     depth = 40      start = 0       end = 39
+OMP: 情報 #251: KMP_AFFINITY: pid 6670 tid 7253 スレッド 1 OS プロセッサー・セット 1 にバインド
+
+Thread 20 "fitswebql" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7fffcd939900 (LWP 6692)]
+0x00000000004f44c6 in calculate_radial_spectrumF32 (src=0x7fffe57428e0, bzero=<optimized out>, 
+    bscale=<optimized out>, ignrval=<optimized out>, datamin=<optimized out>, datamax=<optimized out>, 
+    width=1080, x1=785, x2=883, y1=<optimized out>, y2=1636, cx=834, cy=1635, r2=0, average=<optimized out>, 
+    cdelt3=0.5) at fits.ispc:438
+438           float tmp = bzero + bscale * floatbits(bswap32(src[y*width+x]));
