@@ -12,7 +12,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-05-22.0"
+#define VERSION_STRING "SV2020-05-23.0"
 
 #define PROGRESS_TIMEOUT 250 /*[ms]*/
 
@@ -2226,7 +2226,17 @@ int main(int argc, char *argv[])
       if (uri.find("/heartbeat") != std::string::npos)
       {
         res.write_head(200);
-        res.end("N/A");
+
+        size_t pos = uri.find_last_of("/");
+
+        if (pos != std::string::npos)
+        {
+          std::string timestamp = uri.substr(pos + 1, std::string::npos);
+          res.end(timestamp);
+        }
+        else
+          res.end("N/A");
+
         return;
       }
 
