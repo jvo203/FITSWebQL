@@ -7,7 +7,7 @@
 
 #define BEACON_PORT 50000
 #define SERVER_PORT 8080
-#define SERVER_STRING                                                          \
+#define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_STRING "WASM2019-02-08.1"
@@ -18,7 +18,7 @@
 /* CHUNK is the size of the memory chunk used by the zlib routines. */
 
 #define CHUNK 0x4000
-#define windowBits 15
+#define _windowBits 15
 #define GZIP_ENCODING 16
 
 /* The following macro calls a zlib routine and checks the return
@@ -26,15 +26,16 @@
    message and exits the program. Zlib's error statuses are all less
    than zero. */
 
-#define CALL_ZLIB(x)                                                           \
-  {                                                                            \
-    int status;                                                                \
-    status = x;                                                                \
-    if (status < 0) {                                                          \
-      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__,    \
-              __LINE__, #x, status);                                           \
-      /*exit(EXIT_FAILURE);*/                                                  \
-    }                                                                          \
+#define CALL_ZLIB(x)                                                        \
+  {                                                                         \
+    int status;                                                             \
+    status = x;                                                             \
+    if (status < 0)                                                         \
+    {                                                                       \
+      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__, \
+              __LINE__, #x, status);                                        \
+      /*exit(EXIT_FAILURE);*/                                               \
+    }                                                                       \
   }
 
 #include <pwd.h>
@@ -62,11 +63,13 @@
  * Exemple of use:
  *    PrintThread{} << "Hello world!" << std::endl;
  */
-class PrintThread : public std::ostringstream {
+class PrintThread : public std::ostringstream
+{
 public:
   PrintThread() = default;
 
-  ~PrintThread() {
+  ~PrintThread()
+  {
     std::lock_guard<std::mutex> guard(_mutexPrint);
     std::cout << this->str();
   }
@@ -114,7 +117,8 @@ std::string home_dir;
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
-std::shared_ptr<FITS> get_dataset(std::string id) {
+std::shared_ptr<FITS> get_dataset(std::string id)
+{
   std::shared_lock<std::shared_mutex> lock(fits_mutex);
 
   auto item = DATASETS.find(id);
@@ -125,20 +129,23 @@ std::shared_ptr<FITS> get_dataset(std::string id) {
     return item->second;
 }
 
-void insert_dataset(std::string id, std::shared_ptr<FITS> fits) {
+void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+{
   std::lock_guard<std::shared_mutex> guard(fits_mutex);
 
   DATASETS.insert(std::pair(id, fits));
 }
 
-inline const char *check_null(const char *str) {
+inline const char *check_null(const char *str)
+{
   if (str != nullptr)
     return str;
   else
     return "\"\"";
 };
 
-void signalHandler(int signum) {
+void signalHandler(int signum)
+{
   std::cout << "Interrupt signal (" << signum << ") received.\n";
 
 #ifdef CLUSTER
@@ -154,7 +161,8 @@ void signalHandler(int signum) {
     sqlite3_close(splat_db);
 
 #ifdef CLUSTER
-  if (speaker != NULL) {
+  if (speaker != NULL)
+  {
     zstr_sendx(speaker, "SILENCE", NULL);
 
     const char *message = "JVO:>FITSWEBQL::LEAVE";
@@ -165,7 +173,8 @@ void signalHandler(int signum) {
     zactor_destroy(&speaker);
   }
 
-  if (listener != NULL) {
+  if (listener != NULL)
+  {
     zstr_sendx(listener, "UNSUBSCRIBE", NULL);
     beacon_thread.join();
     zactor_destroy(&listener);
@@ -177,7 +186,8 @@ void signalHandler(int signum) {
   exit(signum);
 }
 
-bool is_gzip(const char *filename) {
+bool is_gzip(const char *filename)
+{
   int fd = open(filename, O_RDONLY);
 
   if (fd == -1)
@@ -190,10 +200,12 @@ bool is_gzip(const char *filename) {
   ssize_t bytes_read = read(fd, header, 10);
 
   // test for magick numbers and the deflate compression type
-  if (bytes_read == 10) {
+  if (bytes_read == 10)
+  {
     if (header[0] != 0x1f || header[1] != 0x8b || header[2] != 0x08)
       ok = false;
-  } else
+  }
+  else
     ok = false;
 
   close(fd);
@@ -202,14 +214,16 @@ bool is_gzip(const char *filename) {
 }
 
 // resource not found
-void http_not_found(uWS::HttpResponse<false> *res) {
+void http_not_found(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("404 Not Found");
   res->end();
   // res->end("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
 }
 
 // server error
-void http_internal_server_error(uWS::HttpResponse<false> *res) {
+void http_internal_server_error(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("500 Internal Server Error");
   res->end();
   // res->end("HTTP/1.1 500 Internal Server Error\r\nContent-Length:
@@ -217,36 +231,43 @@ void http_internal_server_error(uWS::HttpResponse<false> *res) {
 }
 
 // request accepted but not ready yet
-void http_accepted(uWS::HttpResponse<false> *res) {
+void http_accepted(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("202 Accepted");
   res->end();
   // res->end("HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n");
 }
 
 // functionality not implemented/not available
-void http_not_implemented(uWS::HttpResponse<false> *res) {
+void http_not_implemented(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("501 Not Implemented");
   res->end();
   // res->end("HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
 }
 
-void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits) {
+void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits)
+{
   std::ostringstream json;
 
   fits->to_json(json);
 
-  if (json.tellp() > 0) {
+  if (json.tellp() > 0)
+  {
     res->writeHeader("Content-Type", "application/json");
     res->writeHeader("Cache-Control", "no-cache");
     res->writeHeader("Cache-Control", "no-store");
     res->writeHeader("Pragma", "no-cache");
     res->end(json.str());
-  } else {
+  }
+  else
+  {
     return http_not_implemented(res);
   }
 }
 
-struct MolecularStream {
+struct MolecularStream
+{
   bool first;
   bool compress;
   uWS::HttpResponse<false> *res;
@@ -256,12 +277,14 @@ struct MolecularStream {
 };
 
 static int sqlite_callback(void *userp, int argc, char **argv,
-                           char **azColName) {
+                           char **azColName)
+{
   MolecularStream *stream = (MolecularStream *)userp;
   // static long counter = 0;
   // printf("sqlite_callback: %ld, argc: %d\n", counter++, argc);
 
-  if (argc == 8) {
+  if (argc == 8)
+  {
     /*printf("sqlite_callback::molecule:\t");
       for (int i = 0; i < argc; i++)
       printf("%s:%s\t", azColName[i], argv[i]);
@@ -269,7 +292,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 
     std::string json;
 
-    if (stream->first) {
+    if (stream->first)
+    {
       stream->first = false;
       stream->res->writeHeader("Content-Type", "application/json");
 
@@ -281,7 +305,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
       stream->res->writeHeader("Pragma", "no-cache");
 
       json = "{\"molecules\" : [";
-    } else
+    }
+    else
       json = ",";
 
     // json-encode a spectral line
@@ -334,17 +359,20 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 
     // printf("%s\n", json.c_str());
 
-    if (stream->compress) {
+    if (stream->compress)
+    {
       stream->z.avail_in = json.length();                // size of input
       stream->z.next_in = (unsigned char *)json.c_str(); // input char array
 
-      do {
+      do
+      {
         stream->z.avail_out = CHUNK;      // size of output
         stream->z.next_out = stream->out; // output char array
         CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
         size_t have = CHUNK - stream->z.avail_out;
 
-        if (have > 0) {
+        if (have > 0)
+        {
           // printf("ZLIB avail_out: %zu\n", have);
           if (stream->fp != NULL)
             fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
@@ -352,7 +380,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
           stream->res->write(std::string_view((const char *)stream->out, have));
         }
       } while (stream->z.avail_out == 0);
-    } else
+    }
+    else
       stream->res->write(json);
   }
 
@@ -360,7 +389,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 }
 
 void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
-                      double freq_end, bool compress) {
+                      double freq_end, bool compress)
+{
   if (splat_db == NULL)
     return http_internal_server_error(res);
 
@@ -379,7 +409,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
   stream.res = res;
   stream.fp = NULL; // fopen("molecules.txt.gz", "w");
 
-  if (compress) {
+  if (compress)
+  {
     stream.z.zalloc = Z_NULL;
     stream.z.zfree = Z_NULL;
     stream.z.opaque = Z_NULL;
@@ -387,12 +418,13 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
     stream.z.avail_in = 0;
 
     CALL_ZLIB(deflateInit2(&stream.z, Z_BEST_COMPRESSION, Z_DEFLATED,
-                           windowBits | GZIP_ENCODING, 9, Z_DEFAULT_STRATEGY));
+                           _windowBits | GZIP_ENCODING, 9, Z_DEFAULT_STRATEGY));
   }
 
   rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
 
-  if (rc != SQLITE_OK) {
+  if (rc != SQLITE_OK)
+  {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
     return http_internal_server_error(res);
@@ -405,17 +437,20 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
   else
     chunk_data = "]}";
 
-  if (compress) {
+  if (compress)
+  {
     stream.z.avail_in = chunk_data.length();
     stream.z.next_in = (unsigned char *)chunk_data.c_str();
 
-    do {
+    do
+    {
       stream.z.avail_out = CHUNK;     // size of output
       stream.z.next_out = stream.out; // output char array
       CALL_ZLIB(deflate(&stream.z, Z_FINISH));
       size_t have = CHUNK - stream.z.avail_out;
 
-      if (have > 0) {
+      if (have > 0)
+      {
         // printf("Z_FINISH avail_out: %zu\n", have);
         if (stream.fp != NULL)
           fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
@@ -428,15 +463,18 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
 
     if (stream.fp != NULL)
       fclose(stream.fp);
-  } else
+  }
+  else
     res->write(chunk_data);
 
   // end of chunked encoding
   res->end();
 }
 
-uintmax_t ComputeFileSize(const fs::path &pathToCheck) {
-  if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck)) {
+uintmax_t ComputeFileSize(const fs::path &pathToCheck)
+{
+  if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck))
+  {
     auto err = std::error_code{};
     auto filesize = fs::file_size(pathToCheck, err);
     if (filesize != static_cast<uintmax_t>(-1))
@@ -446,15 +484,18 @@ uintmax_t ComputeFileSize(const fs::path &pathToCheck) {
   return static_cast<uintmax_t>(-1);
 }
 
-void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
+void get_directory(uWS::HttpResponse<false> *res, std::string dir)
+{
   std::cout << "scanning directory " << dir << std::endl;
 
   fs::path pathToShow(dir);
 
   std::map<std::string, std::string> entries;
 
-  if (fs::exists(pathToShow) && fs::is_directory(pathToShow)) {
-    for (const auto &entry : fs::directory_iterator(pathToShow)) {
+  if (fs::exists(pathToShow) && fs::is_directory(pathToShow))
+  {
+    for (const auto &entry : fs::directory_iterator(pathToShow))
+    {
       if (!fs::exists(entry))
         continue;
 
@@ -464,8 +505,10 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
       std::string last_modified = std::asctime(std::localtime(&cftime));
       last_modified.pop_back();
 
-      if (fs::is_directory(entry.status())) {
-        if (!boost::algorithm::starts_with(filename.string(), ".")) {
+      if (fs::is_directory(entry.status()))
+      {
+        if (!boost::algorithm::starts_with(filename.string(), "."))
+        {
           char *encoded = json_encode_string(filename.c_str());
 
           std::string json =
@@ -479,13 +522,16 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
 
           entries.insert(std::pair(filename, json));
         }
-      } else if (fs::is_regular_file(entry.status())) {
+      }
+      else if (fs::is_regular_file(entry.status()))
+      {
         // check the extensions .fits or .fits.gz
         const std::string lower_filename =
             boost::algorithm::to_lower_copy(filename.string());
 
         if (boost::algorithm::ends_with(lower_filename, ".fits") ||
-            boost::algorithm::ends_with(lower_filename, ".fits.gz")) {
+            boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+        {
 
           char *encoded = json_encode_string(filename.c_str());
 
@@ -516,8 +562,10 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
   if (encoded != NULL)
     free(encoded);
 
-  if (entries.size() > 0) {
-    for (auto const &entry : entries) {
+  if (entries.size() > 0)
+  {
+    for (auto const &entry : entries)
+    {
       json << entry.second << ",";
     }
 
@@ -534,14 +582,16 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
   res->end(json.str());
 }
 
-void get_home_directory(uWS::HttpResponse<false> *res) {
+void get_home_directory(uWS::HttpResponse<false> *res)
+{
   if (home_dir != "")
     return get_directory(res, home_dir);
   else
     return http_not_found(res);
 }
 
-void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
+void serve_file(uWS::HttpResponse<false> *res, std::string uri)
+{
   std::string resource;
 
   // strip the leading '/'
@@ -568,14 +618,17 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
 
   fd = open(resource.c_str(), O_RDONLY);
 
-  if (fd != -1) {
+  if (fd != -1)
+  {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-    if (buffer != NULL) {
+    if (buffer != NULL)
+    {
       // detect mime-types
       size_t pos = resource.find_last_of(".");
 
-      if (pos != std::string::npos) {
+      if (pos != std::string::npos)
+      {
         std::string ext = resource.substr(pos + 1, std::string::npos);
 
         if (ext == "htm" || ext == "html")
@@ -628,19 +681,23 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
 
       if (munmap(buffer, size) == -1)
         perror("un-mapping error");
-    } else {
+    }
+    else
+    {
       perror("error mapping a file");
       http_not_found(res);
     }
 
     close(fd);
-  } else
+  }
+  else
     http_not_found(res);
 }
 
 void http_fits_response(uWS::HttpResponse<false> *res,
                         std::vector<std::string> datasets, bool composite,
-                        bool has_fits) {
+                        bool has_fits)
+{
   std::string html =
       "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
   html.append(
@@ -718,7 +775,8 @@ void http_fits_response(uWS::HttpResponse<false> *res,
 
   if (datasets.size() == 1)
     html.append("data-datasetId='" + datasets[0] + "' ");
-  else {
+  else
+  {
     for (int i = 0; i < datasets.size(); i++)
       html.append("data-datasetId" + std::to_string(i + 1) + "='" +
                   datasets[i] + "' ");
@@ -778,7 +836,8 @@ void http_fits_response(uWS::HttpResponse<false> *res,
 }
 
 #ifndef LOCAL
-PGconn *jvo_db_connect(std::string db) {
+PGconn *jvo_db_connect(std::string db)
+{
   PGconn *jvo_db = NULL;
 
   std::string conn_str =
@@ -786,19 +845,22 @@ PGconn *jvo_db_connect(std::string db) {
 
   jvo_db = PQconnectdb(conn_str.c_str());
 
-  if (PQstatus(jvo_db) != CONNECTION_OK) {
+  if (PQstatus(jvo_db) != CONNECTION_OK)
+  {
     fprintf(stderr, "PostgreSQL connection failed: %s\n",
             PQerrorMessage(jvo_db));
     PQfinish(jvo_db);
     jvo_db = NULL;
-  } else
+  }
+  else
     printf("PostgreSQL connection successful.\n");
 
   return jvo_db;
 }
 
 std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
-                         std::string data_id) {
+                         std::string data_id)
+{
   std::string path;
 
   std::string sql_str =
@@ -807,7 +869,8 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
   PGresult *res = PQexec(jvo_db, sql_str.c_str());
   int status = PQresultStatus(res);
 
-  if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+  if (PQresultStatus(res) == PGRES_TUPLES_OK)
+  {
     path = std::string(FITSHOME) + "/" + db + "/";
 
     size_t pos = table.find(".");
@@ -828,7 +891,8 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
 void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
                   std::string ext, std::string db, std::string table,
                   std::vector<std::string> datasets, bool composite,
-                  std::string flux) {
+                  std::string flux)
+{
   bool has_fits = true;
 
 #ifndef LOCAL
@@ -840,10 +904,12 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
 
   int va_count = datasets.size();
 
-  for (auto const &data_id : datasets) {
+  for (auto const &data_id : datasets)
+  {
     auto item = get_dataset(data_id);
 
-    if (item == nullptr) {
+    if (item == nullptr)
+    {
       // set has_fits to false and load the FITS dataset
       has_fits = false;
       std::shared_ptr<FITS> fits(new FITS(data_id, flux));
@@ -860,7 +926,8 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
         path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
-      if (path != "") {
+      if (path != "")
+      {
         bool is_compressed = is_gzip(path.c_str());
         /*bool is_compressed = false;
           std::string lower_path = boost::algorithm::to_lower_copy(path);
@@ -871,7 +938,9 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
         std::thread(&FITS::from_path_mmap, fits, path, is_compressed, flux,
                     va_count)
             .detach();
-      } else {
+      }
+      else
+      {
         // the last resort
         std::string url = std::string("http://") + JVO_FITS_SERVER +
                           ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
@@ -880,7 +949,9 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
         // download FITS data from a URL in a separate thread
         std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
       }
-    } else {
+    }
+    else
+    {
       has_fits = has_fits && item->has_data;
       item->update_timestamp();
     }
@@ -896,7 +967,8 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string dir,
   return http_fits_response(res, datasets, composite, has_fits);
 }
 
-void ipp_init() {
+void ipp_init()
+{
   const IppLibraryVersion *lib;
   IppStatus status;
   Ipp64u mask, emask;
@@ -909,7 +981,8 @@ void ipp_init() {
 
   /* Get CPU features and features enabled with selected library level */
   status = ippGetCpuFeatures(&mask, 0);
-  if (ippStsNoErr == status) {
+  if (ippStsNoErr == status)
+  {
     emask = ippGetEnabledCpuFeatures();
     printf("Features supported by CPU\tby IPP\n");
     printf("-----------------------------------------\n");
@@ -1009,7 +1082,8 @@ void ipp_init() {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 #ifdef CLUSTER
   setenv("ZSYS_SIGHANDLER", "false", 1);
   // LAN cluster node auto-discovery
@@ -1021,7 +1095,8 @@ int main(int argc, char *argv[]) {
     zstr_send(speaker, "VERBOSE");
     zsock_send(speaker, "si", "CONFIGURE", BEACON_PORT);
     char *my_hostname = zstr_recv(speaker);
-    if (my_hostname != NULL) {
+    if (my_hostname != NULL)
+    {
       const char *message = "JVO:>FITSWEBQL::ENTER";
       const int interval = 1000; //[ms]
       zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
@@ -1042,19 +1117,24 @@ int main(int argc, char *argv[]) {
     zsock_send(listener, "sb", "SUBSCRIBE", "", 0);
     zsock_set_rcvtimeo(listener, 500);
 
-    while (!exiting) {
+    while (!exiting)
+    {
       char *ipaddress = zstr_recv(listener);
-      if (ipaddress != NULL) {
+      if (ipaddress != NULL)
+      {
         zframe_t *content = zframe_recv(listener);
         std::string_view message = std::string_view(
             (const char *)zframe_data(content), zframe_size(content));
 
         // ENTER
-        if (message.find("ENTER") != std::string::npos) {
-          if (strcmp(my_hostname, ipaddress) != 0) {
+        if (message.find("ENTER") != std::string::npos)
+        {
+          if (strcmp(my_hostname, ipaddress) != 0)
+          {
             std::string node = std::string(ipaddress);
 
-            if (!cluster_contains_node(node)) {
+            if (!cluster_contains_node(node))
+            {
               PrintThread{} << "found a new peer @ " << ipaddress << ": "
                             << message << std::endl;
               cluster_insert_node(node);
@@ -1063,11 +1143,14 @@ int main(int argc, char *argv[]) {
         }
 
         // LEAVE
-        if (message.find("LEAVE") != std::string::npos) {
-          if (strcmp(my_hostname, ipaddress) != 0) {
+        if (message.find("LEAVE") != std::string::npos)
+        {
+          if (strcmp(my_hostname, ipaddress) != 0)
+          {
             std::string node = std::string(ipaddress);
 
-            if (cluster_contains_node(node)) {
+            if (cluster_contains_node(node))
+            {
               PrintThread{} << ipaddress << " is leaving: " << message
                             << std::endl;
               cluster_erase_node(node);
@@ -1091,7 +1174,8 @@ int main(int argc, char *argv[]) {
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
 
-  if (rc) {
+  if (rc)
+  {
     fprintf(stderr, "Can't open local splatalogue database: %s\n",
             sqlite3_errmsg(splat_db));
     sqlite3_close(splat_db);
@@ -1105,8 +1189,10 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signalHandler);
 
   // parse local command-line options
-  if (argc > 2) {
-    for (int i = 1; i < argc - 1; i++) {
+  if (argc > 2)
+  {
+    for (int i = 1; i < argc - 1; i++)
+    {
       const char *key = argv[i];
       const char *value = argv[i + 1];
 
@@ -1137,7 +1223,7 @@ int main(int argc, char *argv[]) {
 #ifdef LOCAL
                      return serve_file(res, "htdocs/local.html");
 #else
-												      return serve_file(res, "htdocs/test.html");
+                                                                                        return serve_file(res, "htdocs/test.html");
 #endif
                    })
               .get("/favicon.ico",
@@ -1165,16 +1251,19 @@ int main(int argc, char *argv[]) {
                      boost::split(params, query,
                                   [](char c) { return c == '&'; });
 
-                     for (auto const &s : params) {
+                     for (auto const &s : params)
+                     {
                        // find '='
                        size_t pos = s.find("=");
 
-                       if (pos != std::string::npos) {
+                       if (pos != std::string::npos)
+                       {
                          std::string key = s.substr(0, pos);
                          std::string value =
                              s.substr(pos + 1, std::string::npos);
 
-                         if (key == "dir") {
+                         if (key == "dir")
+                         {
                            CURL *curl = curl_easy_init();
 
                            char *str = curl_easy_unescape(curl, value.c_str(),
@@ -1197,7 +1286,8 @@ int main(int argc, char *argv[]) {
                      std::string_view uri = req->getUrl();
                      std::cout << "HTTP request for " << uri << std::endl;
 
-                     if (uri.find("/get_spectrum") != std::string::npos) {
+                     if (uri.find("/get_spectrum") != std::string::npos)
+                     {
                        std::string_view query = req->getQuery();
                        // std::cout << "query: (" << query << ")" << std::endl;
 
@@ -1209,16 +1299,19 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasetid = std::string(str);
@@ -1237,10 +1330,12 @@ int main(int argc, char *argv[]) {
 
                        if (fits == nullptr)
                          return http_not_found(res);
-                       else {
+                       else
+                       {
                          if (fits->has_error)
                            return http_not_found(res);
-                         else {
+                         else
+                         {
                            /*std::unique_lock<std::mutex> data_lock(
                                                                   fits->data_mtx);
                            while (!fits->processed_data)
@@ -1255,12 +1350,14 @@ int main(int argc, char *argv[]) {
                        }
                      }
 
-                     if (uri.find("/get_molecules") != std::string::npos) {
+                     if (uri.find("/get_molecules") != std::string::npos)
+                     {
                        // handle the accepted keywords
                        bool compress = false;
                        auto encoding = req->getHeader("accept-encoding");
 
-                       if (encoding != "") {
+                       if (encoding != "")
+                       {
                          std::string_view value = encoding;
                          size_t pos = value.find("gzip"); // gzip or deflate
 
@@ -1286,16 +1383,19 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasetid = std::string(str);
@@ -1313,13 +1413,15 @@ int main(int argc, char *argv[]) {
 
                        curl_easy_cleanup(curl);
 
-                       if (FPzero(freq_start) || FPzero(freq_end)) {
+                       if (FPzero(freq_start) || FPzero(freq_end))
+                       {
                          // get the frequency range from the FITS header
                          auto fits = get_dataset(datasetid);
 
                          if (fits == nullptr)
                            return http_not_found(res);
-                         else {
+                         else
+                         {
                            if (fits->has_error)
                              return http_not_found(res);
 
@@ -1401,7 +1503,8 @@ int main(int argc, char *argv[]) {
                        }*/
 
                      // FITSWebQL entry
-                     if (uri.find("FITSWebQL.html") != std::string::npos) {
+                     if (uri.find("FITSWebQL.html") != std::string::npos)
+                     {
                        std::string_view query = req->getQuery();
                        std::cout << "query: (" << query << ")" << std::endl;
 
@@ -1415,37 +1518,43 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasets.push_back(std::string(str));
                              curl_free(str);
                            }
 
-                           if (key.find("filename") != std::string::npos) {
+                           if (key.find("filename") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasets.push_back(std::string(str));
                              curl_free(str);
                            }
 
-                           if (key == "dir") {
+                           if (key == "dir")
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              dir = std::string(str);
                              curl_free(str);
                            }
 
-                           if (key == "ext") {
+                           if (key == "ext")
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              ext = std::string(str);
@@ -1458,7 +1567,8 @@ int main(int argc, char *argv[]) {
                            if (key == "table")
                              table = value;
 
-                           if (key == "flux") {
+                           if (key == "flux")
+                           {
                              // validate the flux value
                              std::set<std::string> valid_values;
                              valid_values.insert("linear");
@@ -1471,7 +1581,8 @@ int main(int argc, char *argv[]) {
                                flux = value;
                            }
 
-                           if (key == "view") {
+                           if (key == "view")
+                           {
                              if (value.find("composite") != std::string::npos)
                                composite = true;
                            }
@@ -1482,7 +1593,8 @@ int main(int argc, char *argv[]) {
 
                        // sane defaults
                        {
-                         if (db.find("hsc") != std::string::npos) {
+                         if (db.find("hsc") != std::string::npos)
+                         {
                            flux = "ratio";
                          }
 
@@ -1498,12 +1610,14 @@ int main(int argc, char *argv[]) {
                          std::cout << dataset << " ";
                        std::cout << std::endl;
 
-                       if (datasets.size() == 0) {
+                       if (datasets.size() == 0)
+                       {
                          const std::string not_found =
                              "ERROR: please specify at least one dataset in "
                              "the URL parameters list.";
                          return res->end(not_found);
-                       } else
+                       }
+                       else
                          return execute_fits(res, dir, ext, db, table, datasets,
                                              composite, flux);
                      };
@@ -1528,7 +1642,8 @@ int main(int argc, char *argv[]) {
 
                          size_t pos = url.find_last_of("/");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string_view tmp = url.substr(pos + 1);
                            CURL *curl = curl_easy_init();
                            char *str = curl_easy_unescape(curl, tmp.data(),
@@ -1540,12 +1655,15 @@ int main(int argc, char *argv[]) {
                            boost::split(datasetid, plain,
                                         [](char c) { return c == ';'; });
 
-                           for (auto const &s : datasetid) {
+                           for (auto const &s : datasetid)
+                           {
                              PrintThread{} << "datasetid: " << s << std::endl;
                            }
 
-                           if (datasetid.size() > 0) {
-                             if (user != NULL) {
+                           if (datasetid.size() > 0)
+                           {
+                             if (user != NULL)
+                             {
                                user->ptr = new UserSession();
                                user->ptr->session_id =
                                    boost::uuids::random_generator()();
@@ -1569,9 +1687,12 @@ int main(int argc, char *argv[]) {
                    .message =
                        [](auto *ws, std::string_view message,
                           uWS::OpCode opCode) {
-                         if (message.find("[heartbeat]") != std::string::npos) {
+                         if (message.find("[heartbeat]") != std::string::npos)
+                         {
                            ws->send(message, opCode);
-                         } else {
+                         }
+                         else
+                         {
                            PrintThread{} << "[µWS] message " << message
                                          << std::endl;
                          }
@@ -1637,8 +1758,10 @@ data_lock.unlock();
                          struct UserData *user =
                              (struct UserData *)ws->getUserData();
 
-                         if (user != NULL) {
-                           if (user->ptr != NULL) {
+                         if (user != NULL)
+                         {
+                           if (user->ptr != NULL)
+                           {
                              PrintThread{} << "[µWS] closing a session "
                                            << user->ptr->session_id << " for "
                                            << user->ptr->primary_id
@@ -1657,21 +1780,26 @@ data_lock.unlock();
                                m_progress.erase(user->ptr->primary_id);
 
                              delete user->ptr;
-                           } else
+                           }
+                           else
                              PrintThread{} << "[µWS] close " << message
                                            << std::endl;
-                         } else
+                         }
+                         else
                            PrintThread{} << "[µWS] close " << message
                                          << std::endl;
                        }})
               .listen(server_port,
                       [](auto *token) {
-                        if (token) {
+                        if (token)
+                        {
                           PrintThread{} << "Thread "
                                         << std::this_thread::get_id()
                                         << " listening on port " << server_port
                                         << std::endl;
-                        } else {
+                        }
+                        else
+                        {
                           PrintThread{}
                               << "Thread " << std::this_thread::get_id()
                               << " failed to listen on port " << server_port
