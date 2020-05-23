@@ -2077,6 +2077,24 @@ function poll_heartbeat() {
 
 			console.log(data);
 
+			try {
+				var previous_t = parseFloat(data);
+				ping_latency = (performance.now() - previous_t);
+
+				if (ping_latency > 0) {
+					if (realtime_spectrum) {
+						fps = 1000 / ping_latency;
+						fps = Math.min(60, fps);
+						fps = Math.max(10, fps);
+					}
+					else
+						fps = 60;
+
+					fpsInterval = 1000 / fps;
+				}
+			}
+			catch (e) { };
+
 			/*try {
 				d3.select("#heartbeat")
 					.attr("fill", "grey")
