@@ -2075,8 +2075,6 @@ function poll_heartbeat() {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
 
-			console.log(data);
-
 			try {
 				var previous_t = parseFloat(data);
 				ping_latency = (performance.now() - previous_t);
@@ -2090,7 +2088,7 @@ function poll_heartbeat() {
 					else
 						fps = 60;
 
-					fpsInterval = 1000 / fps;
+					fpsInterval = 1000 / fps;			
 				}
 			}
 			catch (e) { };
