@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-22.1";
+	return "JS2020-05-23.0";
 }
 
 const wasm_supported = (() => {
@@ -2074,6 +2074,8 @@ function poll_heartbeat() {
 		var RRT = 0;
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var data = xmlhttp.response;
+
+			console.log(data);
 
 			/*try {
 				d3.select("#heartbeat")
