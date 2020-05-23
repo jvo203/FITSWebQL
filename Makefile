@@ -3,10 +3,10 @@ UNAME_S := $(shell uname -s)
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
-SRC = src/main.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
+SRC = src/main_uWS.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
 #$(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4
+INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Izfp-0.5.5/include -Izfp-0.5.5/array
 #-I$(HOME)/uWebSockets/src
 #-I$(HOME)/uWebSockets/uSockets/src
@@ -14,7 +14,7 @@ INC = -I/usr/include/postgresql -Ilz4
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR`
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o -luWS -lstdc++fs
 #-lIlmImf -lIlmThread -lHalf
 
 ifeq ($(UNAME_S),Linux)
