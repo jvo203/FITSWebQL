@@ -1,6 +1,8 @@
 # detect the OS
 UNAME_S := $(shell uname -s)
 
+override CXXFLAGS += -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
 SRC = src/main_uWS.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c
@@ -56,7 +58,7 @@ llvm:
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ -march=native $(CXXFLAGS) -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
+	g++ $(CXXFLAGS) $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
