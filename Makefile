@@ -14,7 +14,7 @@ INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSo
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o -luWS -lstdc++fs
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o -lstdc++fs
 #-lIlmImf -lIlmThread -lHalf
 
 ifeq ($(UNAME_S),Linux)
@@ -56,7 +56,7 @@ llvm:
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
+	g++ -march=native $(CXXFLAGS) -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
