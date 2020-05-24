@@ -1588,9 +1588,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
            this->madP, this->madN, this->black, this->white, this->sensitivity,
            this->flux.c_str());
 
-    make_image_luma();
-
-    make_exr_image();
+    /*make_image_luma();
+    make_exr_image();*/
   }
   else
   {
@@ -2288,9 +2287,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
            this->madP, this->madN, this->black, this->white, this->sensitivity,
            this->flux.c_str());
 
-    make_image_luma();
-
-    make_exr_image();
+    /*make_image_luma();
+    make_exr_image();*/
 
 // replace NaNs with 0.0
 #pragma omp parallel for simd
