@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_STRING "WASM2019-02-08.1"
-#define VERSION_STRING "SV2020-05-23.0"
+#define VERSION_STRING "SV2020-05-24.0"
 
 #include <zlib.h>
 
@@ -1448,8 +1448,20 @@ int main(int argc, char *argv[])
                                  << std::endl;
 
                        if (!FPzero(freq_start) && !FPzero(freq_end))
-                         return stream_molecules(res, freq_start, freq_end,
-                                                 compress);
+                       {
+                         res->onAborted([]() {
+                           std::cout << "get_molecules aborted\n";
+
+                           // TO DO:
+                           // invalidate res (pass the aborted event to the stream_molecules() thread
+                         });
+
+                         std::thread([res, compress, freq_start, freq_end]() {
+                           stream_molecules(res, freq_start, freq_end,
+                                            compress);
+                         }).detach();
+                         return;
+                       }
                        else
                          return http_not_implemented(res);
                      }
