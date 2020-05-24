@@ -389,8 +389,11 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 }
 
 void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
-                      double freq_end, bool compress)
+                      double freq_end, bool compress, std::shared_ptr<std::atomic<bool>> aborted)
 {
+  if (*aborted.get() == true)
+    return;
+
   if (splat_db == NULL)
     return http_internal_server_error(res);
 
@@ -455,7 +458,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
         if (stream.fp != NULL)
           fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
 
-        stream.res->write(std::string_view((const char *)stream.out, have));
+        if (*aborted.get() != true)
+          stream.res->write(std::string_view((const char *)stream.out, have));
       }
     } while (stream.z.avail_out == 0);
 
@@ -464,11 +468,12 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
     if (stream.fp != NULL)
       fclose(stream.fp);
   }
-  else
+  else if (*aborted.get() != true)
     res->write(chunk_data);
 
   // end of chunked encoding
-  res->end();
+  if (*aborted.get() != true)
+    res->end();
 }
 
 uintmax_t ComputeFileSize(const fs::path &pathToCheck)
@@ -1449,16 +1454,19 @@ int main(int argc, char *argv[])
 
                        if (!FPzero(freq_start) && !FPzero(freq_end))
                        {
-                         res->onAborted([]() {
+                         std::shared_ptr<std::atomic<bool>> molecules_aborted = std::make_shared<std::atomic<bool>>(false /*or true*/);
+
+                         res->onAborted([molecules_aborted]() {
                            std::cout << "get_molecules aborted\n";
 
                            // TO DO:
                            // invalidate res (pass the aborted event to the stream_molecules() thread
+                           *molecules_aborted.get() = true;
                          });
 
-                         std::thread([res, compress, freq_start, freq_end]() {
+                         std::thread([res, freq_start, freq_end, compress, molecules_aborted]() {
                            stream_molecules(res, freq_start, freq_end,
-                                            compress);
+                                            compress, molecules_aborted);
                          }).detach();
                          return;
                        }
