@@ -1,7 +1,8 @@
 # detect the OS
 UNAME_S := $(shell uname -s)
 
-override CXXFLAGS += -march=native -g -Ofast -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+#-Ofast does not work with NaN and Inf, unfortunately... and so -fno-finite-math-only is needed
+override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
