@@ -114,6 +114,7 @@ namespace fs = std::experimental::filesystem;
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
 std::string home_dir;
+std::string docs_root = "htdocs";
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
