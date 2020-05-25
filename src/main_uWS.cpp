@@ -1233,8 +1233,6 @@ int main(int argc, char *argv[])
                    })
               .get("/favicon.ico",
                    [](auto *res, auto *req) {
-                     std::string_view uri = req->getUrl();
-
                      return serve_file(res, "htdocs/favicon.ico");
                    })
               .get("/htdocs/*",
