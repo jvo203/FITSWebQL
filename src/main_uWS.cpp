@@ -246,11 +246,17 @@ void http_not_implemented(uWS::HttpResponse<false> *res)
   // res->end("HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
 }
 
-void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits)
+void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, std::shared_ptr<std::atomic<bool>> aborted)
 {
   std::ostringstream json;
 
   fits->to_json(json);
+
+  if (*aborted.get() == true)
+  {
+    printf("[get_spectrum] aborted http connection detected.\n");
+    return;
+  }
 
   if (json.tellp() > 0)
   {
@@ -1342,16 +1348,30 @@ int main(int argc, char *argv[])
                            return http_not_found(res);
                          else
                          {
-                           /*std::unique_lock<std::mutex> data_lock(
-                                                                  fits->data_mtx);
-                           while (!fits->processed_data)
-                             fits->data_cv.wait(data_lock);*/
+                           std::shared_ptr<std::atomic<bool>> aborted = std::make_shared<std::atomic<bool>>(false /*or true*/);
 
-                           if (!fits->has_data)
-                             // return http_not_found(res);
-                             return http_accepted(res);
-                           else
-                             return get_spectrum(res, fits);
+                           res->onAborted([aborted]() {
+                             std::cout << "get_spectrum aborted\n";
+
+                             // invalidate res (pass the aborted event to the get_spectrum() thread
+                             *aborted.get() = true;
+                           });
+
+                           std::thread([res, fits, aborted]() {
+                             std::unique_lock<std::mutex> data_lock(
+                                 fits->data_mtx);
+                             while (!fits->processed_data)
+                               fits->data_cv.wait(data_lock);
+
+                             if (!fits->has_data)
+                             {
+                               if (*aborted.get() != true)
+                                 http_not_found(res);
+                             }
+                             else
+                               get_spectrum(res, fits, aborted);
+                           }).detach();
+                           return;
                          }
                        }
                      }
@@ -1455,18 +1475,18 @@ int main(int argc, char *argv[])
 
                        if (!FPzero(freq_start) && !FPzero(freq_end))
                        {
-                         std::shared_ptr<std::atomic<bool>> molecules_aborted = std::make_shared<std::atomic<bool>>(false /*or true*/);
+                         std::shared_ptr<std::atomic<bool>> aborted = std::make_shared<std::atomic<bool>>(false /*or true*/);
 
-                         res->onAborted([molecules_aborted]() {
+                         res->onAborted([aborted]() {
                            std::cout << "get_molecules aborted\n";
 
                            // invalidate res (pass the aborted event to the stream_molecules() thread
-                           *molecules_aborted.get() = true;
+                           *aborted.get() = true;
                          });
 
-                         std::thread([res, freq_start, freq_end, compress, molecules_aborted]() {
+                         std::thread([res, freq_start, freq_end, compress, aborted]() {
                            stream_molecules(res, freq_start, freq_end,
-                                            compress, molecules_aborted);
+                                            compress, aborted);
                          }).detach();
                          return;
                        }
