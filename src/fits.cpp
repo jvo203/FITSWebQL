@@ -1,7 +1,7 @@
 #include "../fits.h"
 #include "fits.hpp"
 
-//#include "global.h"
+#include "global.h"
 
 #include "json.h"
 //#include "roaring.c"
@@ -2972,11 +2972,42 @@ void FITS::send_progress_notification(size_t running, size_t total)
   elapsed = (now.tv_sec - this->created.tv_sec) * 1e9;
   elapsed = (elapsed + (now.tv_nsec - this->created.tv_nsec)) * 1e-9;
 
-  std::lock_guard<std::shared_mutex> guard(progress_mtx);
+  // when using libnghttp2_asio
+  {
+    std::lock_guard<std::shared_mutex> guard(progress_mtx);
+    this->progress.running = running;
+    this->progress.total = total;
+    this->progress.elapsed = elapsed;
+  }
 
-  this->progress.running = running;
-  this->progress.total = total;
-  this->progress.elapsed = elapsed;
+  std::ostringstream json;
+  json << "{"
+       << "\"type\" : \"progress\",";
+  json << "\"message\" : \"loading FITS\",";
+  json << "\"total\" : " << total << ",";
+  json << "\"running\" : " << running << ",";
+  json << "\"elapsed\" : " << elapsed << "}";
+
+  std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
+  TWebSocketList connections = m_progress[this->dataset_id];
+
+  for (auto it = connections.begin(); it != connections.end(); ++it)
+  {
+    TWebSocket *ws = *it;
+
+    struct UserData *user = (struct UserData *)ws->getUserData();
+
+    if (user != NULL)
+    {
+      if (check_progress_timeout(user->ptr, system_clock::now()) ||
+          (running == total))
+      {
+        // std::cout << json.str() << std::endl;
+        ws->send(json.str(), uWS::OpCode::TEXT);
+        update_progress_timestamp(user->ptr);
+      }
+    }
+  };
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed)
