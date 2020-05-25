@@ -2088,19 +2088,10 @@ function poll_heartbeat() {
 					else
 						fps = 60;
 
-					fpsInterval = 1000 / fps;			
+					fpsInterval = 1000 / fps;
 				}
 			}
 			catch (e) { };
-
-			/*try {
-				d3.select("#heartbeat")
-					.attr("fill", "grey")
-					.attr("opacity", 1.0)
-					.transition()
-					.duration(1000)
-					.attr("opacity", 0.1);
-			} catch (e) { }*/
 
 			d3.select("#heartbeat")
 				.attr("fill", "grey")
