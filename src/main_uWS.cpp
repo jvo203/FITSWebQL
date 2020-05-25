@@ -1440,6 +1440,23 @@ int main(int argc, char *argv[])
                      else
                        return get_home_directory(res);
                    })
+              .post("/fitswebql/heartbeat/*",
+                    [](auto *res, auto *req) {
+                      std::string_view uri = req->getUrl();
+
+                      size_t pos = uri.find_last_of("/");
+
+                      if (pos != std::string::npos)
+                      {
+                        std::string_view timestamp = uri.substr(pos + 1, std::string::npos);
+                        res->end(timestamp);
+                        return;
+                      }
+
+                      // default response
+                      res->end("N/A");
+                      return;
+                    })
               .get("/fitswebql/*",
                    [](auto *res, auto *req) {
                      std::string_view uri = req->getUrl();
@@ -1810,7 +1827,7 @@ int main(int argc, char *argv[])
                      };
 
                      // default handler
-                     return serve_file(res, "htdocs/" + std::string(uri));
+                     return serve_file(res, "htdocs" + std::string(uri));
                    })
               .ws<UserData>(
                   "/websocket/*",
