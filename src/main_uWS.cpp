@@ -10,7 +10,7 @@
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
-#define WASM_STRING "WASM2019-02-08.1"
+#define WASM_VERSION "20.05.08.0"
 #define VERSION_STRING "SV2020-05-25.0"
 
 #include <zlib.h>
@@ -751,7 +751,7 @@ void http_fits_response(uWS::HttpResponse<false> *res,
               "fitswebql/marchingsquares-isobands.min.js\"></script>\n");
 
   // hevc wasm decoder
-  html.append("<script "
+  /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
               "fitswebql/hevc_" WASM_STRING ".js\"></script>\n");
   html.append(R"(<script>
@@ -762,7 +762,22 @@ void http_fits_response(uWS::HttpResponse<false> *res,
                 hevc_decode_nal_unit: Module.cwrap('hevc_decode_nal_unit', 'number', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'string']),               
             };                   
         };
-    </script>)");
+    </script>)");*/
+
+  // OpenEXR WASM decoder
+  html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");
+  /*html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
+              docs_root + "/"
+                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+  html.append(R"(
+    <script>
+    Module.ready
+      .then( status => console.log( status ))
+      .catch(e => console.error(e))    
+  </script>
+  )");
 
   // bootstrap
   html.append(
