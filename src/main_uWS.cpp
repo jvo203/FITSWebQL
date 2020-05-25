@@ -605,6 +605,32 @@ void get_home_directory(uWS::HttpResponse<false> *res)
     return http_not_found(res);
 }
 
+void include_file(std::string &html, std::string filename)
+{
+  int fd = -1;
+  void *buffer = NULL;
+
+  struct stat64 st;
+  stat64(filename.c_str(), &st);
+  long size = st.st_size;
+
+  fd = open(filename.c_str(), O_RDONLY);
+  if (fd != -1)
+  {
+    buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    if (buffer != NULL)
+      html.append((const char *)buffer, size);
+    else
+      perror("error mapping a file");
+
+    if (munmap(buffer, size) == -1)
+      perror("un-mapping error");
+
+    close(fd);
+  };
+}
+
 void serve_file(uWS::HttpResponse<false> *res, std::string uri)
 {
   std::string resource;
@@ -765,12 +791,12 @@ void http_fits_response(uWS::HttpResponse<false> *res,
     </script>)");*/
 
   // OpenEXR WASM decoder
-  html.append("<script "
-              "src=\"exr." WASM_VERSION ".js\"></script>\n");
   /*html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
+  html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
               docs_root + "/"
-                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");
   html.append(R"(
     <script>
     Module.ready
@@ -792,6 +818,106 @@ void http_fits_response(uWS::HttpResponse<false> *res,
   html.append("<script "
               "src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/"
               "bootstrap.min.js\"></script>\n");
+
+  //GLSL vertex shader
+  html.append("<script id=\"vertex-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/vertex-shader.vert");
+  html.append("</script>\n");
+
+  html.append("<script id=\"legend-vertex-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legend-vertex-shader.vert");
+  html.append("</script>\n");
+
+  //GLSL fragment shaders
+  html.append("<script id=\"common-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/common-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"legend-common-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legend-common-shader.frag");
+  html.append("</script>\n");
+
+  // tone mappings
+  html.append("<script id=\"ratio-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/ratio-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"logistic-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/logistic-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"square-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/square-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"legacy-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/legacy-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"linear-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/linear-shader.frag");
+  html.append("</script>\n");
+
+  // colourmaps
+  html.append("<script id=\"greyscale-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/greyscale-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"negative-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/negative-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"red-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/red-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"green-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/green-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"blue-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/blue-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"hot-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/hot-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"rainbow-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/rainbow-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"parula-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/parula-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"inferno-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/inferno-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"magma-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/magma-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"plasma-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/plasma-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"viridis-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/viridis-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"cubehelix-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/cubehelix-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"jet-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/jet-shader.frag");
+  html.append("</script>\n");
+
+  html.append("<script id=\"haxby-shader\" type=\"x-shader/x-vertex\">\n");
+  include_file(html, docs_root + "/fitswebql/haxby-shader.frag");
+  html.append("</script>\n");
 
   // FITSWebQL main JavaScript + CSS
   html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
@@ -818,7 +944,12 @@ void http_fits_response(uWS::HttpResponse<false> *res,
   html.append("data-root-path='/" + std::string("fitswebql") +
               "/' data-server-version='" + VERSION_STRING +
               "' data-server-string='" + SERVER_STRING +
-              "' data-server-mode='" + "SERVER" + "' data-has-fits='" +
+#ifdef LOCAL
+              "' data-server-mode='" + "LOCAL" +
+#else
+              "' data-server-mode='" + "SERVER" +
+#endif
+              "' data-has-fits='" +
               std::to_string(has_fits) + "'></div>\n");
 
 #ifdef PRODUCTION
