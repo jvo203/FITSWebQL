@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_STRING "WASM2019-02-08.1"
-#define VERSION_STRING "SV2020-05-24.0"
+#define VERSION_STRING "SV2020-05-25.0"
 
 #include <zlib.h>
 
@@ -392,7 +392,10 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
                       double freq_end, bool compress, std::shared_ptr<std::atomic<bool>> aborted)
 {
   if (*aborted.get() == true)
+  {
+    printf("[stream_molecules] aborted http connection detected.\n");
     return;
+  }
 
   if (splat_db == NULL)
     return http_internal_server_error(res);
@@ -1457,7 +1460,6 @@ int main(int argc, char *argv[])
                          res->onAborted([molecules_aborted]() {
                            std::cout << "get_molecules aborted\n";
 
-                           // TO DO:
                            // invalidate res (pass the aborted event to the stream_molecules() thread
                            *molecules_aborted.get() = true;
                          });
