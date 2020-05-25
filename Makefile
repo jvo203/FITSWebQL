@@ -1,7 +1,7 @@
 # detect the OS
 UNAME_S := $(shell uname -s)
 
-override CXXFLAGS += -march=native -g -O3 -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+override CXXFLAGS += -march=native -g -Ofast -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
