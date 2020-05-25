@@ -782,7 +782,7 @@ void http_fits_response(uWS::HttpResponse<false> *res,
     html.append("data-datasetId='" + datasets[0] + "' ");
   else
   {
-    for (int i = 0; i < datasets.size(); i++)
+    for (unsigned int i = 0; i < datasets.size(); i++)
       html.append("data-datasetId" + std::to_string(i + 1) + "='" +
                   datasets[i] + "' ");
 
