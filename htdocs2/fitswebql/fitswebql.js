@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-23.0";
+	return "JS2020-05-26.0";
 }
 
 const wasm_supported = (() => {
@@ -2082,11 +2082,11 @@ function poll_heartbeat() {
 				if (ping_latency > 0) {
 					if (realtime_spectrum) {
 						fps = 1000 / ping_latency;
-						fps = Math.min(60, fps);
+						fps = Math.min(30, fps);
 						fps = Math.max(10, fps);
 					}
 					else
-						fps = 60;
+						fps = 30;
 
 					fpsInterval = 1000 / fps;			
 				}
@@ -2772,11 +2772,11 @@ function open_websocket_connection(datasetId, index) {
 						if (ping_latency > 0) {
 							if (realtime_spectrum) {
 								fps = 1000 / ping_latency;
-								fps = Math.min(60, fps);
+								fps = Math.min(30, fps);
 								fps = Math.max(10, fps);
 							}
 							else
-								fps = 60;
+								fps = 30;
 
 							fpsInterval = 1000 / fps;
 						}
@@ -11645,7 +11645,7 @@ function show_help() {
 function donotshow() {
 	var checkbox = document.getElementById('donotshowcheckbox');
 
-	localStorage_write_boolean("welcome_v4", !checkbox.checked);
+	localStorage_write_boolean("welcome_v5", !checkbox.checked);
 };
 
 function show_timeout() {
@@ -13576,7 +13576,7 @@ async*/ function mainRenderer() {
 	optical_view = false;
 
 	if (firstTime) {
-		fps = 60;//target fps; 60 is OK in Chrome but a bit laggish in Firefox
+		fps = 30;//target fps; 60 is OK in Chrome but a bit laggish in Firefox
 		fpsInterval = 1000 / fps;
 
 		has_frequency_info = false;
