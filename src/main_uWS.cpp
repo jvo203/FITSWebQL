@@ -108,9 +108,6 @@ std::atomic<bool> exiting(false);
 #include "fits.hpp"
 #include "json.h"
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
 std::string home_dir;
@@ -484,19 +481,6 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
   // end of chunked encoding
   if (*aborted.get() != true)
     res->end();
-}
-
-uintmax_t ComputeFileSize(const fs::path &pathToCheck)
-{
-  if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck))
-  {
-    auto err = std::error_code{};
-    auto filesize = fs::file_size(pathToCheck, err);
-    if (filesize != static_cast<uintmax_t>(-1))
-      return filesize;
-  }
-
-  return static_cast<uintmax_t>(-1);
 }
 
 void get_directory(uWS::HttpResponse<false> *res, std::string dir)
