@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-25.0";
+	return "JS2020-05-26.0";
 }
 
 const wasm_supported = (() => {
@@ -11636,7 +11636,7 @@ function show_help() {
 function donotshow() {
 	var checkbox = document.getElementById('donotshowcheckbox');
 
-	localStorage_write_boolean("welcome_v4", !checkbox.checked);
+	localStorage_write_boolean("welcome_v5", !checkbox.checked);
 };
 
 function show_timeout() {
