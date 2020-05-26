@@ -13730,6 +13730,7 @@ async*/ function mainRenderer() {
 		votable = document.getElementById('votable');
 		va_count = parseInt(votable.getAttribute('data-va_count'));
 		datasetId = votable.getAttribute('data-datasetId');//make it a global variable	
+		session_id = votable.getAttribute('data-session-id');
 
 		spectrum_stack = new Array(va_count);
 		spectrum_scale = new Array(va_count);
