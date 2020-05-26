@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-05-25.0"
+#define VERSION_STRING "SV2020-05-26.0"
 
 #include <zlib.h>
 
@@ -108,8 +108,8 @@ std::atomic<bool> exiting(false);
 #include "fits.hpp"
 #include "json.h"
 
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
@@ -501,94 +501,105 @@ uintmax_t ComputeFileSize(const fs::path &pathToCheck)
 
 void get_directory(uWS::HttpResponse<false> *res, std::string dir)
 {
-  std::cout << "scanning directory " << dir << std::endl;
+  printf("get_directory(%s)\n", dir.c_str());
 
-  fs::path pathToShow(dir);
+  struct dirent **namelist = NULL;
+  int i, n;
 
-  std::map<std::string, std::string> entries;
-
-  if (fs::exists(pathToShow) && fs::is_directory(pathToShow))
-  {
-    for (const auto &entry : fs::directory_iterator(pathToShow))
-    {
-      if (!fs::exists(entry))
-        continue;
-
-      auto filename = entry.path().filename();
-      auto timestamp = fs::last_write_time(entry);
-      time_t cftime = system_clock::to_time_t(timestamp);
-      std::string last_modified = std::asctime(std::localtime(&cftime));
-      last_modified.pop_back();
-
-      if (fs::is_directory(entry.status()))
-      {
-        if (!boost::algorithm::starts_with(filename.string(), "."))
-        {
-          char *encoded = json_encode_string(filename.c_str());
-
-          std::string json =
-              "{\"type\" : \"dir\", \"name\" : " + std::string(encoded) +
-              ", \"last_modified\" : \"" + last_modified + "\"}";
-
-          if (encoded != NULL)
-            free(encoded);
-
-          std::cout << json << std::endl;
-
-          entries.insert(std::pair(filename, json));
-        }
-      }
-      else if (fs::is_regular_file(entry.status()))
-      {
-        // check the extensions .fits or .fits.gz
-        const std::string lower_filename =
-            boost::algorithm::to_lower_copy(filename.string());
-
-        if (boost::algorithm::ends_with(lower_filename, ".fits") ||
-            boost::algorithm::ends_with(lower_filename, ".fits.gz"))
-        {
-
-          char *encoded = json_encode_string(filename.c_str());
-
-          uintmax_t filesize = ComputeFileSize(entry);
-
-          std::string json =
-              "{\"type\" : \"file\", \"name\" : " + std::string(encoded) +
-              ", \"size\" : " + std::to_string(filesize) +
-              ", \"last_modified\" : \"" + last_modified + "\"}";
-
-          if (encoded != NULL)
-            free(encoded);
-
-          std::cout << json << std::endl;
-
-          entries.insert(std::pair(filename, json));
-        }
-      }
-    }
-  }
+  n = scandir(dir.c_str(), &namelist, 0, alphasort);
 
   std::ostringstream json;
 
-  char *encoded = json_encode_string(check_null(dir.c_str()));
+  char *encoded = json_encode_string(dir.c_str());
 
   json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [";
 
   if (encoded != NULL)
     free(encoded);
 
-  if (entries.size() > 0)
+  bool has_contents = false;
+
+  if (n < 0)
   {
-    for (auto const &entry : entries)
+    perror("scandir");
+
+    json << "]}";
+  }
+  else
+  {
+    for (i = 0; i < n; i++)
     {
-      json << entry.second << ",";
-    }
+      // printf("%s\n", namelist[i]->d_name);
+
+      char pathname[1024];
+
+      sprintf(pathname, "%s/%s", dir.c_str(), check_null(namelist[i]->d_name));
+
+      struct stat64 sbuf;
+
+      int err = stat64(pathname, &sbuf);
+
+      if (err == 0)
+      {
+        char last_modified[255];
+
+        struct tm lm;
+        localtime_r(&sbuf.st_mtime, &lm);
+        strftime(last_modified, sizeof(last_modified) - 1,
+                 "%a, %d %b %Y %H:%M:%S %Z", &lm);
+
+        size_t filesize = sbuf.st_size;
+
+        if (S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.')
+        {
+          char *encoded = json_encode_string(check_null(namelist[i]->d_name));
+
+          json << "{\"type\" : \"dir\", \"name\" : " << check_null(encoded)
+               << ", \"last_modified\" : \"" << last_modified << "\"},";
+          has_contents = true;
+
+          if (encoded != NULL)
+            free(encoded);
+        }
+
+        if (S_ISREG(sbuf.st_mode))
+        {
+          const std::string filename = std::string(namelist[i]->d_name);
+          const std::string lower_filename =
+              boost::algorithm::to_lower_copy(filename);
+
+          // if(!strcasecmp(get_filename_ext(check_null(namelist[i]->d_name)),
+          // "fits"))
+          if (boost::algorithm::ends_with(lower_filename, ".fits") ||
+              boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+          {
+            char *encoded = json_encode_string(check_null(namelist[i]->d_name));
+
+            json << "{\"type\" : \"file\", \"name\" : " << check_null(encoded)
+                 << ", \"size\" : " << filesize << ", \"last_modified\" : \""
+                 << last_modified << "\"},";
+            has_contents = true;
+
+            if (encoded != NULL)
+              free(encoded);
+          }
+        }
+      }
+      else
+        perror("stat64");
+
+      free(namelist[i]);
+    };
 
     // overwrite the the last ',' with a list closing character
-    json.seekp(-1, std::ios_base::end);
-  }
+    if (has_contents)
+      json.seekp(-1, std::ios_base::end);
 
-  json << "]}";
+    json << "]}";
+  };
+
+  if (namelist != NULL)
+    free(namelist);
 
   res->writeHeader("Content-Type", "application/json");
   res->writeHeader("Cache-Control", "no-cache");

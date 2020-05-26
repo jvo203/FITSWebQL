@@ -1183,3 +1183,103 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   return status;
 }
+
+C++ filesystem get_directory
+
+void get_directory(uWS::HttpResponse<false> *res, std::string dir)
+{
+  std::cout << "scanning directory " << dir << std::endl;
+
+  fs::path pathToShow(dir);
+
+  std::map<std::string, std::string> entries;
+
+  if (fs::exists(pathToShow) && fs::is_directory(pathToShow))
+  {
+    for (const auto &entry : fs::directory_iterator(pathToShow))
+    {
+      if (!fs::exists(entry))
+        continue;
+
+      auto filename = entry.path().filename();
+      auto timestamp = fs::last_write_time(entry);
+      time_t cftime = system_clock::to_time_t(timestamp);
+      std::string last_modified = std::asctime(std::localtime(&cftime));
+      last_modified.pop_back();
+
+      if (fs::is_directory(entry.status()))
+      {
+        if (!boost::algorithm::starts_with(filename.string(), "."))
+        {
+          char *encoded = json_encode_string(filename.c_str());
+
+          std::string json =
+              "{\"type\" : \"dir\", \"name\" : " + std::string(encoded) +
+              ", \"last_modified\" : \"" + last_modified + "\"}";
+
+          if (encoded != NULL)
+            free(encoded);
+
+          std::cout << json << std::endl;
+
+          entries.insert(std::pair(filename, json));
+        }
+      }
+      else if (fs::is_regular_file(entry.status()))
+      {
+        // check the extensions .fits or .fits.gz
+        const std::string lower_filename =
+            boost::algorithm::to_lower_copy(filename.string());
+
+        if (boost::algorithm::ends_with(lower_filename, ".fits") ||
+            boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+        {
+
+          char *encoded = json_encode_string(filename.c_str());
+
+          uintmax_t filesize = ComputeFileSize(entry);
+
+          std::string json =
+              "{\"type\" : \"file\", \"name\" : " + std::string(encoded) +
+              ", \"size\" : " + std::to_string(filesize) +
+              ", \"last_modified\" : \"" + last_modified + "\"}";
+
+          if (encoded != NULL)
+            free(encoded);
+
+          std::cout << json << std::endl;
+
+          entries.insert(std::pair(filename, json));
+        }
+      }
+    }
+  }
+
+  std::ostringstream json;
+
+  char *encoded = json_encode_string(check_null(dir.c_str()));
+
+  json << "{\"location\" : " << check_null(encoded) << ", \"contents\" : [";
+
+  if (encoded != NULL)
+    free(encoded);
+
+  if (entries.size() > 0)
+  {
+    for (auto const &entry : entries)
+    {
+      json << entry.second << ",";
+    }
+
+    // overwrite the the last ',' with a list closing character
+    json.seekp(-1, std::ios_base::end);
+  }
+
+  json << "]}";
+
+  res->writeHeader("Content-Type", "application/json");
+  res->writeHeader("Cache-Control", "no-cache");
+  res->writeHeader("Cache-Control", "no-store");
+  res->writeHeader("Pragma", "no-cache");
+  res->end(json.str());
+}
