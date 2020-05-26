@@ -786,12 +786,12 @@ void http_fits_response(uWS::HttpResponse<false> *res,
     </script>)");*/
 
   // OpenEXR WASM decoder
-  /*html.append("<script "
-              "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
   html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");
+  /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
               docs_root + "/"
-                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");
+                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
   html.append(R"(
     <script>
     Module.ready
