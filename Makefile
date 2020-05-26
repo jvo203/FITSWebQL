@@ -17,7 +17,7 @@ INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSo
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o -lstdc++fs
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lpthread -lczmq -lnghttp2_asio -lboost_system `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o
 #-lIlmImf -lIlmThread -lHalf
 
 ifeq ($(UNAME_S),Linux)
@@ -32,7 +32,6 @@ endif
 #-Lzfp-0.5.5/lib -lzfp
 #-L/usr/local/lib64 -lzfp
 #$(HOME)/uWebSockets/uSockets/*.o
-#-luWS
 
 ifeq ($(UNAME_S),Linux)
 	IPP = -L${IPPROOT}/lib/intel64
