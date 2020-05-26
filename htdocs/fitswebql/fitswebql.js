@@ -2086,7 +2086,7 @@ function poll_heartbeat() {
 						fps = Math.max(10, fps);
 					}
 					else
-						fps = 60;
+						fps = 30;
 
 					fpsInterval = 1000 / fps;
 				}
@@ -2767,7 +2767,7 @@ function open_websocket_connection(datasetId, index) {
 								fps = Math.max(10, fps);
 							}
 							else
-								fps = 60;
+								fps = 30;
 
 							fpsInterval = 1000 / fps;
 						}
@@ -13411,7 +13411,7 @@ async*/ function mainRenderer() {
 	optical_view = false;
 
 	if (firstTime) {
-		fps = 60;//target fps; 60 is OK in Chrome but a bit laggish in Firefox
+		fps = 30;//target fps; 60 is OK in Chrome but a bit laggish in Firefox
 		fpsInterval = 1000 / fps;
 
 		has_frequency_info = false;
