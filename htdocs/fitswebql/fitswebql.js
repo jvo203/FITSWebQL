@@ -2082,7 +2082,7 @@ function poll_heartbeat() {
 				if (ping_latency > 0) {
 					if (realtime_spectrum) {
 						fps = 1000 / ping_latency;
-						fps = Math.min(60, fps);
+						fps = Math.min(30, fps);
 						fps = Math.max(10, fps);
 					}
 					else
@@ -2763,7 +2763,7 @@ function open_websocket_connection(datasetId, index) {
 						if (ping_latency > 0) {
 							if (realtime_spectrum) {
 								fps = 1000 / ping_latency;
-								fps = Math.min(60, fps);
+								fps = Math.min(30, fps);
 								fps = Math.max(10, fps);
 							}
 							else
