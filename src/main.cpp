@@ -56,7 +56,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #endif
 
 #include "fits.hpp"
-//#include "global.h"
+#include "global.h"
 #include "json.h"
 
 /** Thread safe cout class
@@ -79,30 +79,6 @@ private:
 std::mutex PrintThread::_mutexPrint{};
 
 #ifdef CLUSTER
-#include <czmq.h>
-
-inline std::set<std::string> cluster;
-inline std::shared_mutex cluster_mtx;
-
-inline bool cluster_contains_node(std::string node) {
-  std::shared_lock<std::shared_mutex> lock(cluster_mtx);
-
-  if (cluster.find(node) == cluster.end())
-    return false;
-  else
-    return true;
-}
-
-inline void cluster_insert_node(std::string node) {
-  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
-  cluster.insert(node);
-}
-
-inline void cluster_erase_node(std::string node) {
-  std::lock_guard<std::shared_mutex> guard(cluster_mtx);
-  cluster.erase(node);
-}
-
 zactor_t *speaker = NULL;
 zactor_t *listener = NULL;
 std::thread beacon_thread;
@@ -1611,9 +1587,12 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
       html.append("data-composite='1' ");
   }
 
+  boost::uuids::uuid session_id = boost::uuids::random_generator()();
+
   html.append("data-root-path='/" + std::string("fitswebql") +
               "/' data-server-version='" + VERSION_STRING +
-              "' data-server-string='" + SERVER_STRING +
+              "' data-server-string='" + SERVER_STRING + "' data-session-id='" +
+              boost::uuids::to_string(session_id) +
 #ifdef LOCAL
               "' data-server-mode='" + "LOCAL" +
 #else
