@@ -1186,6 +1186,19 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
 C++ filesystem get_directory
 
+uintmax_t ComputeFileSize(const fs::path &pathToCheck)
+{
+  if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck))
+  {
+    auto err = std::error_code{};
+    auto filesize = fs::file_size(pathToCheck, err);
+    if (filesize != static_cast<uintmax_t>(-1))
+      return filesize;
+  }
+
+  return static_cast<uintmax_t>(-1);
+}
+
 void get_directory(uWS::HttpResponse<false> *res, std::string dir)
 {
   std::cout << "scanning directory " << dir << std::endl;
