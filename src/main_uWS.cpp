@@ -1839,7 +1839,7 @@ int main(int argc, char *argv[])
                      return serve_file(res, "htdocs" + std::string(uri));
                    })
               .ws<UserData>(
-                  "/websocket/*",
+                  "/:root/websocket/*",
                   {/* Settings */
                    .compression = uWS::SHARED_COMPRESSOR,
                    /* Handlers */
