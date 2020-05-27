@@ -28,7 +28,7 @@ struct UserSession
   // session management
   boost::uuids::uuid session_id;
   system_clock::time_point ts;
-  std::shared_mutex ts_mtx;
+  std::shared_mutex mtx;
 
   // the main fields
   std::string primary_id;
