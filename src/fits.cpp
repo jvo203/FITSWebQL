@@ -3076,7 +3076,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
                       ? this->cdelt3 * this->frame_multiplier / 1000.0f
                       : 1.0f;
 
-  std::lock_guard<std::mutex> guard(fits_mtx);
+  //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for
   for (size_t i = start; i <= end; i++)
