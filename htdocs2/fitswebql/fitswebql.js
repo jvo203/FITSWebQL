@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-26.0";
+	return "JS2020-05-27.0";
 }
 
 const wasm_supported = (() => {
@@ -2088,7 +2088,7 @@ function poll_heartbeat() {
 					else
 						fps = 30;
 
-					fpsInterval = 1000 / fps;			
+					fpsInterval = 1000 / fps;
 				}
 			}
 			catch (e) { };
@@ -9580,7 +9580,7 @@ function setup_image_selection() {
 
 						var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=false&quality=' + image_quality;
 						url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
-						url += '&timestamp=' + performance.now();
+						url += '&timestamp=' + performance.now() + '&session_id=' + encodeURIComponent(session_id);
 
 						var xmlhttp = new XMLHttpRequest();
 
@@ -10710,7 +10710,7 @@ function imageTimeout() {
 
 		var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=true&quality=' + image_quality;
 		url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
-		url += '&timestamp=' + performance.now();
+		url += '&timestamp=' + performance.now() + '&session_id=' + encodeURIComponent(session_id);
 
 		var xmlhttp = new XMLHttpRequest();
 
