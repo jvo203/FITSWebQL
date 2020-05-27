@@ -35,6 +35,9 @@ struct UserSession
   std::vector<std::string> ids;
 };
 
+inline std::unordered_map<std::string, struct UserSession *> sessions;
+inline std::shared_mutex sessions_mtx;
+
 struct UserData
 {
   struct UserSession *ptr;
@@ -46,7 +49,7 @@ inline bool check_progress_timeout(struct UserSession *session,
   if (session == NULL)
     return false;
 
-  std::shared_lock<std::shared_mutex> lock(session->ts_mtx);
+  std::shared_lock<std::shared_mutex> lock(session->mtx);
 
   duration<double, std::milli> elapsed = now - session->ts;
 
@@ -62,7 +65,7 @@ inline void update_progress_timestamp(struct UserSession *session)
   if (session == NULL)
     return;
 
-  std::lock_guard<std::shared_mutex> guard(session->ts_mtx);
+  std::lock_guard<std::shared_mutex> guard(session->mtx);
 
   session->ts = system_clock::now();
 }
