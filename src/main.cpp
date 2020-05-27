@@ -1689,7 +1689,7 @@ void http_fits_response(const response *res, std::vector<std::string> datasets,
     html.append("data-datasetId='" + datasets[0] + "' ");
   else
   {
-    for (unsinged int i = 0; i < datasets.size(); i++)
+    for (unsigned int i = 0; i < datasets.size(); i++)
       html.append("data-datasetId" + std::to_string(i + 1) + "='" +
                   datasets[i] + "' ");
 
