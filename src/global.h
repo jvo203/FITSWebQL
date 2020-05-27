@@ -33,6 +33,9 @@ struct UserSession
   // the main fields
   std::string primary_id;
   std::vector<std::string> ids;
+
+  // used by libnghttp2
+  std::atomic<int> last_seq;
 };
 
 inline std::unordered_map<std::string, std::shared_ptr<struct UserSession>> sessions;
@@ -98,7 +101,7 @@ inline bool check_progress_timeout(struct UserSession *session,
     return false;
 }
 
-inline void update_progress_timestamp(struct UserSession *session)
+inline void update_session_timestamp(struct UserSession *session)
 {
   if (session == NULL)
     return;

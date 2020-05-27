@@ -725,7 +725,7 @@ void stream_realtime_image_spectrum(const response *res,
                                     int x2, int y1, int y2, double frame_start,
                                     double frame_end, double ref_freq,
                                     beam_shape beam, intensity_mode intensity,
-                                    int seq, float timestamp)
+                                    int seq, float timestamp, std::string session_id)
 {
   header_map mime;
   mime.insert(std::pair<std::string, header_value>(
@@ -742,8 +742,42 @@ void stream_realtime_image_spectrum(const response *res,
   // launch a separate spectrum/viewport thread
   std::thread([queue, fits, dx, quality, image_update, x1, x2, y1, y2,
                frame_start, frame_end, ref_freq, beam, intensity, seq,
-               timestamp]() {
+               timestamp, session_id]() {
     float compression_level = quality; // 100.0f; // default is 45.0f
+
+    auto session = get_session(session_id);
+
+    if (session == nullptr)
+    {
+      std::shared_ptr<struct UserSession> _session(new UserSession());
+      _session->last_seq = -1;
+
+      insert_session(session_id, _session);
+      session = _session;
+    }
+
+    struct UserSession *session_ptr = session.get();
+
+    session_ptr->last_seq = seq;
+
+    // gain unique access
+    std::lock_guard<std::shared_mutex> unique_session(session->mtx);
+
+    // check the sequence numbers (skip older requests)
+    int last_seq = session_ptr->last_seq;
+    if (seq < last_seq)
+    {
+      printf("skipping an old frame (%d < %d)\n", seq, last_seq);
+
+      // end the response early by sending nothing
+      std::lock_guard<std::mutex> guard(queue->mtx);
+
+      // end of chunked encoding
+      queue->eof = true;
+      return;
+    }
+
+    session->ts = system_clock::now();
 
     int start, end;
     double elapsedMilliseconds;
@@ -2400,6 +2434,7 @@ int main(int argc, char *argv[])
         float timestamp = 0;
         intensity_mode intensity = mean;
         beam_shape beam = square;
+        std::string session_id;
 
         std::vector<std::string> params;
         boost::split(params, query, [](char c) { return c == '&'; });
@@ -2464,6 +2499,9 @@ int main(int argc, char *argv[])
               intensity = (strcasecmp("integrated", value.c_str()) == 0)
                               ? integrated
                               : mean;
+
+            if (key.find("session_id") != std::string::npos)
+              session_id = value;
           }
         }
 
@@ -2475,7 +2513,7 @@ int main(int argc, char *argv[])
                   << "::" << ref_freq
                   << "::" << (beam == circle ? "circle" : "square")
                   << "::" << (intensity == integrated ? "integrated" : "mean")
-                  << "::" << seq << "::" << timestamp << ")" << std::endl;
+                  << "::" << seq << "::" << timestamp << "::" << session_id << ")" << std::endl;
 
         auto fits = get_dataset(datasetid);
 
@@ -2495,7 +2533,7 @@ int main(int argc, char *argv[])
               return stream_realtime_image_spectrum(
                   &res, fits, dx, quality, image_update, x1, x2, y1, y2,
                   frame_start, frame_end, ref_freq, beam, intensity, seq,
-                  timestamp);
+                  timestamp, session_id);
             }
           }
         }

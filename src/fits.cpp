@@ -3004,7 +3004,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
       {
         // std::cout << json.str() << std::endl;
         ws->send(json.str(), uWS::OpCode::TEXT);
-        update_progress_timestamp(user->ptr);
+        update_session_timestamp(user->ptr);
       }
     }
   };
