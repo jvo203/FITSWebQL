@@ -48,6 +48,34 @@ inline bool session_exists(std::string session_id)
     return true;
 }
 
+inline std::shared_ptr<struct UserSession> get_session(std::string session_id)
+{
+  std::shared_lock<std::shared_mutex> lock(sessions_mtx);
+
+  auto item = sessions.find(session_id);
+
+  if (item == sessions.end())
+    return nullptr;
+  else
+    return item->second;
+}
+
+inline void insert_session(std::string session_id, std::shared_ptr<struct UserSession> session)
+{
+  std::lock_guard<std::shared_mutex> guard(sessions_mtx);
+
+  sessions.insert(std::pair(session_id, session));
+}
+
+inline void erase_session(std::string session_id)
+{
+  std::lock_guard<std::shared_mutex> guard(sessions_mtx);
+
+  sessions.erase(session_id);
+}
+
+// the stuff  below is used by uWebSockets
+
 struct UserData
 {
   struct UserSession *ptr;
