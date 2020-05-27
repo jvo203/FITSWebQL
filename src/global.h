@@ -23,7 +23,8 @@ inline progress_list m_progress;
 
 #define uWS_PROGRESS_TIMEOUT 0.25
 
-struct UserSession {
+struct UserSession
+{
   // session management
   boost::uuids::uuid session_id;
   system_clock::time_point ts;
@@ -34,12 +35,14 @@ struct UserSession {
   std::vector<std::string> ids;
 };
 
-struct UserData {
+struct UserData
+{
   struct UserSession *ptr;
 };
 
 inline bool check_progress_timeout(struct UserSession *session,
-                                   system_clock::time_point now) {
+                                   system_clock::time_point now)
+{
   if (session == NULL)
     return false;
 
@@ -54,7 +57,8 @@ inline bool check_progress_timeout(struct UserSession *session,
     return false;
 }
 
-inline void update_progress_timestamp(struct UserSession *session) {
+inline void update_progress_timestamp(struct UserSession *session)
+{
   if (session == NULL)
     return;
 
@@ -63,13 +67,17 @@ inline void update_progress_timestamp(struct UserSession *session) {
   session->ts = system_clock::now();
 }
 
+// a global mutex used by real-time spectrum updates to prevent OpenMP pool thread contention
+std::mutex fits_mtx;
+
 #ifdef CLUSTER
 #include <czmq.h>
 
 inline std::set<std::string> cluster;
 inline std::shared_mutex cluster_mtx;
 
-inline bool cluster_contains_node(std::string node) {
+inline bool cluster_contains_node(std::string node)
+{
   std::shared_lock<std::shared_mutex> lock(cluster_mtx);
 
   if (cluster.find(node) == cluster.end())
@@ -78,12 +86,14 @@ inline bool cluster_contains_node(std::string node) {
     return true;
 }
 
-inline void cluster_insert_node(std::string node) {
+inline void cluster_insert_node(std::string node)
+{
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.insert(node);
 }
 
-inline void cluster_erase_node(std::string node) {
+inline void cluster_erase_node(std::string node)
+{
   std::lock_guard<std::shared_mutex> guard(cluster_mtx);
   cluster.erase(node);
 }
