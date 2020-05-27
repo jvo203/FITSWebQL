@@ -3419,7 +3419,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
     {
       if (pBuffer)
       {
-        Ipp32u i;
+        int i;
         Ipp32f *pSrcT, *pDstT;
         Ipp8u *pOneBuf;
         IppiPoint srcOffset = {0, 0};
@@ -3471,7 +3471,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   ippsFree(pBuffer);
 
-  for (Ipp32u i = 0; i < numThreads; ++i)
+  for (int i = 0; i < numThreads; ++i)
   {
     /* Return bad status */
     if (pStatus[i] != ippStsNoErr)
@@ -3570,7 +3570,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
     {
       if (pBuffer)
       {
-        Ipp32u i;
+        int i;
         Ipp8u *pSrcT, *pDstT;
         Ipp8u *pOneBuf;
         IppiPoint srcOffset = {0, 0};
@@ -3623,7 +3623,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   ippsFree(pBuffer);
 
-  for (Ipp32u i = 0; i < numThreads; ++i)
+  for (int i = 0; i < numThreads; ++i)
   {
     /* Return bad status */
     if (pStatus[i] != ippStsNoErr)
