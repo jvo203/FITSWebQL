@@ -68,7 +68,7 @@ inline void update_progress_timestamp(struct UserSession *session)
 }
 
 // a global mutex used by real-time spectrum updates to prevent OpenMP pool thread contention
-std::mutex fits_mtx;
+inline std::mutex fits_mtx;
 
 #ifdef CLUSTER
 #include <czmq.h>
