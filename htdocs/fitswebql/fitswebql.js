@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-26.0";
+	return "JS2020-05-27.0";
 }
 
 const wasm_supported = (() => {
@@ -2164,33 +2164,6 @@ function poll_progress(datasetId, index) {
 	xmlhttp.send();
 }
 
-function open_progress_connection(datasetId, index) {
-	if (typeof (EventSource) !== "undefined") {
-		var source = new EventSource("progress/" + encodeURIComponent(datasetId));
-
-		source.onerror = function (event) {
-			if (event.eventPhase == EventSource.CLOSED) {
-				source.close();
-				console.log("EventSource Closed");
-			}
-		}
-
-		source.onmessage = function (event) {
-			if (event) {
-				console.log('index:', index, event.data);
-
-				try {
-					var data = JSON.parse(event.data);
-					process_progress_event(data, index);
-				} catch (e) {
-					console.log(e);
-				}
-			}
-		}
-	} else
-		console.log('Server-Sent Event (EventSource) is unsupported by your browser, disabling progress notifications.')
-}
-
 function process_message(index, received_msg) {
 	if (received_msg.byteLength == 0)
 		return;
@@ -2235,7 +2208,7 @@ function open_websocket_connection(datasetId, index) {
 		// Let us open a web socket
 		var loc = window.location, ws_uri;
 
-		ws_uri = WS_SOCKET + loc.hostname + ':' + WS_PORT + ROOT_PATH + "websocket/" + encodeURIComponent(datasetId);
+		ws_uri = WS_SOCKET + loc.hostname + ':' + loc.port + ROOT_PATH + "websocket/" + encodeURIComponent(datasetId);
 
 		//d3.select("#welcome").append("p").text("ws_uri: " + ws_uri) ;
 
@@ -13797,7 +13770,8 @@ async*/ function mainRenderer() {
 		poll_heartbeat();
 
 		if (va_count == 1) {
-			poll_progress(datasetId, 1);
+			//poll_progress(datasetId, 1);
+			open_websocket_connection(datasetId, 1);
 
 			fetch_image_spectrum(datasetId, 1, true, false);
 
@@ -13807,7 +13781,8 @@ async*/ function mainRenderer() {
 			for (let index = 1; index <= va_count; index++) {
 				console.log(index, datasetId.rotate(index - 1));
 
-				poll_progress(datasetId.rotate(index - 1)[0], index);
+				//poll_progress(datasetId.rotate(index - 1)[0], index);
+				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
 
 				fetch_image_spectrum(datasetId[index - 1], index, true, false);
 			}
