@@ -35,8 +35,18 @@ struct UserSession
   std::vector<std::string> ids;
 };
 
-inline std::unordered_map<std::string, struct UserSession *> sessions;
+inline std::unordered_map<std::string, std::shared_ptr<struct UserSession>> sessions;
 inline std::shared_mutex sessions_mtx;
+
+inline bool session_exists(std::string session_id)
+{
+  std::shared_lock<std::shared_mutex> lock(sessions_mtx);
+
+  if (sessions.find(session_id) == sessions.end())
+    return false;
+  else
+    return true;
+}
 
 struct UserData
 {
