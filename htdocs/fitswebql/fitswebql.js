@@ -9840,6 +9840,12 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 			var received_msg = xmlhttp.response;
 
+			if (received_msg.byteLength == 0) {
+				hide_hourglass();
+				show_not_found();
+				return;
+			}
+
 			if (received_msg instanceof ArrayBuffer) {
 				var dv = new DataView(received_msg);
 				console.log("FITSImage dataview byte length: ", dv.byteLength);
@@ -10054,9 +10060,6 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 					})
 					.catch(e => console.error(e));
-			} else {
-				hide_hourglass();
-				show_not_found();
 			}
 		}
 	}
