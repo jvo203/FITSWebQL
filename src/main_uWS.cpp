@@ -13,6 +13,21 @@
 #define WASM_VERSION "20.05.08.0"
 #define VERSION_STRING "SV2020-05-28.0"
 
+// OpenEXR
+#include <OpenEXR/IlmThread.h>
+#include <OpenEXR/ImfNamespace.h>
+#include <OpenEXR/ImfThreading.h>
+
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfOutputFile.h>
+#include <OpenEXR/ImfStandardAttributes.h>
+#include <OpenEXR/ImfStdIO.h>
+
+using namespace OPENEXR_IMF_NAMESPACE;
+
+#include <omp.h>
+
 #include <zlib.h>
 
 /* CHUNK is the size of the memory chunk used by the zlib routines. */
@@ -393,12 +408,540 @@ static int sqlite_callback(void *userp, int argc, char **argv,
   return 0;
 }
 
-void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, int _width, int _height, float compression_quality, bool fetch_data, std::shared_ptr<std::atomic<bool>> aborted)
+inline float get_screen_scale(int x)
+{
+  // return Math.floor(0.925*x) ;
+  return floorf(0.9f * float(x));
+}
+
+inline float get_image_scale_square(int width, int height, int img_width,
+                                    int img_height)
+{
+  float screen_dimension = get_screen_scale(MIN(width, height));
+  float image_dimension = MAX(img_width, img_height);
+
+  return screen_dimension / image_dimension;
+}
+
+inline float get_image_scale(int width, int height, int img_width,
+                             int img_height)
+{
+  if (img_width == img_height)
+    return get_image_scale_square(width, height, img_width, img_height);
+
+  if (img_height < img_width)
+  {
+    float screen_dimension = 0.9f * float(height);
+    float image_dimension = img_height;
+
+    float scale = screen_dimension / image_dimension;
+
+    float new_image_width = scale * img_width;
+
+    if (new_image_width > 0.8f * float(width))
+    {
+      screen_dimension = 0.8f * float(width);
+      image_dimension = img_width;
+      scale = screen_dimension / image_dimension;
+    }
+
+    return scale;
+  }
+
+  if (img_width < img_height)
+  {
+    float screen_dimension = 0.8f * float(width);
+    float image_dimension = img_width;
+
+    float scale = screen_dimension / image_dimension;
+
+    float new_image_height = scale * img_height;
+
+    if (new_image_height > 0.9f * float(height))
+    {
+      screen_dimension = 0.9f * float(height);
+      image_dimension = img_height;
+      scale = screen_dimension / image_dimension;
+    }
+
+    return scale;
+  }
+
+  return 1.0f;
+}
+
+void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
+{
+  long x1 = 0;
+  long x2 = 0;
+  long y1 = 0;
+  long y2 = 0;
+
+  long x, y;
+  bool found_data;
+
+  long linesize = width;
+  size_t length = width * height;
+
+  // find y1
+  for (size_t i = 0; i < length; i++)
+  {
+    if (alpha[i] > 0)
+    {
+      y1 = (i / linesize);
+      break;
+    }
+  }
+
+  // find y2
+  for (size_t i = length - 1; i >= 0; i--)
+  {
+    if (alpha[i] > 0)
+    {
+      y2 = (i / linesize);
+      break;
+    }
+  }
+
+  // find x1
+  found_data = false;
+  for (x = 0; x < width; x++)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
+        x1 = x;
+        found_data = true;
+        break;
+      }
+    }
+
+    if (found_data)
+      break;
+  }
+
+  // find x2
+  found_data = false;
+  for (x = (width - 1); x >= 0; x--)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
+        x2 = x;
+        found_data = true;
+        break;
+      }
+    }
+
+    if (found_data)
+      break;
+  }
+
+  printf("image bounding box:\tx1 = %ld, x2 = %ld, y1 = %ld, y2 = %ld\n", x1,
+         x2, y1, y2);
+
+  width = labs(x2 - x1) + 1;
+  height = labs(y2 - y1) + 1;
+}
+
+void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, int _width, int _height, float compression_level, bool fetch_data, std::shared_ptr<std::atomic<bool>> aborted)
 {
   if (*aborted.get() == true)
   {
     printf("[stream_image_spectrum] aborted http connection detected.\n");
     return;
+  }
+
+  // calculate a new image size
+  long true_width = fits->width;
+  long true_height = fits->height;
+  true_image_dimensions(fits->img_mask, true_width, true_height);
+  float scale = get_image_scale(_width, _height, true_width, true_height);
+
+  if (scale < 1.0)
+  {
+    int img_width = roundf(scale * fits->width);
+    int img_height = roundf(scale * fits->height);
+
+    printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
+           fits->width, fits->height, img_width, img_height);
+
+    size_t plane_size = size_t(img_width) * size_t(img_height);
+
+    // allocate {pixel_buf, mask_buf}
+    std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                       ippsFree);
+    std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+    std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size),
+                                         ippsFree);
+
+    if (pixels_buf.get() != NULL && mask_buf.get() != NULL &&
+        mask_buf_32f.get() != NULL)
+    {
+      // downsize float32 pixels and a mask
+      IppiSize srcSize;
+      srcSize.width = fits->width;
+      srcSize.height = fits->height;
+      Ipp32s srcStep = srcSize.width;
+
+      IppiSize dstSize;
+      dstSize.width = img_width;
+      dstSize.height = img_height;
+      Ipp32s dstStep = dstSize.width;
+
+      IppStatus pixels_stat =
+          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
+                            pixels_buf.get(), dstSize, dstStep);
+
+      IppStatus mask_stat = tileResize8u_C1R(
+          fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+
+      printf(" %d : %s, %d : %s\n", pixels_stat,
+             ippGetStatusString(mask_stat), pixels_stat,
+             ippGetStatusString(mask_stat));
+
+      // compress the pixels + mask with OpenEXR
+      if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
+      {
+        // the mask should be filled-in manually based on NaN pixels
+        // not anymore, NaN will be replaced by 0.0 due to unwanted cropping
+        // by OpenEXR
+        Ipp32f *pixels = pixels_buf.get();
+        Ipp8u *src_mask = mask_buf.get();
+        Ipp32f *mask = mask_buf_32f.get();
+
+#pragma omp parallel for simd
+        for (size_t i = 0; i < plane_size; i++)
+          mask[i] = (src_mask[i] == 255)
+                        ? 1.0f
+                        : 0.0f; // std::isnan(pixels[i]) ? 0.0f : 1.0f;
+
+        // export EXR in a YA format
+        std::string filename =
+            FITSCACHE + std::string("/") +
+            boost::replace_all_copy(fits->dataset_id, "/", "_") +
+            std::string("_resize.exr");
+
+        // in-memory output
+        StdOSStream oss;
+
+        try
+        {
+          Header header(img_width, img_height);
+          header.compression() = DWAB_COMPRESSION;
+          addDwaCompressionLevel(header, compression_level);
+          header.channels().insert("Y", Channel(FLOAT));
+          header.channels().insert("A", Channel(FLOAT));
+
+          // OutputFile file(filename.c_str(), header);
+          OutputFile file(oss, header);
+          FrameBuffer frameBuffer;
+
+          frameBuffer.insert("Y",
+                             Slice(FLOAT, (char *)pixels, sizeof(Ipp32f) * 1,
+                                   sizeof(Ipp32f) * img_width));
+
+          frameBuffer.insert("A",
+                             Slice(FLOAT, (char *)mask, sizeof(Ipp32f) * 1,
+                                   sizeof(Ipp32f) * img_width));
+
+          file.setFrameBuffer(frameBuffer);
+          file.writePixels(img_height);
+        }
+        catch (const std::exception &exc)
+        {
+          std::cerr << exc.what() << std::endl;
+        }
+
+        std::string output = oss.str();
+        std::cout << "[" << fits->dataset_id
+                  << "]::downsize OpenEXR output: " << output.length()
+                  << " bytes." << std::endl;
+
+        // send the data to the web client
+        {
+          /*uint32_t id_length = 3;
+            const char id[] = {'E', 'X', 'R'};
+            uint32_t js_width = img_width;
+            uint32_t js_height = img_height;
+            uint64_t length = output.length();*/
+
+          std::lock_guard<std::mutex> guard(queue->mtx);
+          const char *ptr;
+
+          /*ptr = (const char *)&id_length;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = id;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
+
+            ptr = (const char *)&js_width;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = (const char *)&js_height;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+            ptr = (const char *)&length;
+            queue->fifo.insert(queue->fifo.end(), ptr, ptr +
+            sizeof(uint64_t));*/
+
+          // send image tone mapping statistics
+          float tmp = 0.0f;
+          uint32_t str_len = fits->flux.length();
+          uint64_t img_len = output.length();
+
+          ptr = (const char *)&str_len;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+          ptr = fits->flux.c_str();
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+
+          ptr = (const char *)&tmp;
+
+          tmp = fits->min;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->max;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->median;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->sensitivity;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->ratio_sensitivity;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->white;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          tmp = fits->black;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+          ptr = (const char *)&img_len;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+
+          ptr = output.c_str();
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+        }
+
+        // add compressed FITS data, a spectrum and a histogram
+        if (fetch_data)
+        {
+          std::ostringstream json;
+          fits->to_json(json);
+
+          // LZ4-compress json
+          Ipp8u *json_lz4 = NULL;
+          uint32_t json_size = json.tellp();
+          uint32_t compressed_size = 0;
+
+          // LZ4-compress json data
+          int worst_size = LZ4_compressBound(json_size);
+          json_lz4 = ippsMalloc_8u_L(worst_size);
+
+          if (json_lz4 != NULL)
+          {
+            // compress the header with LZ4
+            compressed_size = LZ4_compress_HC(
+                (const char *)json.str().c_str(), (char *)json_lz4, json_size,
+                worst_size, LZ4HC_CLEVEL_MAX);
+
+            printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n",
+                   json_size, compressed_size);
+
+            // append json to the trasmission queue
+            std::lock_guard<std::mutex> guard(queue->mtx);
+
+            const char *ptr = (const char *)&json_size;
+            queue->fifo.insert(queue->fifo.end(), ptr,
+                               ptr + sizeof(uint32_t));
+            queue->fifo.insert(queue->fifo.end(), json_lz4,
+                               json_lz4 + compressed_size);
+
+            ippsFree(json_lz4);
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    // mirror-flip the pixels_buf, compress with OpenEXR and transmit at
+    // its original scale
+    int img_width = fits->width;
+    int img_height = fits->height;
+
+    size_t plane_size = size_t(img_width) * size_t(img_height);
+
+    // an array to hold a flipped image (its mirror image)
+    /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         ippsFree);*/
+
+    // an alpha channel
+    std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);
+
+    // copy and flip the image, fill-in the mask
+    if (/*pixels_buf.get() != NULL &&*/ mask_buf.get() != NULL)
+    {
+      /*tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
+                          img_height);*/
+
+      // the mask should be filled-in manually based on NaN pixels
+      Ipp32f *pixels = fits->img_pixels; // pixels_buf.get();
+      Ipp8u *_mask = fits->img_mask;
+      Ipp32f *mask = mask_buf.get();
+
+#pragma omp parallel for simd
+      for (size_t i = 0; i < plane_size; i++)
+        mask[i] = (_mask[i] == 255)
+                      ? 1.0f
+                      : 0.0f; // std::isnan(pixels[i]) ? 0.0f : 1.0f;
+
+      // export the luma+mask to OpenEXR
+      std::string filename =
+          FITSCACHE + std::string("/") +
+          boost::replace_all_copy(fits->dataset_id, "/", "_") +
+          std::string("_mirror.exr");
+
+      // in-memory output
+      StdOSStream oss;
+
+      try
+      {
+        Header header(img_width, img_height);
+        header.compression() = DWAB_COMPRESSION;
+        addDwaCompressionLevel(header, compression_level);
+        header.channels().insert("Y", Channel(FLOAT));
+        header.channels().insert("A", Channel(FLOAT));
+
+        // OutputFile file(filename.c_str(), header);
+        OutputFile file(oss, header);
+        FrameBuffer frameBuffer;
+
+        frameBuffer.insert("Y",
+                           Slice(FLOAT, (char *)pixels, sizeof(Ipp32f) * 1,
+                                 sizeof(Ipp32f) * img_width));
+
+        frameBuffer.insert("A", Slice(FLOAT, (char *)mask, sizeof(Ipp32f) * 1,
+                                      sizeof(Ipp32f) * img_width));
+
+        file.setFrameBuffer(frameBuffer);
+        file.writePixels(img_height);
+      }
+      catch (const std::exception &exc)
+      {
+        std::cerr << exc.what() << std::endl;
+      }
+
+      std::string output = oss.str();
+      std::cout << "[" << fits->dataset_id
+                << "]::mirror OpenEXR output: " << output.length()
+                << " bytes." << std::endl;
+
+      // send the data to the web client
+      {
+        /*uint32_t id_length = 3;
+          const char id[] = {'E', 'X', 'R'};
+          uint32_t js_width = img_width;
+          uint32_t js_height = img_height;
+          uint64_t length = output.length();*/
+
+        std::lock_guard<std::mutex> guard(queue->mtx);
+        const char *ptr;
+
+        /*ptr = (const char *)&id_length;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = id;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
+
+          ptr = (const char *)&js_width;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = (const char *)&js_height;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+          ptr = (const char *)&length;
+          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));*/
+
+        // send image tone mapping statistics
+        float tmp = 0.0f;
+        uint32_t str_len = fits->flux.length();
+        uint64_t img_len = output.length();
+
+        ptr = (const char *)&str_len;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+        ptr = fits->flux.c_str();
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+
+        ptr = (const char *)&tmp;
+
+        tmp = fits->min;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->max;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->median;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->sensitivity;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->ratio_sensitivity;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->white;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        tmp = fits->black;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+
+        ptr = (const char *)&img_len;
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+
+        /*ptr = output.c_str();
+        queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());*/
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, output.length()));
+      }
+
+      // add compressed FITS data, a spectrum and a histogram
+      if (fetch_data)
+      {
+        std::ostringstream json;
+        fits->to_json(json);
+
+        // LZ4-compress json
+        Ipp8u *json_lz4 = NULL;
+        uint32_t json_size = json.tellp();
+        uint32_t compressed_size = 0;
+
+        // LZ4-compress json data
+        int worst_size = LZ4_compressBound(json_size);
+        json_lz4 = ippsMalloc_8u_L(worst_size);
+
+        if (json_lz4 != NULL)
+        {
+          // compress the header with LZ4
+          compressed_size = LZ4_compress_HC((const char *)json.str().c_str(),
+                                            (char *)json_lz4, json_size,
+                                            worst_size, LZ4HC_CLEVEL_MAX);
+
+          printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n", json_size,
+                 compressed_size);
+
+          // append json to the trasmission queue
+          if (*aborted.get() != true)
+            res->write(std::string_view((const char *)json_lz4, compressed_size));
+
+          ippsFree(json_lz4);
+        }
+      }
+    }
   }
 
   // end of chunked encoding
@@ -1343,6 +1886,14 @@ int main(int argc, char *argv[])
 
   ipp_init();
   curl_global_init(CURL_GLOBAL_ALL);
+
+  if (ILMTHREAD_NAMESPACE::supportsThreads())
+  {
+    int omp_threads = omp_get_max_threads();
+    OPENEXR_IMF_NAMESPACE::setGlobalThreadCount(omp_threads);
+    std::cout << "[OpenEXR] number of threads: "
+              << OPENEXR_IMF_NAMESPACE::globalThreadCount() << std::endl;
+  }
 
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
