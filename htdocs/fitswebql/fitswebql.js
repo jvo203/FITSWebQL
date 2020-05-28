@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-27.0";
+	return "JS2020-05-28.0";
 }
 
 const wasm_supported = (() => {
@@ -10054,6 +10054,9 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 					})
 					.catch(e => console.error(e));
+			} else {
+				hide_hourglass();
+				show_not_found();
 			}
 		}
 	}
