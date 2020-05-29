@@ -2753,18 +2753,17 @@ function open_websocket_connection(datasetId, index) {
 
 						//console.log("ping latency = " + ping_latency.toFixed(1) + " [ms]" + ' fps: ' + fps.toFixed()) ;
 
-						d3.select("#ping")
+						/*d3.select("#ping")
 							.attr("fill", "green")
-							.attr("opacity", 1.0);
+							.attr("opacity", 1.0);*/
 						/*.transition()
 						.duration(250)
 						.attr("opacity", 0.0);*/
 
 						if (ping_latency >= 1)
-							d3.select("#latency").text('n/w latency: ' + ping_latency.toFixed() + ' ms' + ' ws: ' + fps.toFixed() + ' fps');
+							d3.select("#latency").text(`${ping_latency.toFixed()} ms ${fps.toFixed()} fps`);
 						else
-							d3.select("#latency").text('n/w latency: ' + ping_latency.toFixed(1) + ' ms' + ' ws: ' + fps.toFixed() + ' fps');
-						//d3.select("#latency").text('n/w latency: < 1 ms');			    
+							d3.select("#latency").text(`${ping_latency.toFixed(1)} ms ${fps.toFixed()} fps`);
 
 						return;
 					}
