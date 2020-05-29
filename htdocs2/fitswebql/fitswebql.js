@@ -919,7 +919,7 @@ function webgl_viewport_renderer(gl, height) {
 		let now = performance.now();
 
 		// limit the FPS
-		if (now - last_viewport_loop < 1000 / 30) {
+		if ((now - last_viewport_loop) < (1000 / fps)) {
 			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 			return;
 		} else {
@@ -1280,7 +1280,8 @@ function webgl_image_renderer(index, gl, width, height) {
 		let now = performance.now();
 
 		// limit the FPS
-		if (now - last_image_loop < 1000 / 30) {
+		let _fps = 30;
+		if ((now - last_image_loop) < (1000 / _fps)) {
 			image.loopId = requestAnimationFrame(image_rendering_loop);
 			return;
 		} else {
