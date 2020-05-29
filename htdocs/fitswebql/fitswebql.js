@@ -6027,7 +6027,7 @@ function display_preferences(index) {
 		.attr('class', 'glyphicon')
 		.attr("x", emFontSize / 4)
 		//.attr("y", offset)//"0.75em")
-		.attr("y", (svgHeight - offset / 4))
+		.attr("y", (svgHeight - 3 * offset / 4))
 		.attr("font-family", "Helvetica")//Helvetica
 		//.attr("font-size", "0.75em")
 		.attr("font-size", "1.5em")
@@ -6043,8 +6043,8 @@ function display_preferences(index) {
 		fillColour = 'black';
 
 	group.append("text")
-		.attr("id", "latency")
-		.attr("x", (emFontSize / 4 + 1.75 * emFontSize))
+		.attr("id", "latency")		
+		.attr("x", (0 * emFontSize / 4 + 0 * 1.75 * emFontSize))
 		//.attr("y", offset)//"0.85em")
 		.attr("y", (svgHeight - offset / 4))
 		.attr("font-family", "Inconsolata")
