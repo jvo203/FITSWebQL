@@ -6043,7 +6043,7 @@ function display_preferences(index) {
 		fillColour = 'black';
 
 	group.append("text")
-		.attr("id", "latency")		
+		.attr("id", "latency")
 		.attr("x", (0 * emFontSize / 4 + 0 * 1.75 * emFontSize))
 		//.attr("y", offset)//"0.85em")
 		.attr("y", (svgHeight - offset / 4))

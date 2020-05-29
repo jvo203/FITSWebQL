@@ -2093,6 +2093,11 @@ function poll_heartbeat() {
 			}
 			catch (e) { };
 
+			if (ping_latency >= 1)
+				d3.select("#latency").text(`${ping_latency.toFixed()} ms ${fps.toFixed()} fps`);
+			else
+				d3.select("#latency").text(`${ping_latency.toFixed(1)} ms ${fps.toFixed()} fps`);
+
 			/*try {
 				d3.select("#heartbeat")
 					.attr("fill", "grey")
