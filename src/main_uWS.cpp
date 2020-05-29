@@ -2501,6 +2501,166 @@ int main(int argc, char *argv[])
 
                          std::string datasetid = user->ptr->primary_id;
 
+                         if (message.find("realtime_image_spectrum") != std::string::npos)
+                         {
+                           int seq = -1;
+                           int dx = 0;
+                           float quality = 45;
+                           bool image_update = false;
+                           int x1 = -1;
+                           int x2 = -1;
+                           int y1 = -1;
+                           int y2 = -1;
+                           double frame_start = 0;
+                           double frame_end = 0;
+                           double ref_freq = 0;
+                           float timestamp = 0;
+                           intensity_mode intensity = mean;
+                           beam_shape beam = square;
+
+                           std::string_view query;
+                           size_t pos = message.find("?");
+
+                           if (pos != std::string::npos)
+                             query = message.substr(pos + 1, std::string::npos);
+
+                           std::vector<std::string> params;
+                           boost::split(params, query, [](char c) { return c == '&'; });
+
+                           for (auto const &s : params)
+                           {
+                             // find '='
+                             size_t pos = s.find("=");
+
+                             if (pos != std::string::npos)
+                             {
+                               std::string key = s.substr(0, pos);
+                               std::string value = s.substr(pos + 1, std::string::npos);
+
+                               if (key.find("dataset") != std::string::npos)
+                                 datasetid = value;
+
+                               if (key.find("seq") != std::string::npos)
+                                 seq = std::stoi(value);
+
+                               if (key.find("dx") != std::string::npos)
+                                 dx = std::stoi(value);
+
+                               if (key.find("quality") != std::string::npos)
+                                 quality = std::stof(value);
+
+                               if (key.find("image") != std::string::npos)
+                               {
+                                 if (value == "true")
+                                   image_update = true;
+                               }
+
+                               if (key.find("x1") != std::string::npos)
+                                 x1 = std::stoi(value);
+
+                               if (key.find("x2") != std::string::npos)
+                                 x2 = std::stoi(value);
+
+                               if (key.find("y1") != std::string::npos)
+                                 y1 = std::stoi(value);
+
+                               if (key.find("y2") != std::string::npos)
+                                 y2 = std::stoi(value);
+
+                               if (key.find("frame_start") != std::string::npos)
+                                 frame_start = std::stod(value);
+
+                               if (key.find("frame_end") != std::string::npos)
+                                 frame_end = std::stod(value);
+
+                               if (key.find("ref_freq") != std::string::npos)
+                                 ref_freq = std::stod(value);
+
+                               if (key.find("timestamp") != std::string::npos)
+                                 timestamp = std::stof(value);
+
+                               if (key.find("beam") != std::string::npos)
+                                 beam =
+                                     (strcasecmp("circle", value.c_str()) == 0) ? circle : square;
+
+                               if (key.find("intensity") != std::string::npos)
+                                 intensity = (strcasecmp("integrated", value.c_str()) == 0)
+                                                 ? integrated
+                                                 : mean;
+                             }
+                           }
+
+                           // process the response
+                           std::cout << "query(" << datasetid << "::" << dx << "::" << quality
+                                     << "::" << (image_update ? "true" : "false") << "::<X:> "
+                                     << x1 << ".." << x2 << ",Y:> " << y1 << ".." << y2
+                                     << ">::" << frame_start << "::" << frame_end
+                                     << "::" << ref_freq
+                                     << "::" << (beam == circle ? "circle" : "square")
+                                     << "::" << (intensity == integrated ? "integrated" : "mean")
+                                     << "::" << seq << "::" << timestamp << ")" << std::endl;
+
+                           auto fits = get_dataset(datasetid);
+
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
+                               fits->update_timestamp();
+
+                               int start, end;
+                               double elapsedMilliseconds;
+
+                               fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
+
+                               if (image_update)
+                               {
+                                 // send the compressed viewport
+                               }
+
+                               // calculate a viewport spectrum
+                               if (fits->depth > 1)
+                               {
+                                 std::vector<float> spectrum = fits->get_spectrum(
+                                     start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
+
+                                 std::cout << "spectrum length = " << spectrum.size()
+                                           << " elapsed time: " << elapsedMilliseconds << " [ms]"
+                                           << std::endl;
+
+                                 // send the spectrum
+                                 if (spectrum.size() > 0)
+                                 {
+                                   // construct a message
+
+                                   /*float ts = timestamp;
+                                   uint32_t id = seq;
+                                   uint32_t msg_type = 0;
+                                   float elapsed = elapsedMilliseconds;
+                                   
+                                   const char *ptr;
+
+                                   ptr = (const char *)&ts;
+                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
+
+                                   ptr = (const char *)&id;
+                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+                                   ptr = (const char *)&msg_type;
+                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+
+                                   ptr = (const char *)&elapsed;
+                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
+
+                                   ptr = (const char *)spectrum.data();
+                                   queue->fifo.insert(queue->fifo.end(), ptr,
+                                                      ptr + spectrum.size() * sizeof(float));*/
+                                 }
+                               }
+                             }
+                           }
+                         }
+
                          /*if (message.find("image/") != std::string::npos) {
                            int width, height;
 
