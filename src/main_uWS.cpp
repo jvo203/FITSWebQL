@@ -2480,6 +2480,7 @@ int main(int argc, char *argv[])
                          if (message.find("[heartbeat]") != std::string::npos)
                          {
                            ws->send(message, opCode);
+                           return;
                          }
                          else
                          {
