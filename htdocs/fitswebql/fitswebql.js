@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-28.0";
+	return "JS2020-05-29.0";
 }
 
 const wasm_supported = (() => {
@@ -1045,6 +1045,9 @@ function clear_webgl_viewport_buffers() {
 
 	var gl = viewport.gl;
 
+	if (gl == null)
+		return;
+
 	// position buffer
 	if (viewport.positionBuffer != undefined)
 		gl.deleteBuffer(viewport.positionBuffer);
@@ -1123,6 +1126,9 @@ function clear_webgl_image_buffers(index) {
 	cancelAnimationFrame(image.loopId);
 
 	var gl = image.gl;
+
+	if (gl == null)
+		return;
 
 	// position buffer
 	gl.deleteBuffer(image.positionBuffer);
@@ -12669,7 +12675,10 @@ function clear_webgl_legend_buffers(index) {
 
 	var gl = image.legend_gl;
 
-	// position buffer
+	if (gl == null)
+		return;
+
+	// position buffer	
 	gl.deleteBuffer(image.legend_positionBuffer);
 
 	// program
