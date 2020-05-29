@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-05-28.0"
+#define VERSION_STRING "SV2020-05-29.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -662,30 +662,7 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
 
         // send the data to the web client
         {
-          /*uint32_t id_length = 3;
-            const char id[] = {'E', 'X', 'R'};
-            uint32_t js_width = img_width;
-            uint32_t js_height = img_height;
-            uint64_t length = output.length();*/
-
-          std::lock_guard<std::mutex> guard(queue->mtx);
           const char *ptr;
-
-          /*ptr = (const char *)&id_length;
-            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-            ptr = id;
-            queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
-
-            ptr = (const char *)&js_width;
-            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-            ptr = (const char *)&js_height;
-            queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-            ptr = (const char *)&length;
-            queue->fifo.insert(queue->fifo.end(), ptr, ptr +
-            sizeof(uint64_t));*/
 
           // send image tone mapping statistics
           float tmp = 0.0f;
@@ -693,38 +670,49 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
           uint64_t img_len = output.length();
 
           ptr = (const char *)&str_len;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(str_len)));
+
           ptr = fits->flux.c_str();
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+          if (*aborted.get() != true)
+            res->write(fits->flux);
 
           ptr = (const char *)&tmp;
 
           tmp = fits->min;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->max;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->median;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->sensitivity;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->ratio_sensitivity;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->white;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           tmp = fits->black;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(tmp)));
 
           ptr = (const char *)&img_len;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(img_len)));
 
-          ptr = output.c_str();
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());
+          if (*aborted.get() != true)
+            res->write(output);
         }
 
         // add compressed FITS data, a spectrum and a histogram
@@ -753,13 +741,13 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
                    json_size, compressed_size);
 
             // append json to the trasmission queue
-            std::lock_guard<std::mutex> guard(queue->mtx);
 
             const char *ptr = (const char *)&json_size;
-            queue->fifo.insert(queue->fifo.end(), ptr,
-                               ptr + sizeof(uint32_t));
-            queue->fifo.insert(queue->fifo.end(), json_lz4,
-                               json_lz4 + compressed_size);
+            if (*aborted.get() != true)
+              res->write(std::string_view(ptr, sizeof(json_size)));
+
+            if (*aborted.get() != true)
+              res->write(std::string_view((const char *)json_lz4, compressed_size));
 
             ippsFree(json_lz4);
           }
@@ -843,29 +831,7 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
 
       // send the data to the web client
       {
-        /*uint32_t id_length = 3;
-          const char id[] = {'E', 'X', 'R'};
-          uint32_t js_width = img_width;
-          uint32_t js_height = img_height;
-          uint64_t length = output.length();*/
-
-        std::lock_guard<std::mutex> guard(queue->mtx);
         const char *ptr;
-
-        /*ptr = (const char *)&id_length;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-          ptr = id;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + id_length);
-
-          ptr = (const char *)&js_width;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-          ptr = (const char *)&js_height;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-          ptr = (const char *)&length;
-          queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));*/
 
         // send image tone mapping statistics
         float tmp = 0.0f;
@@ -873,40 +839,49 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
         uint64_t img_len = output.length();
 
         ptr = (const char *)&str_len;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(str_len)));
+
         ptr = fits->flux.c_str();
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + str_len);
+        if (*aborted.get() != true)
+          res->write(fits->flux);
 
         ptr = (const char *)&tmp;
 
         tmp = fits->min;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->max;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->median;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->sensitivity;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->ratio_sensitivity;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->white;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         tmp = fits->black;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(tmp));
+        if (*aborted.get() != true)
+          res->write(std::string_view(ptr, sizeof(tmp)));
 
         ptr = (const char *)&img_len;
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint64_t));
-
-        /*ptr = output.c_str();
-        queue->fifo.insert(queue->fifo.end(), ptr, ptr + output.length());*/
         if (*aborted.get() != true)
-          res->write(std::string_view(ptr, output.length()));
+          res->write(std::string_view(ptr, sizeof(img_len)));
+
+        if (*aborted.get() != true)
+          res->write(output);
       }
 
       // add compressed FITS data, a spectrum and a histogram
@@ -935,6 +910,11 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
                  compressed_size);
 
           // append json to the trasmission queue
+
+          const char *ptr = (const char *)&json_size;
+          if (*aborted.get() != true)
+            res->write(std::string_view(ptr, sizeof(json_size)));
+
           if (*aborted.get() != true)
             res->write(std::string_view((const char *)json_lz4, compressed_size));
 
