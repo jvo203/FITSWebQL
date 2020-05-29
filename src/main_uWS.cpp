@@ -2591,14 +2591,14 @@ int main(int argc, char *argv[])
                            }
 
                            // process the response
-                           std::cout << "query(" << datasetid << "::" << dx << "::" << quality
+                           /*std::cout << "query(" << datasetid << "::" << dx << "::" << quality
                                      << "::" << (image_update ? "true" : "false") << "::<X:> "
                                      << x1 << ".." << x2 << ",Y:> " << y1 << ".." << y2
                                      << ">::" << frame_start << "::" << frame_end
                                      << "::" << ref_freq
                                      << "::" << (beam == circle ? "circle" : "square")
                                      << "::" << (intensity == integrated ? "integrated" : "mean")
-                                     << "::" << seq << "::" << timestamp << ")" << std::endl;
+                                     << "::" << seq << "::" << timestamp << ")" << std::endl;*/
 
                            auto fits = get_dataset(datasetid);
 
@@ -2631,14 +2631,41 @@ int main(int argc, char *argv[])
                                  // send the spectrum
                                  if (spectrum.size() > 0)
                                  {
-                                   // construct a message
+                                   size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + spectrum.size() * sizeof(float);
+                                   char *buffer = (char *)malloc(bufferSize);
 
-                                   /*float ts = timestamp;
-                                   uint32_t id = seq;
-                                   uint32_t msg_type = 0;
-                                   float elapsed = elapsedMilliseconds;
-                                   
-                                   const char *ptr;
+                                   // construct a message
+                                   if (buffer != NULL)
+                                   {
+
+                                     float ts = timestamp;
+                                     uint32_t id = seq;
+                                     uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                     float elapsed = elapsedMilliseconds;
+
+                                     size_t offset = 0;
+
+                                     memcpy(buffer + offset, &ts, sizeof(float));
+                                     offset += sizeof(float);
+
+                                     memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                     offset += sizeof(uint32_t);
+
+                                     memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                     offset += sizeof(uint32_t);
+
+                                     memcpy(buffer + offset, &elapsed, sizeof(float));
+                                     offset += sizeof(float);
+
+                                     memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
+                                     offset += spectrum.size() * sizeof(float);
+
+                                     ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+
+                                     free(buffer);
+                                   }
+
+                                   /*const char *ptr;
 
                                    ptr = (const char *)&ts;
                                    queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
