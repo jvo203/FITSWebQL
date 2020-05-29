@@ -2191,16 +2191,8 @@ function process_message(index, received_msg) {
 		//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
 		if (!windowLeft) {
-			//console.log(spectrum);
 			spectrum_stack[index].push({ spectrum: spectrum, id: recv_seq_id });
 			console.log("index:", index, "spectrum_stack length:", spectrum_stack[index].length);
-
-			/*var data = [ spectrum ]
-			
-			plot_spectrum(data);
-			replot_y_axis();
-
-			last_spectrum = data;*/
 		};
 
 		return;
@@ -2273,9 +2265,7 @@ function open_websocket_connection(datasetId, index) {
 					if (type == 0) {
 						computed = dv.getFloat32(12, endianness);
 
-						var length = dv.getUint32(16, endianness);
-
-						var spectrum = new Float32Array(received_msg, 24);//16+8, extra 8 bytes for the length of the vector, added automatically by Rust
+						var spectrum = new Float32Array(received_msg, 16);
 
 						//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
@@ -9543,26 +9533,16 @@ function setup_image_selection() {
 						/*let frame_bounds = get_frame_bounds(data_band_lo, data_band_hi, index) ;
 						console.log("frame_bounds:", frame_bounds) ;*/
 
-						// fire off an HTTP/2 PUT request						
+						// a real-time websocket request
 						var range = get_axes_range(width, height);
 						var dx = range.xMax - range.xMin;
 
-						var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=false&quality=' + image_quality;
-						url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
-						url += '&timestamp=' + performance.now();
+						var request = 'realtime_image_spectrum?dx=' + dx + '&image=false&quality=' + image_quality;
+						request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+						request += '&timestamp=' + performance.now();
 
-						var xmlhttp = new XMLHttpRequest();
-
-						xmlhttp.onreadystatechange = function () {
-							if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-								process_message(index, xmlhttp.response);
-							}
-						}
-
-						xmlhttp.open("PUT", url, true);//"PUT" to disable caching
-						xmlhttp.responseType = 'arraybuffer';
-						xmlhttp.timeout = 0;
-						xmlhttp.send();
+						if (wsConn[index].readyState == 1)
+							wsConn[index].send(request);
 					}
 				}
 			}
@@ -10523,26 +10503,16 @@ function imageTimeout() {
 		if (va_count > 1)
 			dataId = datasetId[index];
 
-		// fire off an HTTP/2 PUT request						
+		// a real-time websocket request
 		var range = get_axes_range(width, height);
 		var dx = range.xMax - range.xMin;
 
-		var url = 'realtime_image_spectrum?datasetId=' + encodeURIComponent(dataId) + '&dx=' + dx + '&image=true&quality=' + image_quality;
-		url += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
-		url += '&timestamp=' + performance.now();
+		var request = 'realtime_image_spectrum?dx=' + dx + '&image=true&quality=' + image_quality;
+		request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+		request += '&timestamp=' + performance.now();
 
-		var xmlhttp = new XMLHttpRequest();
-
-		xmlhttp.onreadystatechange = function () {
-			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-				process_message(index, xmlhttp.response);
-			}
-		}
-
-		xmlhttp.open("PUT", url, true);//"PUT" to disable caching
-		xmlhttp.responseType = 'arraybuffer';
-		xmlhttp.timeout = 0;
-		xmlhttp.send();
+		if (wsConn[index].readyState == 1)
+			wsConn[index].send(request);
 	}
 
 	if (moving || streaming)
