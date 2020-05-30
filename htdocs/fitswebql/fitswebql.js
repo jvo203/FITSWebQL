@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-29.0";
+	return "JS2020-05-30.0";
 }
 
 const wasm_supported = (() => {
@@ -6028,7 +6028,7 @@ function display_preferences(index) {
 		.attr('class', 'glyphicon')
 		.attr("x", emFontSize / 4)
 		//.attr("y", offset)//"0.75em")
-		.attr("y", (svgHeight - 3 * offset / 4))
+		.attr("y", (svgHeight - 0.67 * offset))
 		.attr("font-family", "Helvetica")//Helvetica
 		//.attr("font-size", "0.75em")
 		.attr("font-size", "1.5em")
