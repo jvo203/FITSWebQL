@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-05-29.0"
+#define VERSION_STRING "SV2020-05-30.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2464,12 +2464,15 @@ int main(int argc, char *argv[])
                                user->ptr->primary_id = datasetid[0];
                                user->ptr->ids = datasetid;
 
-                               std::lock_guard<std::shared_mutex> guard(
-                                   m_progress_mutex);
-                               TWebSocketList connections =
-                                   m_progress[datasetid[0]];
-                               connections.insert(ws);
-                               m_progress[datasetid[0]] = connections;
+                               // launch a separate thread
+                               std::thread([datasetid, ws]() {
+                                 std::lock_guard<std::shared_mutex> guard(
+                                     m_progress_mutex);
+                                 TWebSocketList connections =
+                                     m_progress[datasetid[0]];
+                                 connections.insert(ws);
+                                 m_progress[datasetid[0]] = connections;
+                               }).detach();
                              }
                            }
                          }
@@ -2664,24 +2667,6 @@ int main(int argc, char *argv[])
 
                                      free(buffer);
                                    }
-
-                                   /*const char *ptr;
-
-                                   ptr = (const char *)&ts;
-                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
-
-                                   ptr = (const char *)&id;
-                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-                                   ptr = (const char *)&msg_type;
-                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(uint32_t));
-
-                                   ptr = (const char *)&elapsed;
-                                   queue->fifo.insert(queue->fifo.end(), ptr, ptr + sizeof(float));
-
-                                   ptr = (const char *)spectrum.data();
-                                   queue->fifo.insert(queue->fifo.end(), ptr,
-                                                      ptr + spectrum.size() * sizeof(float));*/
                                  }
                                }
                              }
@@ -2746,17 +2731,22 @@ int main(int argc, char *argv[])
                                            << user->ptr->primary_id
                                            << std::endl;
 
-                             std::lock_guard<std::shared_mutex> guard(
-                                 m_progress_mutex);
-                             TWebSocketList connections =
-                                 m_progress[user->ptr->primary_id];
-                             connections.erase(ws);
-                             m_progress[user->ptr->primary_id] = connections;
+                             auto primary_id = user->ptr->primary_id;
 
-                             // check if it is the last connection for this
-                             // dataset
-                             if (connections.size() == 0)
-                               m_progress.erase(user->ptr->primary_id);
+                             // launch a separate thread
+                             std::thread([primary_id, ws]() {
+                               std::lock_guard<std::shared_mutex> guard(
+                                   m_progress_mutex);
+                               TWebSocketList connections =
+                                   m_progress[primary_id];
+                               connections.erase(ws);
+                               m_progress[primary_id] = connections;
+
+                               // check if it is the last connection for this
+                               // dataset
+                               if (connections.size() == 0)
+                                 m_progress.erase(primary_id);
+                             }).detach();
 
                              delete user->ptr;
                            }
