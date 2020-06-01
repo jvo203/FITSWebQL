@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-01.1";
+	return "JS2020-06-01.2";
 }
 
 const wasm_supported = (() => {
@@ -13769,7 +13769,7 @@ async*/ function mainRenderer() {
 		poll_heartbeat();
 
 		if (va_count == 1) {
-			//poll_progress(datasetId, 1);
+			poll_progress(datasetId, 1);
 			open_websocket_connection(datasetId, 1);
 
 			fetch_image_spectrum(datasetId, 1, true, false);
@@ -13780,7 +13780,7 @@ async*/ function mainRenderer() {
 			for (let index = 1; index <= va_count; index++) {
 				console.log(index, datasetId.rotate(index - 1));
 
-				//poll_progress(datasetId.rotate(index - 1)[0], index);
+				poll_progress(datasetId.rotate(index - 1)[0], index);
 				open_websocket_connection(datasetId.rotate(index - 1).join(";"), index);
 
 				fetch_image_spectrum(datasetId[index - 1], index, true, false);
