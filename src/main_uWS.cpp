@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-05-30.1"
+#define VERSION_STRING "SV2020-06-01.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2608,69 +2608,70 @@ int main(int argc, char *argv[])
                            if (fits != nullptr)
                            {
                              if (!fits->has_error && fits->has_data)
-                               // launch a separate thread
-                               std::thread([fits, ws, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, intensity, beam, timestamp, seq]() {
-                                 fits->update_timestamp();
+                             /*// launch a separate thread
+                               std::thread([fits, ws, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, intensity, beam, timestamp, seq]()*/
+                             {
+                               fits->update_timestamp();
 
-                                 int start, end;
-                                 double elapsedMilliseconds;
+                               int start, end;
+                               double elapsedMilliseconds;
 
-                                 fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
+                               fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                                 if (image_update)
+                               if (image_update)
+                               {
+                                 // send the compressed viewport
+                               }
+
+                               // calculate a viewport spectrum
+                               if (fits->depth > 1)
+                               {
+                                 std::vector<float> spectrum = fits->get_spectrum(
+                                     start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
+
+                                 std::cout << "spectrum length = " << spectrum.size()
+                                           << " elapsed time: " << elapsedMilliseconds << " [ms]"
+                                           << std::endl;
+
+                                 // send the spectrum
+                                 if (spectrum.size() > 0)
                                  {
-                                   // send the compressed viewport
-                                 }
+                                   size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + spectrum.size() * sizeof(float);
+                                   char *buffer = (char *)malloc(bufferSize);
 
-                                 // calculate a viewport spectrum
-                                 if (fits->depth > 1)
-                                 {
-                                   std::vector<float> spectrum = fits->get_spectrum(
-                                       start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
-
-                                   std::cout << "spectrum length = " << spectrum.size()
-                                             << " elapsed time: " << elapsedMilliseconds << " [ms]"
-                                             << std::endl;
-
-                                   // send the spectrum
-                                   if (spectrum.size() > 0)
+                                   // construct a message
+                                   if (buffer != NULL)
                                    {
-                                     size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + spectrum.size() * sizeof(float);
-                                     char *buffer = (char *)malloc(bufferSize);
 
-                                     // construct a message
-                                     if (buffer != NULL)
-                                     {
+                                     float ts = timestamp;
+                                     uint32_t id = seq;
+                                     uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                     float elapsed = elapsedMilliseconds;
 
-                                       float ts = timestamp;
-                                       uint32_t id = seq;
-                                       uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
-                                       float elapsed = elapsedMilliseconds;
+                                     size_t offset = 0;
 
-                                       size_t offset = 0;
+                                     memcpy(buffer + offset, &ts, sizeof(float));
+                                     offset += sizeof(float);
 
-                                       memcpy(buffer + offset, &ts, sizeof(float));
-                                       offset += sizeof(float);
+                                     memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                     offset += sizeof(uint32_t);
 
-                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
-                                       offset += sizeof(uint32_t);
+                                     memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                     offset += sizeof(uint32_t);
 
-                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
-                                       offset += sizeof(uint32_t);
+                                     memcpy(buffer + offset, &elapsed, sizeof(float));
+                                     offset += sizeof(float);
 
-                                       memcpy(buffer + offset, &elapsed, sizeof(float));
-                                       offset += sizeof(float);
+                                     memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
+                                     offset += spectrum.size() * sizeof(float);
 
-                                       memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
-                                       offset += spectrum.size() * sizeof(float);
+                                     ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
 
-                                       ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
-
-                                       free(buffer);
-                                     }
+                                     free(buffer);
                                    }
                                  }
-                               }).detach();
+                               }
+                             }; //).detach();
                            }
                          }
 
