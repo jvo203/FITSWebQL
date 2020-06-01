@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-01.0";
+	return "JS2020-06-01.1";
 }
 
 const wasm_supported = (() => {
@@ -1280,19 +1280,26 @@ function webgl_image_renderer(index, gl, width, height) {
 	}
 
 	var last_image_loop = 0;
+	image.refresh = true;
 
 	// shoud be done in an animation loop
 	function image_rendering_loop() {
 		let now = performance.now();
 
 		// limit the FPS
-		let _fps = 30;
+		/*let _fps = 30;
 		if ((now - last_image_loop) < (1000 / _fps)) {
 			image.loopId = requestAnimationFrame(image_rendering_loop);
 			return;
 		} else {
 			last_image_loop = now;
-		}
+		}*/
+
+		if (!image.refresh) {
+			image.loopId = requestAnimationFrame(image_rendering_loop);
+			return;
+		} else
+			image.refresh = false;
 
 		//WebGL how to convert from clip space to pixels	
 		gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
@@ -1323,7 +1330,7 @@ function webgl_image_renderer(index, gl, width, height) {
 		var noise_sensitivity = document.getElementById('sensitivity' + index).value;
 		var multiplier = get_noise_sensitivity(noise_sensitivity);
 
-		if (image.tone_mapping.flux == "legacy") {			
+		if (image.tone_mapping.flux == "legacy") {
 			var params = [image.tone_mapping.black, image.tone_mapping.white, image.tone_mapping.lmin, image.tone_mapping.lmax];
 			gl.uniform4fv(locationOfParams, params);
 		} else {
@@ -5479,6 +5486,8 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 		var multiplier = get_noise_sensitivity(noise_sensitivity);
 		var path = get_flux_path(width, height, document.getElementById('flux' + index).value, black, white, median, multiplier, index);
 		flux_elem.attr("d", path);
+
+		image.refresh = true;
 
 		update_legend();
 	}
@@ -10759,6 +10768,8 @@ function change_noise_sensitivity(refresh, index) {
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
 	}
+
+	image.refresh = true;
 
 	update_legend();
 
