@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-05-30.0";
+	return "JS2020-06-01.0";
 }
 
 const wasm_supported = (() => {
@@ -5446,11 +5446,6 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 		catch (e) {
 		};
 
-		var multiplier = get_noise_sensitivity(noise_sensitivity);
-		var path = get_flux_path(width, height, document.getElementById('flux' + index).value, black, white, median, multiplier, index);
-
-		flux_elem.attr("d", path);
-
 		// set image tone mapping
 		var image = imageContainer[index - 1];
 
@@ -5462,6 +5457,10 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 		if (document.getElementById('flux' + index).value == "legacy") {
 			image.tone_mapping.min = black;
 			image.tone_mapping.max = white;
+
+			// added by Chris on 2020/06/01
+			/*image.tone_mapping.black = black;
+			image.tone_mapping.white = white;*/
 		}
 
 		if (document.getElementById('flux' + index).value == "logistic") {
@@ -5476,6 +5475,11 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 			image.tone_mapping.black = black;
 			image.tone_mapping.sensitivity = 1 / (white - black);
 		}
+		
+		var multiplier = get_noise_sensitivity(noise_sensitivity);
+		var path = get_flux_path(width, height, document.getElementById('flux' + index).value, black, white, median, multiplier, index);
+		flux_elem.attr("d", path);
+
 
 		update_legend();
 	}
@@ -5831,6 +5835,8 @@ function get_flux_path(width, height, flux, black, white, median, multiplier, in
 	var black = (black - min) / (max - min) * width;
 	var white = (white - min) / (max - min) * width;
 	var median = (median - min) / (max - min) * width;
+
+	console.log(min, max, black, white);
 
 	switch (flux) {
 		case 'legacy':
