@@ -2147,7 +2147,7 @@ function poll_heartbeat() {
 
 function poll_progress(datasetId, index) {
 	var xmlhttp = new XMLHttpRequest();
-	var url = 'get_progress/' + encodeURIComponent(datasetId);
+	var url = 'progress/' + encodeURIComponent(datasetId);
 
 	xmlhttp.onreadystatechange = function () {
 		if (xmlhttp.readyState == 4 && xmlhttp.status == 202) {

@@ -2006,6 +2006,67 @@ int main(int argc, char *argv[])
                       res->end("N/A");
                       return;
                     })
+              .post("/:root/progress/*",
+                    [](auto *res, auto *req) {
+                      std::string_view uri = req->getUrl();
+
+                      size_t pos = uri.find_last_of("/");
+
+                      if (pos != std::string::npos)
+                      {
+                        std::string datasetid =
+                            std::string(uri.substr(pos + 1, std::string::npos));
+
+                        // process the response
+                        std::cout << "progress(" << datasetid << ")" << std::endl;
+
+                        auto fits = get_dataset(datasetid);
+
+                        if (fits == nullptr)
+                          return http_not_found(res);
+                        else
+                        {
+                          if (fits->has_error)
+                            return http_not_found(res);
+                          else
+                          {
+                            // make json
+                            std::ostringstream json;
+                            bool valid = false;
+                            {
+                              std::shared_lock<std::shared_mutex> lock(fits->progress_mtx);
+
+                              json << "{\"total\" : " << fits->progress.total << ",";
+                              json << "\"running\" : " << fits->progress.running << ",";
+                              json << "\"elapsed\" : " << fits->progress.elapsed << "}";
+
+                              if (fits->progress.total > 0)
+                                valid = true;
+                            }
+
+                            if (valid)
+                            {
+                              if (json.tellp() > 0)
+                              {
+                                res->writeHeader("Content-Type", "application/json");
+                                res->writeHeader("Cache-Control", "no-cache");
+                                res->writeHeader("Cache-Control", "no-store");
+                                res->writeHeader("Pragma", "no-cache");
+                                res->end(json.str());
+                                return;
+                              }
+                              else
+                                return http_not_implemented(res);
+                            }
+                            else
+                              return http_accepted(res);
+                          }
+                        }
+                      }
+
+                      // default response
+                      return http_not_found(res);
+                    })
               .get("/:root/*",
                    [](auto *res, auto *req) {
                      std::string_view uri = req->getUrl();
