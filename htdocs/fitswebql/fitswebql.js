@@ -962,7 +962,7 @@ function webgl_viewport_renderer(gl, height) {
 		var multiplier = get_noise_sensitivity(noise_sensitivity);
 
 		if (image.tone_mapping.flux == "legacy") {
-			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax];
+			var params = [image.tone_mapping.black, image.tone_mapping.white, image.tone_mapping.lmin, image.tone_mapping.lmax];
 			gl.uniform4fv(locationOfParams, params);
 		} else {
 			if (image.tone_mapping.flux == "ratio")
@@ -1323,8 +1323,8 @@ function webgl_image_renderer(index, gl, width, height) {
 		var noise_sensitivity = document.getElementById('sensitivity' + index).value;
 		var multiplier = get_noise_sensitivity(noise_sensitivity);
 
-		if (image.tone_mapping.flux == "legacy") {
-			var params = [image.tone_mapping.min, image.tone_mapping.max, image.tone_mapping.lmin, image.tone_mapping.lmax];
+		if (image.tone_mapping.flux == "legacy") {			
+			var params = [image.tone_mapping.black, image.tone_mapping.white, image.tone_mapping.lmin, image.tone_mapping.lmax];
 			gl.uniform4fv(locationOfParams, params);
 		} else {
 			if (image.tone_mapping.flux == "ratio")
@@ -4986,12 +4986,16 @@ function change_tone_mapping(index, recursive) {
 		let p = 0.5;
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
+		image.tone_mapping.black = image.tone_mapping.min;
+		image.tone_mapping.white = image.tone_mapping.max;
 
 		clear_webgl_image_buffers(index);
 	}
 
 	// refresh an image
 	init_webgl_image_buffers(index);
+
+	update_legend();
 
 	//change other datasets too
 	if (va_count > 1 && recursive) {
@@ -5455,12 +5459,8 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 		}
 
 		if (document.getElementById('flux' + index).value == "legacy") {
-			image.tone_mapping.min = black;
-			image.tone_mapping.max = white;
-
-			// added by Chris on 2020/06/01
-			/*image.tone_mapping.black = black;
-			image.tone_mapping.white = white;*/
+			image.tone_mapping.black = black;
+			image.tone_mapping.white = white;
 		}
 
 		if (document.getElementById('flux' + index).value == "logistic") {
@@ -5475,11 +5475,10 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 			image.tone_mapping.black = black;
 			image.tone_mapping.sensitivity = 1 / (white - black);
 		}
-		
+
 		var multiplier = get_noise_sensitivity(noise_sensitivity);
 		var path = get_flux_path(width, height, document.getElementById('flux' + index).value, black, white, median, multiplier, index);
 		flux_elem.attr("d", path);
-
 
 		update_legend();
 	}
@@ -5835,8 +5834,6 @@ function get_flux_path(width, height, flux, black, white, median, multiplier, in
 	var black = (black - min) / (max - min) * width;
 	var white = (white - min) / (max - min) * width;
 	var median = (median - min) / (max - min) * width;
-
-	console.log(min, max, black, white);
 
 	switch (flux) {
 		case 'legacy':
