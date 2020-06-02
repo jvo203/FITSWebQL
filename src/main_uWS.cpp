@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-01.0"
+#define VERSION_STRING "SV2020-06-02.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -122,6 +122,15 @@ std::atomic<bool> exiting(false);
 
 #include "fits.hpp"
 #include "json.h"
+#include "lttb.hpp"
+
+struct SpectrumPoint
+{
+  float x;
+  float y;
+};
+
+using PointLttb = LargestTriangleThreeBuckets<SpectrumPoint, float, &SpectrumPoint::x, &SpectrumPoint::y>;
 
 std::unordered_map<std::string, std::shared_ptr<FITS>> DATASETS;
 std::shared_mutex fits_mutex;
@@ -2693,6 +2702,27 @@ int main(int argc, char *argv[])
                                  std::cout << "spectrum length = " << spectrum.size()
                                            << " elapsed time: " << elapsedMilliseconds << " [ms]"
                                            << std::endl;
+
+                                 if (spectrum.size() >= dx / 2)
+                                 {
+                                   std::cout << "downsampling the spectrum with 'largestTriangleThreeBuckets'\n";
+
+                                   SpectrumPoint in[spectrum.size()];
+
+                                   for (unsigned int i = 0; i < spectrum.size(); i++)
+                                   {
+                                     in[i].x = i;
+                                     in[i].y = spectrum[i];
+                                   }
+
+                                   SpectrumPoint out[dx];
+
+                                   PointLttb::Downsample(in, spectrum.size(), out, dx);
+
+                                   spectrum.resize(dx);
+                                   for (int i = 0; i < dx; i++)
+                                     spectrum[i] = out[i].y;
+                                 }
 
                                  // send the spectrum
                                  if (spectrum.size() > 0)
