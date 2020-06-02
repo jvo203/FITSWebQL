@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-02.0";
+	return "JS2020-06-02.1";
 }
 
 const wasm_supported = (() => {
@@ -5000,8 +5000,11 @@ function change_tone_mapping(index, recursive) {
 		let p = 0.5;
 		image.tone_mapping.lmin = Math.log(p);
 		image.tone_mapping.lmax = Math.log(p + 1.0);
-		image.tone_mapping.black = image.tone_mapping.min;
-		image.tone_mapping.white = image.tone_mapping.max;
+
+		if (image.tone_mapping.flux == "legacy") {
+			image.tone_mapping.black = image.tone_mapping.min;
+			image.tone_mapping.white = image.tone_mapping.max;
+		}
 
 		clear_webgl_image_buffers(index);
 	}
@@ -9901,6 +9904,11 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 				var frame = new Uint8Array(received_msg, offset, img_length);
 				offset += img_length;
+
+				if (tone_mapping.flux == "legacy") {
+					tone_mapping.black = image.tone_mapping.min;
+					tone_mapping.white = image.tone_mapping.max;
+				}
 
 				console.log(tone_mapping);
 
