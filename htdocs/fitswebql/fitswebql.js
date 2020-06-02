@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-01.2";
+	return "JS2020-06-02.0";
 }
 
 const wasm_supported = (() => {
@@ -907,6 +907,7 @@ function webgl_viewport_renderer(gl, height) {
 	}
 
 	var last_viewport_loop = 0;
+	viewport.refresh = true;
 
 	// shoud be done in an animation loop
 	function viewport_rendering_loop() {
@@ -925,6 +926,12 @@ function webgl_viewport_renderer(gl, height) {
 		} else {
 			last_viewport_loop = now;
 		}
+
+		if (!viewport.refresh) {
+			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+			return;
+		} else
+			viewport.refresh = false;
 
 		let index = va_count;
 
@@ -7996,6 +8003,7 @@ function swap_viewports() {
 		var gl = viewport.gl;
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
+		viewport.refresh = true;
 	}
 
 	d3.select("#" + zoom_location + "Cross").attr("opacity", 0.0);
@@ -9106,6 +9114,7 @@ function setup_image_selection() {
 
 			image_stack = [];
 			viewport_zoom_settings = null;
+			prev_mouse_position = { x: -1, y: -1 };
 
 			requestAnimationFrame(update_spectrum);
 
@@ -9491,6 +9500,11 @@ function setup_image_selection() {
 
 				//image_stack.push({ x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size });
 				viewport_zoom_settings = { x: x, y: y, clipSize: clipSize, px: px, py: py, zoomed_size: zoomed_size };
+
+				if ((mouse_position.x != prev_mouse_position.x) || (mouse_position.y != prev_mouse_position.y)) {
+					prev_mouse_position = mouse_position;
+					viewport.refresh = true;
+				}
 			}
 
 			now = performance.now();
@@ -10245,6 +10259,7 @@ function zoomed() {
 
 		var onMouseMoveFunc = d3.select(this).on("mousemove");
 		d3.select("#image_rectangle").each(onMouseMoveFunc);
+		viewport.refresh = true;
 	}
 }
 
