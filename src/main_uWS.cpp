@@ -2703,9 +2703,9 @@ int main(int argc, char *argv[])
                                            << " elapsed time: " << elapsedMilliseconds << " [ms]"
                                            << std::endl;
 
-                                 if (spectrum.size() >= dx / 2)
+                                 if (spectrum.size() > dx) // dx / 2
                                  {
-                                   std::cout << "downsampling the spectrum with 'largestTriangleThreeBuckets'\n";
+                                   auto start_t = steady_clock::now();
 
                                    SpectrumPoint in[spectrum.size()];
 
@@ -2722,6 +2722,18 @@ int main(int argc, char *argv[])
                                    spectrum.resize(dx);
                                    for (int i = 0; i < dx; i++)
                                      spectrum[i] = out[i].y;
+
+                                   auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) *
+                                                           steady_clock::period::num /
+                                                           static_cast<double>(steady_clock::period::den);
+                                   double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                   std::cout << "downsampling the spectrum with 'largestTriangleThreeBuckets', elapsed time: " << elapsedMs << " [ms]"
+                                             << std::endl;
+
+                                   elapsedMilliseconds += elapsedMs;
                                  }
 
                                  // send the spectrum
