@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-02.0"
+#define VERSION_STRING "SV2020-06-02.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2703,8 +2703,9 @@ int main(int argc, char *argv[])
                                            << " elapsed time: " << elapsedMilliseconds << " [ms]"
                                            << std::endl;
 
-                                 if (spectrum.size() > dx) // dx / 2
+                                 if (spectrum.size() > dx / 2) // dx / 2
                                  {
+                                   int dst_len = dx / 2;
                                    auto start_t = steady_clock::now();
 
                                    SpectrumPoint in[spectrum.size()];
@@ -2715,12 +2716,12 @@ int main(int argc, char *argv[])
                                      in[i].y = spectrum[i];
                                    }
 
-                                   SpectrumPoint out[dx];
+                                   SpectrumPoint out[dst_len];
 
-                                   PointLttb::Downsample(in, spectrum.size(), out, dx);
+                                   PointLttb::Downsample(in, spectrum.size(), out, dst_len);
 
-                                   spectrum.resize(dx);
-                                   for (int i = 0; i < dx; i++)
+                                   spectrum.resize(dst_len);
+                                   for (int i = 0; i < dst_len; i++)
                                      spectrum[i] = out[i].y;
 
                                    auto end_t = steady_clock::now();
