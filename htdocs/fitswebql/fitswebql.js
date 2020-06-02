@@ -9906,8 +9906,8 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 				offset += img_length;
 
 				if (tone_mapping.flux == "legacy") {
-					tone_mapping.black = image.tone_mapping.min;
-					tone_mapping.white = image.tone_mapping.max;
+					tone_mapping.black = tone_mapping.min;
+					tone_mapping.white = tone_mapping.max;
 				}
 
 				console.log(tone_mapping);
