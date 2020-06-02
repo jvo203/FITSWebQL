@@ -126,8 +126,8 @@ std::atomic<bool> exiting(false);
 
 struct SpectrumPoint
 {
-  float x;
-  float y;
+  float x = 0;
+  float y = 0;
 };
 
 using PointLttb = LargestTriangleThreeBuckets<SpectrumPoint, float, &SpectrumPoint::x, &SpectrumPoint::y>;
