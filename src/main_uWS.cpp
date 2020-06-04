@@ -566,7 +566,7 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
   // calculate a new image size
   long true_width = fits->width;
   long true_height = fits->height;
-  true_image_dimensions(fits->img_mask, true_width, true_height);
+  true_image_dimensions(fits->img_mask.get(), true_width, true_height);
   float scale = get_image_scale(_width, _height, true_width, true_height);
 
   if (scale < 1.0)
@@ -601,11 +601,11 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
       Ipp32s dstStep = dstSize.width;
 
       IppStatus pixels_stat =
-          tileResize32f_C1R(fits->img_pixels, srcSize, srcStep,
+          tileResize32f_C1R(fits->img_pixels.get(), srcSize, srcStep,
                             pixels_buf.get(), dstSize, dstStep);
 
       IppStatus mask_stat = tileResize8u_C1R(
-          fits->img_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+          fits->img_mask.get(), srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
       printf(" %d : %s, %d : %s\n", pixels_stat,
              ippGetStatusString(mask_stat), pixels_stat,
@@ -787,8 +787,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
                           img_height);*/
 
       // the mask should be filled-in manually based on NaN pixels
-      Ipp32f *pixels = fits->img_pixels; // pixels_buf.get();
-      Ipp8u *_mask = fits->img_mask;
+      Ipp32f *pixels = fits->img_pixels.get(); // pixels_buf.get();
+      Ipp8u *_mask = fits->img_mask.get();
       Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
