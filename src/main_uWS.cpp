@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-03.0"
+#define VERSION_STRING "SV2020-06-03.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2584,6 +2584,8 @@ int main(int argc, char *argv[])
                            int x2 = -1;
                            int y1 = -1;
                            int y2 = -1;
+                           int view_width = -1;
+                           int view_height = -1;
                            double frame_start = 0;
                            double frame_end = 0;
                            double ref_freq = 0;
@@ -2628,6 +2630,12 @@ int main(int argc, char *argv[])
                                    image_update = true;
                                }
 
+                               if (key.find("width") != std::string::npos)
+                                 view_width = std::stoi(value);
+
+                               if (key.find("height") != std::string::npos)
+                                 view_height = std::stoi(value);
+
                                if (key.find("x1") != std::string::npos)
                                  x1 = std::stoi(value);
 
@@ -2669,7 +2677,8 @@ int main(int argc, char *argv[])
                                      << x1 << ".." << x2 << ",Y:> " << y1 << ".." << y2
                                      << ">::" << frame_start << "::" << frame_end
                                      << "::" << ref_freq
-                                     << "::" << (beam == circle ? "circle" : "square")
+                                     << "::view <" << view_width << " x " << view_height
+                                     << ">::" << (beam == circle ? "circle" : "square")
                                      << "::" << (intensity == integrated ? "integrated" : "mean")
                                      << "::" << seq << "::" << timestamp << ")" << std::endl;*/
 
@@ -2700,6 +2709,8 @@ int main(int argc, char *argv[])
                                if (image_update)
                                {
                                  // send the compressed viewport
+
+                                 // downsize when necessary to view_width x view_height
                                }
 
                                // calculate a viewport spectrum
@@ -2712,7 +2723,7 @@ int main(int argc, char *argv[])
                                            << " elapsed time: " << elapsedMilliseconds << " [ms]"
                                            << std::endl;
 
-                                 if (spectrum.size() > dx / 2) // dx / 2
+                                 if (spectrum.size() > dx / 2)
                                  {
                                    int dst_len = dx / 2;
                                    auto start_t = steady_clock::now();
