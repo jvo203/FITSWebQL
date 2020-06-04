@@ -2683,6 +2683,15 @@ int main(int argc, char *argv[])
                              {
                                fits->update_timestamp();
 
+                               // copy over the default {pixels,mask}
+                               {
+                                 if (!user->ptr->img_pixels)
+                                   user->ptr->img_pixels = fits->img_pixels;
+
+                                 if (!user->ptr->img_mask)
+                                   user->ptr->img_mask = fits->img_mask;
+                               }
+
                                int start, end;
                                double elapsedMilliseconds;
 
