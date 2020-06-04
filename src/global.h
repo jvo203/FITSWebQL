@@ -34,6 +34,9 @@ struct UserSession
   std::string primary_id;
   std::vector<std::string> ids;
 
+  std::shared_ptr<Ipp32f> img_pixels;
+  std::shared_ptr<Ipp8u> img_mask;
+
   // used by libnghttp2
   std::atomic<int> last_seq;
 };
