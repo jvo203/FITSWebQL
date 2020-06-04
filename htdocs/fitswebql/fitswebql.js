@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-02.1";
+	return "JS2020-06-03.0";
 }
 
 const wasm_supported = (() => {
@@ -9569,8 +9569,11 @@ function setup_image_selection() {
 						var range = get_axes_range(width, height);
 						var dx = range.xMax - range.xMin;
 
+						let _width = (2 * viewport_zoom_settings.clipSize + 1);
+						let _height = (2 * viewport_zoom_settings.clipSize + 1);
+
 						var request = 'realtime_image_spectrum?dx=' + dx + '&image=false&quality=' + image_quality;
-						request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+						request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 						request += '&timestamp=' + performance.now();
 
 						if (wsConn[index].readyState == 1)
@@ -10545,8 +10548,11 @@ function imageTimeout() {
 		var range = get_axes_range(width, height);
 		var dx = range.xMax - range.xMin;
 
+		let _width = (2 * viewport_zoom_settings.clipSize + 1);
+		let _height = (2 * viewport_zoom_settings.clipSize + 1);
+
 		var request = 'realtime_image_spectrum?dx=' + dx + '&image=true&quality=' + image_quality;
-		request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+		request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 		request += '&timestamp=' + performance.now();
 
 		if (wsConn[index].readyState == 1)
