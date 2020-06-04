@@ -216,8 +216,8 @@ public:
   std::shared_mutex progress_mtx;
 
   // float32 pixels and a mask
-  Ipp32f *img_pixels;
-  Ipp8u *img_mask;
+  std::shared_ptr<Ipp32f> img_pixels;
+  std::shared_ptr<Ipp8u> img_mask;
 
 private:
   // FITS header
