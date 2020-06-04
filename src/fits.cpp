@@ -1205,7 +1205,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                                     MAP_SHARED, fd, 0);*/
         img_pixels = std::shared_ptr<Ipp32f>((Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
                                                             MAP_SHARED, fd, 0),
-                                             [=](void *ptr) { munmap(ptr, frame_size); printf("unmapped img_pixels¥n"); });
+                                             [=](void *ptr) { munmap(ptr, frame_size); });
 
       close(fd);
     }
@@ -1229,7 +1229,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                                  MAP_SHARED, fd, 0);*/
         img_mask = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
                                                         MAP_SHARED, fd, 0),
-                                          [=](void *ptr) { munmap(ptr, plane_size); printf("unmapped img_mask¥n"); });
+                                          [=](void *ptr) { munmap(ptr, plane_size); });
 
       close(fd);
     }
@@ -1829,7 +1829,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                                     MAP_SHARED, fd, 0);*/
         img_pixels = std::shared_ptr<Ipp32f>((Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
                                                             MAP_SHARED, fd, 0),
-                                             [=](void *ptr) { munmap(ptr, frame_size); printf("unmapped img_pixels¥n"); });
+                                             [=](void *ptr) { munmap(ptr, frame_size); });
 
       close(fd);
     }
@@ -1853,7 +1853,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                                  MAP_SHARED, fd, 0);*/
         img_mask = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
                                                         MAP_SHARED, fd, 0),
-                                          [=](void *ptr) { munmap(ptr, plane_size); printf("unmapped img_mask¥n"); });
+                                          [=](void *ptr) { munmap(ptr, plane_size); });
 
       close(fd);
     }
