@@ -2490,63 +2490,58 @@ int main(int argc, char *argv[])
                   {/* Settings */
                    .compression = uWS::SHARED_COMPRESSOR,
                    /* Handlers */
-                   .open =
-                       [](auto *ws, auto *req) {
-                         std::string_view url = req->getUrl();
-                         PrintThread{} << "[µWS] open " << url << std::endl;
+                   .upgrade = [](auto *res, auto *req, auto *context) {
+                     std::string_view url = req->getUrl();
+                     PrintThread{} << "[µWS] upgrade " << url << std::endl;
+                     
+                     std::vector<std::string> datasetid;
 
-                         struct UserData *user =
-                             (struct UserData *)ws->getUserData();
-                         if (user != NULL)
-                           user->ptr = NULL;
+                     size_t pos = url.find_last_of("/");
 
-                         size_t pos = url.find_last_of("/");
-
-                         if (pos != std::string::npos)
-                         {
-                           std::string_view tmp = url.substr(pos + 1);
-                           CURL *curl = curl_easy_init();
-                           char *str = curl_easy_unescape(curl, tmp.data(),
+                    if (pos != std::string::npos)
+                      {
+                        std::string_view tmp = url.substr(pos + 1);
+                        CURL *curl = curl_easy_init();
+                        char *str = curl_easy_unescape(curl, tmp.data(),
                                                           tmp.length(), NULL);
-                           std::string plain = std::string(str);
-                           curl_free(str);
-                           curl_easy_cleanup(curl);
-                           std::vector<std::string> datasetid;
-                           boost::split(datasetid, plain,
-                                        [](char c) { return c == ';'; });
+                        std::string plain = std::string(str);
+                        curl_free(str);
+                        curl_easy_cleanup(curl);                        
+                        boost::split(datasetid, plain, [](char c) { return c == ';'; });
 
-                           for (auto const &s : datasetid)
-                           {
-                             PrintThread{} << "datasetid: " << s << std::endl;
-                           }
+                        for (auto const &s : datasetid)
+                        {
+                          PrintThread{} << "datasetid: " << s << std::endl;
+                        }
+                      }
+                     
+                     if(datasetid.size() > 0)
+                     res->template upgrade<UserData>({ 
+                       .ptr = new UserSession(boost::uuids::random_generator()(), system_clock::now() - duration_cast<system_clock::duration>(duration<double>(uWS_PROGRESS_TIMEOUT)), datasetid[0], datasetid)
+                       }, req->getHeader("sec-websocket-key"), req->getHeader("sec-websocket-protocol"), req->getHeader("sec-websocket-extensions"), context);
+                     else http_internal_server_error(res); },
+                   .open = [](auto *ws) {
+                      struct UserData *user =
+                             (struct UserData *)ws->getUserData();
 
-                           if (datasetid.size() > 0)
-                           {
-                             if (user != NULL)
-                             {
-                               user->ptr = new UserSession();
-                               user->ptr->session_id =
-                                   boost::uuids::random_generator()();
-                               user->ptr->ts =
-                                   system_clock::now() -
-                                   duration_cast<system_clock::duration>(
-                                       duration<double>(uWS_PROGRESS_TIMEOUT));
-                               user->ptr->primary_id = datasetid[0];
-                               user->ptr->ids = datasetid;
+                         if (user == NULL)
+                           return;
 
-                               // launch a separate thread
-                               std::thread([datasetid, ws]() {
+                         if (user->ptr == NULL)
+                           return;
+                     
+                     std::string primary_id = user->ptr->primary_id;
+                     PrintThread{} << "[µWS] open for " << primary_id << std::endl; 
+                     
+                      // launch a separate thread
+                               std::thread([primary_id, ws]() {
                                  std::lock_guard<std::shared_mutex> guard(
                                      m_progress_mutex);
                                  TWebSocketList connections =
-                                     m_progress[datasetid[0]];
+                                     m_progress[primary_id];
                                  connections.insert(ws);
-                                 m_progress[datasetid[0]] = connections;
-                               }).detach();
-                             }
-                           }
-                         }
-                       },
+                                 m_progress[primary_id] = connections;
+                               }).detach(); },
                    .message =
                        [](auto *ws, std::string_view message,
                           uWS::OpCode opCode) {

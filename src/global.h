@@ -39,6 +39,14 @@ struct UserSession
 
   // used by libnghttp2
   std::atomic<int> last_seq;
+
+  UserSession(boost::uuids::uuid _session_id, system_clock::time_point _ts, std::string _primary_id, std::vector<std::string> _ids)
+  {
+    session_id = _session_id;
+    ts = _ts;
+    primary_id = _primary_id;
+    ids = _ids;
+  }
 };
 
 inline std::unordered_map<std::string, std::shared_ptr<struct UserSession>> sessions;

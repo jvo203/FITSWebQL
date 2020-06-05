@@ -1,6 +1,7 @@
 
 void make_histogram_ipp(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
-                        float pmin, float pmax) {
+                        float pmin, float pmax)
+{
   if (v.size() <= 1)
     return;
 
@@ -20,7 +21,8 @@ void make_histogram_ipp(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
   printf("make_histogram_ipp::num_threads: %d\n", num_threads);
 
 #pragma omp parallel for
-  for (int tid = 0; tid < num_threads; tid++) {
+  for (int tid = 0; tid < num_threads; tid++)
+  {
     Ipp32u thread_hist[NBINS];
 
     for (int i = 0; i < nbins; i++)
@@ -110,7 +112,8 @@ void make_histogram_ipp(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
     _f << bins[i] << std::endl;
 }
 
-struct IppZfp {
+struct IppZfp
+{
   IppZfp() : buffer(NULL), len(0), pEncState(NULL), _x(0), _y(0), _z(0) {}
 
   void *buffer;
@@ -134,14 +137,17 @@ int encStateSize;
 ippsEncodeZfpGetStateSize_32f(&encStateSize);
 iCube->pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
 
-if (iCube->pEncState == NULL) {
+if (iCube->pEncState == NULL)
+{
   fprintf(stderr, "%s::error allocating a IppZfp state.\n", dataset_id.c_str());
   return;
-} else
+}
+else
   printf("%s::IppZfp::encoder state size: %d bytes.\n", dataset_id.c_str(),
          encStateSize);
 
-if (iCube) {
+if (iCube)
+{
   std::cout << this->dataset_id << "::destructor::iCube." << std::endl;
 
   // release the Zfp state
@@ -149,7 +155,8 @@ if (iCube) {
     ippsFree(iCube->pEncState);
 
   // unmmap the stream buffer
-  if (iCube->buffer != NULL) {
+  if (iCube->buffer != NULL)
+  {
     int ret = munmap(iCube->buffer, iCube->len);
     if (!ret)
       perror("FITS munmap::");
@@ -162,11 +169,15 @@ if (iCube) {
 pmin = FLT_MAX;
 pmax = -FLT_MAX;
 
-if (this->depth == 1) {
+if (this->depth == 1)
+{
   pmin = dmin;
   pmax = dmax;
-} else {
-  if (v.size() > 1) {
+}
+else
+{
+  if (v.size() > 1)
+  {
     auto i = std::minmax_element(v.begin(), v.end());
     pmin = *i.first;
     pmax = *i.second;
@@ -192,7 +203,8 @@ std::vector<Roaring64Map> masks;
 // fits.cpp
 void FITS::from_path_zfp(
     std::string path, bool is_compressed, std::string flux,
-    int va_count /*, boost::shared_ptr<shared_state> const& state*/) {
+    int va_count /*, boost::shared_ptr<shared_state> const& state*/)
+{
   // state_ = state;
 
   std::unique_lock<std::mutex> header_lck(header_mtx);
@@ -212,10 +224,12 @@ void FITS::from_path_zfp(
   int fd = -1;
   gzFile file = NULL;
 
-  if (is_compressed) {
+  if (is_compressed)
+  {
     file = gzopen(path.c_str(), "r");
 
-    if (!file) {
+    if (!file)
+    {
       printf("gzopen of '%s' failed: %s.\n", path.c_str(), strerror(errno));
       processed_header = true;
       header_cv.notify_all();
@@ -223,10 +237,13 @@ void FITS::from_path_zfp(
       data_cv.notify_all();
       return;
     }
-  } else {
+  }
+  else
+  {
     fd = open(path.c_str(), O_RDONLY);
 
-    if (fd == -1) {
+    if (fd == -1)
+    {
       printf("error opening %s .", path.c_str());
       processed_header = true;
       header_cv.notify_all();
@@ -243,7 +260,8 @@ void FITS::from_path_zfp(
   this->compressed_fits_stream = file;
   this->fits_file_size = st.st_size;
 
-  if (this->fits_file_size < FITS_CHUNK_LENGTH) {
+  if (this->fits_file_size < FITS_CHUNK_LENGTH)
+  {
     printf("error: FITS file size smaller than %d bytes.", FITS_CHUNK_LENGTH);
     processed_header = true;
     header_cv.notify_all();
@@ -257,10 +275,12 @@ void FITS::from_path_zfp(
   int no_hu = 0;
   size_t offset = 0;
 
-  while (naxis == 0) {
+  while (naxis == 0)
+  {
     bool end = false;
 
-    while (!end) {
+    while (!end)
+    {
       // fread FITS_CHUNK_LENGTH from fd into header+offset
       header =
           (char *)realloc(header, offset + FITS_CHUNK_LENGTH +
@@ -278,7 +298,8 @@ void FITS::from_path_zfp(
         bytes_read =
             read(this->fits_file_desc, header + offset, FITS_CHUNK_LENGTH);
 
-      if (bytes_read != FITS_CHUNK_LENGTH) {
+      if (bytes_read != FITS_CHUNK_LENGTH)
+      {
         fprintf(stderr,
                 "CRITICAL: read less than %zd bytes from the FITS header\n",
                 bytes_read);
@@ -319,7 +340,8 @@ void FITS::from_path_zfp(
 
   // printf("%s\n", header);
 
-  if (bitpix != -32) {
+  if (bitpix != -32)
+  {
     printf("%s::unsupported bitpix(%d), FITS data will not be read.\n",
            dataset_id.c_str(), bitpix);
     processed_data = true;
@@ -327,7 +349,8 @@ void FITS::from_path_zfp(
     return;
   }
 
-  if (width <= 0 || height <= 0 || depth <= 0) {
+  if (width <= 0 || height <= 0 || depth <= 0)
+  {
     printf("%s::incorrect dimensions (width:%ld, height:%ld, depth:%ld)\n",
            dataset_id.c_str(), width, height, depth);
     processed_data = true;
@@ -338,7 +361,8 @@ void FITS::from_path_zfp(
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
 
-  if (frame_size != plane_size * sizeof(float)) {
+  if (frame_size != plane_size * sizeof(float))
+  {
     printf("%s::plane_size != frame_size, is the bitpix correct?\n",
            dataset_id.c_str());
     processed_data = true;
@@ -355,7 +379,8 @@ void FITS::from_path_zfp(
   img_pixels = ippsMalloc_32f_L(plane_size);
   img_mask = ippsMalloc_8u_L(plane_size);
 
-  if (img_pixels == NULL || img_mask == NULL) {
+  if (img_pixels == NULL || img_mask == NULL)
+  {
     printf("%s::cannot malloc memory for a 2D image buffer.\n",
            dataset_id.c_str());
     processed_data = true;
@@ -368,7 +393,8 @@ void FITS::from_path_zfp(
   float _pmin = FLT_MAX;
   float _pmax = -FLT_MAX;
 
-  if (depth == 1) {
+  if (depth == 1)
+  {
     // read/process the FITS plane (image) in parallel
     // unless this is a compressed file, in which case
     // the data can only be read sequentially
@@ -388,12 +414,14 @@ void FITS::from_path_zfp(
     printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n",
            dataset_id.c_str(), plane_size, work_size, num_threads);
 
-    if (is_compressed) {
+    if (is_compressed)
+    {
       // load data into the buffer sequentially
       ssize_t bytes_read =
           gzread(this->compressed_fits_stream, img_pixels, frame_size);
 
-      if (bytes_read != frame_size) {
+      if (bytes_read != frame_size)
+      {
         fprintf(
             stderr,
             "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n",
@@ -401,14 +429,16 @@ void FITS::from_path_zfp(
         processed_data = true;
         data_cv.notify_all();
         return;
-      } else
+      }
+      else
         printf("%s::FITS data read OK.\n", dataset_id.c_str());
 
-#pragma omp parallel for schedule(static) num_threads(no_omp_threads)          \
-    reduction(min                                                              \
-              : _pmin) reduction(max                                           \
+#pragma omp parallel for schedule(static) num_threads(no_omp_threads) \
+    reduction(min                                                     \
+              : _pmin) reduction(max                                  \
                                  : _pmax)
-      for (int tid = 0; tid < num_threads; tid++) {
+      for (int tid = 0; tid < num_threads; tid++)
+      {
         size_t work_size = plane_size / num_threads;
         size_t start = tid * work_size;
 
@@ -419,15 +449,18 @@ void FITS::from_path_zfp(
                            (uint8_t *)&(img_mask[start]), bzero, bscale,
                            ignrval, datamin, datamax, _pmin, _pmax, work_size);
       };
-    } else {
+    }
+    else
+    {
       // load data into the buffer in parallel chunks
       // the data part starts at <offset>
 
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads)         \
-    reduction(min                                                              \
-              : _pmin) reduction(max                                           \
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
+    reduction(min                                                      \
+              : _pmin) reduction(max                                   \
                                  : _pmax)
-      for (int tid = 0; tid < num_threads; tid++) {
+      for (int tid = 0; tid < num_threads; tid++)
+      {
         size_t work_size = plane_size / num_threads;
         size_t start = tid * work_size;
 
@@ -439,12 +472,14 @@ void FITS::from_path_zfp(
             pread(this->fits_file_desc, &(img_pixels[start]),
                   work_size * sizeof(float), offset + start * sizeof(float));
 
-        if (bytes_read != work_size * sizeof(float)) {
+        if (bytes_read != work_size * sizeof(float))
+        {
           fprintf(stderr,
                   "%s::CRITICAL: only read %zd out of requested %zd bytes.\n",
                   dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
           bSuccess = false;
-        } else
+        }
+        else
           ispc::fits2float32((int32_t *)&(img_pixels[start]),
                              (uint8_t *)&(img_mask[start]), bzero, bscale,
                              ignrval, datamin, datamax, _pmin, _pmax,
@@ -454,7 +489,9 @@ void FITS::from_path_zfp(
 
     dmin = _pmin;
     dmax = _pmax;
-  } else {
+  }
+  else
+  {
     printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
 
     // ZFP-compressed FITS cube
@@ -471,7 +508,8 @@ void FITS::from_path_zfp(
     // cube = new array3fmmap(dataset_id, width, height, depth, 4, NULL);
     // //(#bits per value)
 
-    if (cube == NULL) {
+    if (cube == NULL)
+    {
       fprintf(stderr, "%s::error allocating a ZFP-compressed FITS data cube.\n",
               dataset_id.c_str());
       processed_data = true;
@@ -504,7 +542,8 @@ void FITS::from_path_zfp(
 
     int max_threads = omp_get_max_threads();
 
-    if (!is_compressed) {
+    if (!is_compressed)
+    {
       // pre-allocated floating-point read buffers
       // to reduce RAM thrashing
       std::vector<Ipp32f *> pixels_buf(max_threads);
@@ -514,7 +553,8 @@ void FITS::from_path_zfp(
       std::vector<Ipp32f *> omp_pixels(max_threads);
       std::vector<Ipp8u *> omp_mask(max_threads);
 
-      for (int i = 0; i < max_threads; i++) {
+      for (int i = 0; i < max_threads; i++)
+      {
         pixels_buf[i] = ippsMalloc_32f_L(plane_size);
         mask_buf[i] = ippsMalloc_8u_L(plane_size);
 
@@ -530,12 +570,13 @@ void FITS::from_path_zfp(
 
       // ZFP compressed array private_view requires blocks-of-4 scheduling for
       // thread-safe mutable access
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads)         \
-    reduction(min                                                              \
-              : _pmin) reduction(max                                           \
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
+    reduction(min                                                      \
+              : _pmin) reduction(max                                   \
                                  : _pmax)
 
-      for (size_t k = 0; k < depth; k += 4) {
+      for (size_t k = 0; k < depth; k += 4)
+      {
         int tid = omp_get_thread_num();
         // printf("tid: %d, k: %zu\n", tid, k);
         // create a mutable private view starting at k, with a maximum depth of
@@ -545,7 +586,8 @@ void FITS::from_path_zfp(
         size_t depth_k = end_k - start_k;
 
         if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL ||
-            omp_pixels[tid] == NULL || omp_mask[tid] == NULL) {
+            omp_pixels[tid] == NULL || omp_mask[tid] == NULL)
+        {
           fprintf(stderr,
                   "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
                   "arrays.\n",
@@ -561,20 +603,24 @@ void FITS::from_path_zfp(
         // printf("%s::tid:%d::view %d x %d x %d\n", dataset_id.c_str(), tid,
         // view.size_x(), view.size_y(), view.size_z());
 
-        for (size_t frame = start_k; frame < end_k; frame++) {
+        for (size_t frame = start_k; frame < end_k; frame++)
+        {
           // printf("k: %zu\tframe: %zu\n", k, frame);
 
           // parallel read (pread) at a specified offset
           ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid],
                                      frame_size, offset + frame_size * frame);
 
-          if (bytes_read != frame_size) {
+          if (bytes_read != frame_size)
+          {
             fprintf(stderr,
                     "%s::<tid::%d>::CRITICAL: only read %zd out of requested "
                     "%zd bytes.\n",
                     dataset_id.c_str(), tid, bytes_read, frame_size);
             bSuccess = false;
-          } else {
+          }
+          else
+          {
             float fmin = FLT_MAX;
             float fmax = -FLT_MAX;
             float mean = 0.0f;
@@ -605,11 +651,14 @@ void FITS::from_path_zfp(
             Ipp8u *thread_mask = mask_buf[tid];
             size_t view_offset = 0;
             for (int j = 0; j < height; j++)
-              for (int i = 0; i < width; i++) {
-                if (thread_mask[view_offset]) {
+              for (int i = 0; i < width; i++)
+              {
+                if (thread_mask[view_offset])
+                {
                   view(i, j, frame - start_k) = thread_pixels[view_offset];
                   bitmask.add(view_offset);
-                } else
+                }
+                else
                   view(i, j, frame - start_k) = 0.0f;
 
                 view_offset++;
@@ -637,12 +686,14 @@ void FITS::from_path_zfp(
       size_t work_size = MIN(plane_size / max_threads, max_work_size);
       int num_threads = plane_size / work_size;
 
-      for (int i = 0; i < max_threads; i++) {
+      for (int i = 0; i < max_threads; i++)
+      {
         float *pixels_tid = omp_pixels[i];
         unsigned char *mask_tid = omp_mask[i];
 
 #pragma omp parallel for num_threads(no_omp_threads)
-        for (int tid = 0; tid < num_threads; tid++) {
+        for (int tid = 0; tid < num_threads; tid++)
+        {
           size_t work_size = plane_size / num_threads;
           size_t start = tid * work_size;
 
@@ -656,7 +707,8 @@ void FITS::from_path_zfp(
       }
 
       // release memory
-      for (int i = 0; i < max_threads; i++) {
+      for (int i = 0; i < max_threads; i++)
+      {
         if (pixels_buf[i] != NULL)
           ippsFree(pixels_buf[i]);
 
@@ -675,7 +727,9 @@ void FITS::from_path_zfp(
         for (int i = 0; i < 10; i++)
         printf("%f\t", (double)view(i, 0, depth / 2));
         printf("\n+++++++++++++++++++++++\n");*/
-    } else {
+    }
+    else
+    {
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
 
@@ -684,7 +738,8 @@ void FITS::from_path_zfp(
 #pragma omp single
         {
           // ZFP requires blocks-of-4 processing
-          for (size_t k = 0; k < depth; k += 4) {
+          for (size_t k = 0; k < depth; k += 4)
+          {
             // create a mutable private view starting at k, with a maximum depth
             // of 4
             size_t start_k = k;
@@ -699,7 +754,8 @@ void FITS::from_path_zfp(
             // create private_view in the OpenMP task launched once every four
             // frames use the same construct for non-compressed FITS files
 
-            for (size_t frame = start_k; frame < end_k; frame++) {
+            for (size_t frame = start_k; frame < end_k; frame++)
+            {
               // printf("k: %zu\tframe: %zu\n", k, frame);
 
               // allocate {pixel_buf, mask_buf}
@@ -712,7 +768,8 @@ void FITS::from_path_zfp(
               // std::unique_ptr<Ipp8u, decltype(Ipp8uFree)>
               // mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
 
-              if (pixels_buf.get() == NULL || mask_buf.get() == NULL) {
+              if (pixels_buf.get() == NULL || mask_buf.get() == NULL)
+              {
                 printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
                        "buffers.\n",
                        dataset_id.c_str());
@@ -724,7 +781,8 @@ void FITS::from_path_zfp(
               ssize_t bytes_read = gzread(this->compressed_fits_stream,
                                           pixels_buf.get(), frame_size);
 
-              if (bytes_read != frame_size) {
+              if (bytes_read != frame_size)
+              {
                 fprintf(stderr,
                         "%s::CRITICAL: read less than %zd bytes from the FITS "
                         "data unit\n",
@@ -768,12 +826,15 @@ void FITS::from_path_zfp(
               // depth_k, vec_pixels->size(), vec_mask->size());
 
               if (depth_k != vec_pixels->size() ||
-                  depth_k != vec_mask->size()) {
+                  depth_k != vec_mask->size())
+              {
                 printf("%s::CRITICAL::depth_k != vec_pixels.size() || depth_k "
                        "!= vec_mask.size().\n",
                        dataset_id.c_str());
                 bSuccess = false;
-              } else {
+              }
+              else
+              {
                 zfp::array3f::private_view view(cube, 0, 0, start_k, width,
                                                 height, depth_k);
                 view.set_cache_size(67108864);
@@ -781,7 +842,8 @@ void FITS::from_path_zfp(
                 // dataset_id.c_str(), start_k, view.size_x(), view.size_y(),
                 // view.size_z());
 
-                for (size_t frame = 0; frame < depth_k; frame++) {
+                for (size_t frame = 0; frame < depth_k; frame++)
+                {
                   Roaring64Map &bitmask = masks[start_k + frame];
 
                   // fill-in the compressed array
@@ -789,11 +851,14 @@ void FITS::from_path_zfp(
                   Ipp8u *thread_mask = (*vec_mask)[frame].get();
                   size_t view_offset = 0;
                   for (int j = 0; j < height; j++)
-                    for (int i = 0; i < width; i++) {
-                      if (thread_mask[view_offset]) {
+                    for (int i = 0; i < width; i++)
+                    {
+                      if (thread_mask[view_offset])
+                      {
                         view(i, j, frame) = thread_pixels[view_offset];
                         bitmask.add(view_offset);
-                      } else
+                      }
+                      else
                         view(i, j, frame) = 0.0f;
 
                       view_offset++;
@@ -838,7 +903,8 @@ void FITS::from_path_zfp(
          dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax,
          elapsedMilliseconds);
 
-  if (bSuccess) {
+  if (bSuccess)
+  {
     send_progress_notification(depth, depth);
     /*for (int i = 0; i < depth; i++)
       std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
@@ -856,7 +922,9 @@ void FITS::from_path_zfp(
     make_image_luma();
 
     make_exr_image();
-  } else {
+  }
+  else
+  {
     this->has_error = true;
   }
 
@@ -869,37 +937,40 @@ void FITS::from_path_zfp(
 IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
                          IppiRect srcROI, Ipp32f *pDst, int dstStep,
                          IppiSize dstRoiSize, double xFactor, double yFactor,
-                         int interpolation) {
-  IppStatus status = ippStsNoErr;   // status flag
-  IppiResizeSpec_32f *pSpec = NULL; // specification structure buffer
-  int specSize = 0;                 // size of specification structure buffer
-  int initSize = 0; // size of initialization buffer (only cubic and lanzcos
-                    // interpolation type use this)
-  int bufSize = 0;  // size of working buffer
-  Ipp8u *pBuffer = NULL;        // working buffer
-  Ipp8u *pInit = NULL;          // initialization buffer
-  IppiPoint dstOffset = {0, 0}; // offset to destination image, default is {0,0}
+                         int interpolation)
+{
+  IppStatus status = ippStsNoErr;            // status flag
+  IppiResizeSpec_32f *pSpec = NULL;          // specification structure buffer
+  int specSize = 0;                          // size of specification structure buffer
+  int initSize = 0;                          // size of initialization buffer (only cubic and lanzcos
+                                             // interpolation type use this)
+  int bufSize = 0;                           // size of working buffer
+  Ipp8u *pBuffer = NULL;                     // working buffer
+  Ipp8u *pInit = NULL;                       // initialization buffer
+  IppiPoint dstOffset = {0, 0};              // offset to destination image, default is {0,0}
   IppiBorderType borderType = ippBorderRepl; // borderType, default is
                                              // <span>ippBorderRepl </span>
   Ipp32f borderValue = 0;                    // border value, default is zero
   Ipp32u antialiasing = 0;                   // not use antialiasing
-  Ipp32u numChannels = 1; // this function works with 1 channel
-  Ipp32f valueB = 0.0f;   // default value for cubic interpolation type
-  Ipp32f valueC = 0.0f;   // default value for cubic interpolation type
-  Ipp32u numLobes = 2;    // default value for lanczos interpolation type
-  IppiInterpolationType interpolateType; // interpolation type
-  IppiSize srcRoiSize;                   // size of source ROI
-  IppiSize resizeSrcRoiSize;             // size of resize source ROI
+  Ipp32u numChannels = 1;                    // this function works with 1 channel
+  Ipp32f valueB = 0.0f;                      // default value for cubic interpolation type
+  Ipp32f valueC = 0.0f;                      // default value for cubic interpolation type
+  Ipp32u numLobes = 2;                       // default value for lanczos interpolation type
+  IppiInterpolationType interpolateType;     // interpolation type
+  IppiSize srcRoiSize;                       // size of source ROI
+  IppiSize resizeSrcRoiSize;                 // size of resize source ROI
 
   // Check pSrc and pDst not NULL
-  if ((pSrc == NULL) || (pDst == NULL)) {
+  if ((pSrc == NULL) || (pDst == NULL))
+  {
     return ippStsNullPtrErr;
   }
 
   // Check srcSize and dstRoiSize not have field with zero or negative
   // number
   if ((srcSize.width <= 0) || (srcSize.height <= 0) ||
-      (dstRoiSize.width <= 0) || (dstRoiSize.height <= 0)) {
+      (dstRoiSize.width <= 0) || (dstRoiSize.height <= 0))
+  {
     return ippStsSizeErr;
   }
 
@@ -915,17 +986,20 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
       ((bottomLeft.x < 0 || bottomLeft.x > srcSize.width) ||
        (bottomLeft.y < 0 || bottomLeft.y > srcSize.height)) &&
       ((bottomRight.x < 0 || bottomRight.x > srcSize.width) ||
-       (bottomRight.y < 0 || bottomRight.y > srcSize.height))) {
+       (bottomRight.y < 0 || bottomRight.y > srcSize.height)))
+  {
     return ippStsWrongIntersectROI;
   }
 
   // Check xFactor or yFactor is not less than or equal to zero
-  if ((xFactor <= 0) || (yFactor <= 0)) {
+  if ((xFactor <= 0) || (yFactor <= 0))
+  {
     return ippStsResizeFactorErr;
   }
 
   // Get interpolation filter type
-  switch (interpolation) {
+  switch (interpolation)
+  {
   case IPPI_INTER_NN:
     interpolateType = ippNearest;
     break;
@@ -960,19 +1034,22 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
   // Get size of specification structure buffer and initialization buffer.
   status = ippiResizeGetSize_8u(srcRoiSize, resizeSrcRoiSize, interpolateType,
                                 antialiasing, &specSize, &initSize);
-  if (status != ippStsNoErr) {
+  if (status != ippStsNoErr)
+  {
     return status;
   }
 
   // Allocate memory for specification structure buffer.
   pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
-  if (pSpec == NULL) {
+  if (pSpec == NULL)
+  {
     return ippStsNoMemErr;
   }
 
   // Initialize specification structure buffer correspond to interpolation
   // type
-  switch (interpolation) {
+  switch (interpolation)
+  {
   case IPPI_INTER_NN:
     status = ippiResizeNearestInit_32f(srcRoiSize, resizeSrcRoiSize, pSpec);
     break;
@@ -995,7 +1072,8 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
     ippsFree(pInit);
     break;
   }
-  if (status != ippStsNoErr) {
+  if (status != ippStsNoErr)
+  {
     ippsFree(pSpec);
     return status;
   }
@@ -1003,19 +1081,22 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
   // Get work buffer size
   status = ippiResizeGetBufferSize_8u(pSpec, resizeSrcRoiSize, numChannels,
                                       &bufSize);
-  if (status != ippStsNoErr) {
+  if (status != ippStsNoErr)
+  {
     ippsFree(pSpec);
     return status;
   }
 
   // Allocate memory for work buffer.
   pBuffer = ippsMalloc_8u(bufSize);
-  if (pBuffer == NULL) {
+  if (pBuffer == NULL)
+  {
     ippsFree(pSpec);
     return ippStsNoMemErr;
   }
   // Execute resize processing correspond to interpolation type
-  switch (interpolation) {
+  switch (interpolation)
+  {
   case IPPI_INTER_NN:
     status = ippiResizeNearest_32f_C1R(pSrcRoi, srcStep, pDst, dstStep,
                                        dstOffset, dstRoiSize, pSpec, pBuffer);
@@ -1050,7 +1131,8 @@ IppStatus Resize_32f_C1R(const Ipp32f *pSrc, IppiSize srcSize, int srcStep,
 
 IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
                                 Ipp32f *pDst, IppiSize dstSize,
-                                Ipp32s dstStep) {
+                                Ipp32s dstStep)
+{
   int specSize = 0, initSize = 0, bufSize = 0;
   IppiBorderType border = ippBorderRepl;
   const Ipp32f *pBorderValue = NULL;
@@ -1069,7 +1151,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   pInitBuf = ippsMalloc_8u(initSize);
   pSpec = (IppiResizeSpec_32f *)ippsMalloc_8u(specSize);
 
-  if (pInitBuf == NULL || pSpec == NULL) {
+  if (pInitBuf == NULL || pSpec == NULL)
+  {
     ippsFree(pInitBuf);
     ippsFree(pSpec);
     return ippStsNoMemErr;
@@ -1079,7 +1162,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   status = ippiResizeLanczosInit_32f(srcSize, dstSize, 3, pSpec, pInitBuf);
   ippsFree(pInitBuf);
 
-  if (status != ippStsNoErr) {
+  if (status != ippStsNoErr)
+  {
     ippsFree(pSpec);
     return status;
   }
@@ -1087,7 +1171,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   IppiBorderSize borderSize = {0, 0, 0, 0};
   status = ippiResizeGetBorderSize_32f(pSpec, &borderSize);
 
-  if (status != ippStsNoErr) {
+  if (status != ippStsNoErr)
+  {
     ippsFree(pSpec);
     return status;
   }
@@ -1131,7 +1216,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
 // loop through the tiles
 #pragma omp parallel num_threads(num_threads)
-  for (int i = 0; i < num_threads; i++) {
+  for (int i = 0; i < num_threads; i++)
+  {
     IppiPoint dstOffset = {0, 0};
     IppiPoint srcOffset = {0, 0};
 
@@ -1146,7 +1232,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
     pStatus[i] = ippiResizeGetSrcRoi_32f(pSpec, dstOffset, dstSizeT, &srcOffset,
                                          &srcSizeT);
-    if (pStatus[i] == ippStsNoErr) {
+    if (pStatus[i] == ippStsNoErr)
+    {
       Ipp32f *pSrcT, *pDstT;
       Ipp8u *pOneBuf;
 
@@ -1175,7 +1262,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
   ippsFree(pBuffer);
 
-  for (Ipp32u i = 0; i < num_threads; ++i) {
+  for (Ipp32u i = 0; i < num_threads; ++i)
+  {
     /* Return bad status */
     if (pStatus[i] != ippStsNoErr)
       return pStatus[i];
@@ -1186,7 +1274,8 @@ IppStatus Resize_Invert_32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
 
 C++ filesystem get_directory
 
-uintmax_t ComputeFileSize(const fs::path &pathToCheck)
+    uintmax_t
+    ComputeFileSize(const fs::path &pathToCheck)
 {
   if (fs::exists(pathToCheck) && fs::is_regular_file(pathToCheck))
   {
@@ -1296,3 +1385,67 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir)
   res->writeHeader("Pragma", "no-cache");
   res->end(json.str());
 }
+
+.upgrade =
+    [](auto *ws, auto *req, auto *context) {
+      std::string_view url = req->getUrl();
+      PrintThread{} << "[µWS] upgrade " << url << std::endl;
+
+      /* Immediately upgrading without doing anything "async" before, is simple */
+      res->template upgrade<UserData>({/*.something = 13*/},
+                                      req->getHeader("sec-websocket-key"),
+                                      req->getHeader("sec-websocket-protocol"),
+                                      req->getHeader("sec-websocket-extensions"), context);
+
+      /*struct UserData *user =
+                             (struct UserData *)ws->getUserData();
+                         if (user != NULL)
+                           user->ptr = NULL;
+
+                         size_t pos = url.find_last_of("/");
+
+                         if (pos != std::string::npos)
+                         {
+                           std::string_view tmp = url.substr(pos + 1);
+                           CURL *curl = curl_easy_init();
+                           char *str = curl_easy_unescape(curl, tmp.data(),
+                                                          tmp.length(), NULL);
+                           std::string plain = std::string(str);
+                           curl_free(str);
+                           curl_easy_cleanup(curl);
+                           std::vector<std::string> datasetid;
+                           boost::split(datasetid, plain,
+                                        [](char c) { return c == ';'; });
+
+                           for (auto const &s : datasetid)
+                           {
+                             PrintThread{} << "datasetid: " << s << std::endl;
+                           }
+
+                           if (datasetid.size() > 0)
+                           {
+                             if (user != NULL)
+                             {
+                               user->ptr = new UserSession();
+                               user->ptr->session_id =
+                                   boost::uuids::random_generator()();
+                               user->ptr->ts =
+                                   system_clock::now() -
+                                   duration_cast<system_clock::duration>(
+                                       duration<double>(uWS_PROGRESS_TIMEOUT));
+                               user->ptr->primary_id = datasetid[0];
+                               user->ptr->ids = datasetid;
+
+                               // launch a separate thread
+                               std::thread([datasetid, ws]() {
+                                 std::lock_guard<std::shared_mutex> guard(
+                                     m_progress_mutex);
+                                 TWebSocketList connections =
+                                     m_progress[datasetid[0]];
+                                 connections.insert(ws);
+                                 m_progress[datasetid[0]] = connections;
+                               }).detach();
+                             }
+                           }
+                         }*/
+    },
