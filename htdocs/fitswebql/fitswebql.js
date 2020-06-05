@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-03.0";
+	return "JS2020-06-04.0";
 }
 
 const wasm_supported = (() => {
@@ -7878,10 +7878,10 @@ function get_zoomed_size(width, height, img_width, img_height) {
 	var zoomed_size = Math.max(width / 2, height / 2) / golden_ratio;
 
 	if (zoom_shape == "square")
-		return zoomed_size;
+		return Math.round(zoomed_size);
 
 	if (zoom_shape == "circle")
-		return 1.2 * zoomed_size;
+		return Math.round(1.2 * zoomed_size);
 }
 
 d3.selection.prototype.moveToFront = function () {
@@ -9569,8 +9569,8 @@ function setup_image_selection() {
 						var range = get_axes_range(width, height);
 						var dx = range.xMax - range.xMin;
 
-						let _width = (2 * viewport_zoom_settings.clipSize + 1);
-						let _height = (2 * viewport_zoom_settings.clipSize + 1);
+						let _width = viewport_zoom_settings.zoomed_size;
+						let _height = viewport_zoom_settings.zoomed_size;
 
 						var request = 'realtime_image_spectrum?dx=' + dx + '&image=false&quality=' + image_quality;
 						request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
@@ -10548,8 +10548,8 @@ function imageTimeout() {
 		var range = get_axes_range(width, height);
 		var dx = range.xMax - range.xMin;
 
-		let _width = (2 * viewport_zoom_settings.clipSize + 1);
-		let _height = (2 * viewport_zoom_settings.clipSize + 1);
+		let _width = viewport_zoom_settings.zoomed_size;
+		let _height = viewport_zoom_settings.zoomed_size;
 
 		var request = 'realtime_image_spectrum?dx=' + dx + '&image=true&quality=' + image_quality;
 		request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
