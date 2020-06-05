@@ -2706,11 +2706,47 @@ int main(int argc, char *argv[])
 
                                fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                               if (image_update)
+                               // send the compressed viewport
+                               if (image_update && view_width > 0 && view_height > 0)
                                {
-                                 // send the compressed viewport
+                                 auto start_t = steady_clock::now();
+
+                                 Ipp32f *img_pixels = user->ptr->img_pixels.get();
+                                 Ipp8u *img_mask = user->ptr->img_mask.get();
+
+                                 const int dimx = abs(x2 - x1 + 1);
+                                 const int dimy = abs(y2 - y1 + 1);
+
+                                 size_t dst_offset = 0;
+
+                                 for (int j = y1; j <= y2; j++)
+                                 {
+                                   // PIXEL *dst_pixel = (PIXEL *)(img->data[0] + ((dimy - 1) - (j - y1)) * img->linesize[0]);
+                                   // PIXEL *dst_alpha = (PIXEL *)(img->data[1] + ((dimy - 1) - (j - y1)) * img->linesize[1]);
+
+                                   size_t src_offset = j * fits->width;
+
+                                   for (int i = x1; i <= x2; i++)
+                                   {
+                                     // by default a dark pixel
+                                     Ipp32f pixel = 0.0f;
+                                     Ipp8u mask = 0;
+
+                                     if ((i >= 0) && (i < fits->width) && (j >= 0) && (j < fits->height))
+                                     {
+                                       pixel = img_pixels[src_offset + i];
+                                       mask = img_mask[src_offset + i];
+                                     }
+
+                                     /*view_pixel[dst_offset] = pixel;
+                                     view_mask[dst_offset] = mask;*/
+                                     dst_offset++;
+                                   }
+                                 }
 
                                  // downsize when necessary to view_width x view_height
+
+                                 auto end_t = steady_clock::now();
                                }
 
                                // calculate a viewport spectrum
