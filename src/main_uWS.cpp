@@ -2721,14 +2721,11 @@ int main(int argc, char *argv[])
 
                                  for (int j = y1; j <= y2; j++)
                                  {
-                                   // PIXEL *dst_pixel = (PIXEL *)(img->data[0] + ((dimy - 1) - (j - y1)) * img->linesize[0]);
-                                   // PIXEL *dst_alpha = (PIXEL *)(img->data[1] + ((dimy - 1) - (j - y1)) * img->linesize[1]);
-
                                    size_t src_offset = j * fits->width;
 
                                    for (int i = x1; i <= x2; i++)
                                    {
-                                     // by default a dark pixel
+                                     // a dark (inactive) pixel by default
                                      Ipp32f pixel = 0.0f;
                                      Ipp8u mask = 0;
 
