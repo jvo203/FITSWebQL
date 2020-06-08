@@ -1180,7 +1180,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   }
 
   // use mmap
-  //if (img_pixels == NULL && img_mask == NULL)
   if (!img_pixels && !img_mask)
   {
     int fd, stat;
@@ -1231,8 +1230,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     }
   }
 
-  //if (img_pixels == NULL || img_mask == NULL)
-  if (!img_pixels || !img_mask)
+  if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
   {
     printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
@@ -1851,8 +1849,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     }
   }
 
-  //if (img_pixels == NULL || img_mask == NULL)
-  if (!img_pixels || !img_mask)
+  if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
   {
     printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
