@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-05.0"
+#define VERSION_STRING "SV2020-06-08.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -1161,13 +1161,15 @@ void include_file(std::string &html, std::string filename)
   {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-    if (buffer != NULL)
+    if (buffer != MAP_FAILED)
+    {
       html.append((const char *)buffer, size);
+
+      if (munmap(buffer, size) == -1)
+        perror("un-mapping error");
+    }
     else
       perror("error mapping a file");
-
-    if (munmap(buffer, size) == -1)
-      perror("un-mapping error");
 
     close(fd);
   };
@@ -1205,7 +1207,7 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri)
   {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-    if (buffer != NULL)
+    if (buffer != MAP_FAILED)
     {
       // detect mime-types
       size_t pos = resource.find_last_of(".");
