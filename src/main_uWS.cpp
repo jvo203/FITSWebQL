@@ -2719,9 +2719,10 @@ int main(int argc, char *argv[])
                                  std::shared_ptr<Ipp8u> view_mask(ippsMalloc_8u_L(view_size), ippsFree);
 
                                  size_t dst_offset = 0;
-                                 Ipp32f* _pixels = view_pixels.get();
-                                 Ipp8u* _mask = view_mask.get();
+                                 Ipp32f *_pixels = view_pixels.get();
+                                 Ipp8u *_mask = view_mask.get();
 
+                                 // the loop could be parallelised
                                  for (int j = y1; j <= y2; j++)
                                  {
                                    size_t src_offset = j * fits->width;
