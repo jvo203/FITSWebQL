@@ -340,7 +340,7 @@ FITS::~FITS()
   // clear the cube containing pointers to mmaped regions
   fits_cube.clear();
 
-  if (fits_ptr != NULL && fits_ptr_size > 0)
+  if (fits_ptr != MAP_FAILED && fits_ptr_size > 0)
     munmap(fits_ptr, fits_ptr_size);
 
   if (fits_file_desc != -1)
@@ -1201,8 +1201,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 #endif
 
       if (!stat)
-        /*img_pixels = (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
-                                    MAP_SHARED, fd, 0);*/
         img_pixels = std::shared_ptr<Ipp32f>((Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
                                                             MAP_SHARED, fd, 0),
                                              [=](void *ptr) { munmap(ptr, frame_size); });
@@ -1225,8 +1223,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 #endif
 
       if (!stat)
-        /*img_mask = (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
-                                 MAP_SHARED, fd, 0);*/
         img_mask = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
                                                         MAP_SHARED, fd, 0),
                                           [=](void *ptr) { munmap(ptr, plane_size); });
@@ -1693,7 +1689,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
         mmap(nullptr, this->fits_ptr_size, PROT_READ,
              MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
 
-    if (this->fits_ptr == NULL)
+    if (this->fits_ptr == MAP_FAILED)
     {
       printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
       processed_header = true;
@@ -1825,8 +1821,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 #endif
 
       if (!stat)
-        /*img_pixels = (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
-                                    MAP_SHARED, fd, 0);*/
         img_pixels = std::shared_ptr<Ipp32f>((Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE,
                                                             MAP_SHARED, fd, 0),
                                              [=](void *ptr) { munmap(ptr, frame_size); });
@@ -1849,8 +1843,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 #endif
 
       if (!stat)
-        /*img_mask = (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
-                                 MAP_SHARED, fd, 0);*/
         img_mask = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE,
                                                         MAP_SHARED, fd, 0),
                                           [=](void *ptr) { munmap(ptr, plane_size); });
@@ -2191,7 +2183,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           mmap(nullptr, this->fits_ptr_size, PROT_READ | PROT_WRITE,
                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-      if (this->fits_ptr == NULL)
+      if (this->fits_ptr == MAP_FAILED)
       {
         printf("%s::error mmaping ANON memory...\n", dataset_id.c_str());
         processed_header = true;
@@ -2209,7 +2201,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
                                          Ipp32fFree);*/
       std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
 
-      if (this->fits_ptr == nullptr || mask_buf.get() == NULL)
+      if (mask_buf.get() == NULL)
       {
         printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
                "buffers.\n",
