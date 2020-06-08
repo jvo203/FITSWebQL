@@ -2714,9 +2714,9 @@ int main(int argc, char *argv[])
                                  const int dimx = abs(x2 - x1 + 1);
                                  const int dimy = abs(y2 - y1 + 1);
 
-                                 size_t view_size = size_t(dimx) * size_t(dimy);
-                                 std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(view_size), ippsFree);
-                                 std::shared_ptr<Ipp8u> view_mask(ippsMalloc_8u_L(view_size), ippsFree);
+                                 size_t native_size = size_t(dimx) * size_t(dimy);
+                                 std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(native_size), ippsFree);
+                                 std::shared_ptr<Ipp8u> view_mask(ippsMalloc_8u_L(native_size), ippsFree);
 
                                  size_t dst_offset = 0;
                                  Ipp32f *_pixels = view_pixels.get();
@@ -2745,7 +2745,7 @@ int main(int argc, char *argv[])
                                    }
                                  }
 
-                                 assert(dst_offset == view_size);
+                                 assert(dst_offset == native_size);
 
                                  // downsize when necessary to view_width x view_height
 
