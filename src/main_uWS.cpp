@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-08.0"
+#define VERSION_STRING "SV2020-06-08.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2714,7 +2714,13 @@ int main(int argc, char *argv[])
                                  const int dimx = abs(x2 - x1 + 1);
                                  const int dimy = abs(y2 - y1 + 1);
 
+                                 size_t view_size = size_t(dimx) * size_t(dimy);
+                                 std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(view_size), ippsFree);
+                                 std::shared_ptr<Ipp8u> view_mask(ippsMalloc_8u_L(view_size), ippsFree);
+
                                  size_t dst_offset = 0;
+                                 Ipp32f* _pixels = view_pixels.get();
+                                 Ipp8u* _mask = view_mask.get();
 
                                  for (int j = y1; j <= y2; j++)
                                  {
@@ -2732,11 +2738,13 @@ int main(int argc, char *argv[])
                                        mask = img_mask[src_offset + i];
                                      }
 
-                                     /*view_pixel[dst_offset] = pixel;
-                                     view_mask[dst_offset] = mask;*/
+                                     _pixels[dst_offset] = pixel;
+                                     _mask[dst_offset] = mask;
                                      dst_offset++;
                                    }
                                  }
+
+                                 assert(dst_offset == view_size);
 
                                  // downsize when necessary to view_width x view_height
 
