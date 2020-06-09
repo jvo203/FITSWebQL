@@ -2818,6 +2818,13 @@ int main(int argc, char *argv[])
                                                  << " bytes." << std::endl;
 
                                        auto end_t = steady_clock::now();
+
+                                       double elapsedSeconds = ((end_t - start_t).count()) *
+                                                               steady_clock::period::num /
+                                                               static_cast<double>(steady_clock::period::den);
+                                       double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                       std::cout << "downsizing/compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
                                      }
                                    }
                                  }
@@ -2861,6 +2868,13 @@ int main(int argc, char *argv[])
                                              << " bytes." << std::endl;
 
                                    auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) *
+                                                           steady_clock::period::num /
+                                                           static_cast<double>(steady_clock::period::den);
+                                   double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                   std::cout << "compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
                                  }
                                }
 
