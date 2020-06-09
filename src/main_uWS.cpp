@@ -2825,6 +2825,37 @@ int main(int argc, char *argv[])
                                        double elapsedMs = 1000.0 * elapsedSeconds;
 
                                        std::cout << "downsizing/compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+
+                                       // send the viewport
+                                       if (output.length() > 0)
+                                       {
+                                         size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
+                                         char *buffer = (char *)malloc(bufferSize);
+
+                                         if (buffer != NULL)
+                                         {
+                                           float ts = timestamp;
+                                           uint32_t id = seq;
+                                           uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                           size_t offset = 0;
+
+                                           memcpy(buffer + offset, &ts, sizeof(float));
+                                           offset += sizeof(float);
+
+                                           memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                           offset += sizeof(uint32_t);
+
+                                           memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                           offset += sizeof(uint32_t);
+
+                                           memcpy(buffer + offset, output.c_str(), output.length());
+                                           offset += output.length();
+
+                                           ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+
+                                           free(buffer);
+                                         }
+                                       }
                                      }
                                    }
                                  }
@@ -2875,6 +2906,37 @@ int main(int argc, char *argv[])
                                    double elapsedMs = 1000.0 * elapsedSeconds;
 
                                    std::cout << "compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+
+                                   // send the viewport
+                                   if (output.length() > 0)
+                                   {
+                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
+                                     char *buffer = (char *)malloc(bufferSize);
+
+                                     if (buffer != NULL)
+                                     {
+                                       float ts = timestamp;
+                                       uint32_t id = seq;
+                                       uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                       size_t offset = 0;
+
+                                       memcpy(buffer + offset, &ts, sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, output.c_str(), output.length());
+                                       offset += output.length();
+
+                                       ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+
+                                       free(buffer);
+                                     }
+                                   }
                                  }
                                }
 
