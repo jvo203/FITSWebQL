@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-08.2"
+#define VERSION_STRING "SV2020-06-09.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2685,7 +2685,7 @@ int main(int argc, char *argv[])
                            {
                              if (!fits->has_error && fits->has_data)
                              /*// launch a separate thread
-                               std::thread([fits, ws, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, intensity, beam, timestamp, seq]()*/
+                               std::thread([fits, ws, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq]()*/
                              {
                                fits->update_timestamp();
 
@@ -2716,11 +2716,11 @@ int main(int argc, char *argv[])
 
                                  size_t native_size = size_t(dimx) * size_t(dimy);
                                  std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(native_size), ippsFree);
-                                 std::shared_ptr<Ipp8u> view_mask(ippsMalloc_8u_L(native_size), ippsFree);
+                                 std::shared_ptr<Ipp32f> view_mask(ippsMalloc_32f_L(native_size), ippsFree);
 
                                  size_t dst_offset = 0;
                                  Ipp32f *_pixels = view_pixels.get();
-                                 Ipp8u *_mask = view_mask.get();
+                                 Ipp32f *_mask = view_mask.get();
 
                                  // the loop could be parallelised
                                  for (int j = y1; j <= y2; j++)
@@ -2731,12 +2731,12 @@ int main(int argc, char *argv[])
                                    {
                                      // a dark (inactive) pixel by default
                                      Ipp32f pixel = 0.0f;
-                                     Ipp8u mask = 0;
+                                     Ipp32f mask = 0.0f;
 
                                      if ((i >= 0) && (i < fits->width) && (j >= 0) && (j < fits->height))
                                      {
                                        pixel = img_pixels[src_offset + i];
-                                       mask = img_mask[src_offset + i];
+                                       mask = (img_mask[src_offset + i] == 255) ? 1.0f : 0.0f;
                                      }
 
                                      _pixels[dst_offset] = pixel;
@@ -2748,6 +2748,51 @@ int main(int argc, char *argv[])
                                  assert(dst_offset == native_size);
 
                                  // downsize when necessary to view_width x view_height
+                                 size_t viewport_size = size_t(view_width) * size_t(view_height);
+
+                                 if (native_size > viewport_size)
+                                 {
+                                   printf("downsizing viewport %d x %d --> %d x %d¥n", dimx, dimy, view_width, view_height);
+                                 }
+                                 else
+                                 // no re-scaling needed
+                                 {
+                                   // export the luma+mask to OpenEXR
+
+                                   // in-memory output
+                                   StdOSStream oss;
+
+                                   try
+                                   {
+                                     Header header(dimx, dimy);
+                                     header.compression() = DWAB_COMPRESSION;
+                                     addDwaCompressionLevel(header, quality);
+                                     header.channels().insert("Y", Channel(FLOAT));
+                                     header.channels().insert("A", Channel(FLOAT));
+
+                                     OutputFile file(oss, header);
+                                     FrameBuffer frameBuffer;
+
+                                     frameBuffer.insert("Y",
+                                                        Slice(FLOAT, (char *)_pixels, sizeof(Ipp32f) * 1,
+                                                              sizeof(Ipp32f) * dimx));
+
+                                     frameBuffer.insert("A", Slice(FLOAT, (char *)_mask, sizeof(Ipp32f) * 1,
+                                                                   sizeof(Ipp32f) * dimx));
+
+                                     file.setFrameBuffer(frameBuffer);
+                                     file.writePixels(dimy);
+                                   }
+                                   catch (const std::exception &exc)
+                                   {
+                                     std::cerr << exc.what() << std::endl;
+                                   }
+
+                                   std::string output = oss.str();
+                                   std::cout << "[" << fits->dataset_id
+                                             << "]::viewport OpenEXR output: " << output.length()
+                                             << " bytes." << std::endl;
+                                 }
 
                                  auto end_t = steady_clock::now();
                                }
