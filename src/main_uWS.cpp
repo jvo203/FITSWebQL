@@ -580,11 +580,9 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
     size_t plane_size = size_t(img_width) * size_t(img_height);
 
     // allocate {pixel_buf, mask_buf}
-    std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
-                                       ippsFree);
+    std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
     std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
-    std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size),
-                                         ippsFree);
+    std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size), ippsFree);
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL &&
         mask_buf_32f.get() != NULL)
@@ -608,7 +606,7 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
           fits->img_mask.get(), srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
       printf(" %d : %s, %d : %s\n", pixels_stat,
-             ippGetStatusString(mask_stat), pixels_stat,
+             ippGetStatusString(pixels_stat), mask_stat,
              ippGetStatusString(mask_stat));
 
       // compress the pixels + mask with OpenEXR
@@ -2752,7 +2750,76 @@ int main(int argc, char *argv[])
 
                                  if (native_size > viewport_size)
                                  {
-                                   printf("downsizing viewport %d x %d --> %d x %d¥n", dimx, dimy, view_width, view_height);
+                                   printf("downsizing viewport %d x %d --> %d x %d\n", dimx, dimy, view_width, view_height);
+
+                                   std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
+                                   std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
+
+                                   if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+                                   {
+                                     // downsize float32 pixels and a mask
+                                     IppiSize srcSize;
+                                     srcSize.width = dimx;
+                                     srcSize.height = dimy;
+                                     Ipp32s srcStep = srcSize.width;
+
+                                     IppiSize dstSize;
+                                     dstSize.width = view_width;
+                                     dstSize.height = view_height;
+                                     Ipp32s dstStep = dstSize.width;
+
+                                     IppStatus pixels_stat =
+                                         tileResize32f_C1R(_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+
+                                     IppStatus mask_stat =
+                                         tileResize32f_C1R(_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+
+                                     printf(" %d : %s, %d : %s\n", pixels_stat,
+                                            ippGetStatusString(pixels_stat), mask_stat,
+                                            ippGetStatusString(mask_stat));
+
+                                     // export EXR in a YA format
+                                     if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
+                                     {
+                                       // in-memory output
+                                       StdOSStream oss;
+
+                                       try
+                                       {
+                                         Header header(view_width, view_height);
+                                         header.compression() = DWAB_COMPRESSION;
+                                         addDwaCompressionLevel(header, quality);
+                                         header.channels().insert("Y", Channel(FLOAT));
+                                         header.channels().insert("A", Channel(FLOAT));
+
+                                         // OutputFile file(filename.c_str(), header);
+                                         OutputFile file(oss, header);
+                                         FrameBuffer frameBuffer;
+
+                                         frameBuffer.insert("Y",
+                                                            Slice(FLOAT, (char *)pixels_buf.get(), sizeof(Ipp32f) * 1,
+                                                                  sizeof(Ipp32f) * view_width));
+
+                                         frameBuffer.insert("A",
+                                                            Slice(FLOAT, (char *)mask_buf.get(), sizeof(Ipp32f) * 1,
+                                                                  sizeof(Ipp32f) * view_width));
+
+                                         file.setFrameBuffer(frameBuffer);
+                                         file.writePixels(view_height);
+                                       }
+                                       catch (const std::exception &exc)
+                                       {
+                                         std::cerr << exc.what() << std::endl;
+                                       }
+
+                                       std::string output = oss.str();
+                                       std::cout << "[" << fits->dataset_id
+                                                 << "]::viewport OpenEXR output: " << output.length()
+                                                 << " bytes." << std::endl;
+
+                                       auto end_t = steady_clock::now();
+                                     }
+                                   }
                                  }
                                  else
                                  // no re-scaling needed
@@ -2792,9 +2859,9 @@ int main(int argc, char *argv[])
                                    std::cout << "[" << fits->dataset_id
                                              << "]::viewport OpenEXR output: " << output.length()
                                              << " bytes." << std::endl;
-                                 }
 
-                                 auto end_t = steady_clock::now();
+                                   auto end_t = steady_clock::now();
+                                 }
                                }
 
                                // calculate a viewport spectrum
