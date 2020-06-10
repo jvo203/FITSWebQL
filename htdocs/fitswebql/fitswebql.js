@@ -933,7 +933,7 @@ function webgl_viewport_renderer(gl, container, height) {
 	let _width = 1.0;
 	let _height = 1.0;
 
-	gl.uniform4fv(locationOfBox, [xmin, 1.0 - ymin, _width, _height]);
+	gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
 
 	// get the multiplier
 	var noise_sensitivity = document.getElementById('sensitivity' + index).value;
