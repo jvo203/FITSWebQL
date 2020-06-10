@@ -960,6 +960,8 @@ function webgl_viewport_renderer(gl, container, height) {
 	// draw the quad (2 triangles, 6 vertices)
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 
+	invalidateViewport = true;
+
 	// clean-up WebGL buffers etc.
 
 	// position buffer	
@@ -1086,10 +1088,10 @@ function webgl_zoom_renderer(gl, height) {
 	viewport.refresh = true;
 
 	// shoud be done in an animation loop
-	function viewport_rendering_loop() {
+	function zoom_rendering_loop() {
 		if (viewport_zoom_settings == null) {
 			console.log("webgl_zoom_renderer: null viewport_zoom_settings");
-			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+			viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 			return;
 		}
 
@@ -1097,17 +1099,22 @@ function webgl_zoom_renderer(gl, height) {
 
 		// limit the FPS		
 		if ((now - last_viewport_loop) < (1000 / fps)) {
-			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+			viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 			return;
 		} else {
 			last_viewport_loop = now;
 		}
 
 		if (!viewport.refresh) {
-			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+			viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 			return;
 		} else
 			viewport.refresh = false;
+
+		if (invalidateViewport) {
+			clear_webgl_viewport();
+			invalidateViewport = false;
+		}
 
 		let index = va_count;
 
@@ -1165,10 +1172,10 @@ function webgl_zoom_renderer(gl, height) {
 		// draw the quad (2 triangles, 6 vertices)
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-		viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+		viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 	};
 
-	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
+	viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 }
 
 function init_webgl_zoom_buffers() {
@@ -1297,6 +1304,25 @@ function init_webgl_viewport_buffers(container) {
 	}
 }
 
+function clear_webgl_viewport() {
+	var canvas = document.getElementById('ViewportCanvas');
+	canvas.style.display = "block";// a hack needed by Apple Safari
+
+	if (webgl2) {
+		var gl = canvas.getContext("webgl2");
+
+		// Clear the canvas
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+	} else if (webgl1) {
+		var gl = canvas.getContext("webgl");
+
+		// Clear the canvas
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+	}
+}
+
 function init_webgl_image_buffers(index) {
 	//place the image onto the main canvas
 	var canvas = document.getElementById('HTMLCanvas');
@@ -1376,7 +1402,7 @@ function clear_webgl_image_buffers(index) {
 }
 
 function process_hdr_viewport(img_width, img_height, pixels, alpha, index) {
-	if (streaming || moving)
+	if (streaming || moving || windowLeft)
 		return;
 
 	// combine pixels with a mask
@@ -8119,6 +8145,8 @@ function swap_viewports() {
 		viewport.refresh = true;
 	}
 
+	clear_webgl_viewport();
+
 	d3.select("#" + zoom_location + "Cross").attr("opacity", 0.0);
 	d3.select("#" + zoom_location + "Beam").attr("opacity", 0.0);
 
@@ -8172,6 +8200,8 @@ function fits_subregion_start() {
 		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 
+	clear_webgl_viewport();
+
 	{
 		var c = document.getElementById("SpectrumCanvas");
 		var ctx = c.getContext("2d");
@@ -8208,6 +8238,8 @@ function fits_subregion_drag() {
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
+
+	clear_webgl_viewport();
 
 	{
 		var c = document.getElementById("SpectrumCanvas");
@@ -9253,16 +9285,19 @@ function setup_image_selection() {
 		.on("mouseleave", function () {
 			clearTimeout(idleMouse);
 
-			// clear the ZOOMCanvas in WebGL
+			// clear the ViewportCanvas in WebGL
 			if (viewport != null) {
-				// Clear the ZOOM Canvas
-				console.log("clearing the ZOOM Canvas");
+				// Clear the Viewport Canvas
+				console.log("clearing the Viewport Canvas");
 				var gl = viewport.gl;
 				gl.clearColor(0, 0, 0, 0);
 				gl.clear(gl.COLOR_BUFFER_BIT);
 
 				clear_webgl_zoom_buffers();
 			}
+
+			// Clear the ZOOMCanvas
+			clear_webgl_viewport();
 
 			if (!d3.event.shiftKey)
 				windowLeft = true;
@@ -13578,6 +13613,7 @@ async*/ function mainRenderer() {
 		image_stack = [];
 		video_stack = [];
 		viewport_zoom_settings = null;
+		invalidateViewport = false;
 		viewport = {};
 		zoom_dims = null;
 		zoom_location = 'lower';
