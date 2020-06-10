@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-09.0";
+	return "JS2020-06-10.0";
 }
 
 const wasm_supported = (() => {
@@ -804,11 +804,185 @@ function createProgram(gl, vertexShaderCode, fragmentShaderCode) {
 	return program;
 };
 
-function webgl_viewport_renderer(gl, height) {
+function webgl_viewport_renderer(gl, container, height) {
 	var image = imageContainer[va_count - 1];
 
 	if (image == null) {
-		console.log("webgl_viewport_renderer: null image");
+		console.log("webgl_zoom_renderer: null image");
+		return;
+	}
+
+	// setup GLSL program
+	var vertexShaderCode = document.getElementById("vertex-shader").text;
+	var fragmentShaderCode = document.getElementById("common-shader").text + document.getElementById(image.tone_mapping.flux + "-shader").text;
+
+	if (webgl2)
+		fragmentShaderCode = fragmentShaderCode + "\ncolour.a = colour.g;\n";
+
+	fragmentShaderCode += document.getElementById(colourmap + "-shader").text;
+
+	// grey-out pixels for alpha = 0.0
+	var pos = fragmentShaderCode.lastIndexOf("}");
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
+
+	if (zoom_shape == "circle") {
+		pos = fragmentShaderCode.lastIndexOf("}");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "float r_x = v_texcoord.z;\n float r_y = v_texcoord.w;\n if (r_x * r_x + r_y * r_y > 1.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");
+	}
+
+	// testing purposes
+	/*{
+		pos = fragmentShaderCode.lastIndexOf("}");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "gl_FragColor.rgba = vec4(255.0, 0.0, 0.0, 0.5);\n");
+	}*/
+
+	// WebGL2 accept WebGL1 shaders so there is no need to update the code	
+	if (webgl2) {
+		var prefix = "#version 300 es\n";
+		vertexShaderCode = prefix + vertexShaderCode;
+		fragmentShaderCode = prefix + fragmentShaderCode;
+
+		// attribute -> in
+		vertexShaderCode = vertexShaderCode.replace(/attribute/g, "in");
+		fragmentShaderCode = fragmentShaderCode.replace(/attribute/g, "in");
+
+		// varying -> out
+		vertexShaderCode = vertexShaderCode.replace(/varying/g, "out");
+
+		// varying -> in
+		fragmentShaderCode = fragmentShaderCode.replace(/varying/g, "in");
+
+		// texture2D -> texture
+		fragmentShaderCode = fragmentShaderCode.replace(/texture2D/g, "texture");
+
+		// replace gl_FragColor with a custom variable, i.e. texColour
+		fragmentShaderCode = fragmentShaderCode.replace(/gl_FragColor/g, "texColour");
+
+		// add the definition of texColour
+		var pos = fragmentShaderCode.indexOf("void main()");
+		fragmentShaderCode = fragmentShaderCode.insert_at(pos, "out vec4 texColour;\n\n");
+	}
+
+	var program = createProgram(gl, vertexShaderCode, fragmentShaderCode);
+
+	// look up where the vertex data needs to go.
+	var positionLocation = gl.getAttribLocation(program, "a_position");
+
+	// Create a position buffer
+	var positionBuffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	// Put a unit quad in the buffer
+	var positions = [
+		-1, -1,
+		-1, 1,
+		1, -1,
+		1, -1,
+		-1, 1,
+		1, 1,
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+	// load a texture
+	var tex = gl.createTexture();
+
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	/*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);*/
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+	if (webgl2)
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, container.width, container.height, 0, gl.RG, gl.FLOAT, container.texture);
+	else
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, container.width, container.height, 0, gl.LUMINANCE_ALPHA, gl.FLOAT, container.texture);
+
+	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+	if (status != gl.FRAMEBUFFER_COMPLETE) {
+		console.error(status);
+	}
+
+	let index = va_count;
+
+	//WebGL how to convert from clip space to pixels		
+	let px = viewport_zoom_settings.px;
+	let py = viewport_zoom_settings.py;
+	let viewport_size = viewport_zoom_settings.zoomed_size;
+	py = height - py - viewport_size;
+	gl.viewport(px, py, viewport_size, viewport_size);
+
+	// Clear the canvas
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	// the image bounding box
+	var locationOfBox = gl.getUniformLocation(program, "box");
+
+	// image tone mapping
+	var locationOfParams = gl.getUniformLocation(program, "params");
+
+	// drawRegion (execute the GLSL program)
+	// Tell WebGL to use our shader program pair
+	gl.useProgram(program);
+
+	// show the entire viewport texture
+	let xmin = 0.0;
+	let ymin = 0.0;
+	let _width = 1.0;
+	let _height = 1.0;
+
+	gl.uniform4fv(locationOfBox, [xmin, 1.0 - ymin, _width, _height]);
+
+	// get the multiplier
+	var noise_sensitivity = document.getElementById('sensitivity' + index).value;
+	var multiplier = get_noise_sensitivity(noise_sensitivity);
+
+	if (image.tone_mapping.flux == "legacy") {
+		var params = [image.tone_mapping.black, image.tone_mapping.white, image.tone_mapping.lmin, image.tone_mapping.lmax];
+		gl.uniform4fv(locationOfParams, params);
+	} else {
+		if (image.tone_mapping.flux == "ratio")
+			var params = [image.tone_mapping.median, multiplier * image.tone_mapping.ratio_sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+		else
+			var params = [image.tone_mapping.median, multiplier * image.tone_mapping.sensitivity, image.tone_mapping.black, image.tone_mapping.white];
+
+		gl.uniform4fv(locationOfParams, params);
+	}
+
+	// Setup the attributes to pull data from our buffers
+	gl.enableVertexAttribArray(positionLocation);
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+	// execute the GLSL program
+	// draw the quad (2 triangles, 6 vertices)
+	gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+	// clean-up WebGL buffers etc.
+
+	// position buffer	
+	if (positionBuffer != undefined)
+		gl.deleteBuffer(positionBuffer);
+
+	// texture	
+	if (tex != undefined)
+		gl.deleteTexture(tex);
+
+	// program
+	if (program != undefined) {
+		gl.deleteShader(program.vShader);
+		gl.deleteShader(program.fShader);
+		gl.deleteProgram(program);
+	}
+}
+
+function webgl_zoom_renderer(gl, height) {
+	var image = imageContainer[va_count - 1];
+
+	if (image == null) {
+		console.log("webgl_zoom_renderer: null image");
 		return;
 	}
 
@@ -914,7 +1088,7 @@ function webgl_viewport_renderer(gl, height) {
 	// shoud be done in an animation loop
 	function viewport_rendering_loop() {
 		if (viewport_zoom_settings == null) {
-			console.log("webgl_viewport_renderer: null viewport_zoom_settings");
+			console.log("webgl_zoom_renderer: null viewport_zoom_settings");
 			viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 			return;
 		}
@@ -997,7 +1171,7 @@ function webgl_viewport_renderer(gl, height) {
 	viewport.loopId = requestAnimationFrame(viewport_rendering_loop);
 }
 
-function init_webgl_viewport_buffers() {
+function init_webgl_zoom_buffers() {
 	// place the viewport onto the zoom canvas
 	var canvas = document.getElementById('ZOOMCanvas');
 	canvas.style.display = "block";// a hack needed by Apple Safari
@@ -1014,7 +1188,7 @@ function init_webgl_viewport_buffers() {
 		canvas.addEventListener(
 			"webglcontextrestored", function () {
 				console.log("ZOOMCanvas: webglcontextrestored");
-				init_webgl_viewport_buffers();
+				init_webgl_zoom_buffers();
 			}, false);
 	}
 
@@ -1030,7 +1204,7 @@ function init_webgl_viewport_buffers() {
 		ctx.getExtension('EXT_color_buffer_float');
 
 		// call the common WebGL renderer
-		webgl_viewport_renderer(ctx, height);
+		webgl_zoom_renderer(ctx, height);
 	} else if (webgl1) {
 		var ctx = canvas.getContext("webgl");
 		viewport.gl = ctx;
@@ -1041,14 +1215,14 @@ function init_webgl_viewport_buffers() {
 		ctx.getExtension('OES_texture_float_linear');
 
 		// call the common WebGL renderer
-		webgl_viewport_renderer(ctx, height);
+		webgl_zoom_renderer(ctx, height);
 	} else {
 		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
 		return;
 	}
 }
 
-function clear_webgl_viewport_buffers() {
+function clear_webgl_zoom_buffers() {
 	// cancel the animation loop
 	cancelAnimationFrame(viewport.loopId);
 
@@ -1073,6 +1247,54 @@ function clear_webgl_viewport_buffers() {
 	}
 
 	viewport.gl = null;
+}
+
+function init_webgl_viewport_buffers(container) {
+	// place the viewport onto the zoom canvas
+	var canvas = document.getElementById('ViewportCanvas');
+	canvas.style.display = "block";// a hack needed by Apple Safari
+	var height = canvas.height;
+
+	if (webgl1 || webgl2) {
+		canvas.addEventListener("webglcontextlost", function (event) {
+			event.preventDefault();
+
+			console.err("ViewportCanvas: webglcontextlost");
+		}, false);
+
+		canvas.addEventListener(
+			"webglcontextrestored", function () {
+				console.log("ViewportCanvas: webglcontextrestored");
+				init_webgl_viewport_buffers(container);
+			}, false);
+	}
+
+	if (webgl2) {
+		var ctx = canvas.getContext("webgl2");
+		console.log("init_webgl is using the WebGL2 context.");
+
+		// enable floating-point textures filtering			
+		ctx.getExtension('OES_texture_float_linear');
+
+		// needed by gl.checkFramebufferStatus
+		ctx.getExtension('EXT_color_buffer_float');
+
+		// call the common WebGL renderer
+		webgl_viewport_renderer(ctx, container, height);
+	} else if (webgl1) {
+		var ctx = canvas.getContext("webgl");
+		console.log("init_webgl is using the WebGL1 context.");
+
+		// enable floating-point textures
+		ctx.getExtension('OES_texture_float');
+		ctx.getExtension('OES_texture_float_linear');
+
+		// call the common WebGL renderer
+		webgl_viewport_renderer(ctx, container, height);
+	} else {
+		console.log("WebGL not supported by your browser, falling back onto HTML 2D Canvas (not implemented yet).");
+		return;
+	}
 }
 
 function init_webgl_image_buffers(index) {
@@ -1151,6 +1373,30 @@ function clear_webgl_image_buffers(index) {
 	gl.deleteProgram(image.program);
 
 	image.gl = null;
+}
+
+function process_hdr_viewport(img_width, img_height, pixels, alpha, index) {
+	if (streaming || moving)
+		return;
+
+	// combine pixels with a mask
+	let len = pixels.length | 0;
+	var texture = new Float32Array(2 * len);
+	let offset = 0 | 0;
+
+	for (let i = 0 | 0; i < len; i = (i + 1) | 0) {
+		texture[offset] = pixels[i];
+		offset = (offset + 1) | 0;
+
+		texture[offset] = alpha[i];
+		offset = (offset + 1) | 0;
+	}
+
+	var viewportContainer = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture };
+
+	//next project the viewport
+	if (va_count == 1)
+		init_webgl_viewport_buffers(viewportContainer);
 }
 
 function process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index) {
@@ -2300,6 +2546,27 @@ function open_websocket_connection(datasetId, index) {
 						var frame = new Uint8Array(received_msg, offset);
 
 						console.log('received viewport frame length = ' + frame.length + ' bytes.');
+
+						// OpenEXR decoder part				
+						Module.ready
+							.then(_ => {
+								console.log("processing an OpenEXR HDR viewport");
+								let start = performance.now();
+								var image = Module.loadEXRStr(frame);
+								let elapsed = Math.round(performance.now() - start);
+
+								console.log("viewport width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+
+								var img_width = image.width;
+								var img_height = image.height;
+								var pixels = image.plane("Y");
+								var alpha = image.plane("A");
+
+								image.delete();
+
+								process_hdr_viewport(img_width, img_height, pixels, alpha, index);
+							})
+							.catch(e => console.error(e));
 
 						return;
 					}
@@ -8981,7 +9248,7 @@ function setup_image_selection() {
 
 			resetKalman();
 
-			init_webgl_viewport_buffers();
+			init_webgl_zoom_buffers();
 		})
 		.on("mouseleave", function () {
 			clearTimeout(idleMouse);
@@ -8994,7 +9261,7 @@ function setup_image_selection() {
 				gl.clearColor(0, 0, 0, 0);
 				gl.clear(gl.COLOR_BUFFER_BIT);
 
-				clear_webgl_viewport_buffers();
+				clear_webgl_zoom_buffers();
 			}
 
 			if (!d3.event.shiftKey)
@@ -13500,25 +13767,31 @@ async*/ function mainRenderer() {
 			.attr("height", height)
 			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 53');
 
+		d3.select("#mainDiv").append("canvas")
+			.attr("id", "ViewportCanvas")
+			.attr("width", width)
+			.attr("height", height)
+			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 54');
+
 		d3.select("#mainDiv").append("svg")
 			.attr("id", "BackSVG")
 			.attr("width", width)
 			.attr("height", height)
-			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 54; cursor: default; mix-blend-mode: none');//difference or lighten or screen //other than none causes problems with an older Firefox v45
+			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 55; cursor: default; mix-blend-mode: none');//difference or lighten or screen //other than none causes problems with an older Firefox v45
 
 		//spectrum
 		d3.select("#mainDiv").append("canvas")
 			.attr("id", "SpectrumCanvas")
 			.attr("width", width)
 			.attr("height", height)
-			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 54');
+			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 55');
 
 		d3.select("#mainDiv").append("svg")
 			.attr("id", "FrontSVG")
 			.attr("width", width)
 			.attr("height", height)
 			.on("mouseenter", hide_navigation_bar)
-			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 55; cursor: default');
+			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 56; cursor: default');
 
 		d3.select("#BackSVG").append("svg:image")
 			.attr("id", "jvoLogo")
