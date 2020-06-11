@@ -10638,9 +10638,9 @@ function imageTimeout() {
 	var sel_width = clipSize * scale;
 	var sel_height = clipSize * scale;
 
-	var fitsX = x * fitsData.width / rect_elem.attr("width");//imageContainer[va_count - 1].width;
-	var fitsY = y * fitsData.height / rect_elem.attr("height");//imageContainer[va_count - 1].height;
-	var fitsSize = clipSize * fitsData.width / rect_elem.attr("width");//imageContainer[va_count - 1].width;
+	var fitsX = x * fitsData.width / imageContainer[va_count - 1].width;
+	var fitsY = y * fitsData.height / imageContainer[va_count - 1].height;
+	var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
 
 	fitsX = Math.round(fitsX);
 	fitsY = Math.round(fitsY);
