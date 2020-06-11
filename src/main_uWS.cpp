@@ -571,8 +571,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
 
   if (scale < 1.0)
   {
-    int img_width = roundf(scale * fits->width);
-    int img_height = roundf(scale * fits->height);
+    int img_width = floorf(scale * fits->width);
+    int img_height = floorf(scale * fits->height);
 
     printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale,
            fits->width, fits->height, img_width, img_height);

@@ -1478,7 +1478,7 @@ function webgl_image_renderer(index, gl, width, height) {
 	var scale = get_image_scale(width, height, image.image_bounding_dims.width, image.image_bounding_dims.height);
 	var img_width = scale * image.image_bounding_dims.width;
 	var img_height = scale * image.image_bounding_dims.height;
-	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.width, "orig. height:", image.height);
+	console.log("scaling by", scale, "new width:", img_width, "new height:", img_height, "orig. width:", image.image_bounding_dims.width, "orig. height:", image.image_bounding_dims.height);
 
 	// setup GLSL program
 	var vertexShaderCode = document.getElementById("vertex-shader").text;
