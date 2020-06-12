@@ -3107,8 +3107,8 @@ function true_image_dimensions(alpha, width, height) {
 
 	return {
 		x1: x1,
-		//y1: ((height - 1) - y2), // was 'y1', with WebGL swap y1 with y2 due to a vertical mirror flip
 		y1: y1,
+		y2: ((height - 1) - y2), // was 'y1', with WebGL swap y1 with y2 due to a vertical mirror flip
 		width: Math.abs(x2 - x1) + 1,
 		height: Math.abs(y2 - y1) + 1
 	}
@@ -8954,7 +8954,7 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			var offset;
 
 			try {
-				offset = d3.mouse(this);			
+				offset = d3.mouse(this);
 			}
 			catch (e) {
 				console.log(e);
@@ -9450,7 +9450,7 @@ function setup_image_selection() {
 			var offset;
 
 			try {
-				offset = d3.mouse(this);				
+				offset = d3.mouse(this);
 			}
 			catch (e) {
 				console.log(e);
@@ -9466,7 +9466,7 @@ function setup_image_selection() {
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / d3.select(this).attr("width") * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
+			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / d3.select(this).attr("height") * (image_bounding_dims.height - 1);
 
 			var orig_x = x * fitsData.width / imageContainer[va_count - 1].width;
 			var orig_y = y * fitsData.height / imageContainer[va_count - 1].height;
@@ -10630,9 +10630,11 @@ function imageTimeout() {
 	var img_width = scale * image_bounding_dims.width;
 	var img_height = scale * image_bounding_dims.height;
 
+	//var _y1 = imageContainer[va_count - 1].height - image_bounding_dims.height - image_bounding_dims.y1;
+
 	var rect_elem = d3.select("#image_rectangle");
 	var x = image_bounding_dims.x1 + (mouse_position.x - rect_elem.attr("x")) / rect_elem.attr("width") * (image_bounding_dims.width - 1);
-	var y = image_bounding_dims.y1 + (mouse_position.y - rect_elem.attr("y")) / rect_elem.attr("height") * (image_bounding_dims.height - 1);
+	var y = image_bounding_dims.y2 + (mouse_position.y - rect_elem.attr("y")) / rect_elem.attr("height") * (image_bounding_dims.height - 1);
 
 	console.log("idle", "x", x, "y", y);
 
