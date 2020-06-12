@@ -3369,7 +3369,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
-  size_t max_work_size = 1024 * 1024;
+  size_t max_work_size = 1024 * 1024 * 4;
   size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =
@@ -3520,7 +3520,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
-  size_t max_work_size = 1024 * 1024;
+  size_t max_work_size = 1024 * 1024 * 4;
   size_t plane_size = size_t(srcSize.width) * size_t(srcSize.height);
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =
@@ -3669,7 +3669,7 @@ void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height)
   int max_threads = omp_get_max_threads();
 
   // a per-thread limit
-  size_t max_work_size = 1024 * 1024;
+  size_t max_work_size = 1024 * 1024 * 4;
   size_t plane_size = size_t(width) * size_t(height);
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =

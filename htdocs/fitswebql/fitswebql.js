@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-12.0";
+	return "JS2020-06-12.1";
 }
 
 const wasm_supported = (() => {
@@ -1584,6 +1584,7 @@ function webgl_image_renderer(index, gl, width, height) {
 
 		//WebGL how to convert from clip space to pixels	
 		gl.viewport((width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
+		console.log("gl.viewport:", (width - img_width) / 2, (height - img_height) / 2, img_width, img_height);
 
 		// Clear the canvas
 		gl.clearColor(0, 0, 0, 0);
@@ -3106,7 +3107,8 @@ function true_image_dimensions(alpha, width, height) {
 
 	return {
 		x1: x1,
-		y1: ((height - 1) - y2), // was 'y1', with WebGL swap y1 with y2 due to a vertical mirror flip
+		//y1: ((height - 1) - y2), // was 'y1', with WebGL swap y1 with y2 due to a vertical mirror flip
+		y1: y1,
 		width: Math.abs(x2 - x1) + 1,
 		height: Math.abs(y2 - y1) + 1
 	}
@@ -8952,7 +8954,7 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 			var offset;
 
 			try {
-				offset = d3.mouse(this);
+				offset = d3.mouse(this);			
 			}
 			catch (e) {
 				console.log(e);
@@ -9448,7 +9450,7 @@ function setup_image_selection() {
 			var offset;
 
 			try {
-				offset = d3.mouse(this);
+				offset = d3.mouse(this);				
 			}
 			catch (e) {
 				console.log(e);
