@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-11.0";
+	return "JS2020-06-12.0";
 }
 
 const wasm_supported = (() => {
@@ -3106,7 +3106,7 @@ function true_image_dimensions(alpha, width, height) {
 
 	return {
 		x1: x1,
-		y1: y1,
+		y1: ((height - 1) - y2), // was 'y1', with WebGL swap y1 with y2 due to a vertical mirror flip
 		width: Math.abs(x2 - x1) + 1,
 		height: Math.abs(y2 - y1) + 1
 	}
