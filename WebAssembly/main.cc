@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include <fpzip/include/fpzip.h>
+
 using namespace emscripten;
 
 class BufferAdapter : public OPENEXR_IMF_NAMESPACE::IStream
@@ -144,7 +146,6 @@ EXRImage loadEXRVec(std::vector<char> const &bytes)
 
 EXRImage loadEXRStr(std::string const &bytes)
 {
-
   return loadEXRRaw(bytes.data(), bytes.size());
 }
 
@@ -156,6 +157,11 @@ void enableMultithreading(int no_threads)
     std::cout << "[OpenEXR] number of threads: "
               << OPENEXR_IMF_NAMESPACE::globalThreadCount() << std::endl;
   }
+}
+
+void FPunzip(std::string const &bytes)
+{  
+  std::cout << "[fpunzip] " << bytes.size() << " bytes." << std::endl;
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -173,4 +179,5 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("loadEXRVec", &loadEXRVec);
   function("loadEXRStr", &loadEXRStr);
   function("enableMultithreading", &enableMultithreading);
+  function("FPunzip", &FPunzip);
 }
