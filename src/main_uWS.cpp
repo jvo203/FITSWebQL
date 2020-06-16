@@ -2944,6 +2944,8 @@ int main(int argc, char *argv[])
                                // calculate a viewport spectrum
                                if (fits->depth > 1)
                                {
+                                 auto start_watch = steady_clock::now();
+
                                  std::vector<float> spectrum = fits->get_spectrum(
                                      start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
 
@@ -2970,6 +2972,7 @@ int main(int argc, char *argv[])
                                    PointLttb::Downsample(in, spectrum.size(), out, dst_len);
 
                                    spectrum.resize(dst_len);
+
                                    for (int i = 0; i < dst_len; i++)
                                      spectrum[i] = out[i].y;
 
@@ -2989,17 +2992,62 @@ int main(int argc, char *argv[])
                                  // send the spectrum
                                  if (spectrum.size() > 0)
                                  {
+                                   // compress spectrum with fpzip
+                                   uint32_t spec_len = spectrum.size();
+                                   size_t bufbytes = 1024 + spec_len * sizeof(float);
+                                   size_t outbytes = 0;
+                                   bool success = false;
+
+                                   void *compressed = malloc(bufbytes);
+
+                                   int prec = image_update ? 32 : 8;
+
+                                   /* compress to memory */
+                                   FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
+                                   fpz->type = FPZIP_TYPE_FLOAT;
+                                   fpz->prec = prec;
+                                   fpz->nx = spec_len;
+                                   fpz->ny = 0;
+                                   fpz->nz = 0;
+                                   fpz->nf = 1;
+
+                                   /* write header */
+                                   if (!fpzip_write_header(fpz))
+                                     fprintf(stderr, "cannot write header: %s\n", fpzip_errstr[fpzip_errno]);
+                                   else
+                                   {
+                                     outbytes = fpzip_write(fpz, spectrum.data());
+
+                                     if (!outbytes)
+                                       fprintf(stderr, "compression failed: %s\n", fpzip_errstr[fpzip_errno]);
+                                     else
+                                       success = true;
+                                   }
+
+                                   fpzip_write_close(fpz);
+                                   free(compressed);
+
+                                   if (success)
+                                     std::cout << "FPZIP-compressed spectrum: " << outbytes << " bytes, original size " << spec_len * sizeof(float) << " bytes." << std::endl;
+                                   // end-of-compression
+
                                    size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + spectrum.size() * sizeof(float);
                                    char *buffer = (char *)malloc(bufferSize);
 
                                    // construct a message
                                    if (buffer != NULL)
                                    {
+                                     auto end_watch = steady_clock::now();
+
+                                     double elapsedSeconds = ((end_watch - start_watch).count()) *
+                                                             steady_clock::period::num /
+                                                             static_cast<double>(steady_clock::period::den);
+                                     double elapsedMs = 1000.0 * elapsedSeconds;
 
                                      float ts = timestamp;
                                      uint32_t id = seq;
                                      uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
-                                     float elapsed = elapsedMilliseconds;
+                                     float elapsed = elapsedMs;
 
                                      size_t offset = 0;
 
