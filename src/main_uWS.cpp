@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.05.08.0"
-#define VERSION_STRING "SV2020-06-11.0"
+#define VERSION_STRING "SV2020-06-16.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -123,6 +123,7 @@ std::atomic<bool> exiting(false);
 #include "fits.hpp"
 #include "json.h"
 #include "lttb.hpp"
+#include <fpzip.h>
 
 struct SpectrumPoint
 {
