@@ -3000,42 +3000,44 @@ int main(int argc, char *argv[])
 
                                    void *compressed = malloc(bufbytes);
 
-                                   int prec = image_update ? 32 : 8;
-
-                                   /* compress to memory */
-                                   FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
-                                   fpz->type = FPZIP_TYPE_FLOAT;
-                                   fpz->prec = prec;
-                                   fpz->nx = spec_len;
-                                   fpz->ny = 0;
-                                   fpz->nz = 0;
-                                   fpz->nf = 1;
-
-                                   /* write header */
-                                   if (!fpzip_write_header(fpz))
-                                     fprintf(stderr, "cannot write header: %s\n", fpzip_errstr[fpzip_errno]);
-                                   else
+                                   if (compressed != NULL)
                                    {
-                                     outbytes = fpzip_write(fpz, spectrum.data());
+                                     int prec = image_update ? 24 : 8; // use a higher precision for still updates, and fewer bytes for dynamic spectra
 
-                                     if (!outbytes)
-                                       fprintf(stderr, "compression failed: %s\n", fpzip_errstr[fpzip_errno]);
+                                     /* compress to memory */
+                                     FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
+                                     fpz->type = FPZIP_TYPE_FLOAT;
+                                     fpz->prec = prec;
+                                     fpz->nx = spec_len;
+                                     fpz->ny = 1;
+                                     fpz->nz = 1;
+                                     fpz->nf = 1;
+
+                                     /* write header */
+                                     if (!fpzip_write_header(fpz))
+                                       fprintf(stderr, "cannot write header: %s\n", fpzip_errstr[fpzip_errno]);
                                      else
-                                       success = true;
-                                   }
+                                     {
+                                       outbytes = fpzip_write(fpz, spectrum.data());
 
-                                   fpzip_write_close(fpz);
-                                   free(compressed);
+                                       if (!outbytes)
+                                         fprintf(stderr, "compression failed: %s\n", fpzip_errstr[fpzip_errno]);
+                                       else
+                                         success = true;
+                                     }
+
+                                     fpzip_write_close(fpz);
+                                   }
 
                                    if (success)
                                      std::cout << "FPZIP-compressed spectrum: " << outbytes << " bytes, original size " << spec_len * sizeof(float) << " bytes." << std::endl;
                                    // end-of-compression
 
-                                   size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + spectrum.size() * sizeof(float);
+                                   size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + outbytes; //+ spectrum.size() * sizeof(float);
                                    char *buffer = (char *)malloc(bufferSize);
 
                                    // construct a message
-                                   if (buffer != NULL)
+                                   if (buffer != NULL && success)
                                    {
                                      auto end_watch = steady_clock::now();
 
@@ -3063,13 +3065,19 @@ int main(int argc, char *argv[])
                                      memcpy(buffer + offset, &elapsed, sizeof(float));
                                      offset += sizeof(float);
 
-                                     memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
-                                     offset += spectrum.size() * sizeof(float);
+                                     /*memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
+                                     offset += spectrum.size() * sizeof(float);*/
+                                     memcpy(buffer + offset, compressed, outbytes);
+                                     offset += outbytes;
 
                                      ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
-
-                                     free(buffer);
                                    }
+
+                                   if (buffer != NULL)
+                                     free(buffer);
+
+                                   if (compressed != NULL)
+                                     free(compressed);
                                  }
                                }
                              }; //).detach();
