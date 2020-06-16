@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-15.0";
+	return "JS2020-06-16.0";
 }
 
 const wasm_supported = (() => {
@@ -1097,8 +1097,9 @@ function webgl_zoom_renderer(gl, height) {
 
 		let now = performance.now();
 
-		// limit the FPS		
-		if ((now - last_viewport_loop) < (1000 / fps)) {
+		// limit the FPS
+		let _fps = 30;
+		if ((now - last_viewport_loop) < (1000 / _fps)) {
 			viewport.loopId = requestAnimationFrame(zoom_rendering_loop);
 			return;
 		} else {
@@ -9469,8 +9470,8 @@ function setup_image_selection() {
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
 
-			var orig_x = x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
-			var orig_y = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
+			var orig_x = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
+			var orig_y = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
 
 			try {
 				let raText = 'RA N/A';
