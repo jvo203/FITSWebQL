@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-16.0";
+	return "JS2020-06-16.1";
 }
 
 const wasm_supported = (() => {
@@ -2556,14 +2556,36 @@ function open_websocket_connection(datasetId, index) {
 					if (type == 0) {
 						computed = dv.getFloat32(12, endianness);
 
-						var spectrum = new Float32Array(received_msg, 16);
+						//var spectrum = new Float32Array(received_msg, 16);
+						var frame = new Uint8Array(received_msg, 16);
+
+						// FPZIP decoder part				
+						Module.ready
+							.then(_ => {
+								console.log("processing FPZIP-compressed spectrum");
+								let start = performance.now();
+								Module.FPunzip(frame);
+								let elapsed = Math.round(performance.now() - start);
+
+								/*console.log("viewport width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+
+								var img_width = image.width;
+								var img_height = image.height;
+								var pixels = image.plane("Y");
+								var alpha = image.plane("A");
+
+								image.delete();
+
+								process_hdr_viewport(img_width, img_height, pixels, alpha, index);*/
+							})
+							.catch(e => console.error(e));
 
 						//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
 
-						if (!windowLeft) {
+						/*if (!windowLeft) {
 							spectrum_stack[index - 1].push({ spectrum: spectrum, id: recv_seq_id });
 							console.log("index:", index, "spectrum_stack length:", spectrum_stack[index - 1].length);
-						};
+						};*/
 
 						return;
 					}
