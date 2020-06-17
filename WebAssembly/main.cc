@@ -161,11 +161,39 @@ void enableMultithreading(int no_threads)
 
 std::vector<float> FPunzip(std::string const &bytes)
 {
+  std::vector<float> spectrum;
+
   std::cout << "[fpunzip] " << bytes.size() << " bytes." << std::endl;
 
-  std::vector<float> v(10, 1.7);
+  FPZ *fpz = fpzip_read_from_buffer(bytes.data());
 
-  return v;
+  /* read header */
+  if (!fpzip_read_header(fpz))
+  {
+    fprintf(stderr, "cannot read header: %s\n", fpzip_errstr[fpzip_errno]);
+    return spectrum;
+  }
+
+  // decompress into <spectrum.data()>
+  uint32_t spec_len = fpz->nx;
+  spectrum.resize(spec_len, 0.0f);
+
+  if ((fpz->ny != 1) || (fpz->nz != 1) || (fpz->nf != 1))
+  {
+    fprintf(stderr, "array size does not match dimensions from header\n");
+    return spectrum;
+  }
+
+  /* perform actual decompression */
+  if (!fpzip_read(fpz, spectrum.data()))
+  {
+    fprintf(stderr, "decompression failed: %s\n", fpzip_errstr[fpzip_errno]);
+    return std::vector<float>();
+  }
+
+  fpzip_read_close(fpz);
+
+  return spectrum;
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
