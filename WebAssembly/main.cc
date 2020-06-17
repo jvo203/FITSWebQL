@@ -161,8 +161,6 @@ void enableMultithreading(int no_threads)
 
 std::vector<float> FPunzip(std::string const &bytes)
 {
-  std::vector<float> spectrum;
-
   std::cout << "[fpunzip] " << bytes.size() << " bytes." << std::endl;
 
   FPZ *fpz = fpzip_read_from_buffer(bytes.data());
@@ -171,17 +169,24 @@ std::vector<float> FPunzip(std::string const &bytes)
   if (!fpzip_read_header(fpz))
   {
     fprintf(stderr, "cannot read header: %s\n", fpzip_errstr[fpzip_errno]);
-    return spectrum;
+    return std::vector<float>();
   }
 
   // decompress into <spectrum.data()>
   uint32_t spec_len = fpz->nx;
-  spectrum.resize(spec_len, 0.0f);
+
+  if (spec_len == 0)
+  {
+    fprintf(stderr, "zero-sized fpzip array\n");
+    return std::vector<float>();
+  }
+
+  std::vector<float> spectrum(spec_len, 0.0f);
 
   if ((fpz->ny != 1) || (fpz->nz != 1) || (fpz->nf != 1))
   {
     fprintf(stderr, "array size does not match dimensions from header\n");
-    return spectrum;
+    return std::vector<float>();
   }
 
   /* perform actual decompression */
