@@ -2561,13 +2561,12 @@ function open_websocket_connection(datasetId, index) {
 
 						// FPZIP decoder part				
 						Module.ready
-							.then(_ => {
-								console.log("processing FPZIP-compressed spectrum");
+							.then(_ => {								
 								let start = performance.now();
 								var vec = Module.FPunzip(frame);
 								let elapsed = Math.round(performance.now() - start);
 
-								console.log("vector size: ", vec.size(), "elapsed: ", elapsed, "[ms]");
+								//console.log("vector size: ", vec.size(), "elapsed: ", elapsed, "[ms]");
 
 								// copy the data to spectrum
 								let len = vec.size();
