@@ -159,9 +159,13 @@ void enableMultithreading(int no_threads)
   }
 }
 
-void FPunzip(std::string const &bytes)
-{  
+std::vector<float> FPunzip(std::string const &bytes)
+{
   std::cout << "[fpunzip] " << bytes.size() << " bytes." << std::endl;
+
+  std::vector<float> v(10, 1.7);
+
+  return v;
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)

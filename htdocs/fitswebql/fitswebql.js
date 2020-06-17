@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-16.1";
+	return "JS2020-06-17.0";
 }
 
 const wasm_supported = (() => {
@@ -2564,12 +2564,14 @@ function open_websocket_connection(datasetId, index) {
 							.then(_ => {
 								console.log("processing FPZIP-compressed spectrum");
 								let start = performance.now();
-								Module.FPunzip(frame);
+								var vec = Module.FPunzip(frame);
 								let elapsed = Math.round(performance.now() - start);
 
-								/*console.log("viewport width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+								console.log("vector size: ", vec.size(), "elapsed: ", elapsed, "[ms]");
 
-								var img_width = image.width;
+								vec.delete();
+
+								/*var img_width = image.width;
 								var img_height = image.height;
 								var pixels = image.plane("Y");
 								var alpha = image.plane("A");
