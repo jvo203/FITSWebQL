@@ -2569,25 +2569,25 @@ function open_websocket_connection(datasetId, index) {
 
 								console.log("vector size: ", vec.size(), "elapsed: ", elapsed, "[ms]");
 
+								// copy the data to spectrum
+								let len = vec.size();
+								if (len > 0) {
+									var spectrum = new Float32Array(len);
+
+									for (let i = 0; i < len; i++)
+										spectrum[i] = vec.get(i);
+
+									if (!windowLeft) {
+										spectrum_stack[index - 1].push({ spectrum: spectrum, id: recv_seq_id });
+										console.log("index:", index, "spectrum_stack length:", spectrum_stack[index - 1].length);
+									};
+								}
+
 								vec.delete();
-
-								/*var img_width = image.width;
-								var img_height = image.height;
-								var pixels = image.plane("Y");
-								var alpha = image.plane("A");
-
-								image.delete();
-
-								process_hdr_viewport(img_width, img_height, pixels, alpha, index);*/
 							})
 							.catch(e => console.error(e));
 
 						//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
-
-						/*if (!windowLeft) {
-							spectrum_stack[index - 1].push({ spectrum: spectrum, id: recv_seq_id });
-							console.log("index:", index, "spectrum_stack length:", spectrum_stack[index - 1].length);
-						};*/
 
 						return;
 					}
