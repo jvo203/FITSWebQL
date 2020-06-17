@@ -3002,7 +3002,7 @@ int main(int argc, char *argv[])
 
                                    if (compressed != NULL)
                                    {
-                                     int prec = image_update ? 24 : 8; // use a higher precision for still updates, and fewer bytes for dynamic spectra
+                                     int prec = image_update ? 24 : 16; // use a higher precision for still updates, and fewer bytes for dynamic spectra
 
                                      /* compress to memory */
                                      FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
