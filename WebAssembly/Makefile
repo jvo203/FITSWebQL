@@ -1,7 +1,8 @@
 VERSION = 20.06.17.0
 
-SRC=OpenEXR/*.cpp
-INCLUDE=-I./ -I./OpenEXR
+FPZIP=fpzip
+SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
+INCLUDE=-I./ -I./OpenEXR -I./$(FPZIP)/include -I./$(FPZIP)/src
 LIBRARY=
 CXXFLAGS=-std=c++11 -O3
 LDFLAGS=-lz --llvm-lto 1
@@ -20,8 +21,12 @@ EMFLAGS+=-s USE_ZLIB=1
 
 #EMFLAGS+=-s EXPORT_NAME="EXR"
 
+FPZIP_FP = FPZIP_FP_FAST
+FPZIP_BLOCK_SIZE = 0x1000
+DEFS += -DFPZIP_BLOCK_SIZE=$(FPZIP_BLOCK_SIZE) -DFPZIP_FP=$(FPZIP_FP) $(FPZIP_CONV)
+
 wasm:
-	em++ $(EMFLAGS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $(DEFS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs/fitswebql/exr.*.js ../htdocs/fitswebql/exr.*.js.mem ../htdocs/fitswebql/exr.*.wasm
