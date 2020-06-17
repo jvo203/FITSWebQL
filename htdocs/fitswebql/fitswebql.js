@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-17.0";
+	return "JS2020-06-17.1";
 }
 
 const wasm_supported = (() => {
@@ -2561,7 +2561,7 @@ function open_websocket_connection(datasetId, index) {
 
 						// FPZIP decoder part				
 						Module.ready
-							.then(_ => {								
+							.then(_ => {
 								let start = performance.now();
 								var vec = Module.FPunzip(frame);
 								let elapsed = Math.round(performance.now() - start);
@@ -9491,7 +9491,7 @@ function setup_image_selection() {
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
+			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
 
 			var orig_x = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
 			var orig_y = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
