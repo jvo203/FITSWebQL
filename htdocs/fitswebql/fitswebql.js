@@ -2570,6 +2570,7 @@ function open_websocket_connection(datasetId, index) {
 
 								// copy the data to spectrum
 								let len = vec.size();
+								
 								if (len > 0) {
 									var spectrum = new Float32Array(len);
 
