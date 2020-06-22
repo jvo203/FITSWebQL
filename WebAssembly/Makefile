@@ -1,4 +1,4 @@
-VERSION = 20.06.22.0
+VERSION = 20.06.22.1
 
 FPZIP=fpzip
 SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
@@ -16,19 +16,15 @@ EMFLAGS+=-s NO_FILESYSTEM=1
 #EMFLAGS+=-s USE_PTHREADS=1 -s PROXY_TO_PTHREAD -s WASM_MEM_MAX=2GB
 EMFLAGS+=-s USE_ZLIB=1
 
-# this is an offending flag!!!
-EMFLAGS+=-s MODULARIZE=1
-EMFLAGS+=-s EXPORT_NAME="WASM"
-
-#EMFLAGS+=-s MODULARIZE=1 -s 'EXPORT_NAME="FPZIP"'
-#--post-js module-post.js
+#EMFLAGS+=-s MODULARIZE=1
+#EMFLAGS+=-s EXPORT_NAME="WASM"
 
 FPZIP_FP = FPZIP_FP_FAST
 FPZIP_BLOCK_SIZE = 0x1000
 DEFS += -DFPZIP_BLOCK_SIZE=$(FPZIP_BLOCK_SIZE) -DFPZIP_FP=$(FPZIP_FP) $(FPZIP_CONV)
 
 wasm:
-	em++ $(EMFLAGS) $(DEFS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+	em++ $(EMFLAGS) $(DEFS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs/fitswebql/exr.*.js ../htdocs/fitswebql/exr.*.js.mem ../htdocs/fitswebql/exr.*.wasm
