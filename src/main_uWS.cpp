@@ -10,8 +10,8 @@
 #define SERVER_STRING \
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
-#define WASM_VERSION "20.06.17.0"
-#define VERSION_STRING "SV2020-06-17.0"
+#define WASM_VERSION "20.06.22.0"
+#define VERSION_STRING "SV2020-06-22.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -1344,9 +1344,14 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
                           "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
   html.append(R"(
     <script>
-    Module.ready
+    WASM().then((api) => {
+                // this is reached when everything is ready, and you can call methods on myFPZIP
+                console.log('WebAssembly has been initialised.');
+                wasm_api = api;              
+              });
+    /*Module.ready
       .then( status => console.log( status ))
-      .catch(e => console.error(e))    
+      .catch(e => console.error(e))*/    
   </script>
   )");
 
