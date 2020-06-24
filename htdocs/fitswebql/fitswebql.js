@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-17.1";
+	return "JS2020-06-24.0";
 }
 
 const wasm_supported = (() => {
@@ -2570,7 +2570,7 @@ function open_websocket_connection(datasetId, index) {
 
 								// copy the data to spectrum
 								let len = vec.size();
-								
+
 								if (len > 0) {
 									var spectrum = new Float32Array(len);
 
@@ -9492,7 +9492,14 @@ function setup_image_selection() {
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
 			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y1 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
+			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
+
+			/*var ax = (image_bounding_dims.width - 1) / (d3.select(this).attr("width") - 1);
+			var x = image_bounding_dims.x1 + ax * (mouse_position.x - d3.select(this).attr("x"));
+
+			var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
+			var y = image_bounding_dims.y2 + ay * (mouse_position.y - d3.select(this).attr("y"));
+			console.log("texture pixel coords:", ax, ay, x, y);*/
 
 			var orig_x = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
 			var orig_y = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
@@ -9624,12 +9631,12 @@ function setup_image_selection() {
 
 					let tmp = d3.select("#" + zoom_location);
 
-					let x = parseFloat(tmp.attr("cx"));
-					let y = parseFloat(tmp.attr("cy"));
+					let _x = parseFloat(tmp.attr("cx"));
+					let _y = parseFloat(tmp.attr("cy"));
 					let r2 = parseFloat(tmp.attr("r"));
 
-					let dx = offset[0] - x;
-					let dy = offset[1] - y;
+					let dx = offset[0] - _x;
+					let dy = offset[1] - _y;
 					let rSq = dx * dx + dy * dy;
 
 					if (rSq < (r1 + r2) * (r1 + r2))
