@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-24.0";
+	return "JS2020-06-24.2";
 }
 
 const wasm_supported = (() => {
@@ -1141,12 +1141,12 @@ function webgl_zoom_renderer(gl, height) {
 		gl.useProgram(program);
 
 		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 1);
-		let ymin = (viewport_zoom_settings.y + viewport_zoom_settings.clipSize) / (image.height - 1);
+		let ymin = (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / (image.height - 1);
 		let _width = (2 * viewport_zoom_settings.clipSize + 1) / image.width;
 		let _height = (2 * viewport_zoom_settings.clipSize + 1) / image.height;
 
-		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);
-		gl.uniform4fv(locationOfBox, [xmin, 1.0 - ymin, _width, _height]);
+		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);		
+		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
 
 		// get the multiplier
 		var noise_sensitivity = document.getElementById('sensitivity' + index).value;
@@ -9491,15 +9491,14 @@ function setup_image_selection() {
 			var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 
-			var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
-			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
+			/*var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
+			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);*/
 
-			/*var ax = (image_bounding_dims.width - 1) / (d3.select(this).attr("width") - 1);
+			var ax = (image_bounding_dims.width - 1) / (d3.select(this).attr("width") - 1);
 			var x = image_bounding_dims.x1 + ax * (mouse_position.x - d3.select(this).attr("x"));
 
 			var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
-			var y = image_bounding_dims.y2 + ay * (mouse_position.y - d3.select(this).attr("y"));
-			console.log("texture pixel coords:", ax, ay, x, y);*/
+			var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - d3.select(this).attr("y"));
 
 			var orig_x = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
 			var orig_y = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
@@ -9573,8 +9572,10 @@ function setup_image_selection() {
 			for (let index = 1; index <= va_count; index++) {
 				var imageFrame = imageContainer[index - 1];
 
-				var alpha_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
-				var pixel_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
+				/*var alpha_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
+				var pixel_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);*/
+				var alpha_coord = Math.round(y) * imageFrame.width + Math.round(x);
+				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
 				var alpha = imageFrame.alpha[alpha_coord];
@@ -9709,28 +9710,30 @@ function setup_image_selection() {
 				var pred_mouse_x = Math.round(mouse_position.x + last_x.elements[2] * latency);
 				var pred_mouse_y = Math.round(mouse_position.y + last_x.elements[3] * latency);
 				//var pred_mouse_x = Math.round(mouse_position.x + last_x.elements[0] * latency + 0.5 * last_x.elements[2] * latency * latency) ;
-				//var pred_mouse_y = Math.round(mouse_position.y + last_x.elements[1] * latency + 0.5 * last_x.elements[3] * latency * latency) ;
+				//var pred_mouse_y = Math.round(mouse_position.y + last_x.elements[1] * latency + 0.5 * last_x.elements[3] * latency * latency) ;				
 
 				console.log("latency = ", latency.toFixed(1), "[ms]", "mx = ", mouse_position.x, "px = ", pred_mouse_x, "my = ", mouse_position.y, "py = ", pred_mouse_y);
-				var pred_x = image_bounding_dims.x1 + (pred_mouse_x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
-				var pred_y = image_bounding_dims.y2 + (pred_mouse_y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);
+				/*var pred_x = image_bounding_dims.x1 + (pred_mouse_x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
+				var pred_y = image_bounding_dims.y2 + (pred_mouse_y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);*/
+
+				var ax = (image_bounding_dims.width - 1) / (d3.select(this).attr("width") - 1);
+				var pred_x = image_bounding_dims.x1 + ax * (pred_mouse_x - d3.select(this).attr("x"));
+
+				var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
+				var pred_y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (pred_mouse_y - d3.select(this).attr("y"));
 
 				var fitsX = pred_x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);//x or pred_x
 				var fitsY = pred_y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);//y or pred_y
 				var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
 
-				fitsX = Math.round(fitsX);
-				fitsY = Math.round(fitsY);
-				fitsSize = Math.round(fitsSize);
-
 				//console.log('active', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 				//let strLog = 'active x = ' + x + ' y = '+ y + ' clipSize = ' + clipSize + ' fitsX = ' + fitsX + ' fitsY = ' + fitsY + ' fitsSize = ' + fitsSize + ' pred_x = ' + pred_x + ' pred_y = ' + pred_y + ' pred_mouse_x = ' + pred_mouse_x + ' pred_mouse_y = ' + pred_mouse_y ;
 
-				//send a spectrum request to the server
+				//send a spectrum request to the server				
 				var x1 = Math.round(fitsX - fitsSize);
-				var y1 = Math.round((fitsData.height - 0) - (fitsY - fitsSize));
+				var y1 = Math.round(fitsY - fitsSize);
 				var x2 = Math.round(fitsX + fitsSize);
-				var y2 = Math.round((fitsData.height - 0) - (fitsY + fitsSize));
+				var y2 = Math.round(fitsY + fitsSize);
 
 				if (realtime_spectrum && fitsData.depth > 1 && !optical_view) {
 					sent_seq_id++;
@@ -9751,7 +9754,7 @@ function setup_image_selection() {
 						let _height = viewport_zoom_settings.zoomed_size;
 
 						var request = 'realtime_image_spectrum?dx=' + dx + '&image=false&quality=' + image_quality;
-						request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+						request += '&x1=' + x1 + '&y1=' + y1 + '&x2=' + x2 + '&y2=' + y2 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 						request += '&timestamp=' + performance.now();
 
 						if (wsConn[index].readyState == 1)
@@ -10666,8 +10669,15 @@ function imageTimeout() {
 	//var _y1 = imageContainer[va_count - 1].height - image_bounding_dims.height - image_bounding_dims.y1;
 
 	var rect_elem = d3.select("#image_rectangle");
-	var x = image_bounding_dims.x1 + (mouse_position.x - rect_elem.attr("x")) / (rect_elem.attr("width") - 1) * (image_bounding_dims.width - 1);
-	var y = image_bounding_dims.y2 + (mouse_position.y - rect_elem.attr("y")) / (rect_elem.attr("height") - 1) * (image_bounding_dims.height - 1);
+	/*var x = image_bounding_dims.x1 + (mouse_position.x - rect_elem.attr("x")) / (rect_elem.attr("width") - 1) * (image_bounding_dims.width - 1);
+	var y = image_bounding_dims.y2 + (mouse_position.y - rect_elem.attr("y")) / (rect_elem.attr("height") - 1) * (image_bounding_dims.height - 1);*/
+
+	var ax = (image_bounding_dims.width - 1) / (rect_elem.attr("width") - 1);
+	var x = image_bounding_dims.x1 + ax * (mouse_position.x - rect_elem.attr("x"));
+
+	var ay = (image_bounding_dims.height - 1) / (rect_elem.attr("height") - 1);
+	var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - rect_elem.attr("y"));
+
 
 	console.log("idle", "x", x, "y", y);
 
@@ -10679,10 +10689,6 @@ function imageTimeout() {
 	var fitsY = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
 	var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
 
-	fitsX = Math.round(fitsX);
-	fitsY = Math.round(fitsY);
-	fitsSize = Math.round(fitsSize);
-
 	x = Math.round(x);
 	y = Math.round(y);
 	clipSize = Math.round(clipSize);
@@ -10691,17 +10697,12 @@ function imageTimeout() {
 
 	//send an image/spectrum request to the server
 	var x1 = Math.round(fitsX - fitsSize);
-	var y1 = Math.round((fitsData.height - 0) - (fitsY - fitsSize));
+	var y1 = Math.round(fitsY - fitsSize);
 	var x2 = Math.round(fitsX + fitsSize);
-	var y2 = Math.round((fitsData.height - 0) - (fitsY + fitsSize));
-
-	/*x1 = Math.round(fitsX - fitsSize) ;
-	x2 = Math.round(x1 + 2*fitsSize) ;
-	y1 = Math.round(fitsY - fitsSize) ;
-	y2 = Math.round(y1 + 2*fitsSize) ;*/
+	var y2 = Math.round(fitsY + fitsSize);
 
 	var dimx = x2 - x1 + 1;
-	var dimy = y1 - y2 + 1;
+	var dimy = y2 - y1 + 1;
 
 	if (dimx != dimy)
 		console.log("unequal dimensions:", dimx, dimy, "fitsX =", fitsX, "fitsY =", fitsY, "fitsSize =", fitsSize);
@@ -10732,7 +10733,7 @@ function imageTimeout() {
 		let _height = viewport_zoom_settings.zoomed_size;
 
 		var request = 'realtime_image_spectrum?dx=' + dx + '&image=true&quality=' + image_quality;
-		request += '&x1=' + x1 + '&y1=' + y2 + '&x2=' + x2 + '&y2=' + y1 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
+		request += '&x1=' + x1 + '&y1=' + y1 + '&x2=' + x2 + '&y2=' + y2 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 		request += '&timestamp=' + performance.now();
 
 		if (wsConn[index].readyState == 1)
