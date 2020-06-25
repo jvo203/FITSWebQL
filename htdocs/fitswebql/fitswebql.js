@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.5";
+	return "JS2020-06-25.6";
 }
 
 const wasm_supported = (() => {
@@ -10700,10 +10700,10 @@ function imageTimeout() {
 
 	var image_update = "true";
 
-	/*if (fitsSize > 2 * clipSize)
+	if (fitsSize > clipSize)
 		image_update = "true";
 	else
-		image_update = "false";*/
+		image_update = "false";
 
 	console.log('idle', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize, 'image_update:', image_update);
 
