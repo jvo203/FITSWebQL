@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-24.2";
+	return "JS2020-06-25.0";
 }
 
 const wasm_supported = (() => {
@@ -2611,8 +2611,8 @@ function open_websocket_connection(datasetId, index) {
 
 								var img_width = image.width;
 								var img_height = image.height;
-								var pixels = image.plane("Y");
-								var alpha = image.plane("A");
+								var pixels = new Float32Array(image.plane("Y"));
+								var alpha = new Float32Array(image.plane("A"));
 
 								image.delete();
 
@@ -9574,11 +9574,12 @@ function setup_image_selection() {
 
 				/*var alpha_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
 				var pixel_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);*/
-				var alpha_coord = Math.round(y) * imageFrame.width + Math.round(x);
 				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
-				var alpha = imageFrame.alpha[alpha_coord];
+				var alpha = imageFrame.alpha[pixel_coord];
+
+				console.log("x:", x, "y:", y, "pixel_coord:", pixel_coord, "pixel:", pixel, "alpha:", alpha);
 
 				let bunit = fitsData.BUNIT.trim();
 				if (fitsData.depth > 1 && has_velocity_info)
@@ -9725,6 +9726,10 @@ function setup_image_selection() {
 				var fitsX = pred_x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);//x or pred_x
 				var fitsY = pred_y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);//y or pred_y
 				var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
+
+				fitsX = Math.round(fitsX);
+				fitsY = Math.round(fitsY);
+				fitsSize = Math.round(fitsSize);
 
 				//console.log('active', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 				//let strLog = 'active x = ' + x + ' y = '+ y + ' clipSize = ' + clipSize + ' fitsX = ' + fitsX + ' fitsY = ' + fitsY + ' fitsSize = ' + fitsSize + ' pred_x = ' + pred_x + ' pred_y = ' + pred_y + ' pred_mouse_x = ' + pred_mouse_x + ' pred_mouse_y = ' + pred_mouse_y ;
@@ -10242,8 +10247,8 @@ function fetch_image_spectrum(datasetId, index, fetch_data, add_timestamp) {
 
 						var img_width = image.width;
 						var img_height = image.height;
-						var pixels = image.plane("Y");
-						var alpha = image.plane("A");
+						var pixels = new Float32Array(image.plane("Y"));
+						var alpha = new Float32Array(image.plane("A"));
 
 						image.delete();
 
@@ -10688,6 +10693,10 @@ function imageTimeout() {
 	var fitsX = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
 	var fitsY = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
 	var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
+
+	fitsX = Math.round(fitsX);
+	fitsY = Math.round(fitsY);
+	fitsSize = Math.round(fitsSize);
 
 	x = Math.round(x);
 	y = Math.round(y);
