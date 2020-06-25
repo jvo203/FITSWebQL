@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-06-22.1"
+#define VERSION_STRING "SV2020-06-25.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -1336,12 +1336,12 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
     </script>)");*/
 
   // OpenEXR WASM decoder
-  html.append("<script "
-              "src=\"exr." WASM_VERSION ".js\"></script>\n");
   /*html.append("<script "
-              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL/" +
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
+  html.append("<script "
+              "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL@master/" +
               docs_root + "/"
-                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");*/
+                          "fitswebql/exr." WASM_VERSION ".js\"></script>\n");
   html.append(R"(
     <script>
     Module.ready
