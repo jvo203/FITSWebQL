@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.4";
+	return "JS2020-06-25.5";
 }
 
 const wasm_supported = (() => {
@@ -1140,10 +1140,10 @@ function webgl_zoom_renderer(gl, height) {
 		// Tell WebGL to use our shader program pair
 		gl.useProgram(program);
 
-		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 1);
-		let ymin = (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / (image.height - 1);
-		let _width = (2 * viewport_zoom_settings.clipSize + 0) / image.width; // was + 1
-		let _height = (2 * viewport_zoom_settings.clipSize + 0) / image.height; // was + 1
+		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 0); // was - 1
+		let ymin = (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / (image.height - 0); // was - 1
+		let _width = (2 * viewport_zoom_settings.clipSize + 1) / image.width; // was + 1
+		let _height = (2 * viewport_zoom_settings.clipSize + 1) / image.height; // was + 1
 
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);		
 		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
@@ -9722,6 +9722,9 @@ function setup_image_selection() {
 
 				var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
 				var pred_y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (pred_mouse_y - d3.select(this).attr("y"));
+
+				prex_d = Math.round(pred_x);
+				pred_y = Math.round(pred_y);
 
 				var fitsX = pred_x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);//x or pred_x
 				var fitsY = pred_y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);//y or pred_y
