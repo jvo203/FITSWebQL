@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.2";
+	return "JS2020-06-25.3";
 }
 
 const wasm_supported = (() => {
@@ -9723,9 +9723,9 @@ function setup_image_selection() {
 				var fitsY = pred_y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);//y or pred_y
 				var fitsSize = clipSize * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 
-				/*fitsX = Math.round(fitsX);
+				fitsX = Math.round(fitsX);
 				fitsY = Math.round(fitsY);
-				fitsSize = Math.round(fitsSize);*/
+				fitsSize = Math.round(fitsSize);
 
 				//console.log('active', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 				//let strLog = 'active x = ' + x + ' y = '+ y + ' clipSize = ' + clipSize + ' fitsX = ' + fitsX + ' fitsY = ' + fitsY + ' fitsSize = ' + fitsSize + ' pred_x = ' + pred_x + ' pred_y = ' + pred_y + ' pred_mouse_x = ' + pred_mouse_x + ' pred_mouse_y = ' + pred_mouse_y ;
@@ -10679,8 +10679,6 @@ function imageTimeout() {
 	var ay = (image_bounding_dims.height - 1) / (rect_elem.attr("height") - 1);
 	var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - rect_elem.attr("y"));
 
-	console.log("idle", "x", x, "y", y);
-
 	var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 	var sel_width = clipSize * scale;
 	var sel_height = clipSize * scale;
@@ -10689,7 +10687,18 @@ function imageTimeout() {
 	var fitsY = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 	var fitsSize = clipSize * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 
-	//console.log('idle', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
+	var image_update;
+
+	if (fitsSize > 2 * clipSize)
+		image_update = "true";
+	else
+		image_update = "false;"
+
+	console.log('idle', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize, 'image_update:', image_update);
+
+	fitsX = Math.round(fitsX);
+	fitsY = Math.round(fitsY);
+	fitsSize = Math.round(fitsSize);
 
 	//send an image/spectrum request to the server
 	var x1 = Math.round(fitsX - fitsSize);
@@ -10728,7 +10737,7 @@ function imageTimeout() {
 		let _width = viewport_zoom_settings.zoomed_size;
 		let _height = viewport_zoom_settings.zoomed_size;
 
-		var request = 'realtime_image_spectrum?dx=' + dx + '&image=true&quality=' + image_quality;
+		var request = 'realtime_image_spectrum?dx=' + dx + '&image=' + image_update + '&quality=' + image_quality;
 		request += '&x1=' + x1 + '&y1=' + y1 + '&x2=' + x2 + '&y2=' + y2 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 		request += '&timestamp=' + performance.now();
 
