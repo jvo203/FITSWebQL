@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.0";
+	return "JS2020-06-25.1";
 }
 
 const wasm_supported = (() => {
@@ -9577,9 +9577,7 @@ function setup_image_selection() {
 				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
-				var alpha = imageFrame.alpha[pixel_coord];
-
-				console.log("x:", x, "y:", y, "pixel_coord:", pixel_coord, "pixel:", pixel, "alpha:", alpha);
+				var alpha = imageFrame.alpha[pixel_coord];				
 
 				let bunit = fitsData.BUNIT.trim();
 				if (fitsData.depth > 1 && has_velocity_info)
