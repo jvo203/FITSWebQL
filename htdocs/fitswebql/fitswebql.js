@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.3";
+	return "JS2020-06-25.4";
 }
 
 const wasm_supported = (() => {
@@ -9500,6 +9500,10 @@ function setup_image_selection() {
 			var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
 			var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - d3.select(this).attr("y"));
 
+			x = Math.round(x);
+			y = Math.round(y);
+			clipSize = Math.round(clipSize);
+
 			var orig_x = x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 			var orig_y = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 
@@ -10683,16 +10687,20 @@ function imageTimeout() {
 	var sel_width = clipSize * scale;
 	var sel_height = clipSize * scale;
 
+	x = Math.round(x);
+	y = Math.round(y);
+	clipSize = Math.round(clipSize);
+
 	var fitsX = x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 	var fitsY = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 	var fitsSize = clipSize * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 
-	var image_update;
+	var image_update = "true";
 
-	if (fitsSize > 2 * clipSize)
+	/*if (fitsSize > 2 * clipSize)
 		image_update = "true";
 	else
-		image_update = "false;"
+		image_update = "false";*/
 
 	console.log('idle', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize, 'image_update:', image_update);
 
