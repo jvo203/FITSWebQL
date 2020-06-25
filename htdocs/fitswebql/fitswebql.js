@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.1";
+	return "JS2020-06-25.2";
 }
 
 const wasm_supported = (() => {
@@ -1142,8 +1142,8 @@ function webgl_zoom_renderer(gl, height) {
 
 		let xmin = (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / (image.width - 1);
 		let ymin = (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / (image.height - 1);
-		let _width = (2 * viewport_zoom_settings.clipSize + 1) / image.width;
-		let _height = (2 * viewport_zoom_settings.clipSize + 1) / image.height;
+		let _width = (2 * viewport_zoom_settings.clipSize + 0) / image.width; // was + 1
+		let _height = (2 * viewport_zoom_settings.clipSize + 0) / image.height; // was + 1
 
 		//console.log("xmin:", xmin, "ymin:", ymin, "_width:", _width, "_height:", _height);		
 		gl.uniform4fv(locationOfBox, [xmin, ymin, _width, _height]);
@@ -9500,8 +9500,8 @@ function setup_image_selection() {
 			var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
 			var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - d3.select(this).attr("y"));
 
-			var orig_x = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
-			var orig_y = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
+			var orig_x = x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
+			var orig_y = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 
 			try {
 				let raText = 'RA N/A';
@@ -9572,12 +9572,10 @@ function setup_image_selection() {
 			for (let index = 1; index <= va_count; index++) {
 				var imageFrame = imageContainer[index - 1];
 
-				/*var alpha_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);
-				var pixel_coord = Math.round(imageFrame.height - 1 - y) * imageFrame.width + Math.round(x);*/
 				var pixel_coord = Math.round(y) * imageFrame.width + Math.round(x);
 
 				var pixel = imageFrame.pixels[pixel_coord];
-				var alpha = imageFrame.alpha[pixel_coord];				
+				var alpha = imageFrame.alpha[pixel_coord];
 
 				let bunit = fitsData.BUNIT.trim();
 				if (fitsData.depth > 1 && has_velocity_info)
@@ -9721,13 +9719,13 @@ function setup_image_selection() {
 				var ay = (image_bounding_dims.height - 1) / (d3.select(this).attr("height") - 1);
 				var pred_y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (pred_mouse_y - d3.select(this).attr("y"));
 
-				var fitsX = pred_x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);//x or pred_x
-				var fitsY = pred_y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);//y or pred_y
-				var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
+				var fitsX = pred_x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);//x or pred_x
+				var fitsY = pred_y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);//y or pred_y
+				var fitsSize = clipSize * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 
-				fitsX = Math.round(fitsX);
+				/*fitsX = Math.round(fitsX);
 				fitsY = Math.round(fitsY);
-				fitsSize = Math.round(fitsSize);
+				fitsSize = Math.round(fitsSize);*/
 
 				//console.log('active', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 				//let strLog = 'active x = ' + x + ' y = '+ y + ' clipSize = ' + clipSize + ' fitsX = ' + fitsX + ' fitsY = ' + fitsY + ' fitsSize = ' + fitsSize + ' pred_x = ' + pred_x + ' pred_y = ' + pred_y + ' pred_mouse_x = ' + pred_mouse_x + ' pred_mouse_y = ' + pred_mouse_y ;
@@ -10681,24 +10679,15 @@ function imageTimeout() {
 	var ay = (image_bounding_dims.height - 1) / (rect_elem.attr("height") - 1);
 	var y = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (mouse_position.y - rect_elem.attr("y"));
 
-
 	console.log("idle", "x", x, "y", y);
 
 	var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
 	var sel_width = clipSize * scale;
 	var sel_height = clipSize * scale;
 
-	var fitsX = x * (fitsData.width - 0) / (imageContainer[va_count - 1].width - 1);
-	var fitsY = y * (fitsData.height - 0) / (imageContainer[va_count - 1].height - 1);
-	var fitsSize = clipSize * fitsData.width / imageContainer[va_count - 1].width;
-
-	fitsX = Math.round(fitsX);
-	fitsY = Math.round(fitsY);
-	fitsSize = Math.round(fitsSize);
-
-	x = Math.round(x);
-	y = Math.round(y);
-	clipSize = Math.round(clipSize);
+	var fitsX = x * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
+	var fitsY = y * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
+	var fitsSize = clipSize * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 
 	//console.log('idle', 'x = ', x, 'y = ', y, 'clipSize = ', clipSize, 'fitsX = ', fitsX, 'fitsY = ', fitsY, 'fitsSize = ', fitsSize) ;
 
