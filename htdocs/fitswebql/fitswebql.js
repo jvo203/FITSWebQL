@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-25.6";
+	return "JS2020-06-26.0";
 }
 
 const wasm_supported = (() => {
@@ -9489,7 +9489,10 @@ function setup_image_selection() {
 
 			var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
 			var scale = get_image_scale(width, height, image_bounding_dims.width, image_bounding_dims.height);
+
 			var clipSize = Math.min(image_bounding_dims.width, image_bounding_dims.height) / zoom_scale;
+			var sel_width = clipSize * scale;
+			var sel_height = clipSize * scale;
 
 			/*var x = image_bounding_dims.x1 + (mouse_position.x - d3.select(this).attr("x")) / (d3.select(this).attr("width") - 1) * (image_bounding_dims.width - 1);
 			var y = image_bounding_dims.y2 + (mouse_position.y - d3.select(this).attr("y")) / (d3.select(this).attr("height") - 1) * (image_bounding_dims.height - 1);*/
@@ -9653,13 +9656,6 @@ function setup_image_selection() {
 
 			// update image updates
 			if (!mousedown) {
-				var sel_width = clipSize * scale;
-				var sel_height = clipSize * scale;
-
-				/*x = Math.round(x);
-				y = Math.round(y);
-				clipSize = Math.round(clipSize);*/
-
 				if (zoom_shape == "square")
 					zoom_element.attr("x", mouse_position.x - sel_width).attr("y", mouse_position.y - sel_height).attr("width", 2 * sel_width).attr("height", 2 * sel_height).attr("opacity", 1.0);
 
