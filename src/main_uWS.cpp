@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-06-26.0"
+#define VERSION_STRING "SV2020-06-26.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -1293,7 +1293,7 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
   html.append("<script src=\"https://d3js.org/d3.v5.min.js\"></script>\n");
   html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/fits_web_ql/htdocs/"
-              "fitswebql/reconnecting-websocket.js\"></script>\n");
+              "fitswebql/reconnecting-websocket.min.js\"></script>\n");
   html.append("<script "
               "src=\"//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/"
               "numeral.min.js\"></script>\n");
