@@ -1980,7 +1980,15 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
       // create a directory on a best-effort basis, ignoring any errors
       if (mkdir(filename.c_str(), 0777) != 0)
-        perror("(non-critical) cannot create a new cache directory");
+        perror("(non-critical) cannot create a new pixels cache directory");
+
+      filename = FITSCACHE + std::string("/") +
+                 boost::replace_all_copy(dataset_id, "/", "_") +
+                 std::string(".lz4");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new mask cache directory");
     }
 
     // reset the cube just in case
@@ -3228,18 +3236,72 @@ void FITS::zfp_compress_cube(size_t start_k)
   for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
     for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
     {
+      // block indexing
+      int idx = src_x / ZFP_CACHE_REGION;
+      int idy = src_y / ZFP_CACHE_REGION;
+      int idz = start_k / 4;
+
       // start a new ZFP stream
       int encStateSize;
       IppEncodeZfpState_32f *pEncState;
       int pComprLen = 0;
 
-      Ipp8u *pBuffer = ippsMalloc_8u(sizeof(Ipp32f) * ZFP_CACHE_REGION *
-                                     ZFP_CACHE_REGION * 4);
+      size_t storage_size = sizeof(Ipp32f) * ZFP_CACHE_REGION *
+                            ZFP_CACHE_REGION * 4;
+
+      Ipp8u *pBuffer = NULL;
+
+      // use a file-backed mmap
+      std::string storage = FITSCACHE + std::string("/") +
+                            boost::replace_all_copy(dataset_id, "/", "_") +
+                            std::string(".zfp/" + std::to_string(idz) +
+                                        "_" + std::to_string(idy) + "_" + std::to_string(idx) + ".bin");
+
+      bool is_mmapped = false;
+
+      int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+
+      if (fd != -1)
+      {
+#if defined(__APPLE__) && defined(__MACH__)
+        int stat = ftruncate(fd, storage_size);
+#else
+        int stat = ftruncate64(fd, storage_size);
+#endif
+        if (!stat)
+        {
+          pBuffer = (Ipp8u *)mmap(0, storage_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+          if (pBuffer != MAP_FAILED)
+            is_mmapped = true;
+          else
+            perror("mmap");
+        }
+        else
+          perror("ftruncate64");
+      }
+      else
+        perror(storage.c_str());
+
+      if (!is_mmapped)
+      {
+        // create an anonymous RAM-based mapping
+        pBuffer = (Ipp8u *)mmap(nullptr, storage_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        if (pBuffer != MAP_FAILED)
+          is_mmapped = true;
+        else
+          perror("mmap");
+      }
+
+      // finally switch to a normal allocator instead of mmap
+      // but anyway something must have gone seriously wrong at this stage
+      if (!is_mmapped)
+        pBuffer = ippsMalloc_8u(storage_size);
+
       ippsEncodeZfpGetStateSize_32f(&encStateSize);
       pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-      ippsEncodeZfpInit_32f(
-          pBuffer, sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4),
-          pEncState);
+      ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
       // relative accuracy (a Fixed-Precision mode)
       ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
                            pEncState);
@@ -3288,11 +3350,90 @@ void FITS::zfp_compress_cube(size_t start_k)
              "= %zu bytes.\n",
              ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
              pComprLen,
-             sizeof(Ipp32f) * (ZFP_CACHE_REGION * ZFP_CACHE_REGION * 4));
+             storage_size);
+
+      // downsize the underlying mmap buffer to match pComprLen
+      if (is_mmapped)
+      {
+#if defined(__APPLE__) && defined(__MACH__)
+        // macos has no mremap; use munmap + mmap
+        munmap(pBuffer, storage_size);
+
+        // mmap again using a reduced size
+        if (fd != -1)
+        {
+          // file-based
+          pBuffer = (Ipp8u *)mmap(0, pComprLen, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+          if (pBuffer != MAP_FAILED)
+          {
+            storage_size = pComprLen;
+            is_mmapped = true;
+          }
+          else
+          {
+            perror("mmap");
+            is_mmapped = false;
+          }
+        }
+        else
+        {
+          // create an anonymous RAM-based mapping
+          pBuffer = (Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+          if (pBuffer != MAP_FAILED)
+          {
+            storage_size = pComprLen;
+            is_mmapped = true;
+          }
+          else
+          {
+            perror("mmap");
+            is_mmapped = false;
+          }
+        }
+#else
+        pBuffer = (Ipp8u *)mremap(pBuffer, storage_size, pComprLen, 0); // either file-backed or anonymous
+
+        if (pBuffer != MAP_FAILED)
+        {
+          storage_size = pComprLen;
+          is_mmapped = true;
+        }
+        else
+        {
+          perror("mremap");
+          is_mmapped = false;
+        }
+#endif
+
+        // resize the underlying file storage too, if there is one
+        if (fd != -1)
+        {
+#if defined(__APPLE__) && defined(__MACH__)
+          int stat = ftruncate(fd, storage_size);
+#else
+          int stat = ftruncate64(fd, storage_size);
+#endif
+
+          if (stat != 0)
+            perror("ftruncate64");
+        }
+      }
+      else
+      {
+        // TO-DO
+        // resize IPP-malloced memory
+      }
 
       // release the buffer
-      if (pBuffer != NULL)
+      if (is_mmapped)
+        munmap(pBuffer, storage_size);
+      else if (pBuffer != NULL && pBuffer != MAP_FAILED)
         ippsFree(pBuffer);
+
+      if (fd != -1)
+        close(fd);
     }
 
   // compress the four masks with LZ4
