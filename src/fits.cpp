@@ -3427,11 +3427,15 @@ void FITS::zfp_compress_cube(size_t start_k)
         {
           // resize the IPP-malloced memory
           Ipp8u *tmp = ippsMalloc_8u(pComprLen);
-          memcpy(tmp, pBuffer, pComprLen);
 
-          ippsFree(pBuffer);
-          pBuffer = tmp;
-          storage_size = pComprLen;
+          if (tmp != NULL)
+          {
+            memcpy(tmp, pBuffer, pComprLen);
+            ippsFree(pBuffer);
+
+            pBuffer = tmp;
+            storage_size = pComprLen;
+          }
         }
       }
 
