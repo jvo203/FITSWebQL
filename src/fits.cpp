@@ -1972,6 +1972,17 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
 
+    // prepare the cache directory
+    {
+      std::string filename = FITSCACHE + std::string("/") +
+                             boost::replace_all_copy(dataset_id, "/", "_") +
+                             std::string(".zfp");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new cache directory");
+    }
+
     // reset the cube just in case
     fits_cube.clear();
     // init the cube with nullptr
