@@ -3299,71 +3299,104 @@ void FITS::zfp_compress_cube(size_t start_k)
       if (!is_mmapped)
         pBuffer = ippsMalloc_8u(storage_size);
 
-      ippsEncodeZfpGetStateSize_32f(&encStateSize);
-      pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-      ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
-      // relative accuracy (a Fixed-Precision mode)
-      ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
-                           pEncState);
+      if (is_mmapped || pBuffer != NULL)
+      {
 
-      // ... ZFP compression
-      int x, y;
-      int i, j, k;
-      float val;
-      float block[4 * 4 * 4];
+        ippsEncodeZfpGetStateSize_32f(&encStateSize);
+        pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+        ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
+        // relative accuracy (a Fixed-Precision mode)
+        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
+                             pEncState);
 
-      // compress the pixels with ZFP
-      for (y = 0; y < ZFP_CACHE_REGION; y += 4)
-        for (x = 0; x < ZFP_CACHE_REGION; x += 4)
-        {
-          // fill a 4x4x4 block
-          int offset = 0;
-          for (k = 0; k < 4; k++)
+        // ... ZFP compression
+        int x, y;
+        int i, j, k;
+        float val;
+        float block[4 * 4 * 4];
+
+        // compress the pixels with ZFP
+        for (y = 0; y < ZFP_CACHE_REGION; y += 4)
+          for (x = 0; x < ZFP_CACHE_REGION; x += 4)
           {
-            for (j = y; j < y + 4; j++)
-              for (i = x; i < x + 4; i++)
-              {
-                if (src_x + i >= width || src_y + j >= height)
-                  val = 0.0f;
-                else
+            // fill a 4x4x4 block
+            int offset = 0;
+            for (k = 0; k < 4; k++)
+            {
+              for (j = y; j < y + 4; j++)
+                for (i = x; i < x + 4; i++)
                 {
-                  // adjust the src offset for src_x and src_y
-                  size_t src = (src_y + j) * width + src_x + i;
-                  val = pixels[k][src];
+                  if (src_x + i >= width || src_y + j >= height)
+                    val = 0.0f;
+                  else
+                  {
+                    // adjust the src offset for src_x and src_y
+                    size_t src = (src_y + j) * width + src_x + i;
+                    val = pixels[k][src];
+                  }
+
+                  block[offset++] = val;
                 }
+            }
 
-                block[offset++] = val;
-              }
+            ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
+                                 4 * 4 * sizeof(Ipp32f), pEncState);
           }
 
-          ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
-                               4 * 4 * sizeof(Ipp32f), pEncState);
-        }
+        ippsEncodeZfpFlush_32f(pEncState);
+        ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
+        ippsFree(pEncState);
 
-      ippsEncodeZfpFlush_32f(pEncState);
-      ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
-      ippsFree(pEncState);
+        printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
+               "= %d, "
+               "orig. "
+               "= %zu bytes.\n",
+               ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
+               pComprLen,
+               storage_size);
 
-      printf("zfp-compressing %dx%dx4 at (%d,%d,%zu); pComprLen "
-             "= %d, "
-             "orig. "
-             "= %zu bytes.\n",
-             ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
-             pComprLen,
-             storage_size);
-
-      // downsize the underlying mmap buffer to match pComprLen
-      if (is_mmapped)
-      {
-#if defined(__APPLE__) && defined(__MACH__)
-        // macos has no mremap; use munmap + mmap
-        munmap(pBuffer, storage_size);
-
-        // mmap again using a reduced size
-        if (fd != -1)
+        // downsize the underlying mmap buffer to match pComprLen
+        if (is_mmapped)
         {
-          // file-based
-          pBuffer = (Ipp8u *)mmap(0, pComprLen, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+#if defined(__APPLE__) && defined(__MACH__)
+          // macos has no mremap; use munmap + mmap
+          munmap(pBuffer, storage_size);
+
+          // mmap again using a reduced size
+          if (fd != -1)
+          {
+            // file-based
+            pBuffer = (Ipp8u *)mmap(0, pComprLen, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+            if (pBuffer != MAP_FAILED)
+            {
+              storage_size = pComprLen;
+              is_mmapped = true;
+            }
+            else
+            {
+              perror("mmap");
+              is_mmapped = false;
+            }
+          }
+          else
+          {
+            // create an anonymous RAM-based mapping
+            pBuffer = (Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+            if (pBuffer != MAP_FAILED)
+            {
+              storage_size = pComprLen;
+              is_mmapped = true;
+            }
+            else
+            {
+              perror("mmap");
+              is_mmapped = false;
+            }
+          }
+#else
+          pBuffer = (Ipp8u *)mremap(pBuffer, storage_size, pComprLen, 0); // either file-backed or anonymous
 
           if (pBuffer != MAP_FAILED)
           {
@@ -3372,58 +3405,34 @@ void FITS::zfp_compress_cube(size_t start_k)
           }
           else
           {
-            perror("mmap");
+            perror("mremap");
             is_mmapped = false;
+          }
+#endif
+
+          // resize the underlying file storage too, if there is one
+          if (fd != -1)
+          {
+#if defined(__APPLE__) && defined(__MACH__)
+            int stat = ftruncate(fd, storage_size);
+#else
+            int stat = ftruncate64(fd, storage_size);
+#endif
+
+            if (stat != 0)
+              perror("ftruncate64");
           }
         }
         else
         {
-          // create an anonymous RAM-based mapping
-          pBuffer = (Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+          // resize the IPP-malloced memory
+          Ipp8u *tmp = ippsMalloc_8u(pComprLen);
+          memcpy(tmp, pBuffer, pComprLen);
 
-          if (pBuffer != MAP_FAILED)
-          {
-            storage_size = pComprLen;
-            is_mmapped = true;
-          }
-          else
-          {
-            perror("mmap");
-            is_mmapped = false;
-          }
-        }
-#else
-        pBuffer = (Ipp8u *)mremap(pBuffer, storage_size, pComprLen, 0); // either file-backed or anonymous
-
-        if (pBuffer != MAP_FAILED)
-        {
+          ippsFree(pBuffer);
+          pBuffer = tmp;
           storage_size = pComprLen;
-          is_mmapped = true;
         }
-        else
-        {
-          perror("mremap");
-          is_mmapped = false;
-        }
-#endif
-
-        // resize the underlying file storage too, if there is one
-        if (fd != -1)
-        {
-#if defined(__APPLE__) && defined(__MACH__)
-          int stat = ftruncate(fd, storage_size);
-#else
-          int stat = ftruncate64(fd, storage_size);
-#endif
-
-          if (stat != 0)
-            perror("ftruncate64");
-        }
-      }
-      else
-      {
-        // TO-DO
-        // resize IPP-malloced memory
       }
 
       // release the buffer
