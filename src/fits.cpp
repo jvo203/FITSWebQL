@@ -3321,7 +3321,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
           if (!stat)
           {
-            // file-mmap compressed_size
+            // file-mmap pComprLen
             block_pixels = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE,
                                                                 MAP_SHARED, fd, 0),
                                                   [=](void *ptr) { munmap(ptr, pComprLen); });
