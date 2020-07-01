@@ -325,15 +325,17 @@ FITS::~FITS()
   /*if (compress_thread.joinable())
     compress_thread.join();*/
 
+  std::cout << this->dataset_id << "::waiting for zfp pool threads to terminate...";
   for (auto &thread : zfp_pool)
   {
     static int tid = 0;
-    
+
     if (thread.joinable())
       thread.join();
     else
       printf("thread %d is not joinable\n", tid++);
   }
+  std::cout << "done" << std::endl;
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
