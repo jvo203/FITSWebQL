@@ -335,7 +335,7 @@ FITS::~FITS()
     else
       printf("thread %d is not joinable\n", tid++);
   }
-  std::cout << "done" << std::endl;
+  std::cout << "done." << std::endl;
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
