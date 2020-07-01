@@ -343,6 +343,10 @@ FITS::~FITS()
   if (fits_ptr != MAP_FAILED && fits_ptr_size > 0)
     munmap(fits_ptr, fits_ptr_size);
 
+  // clear compressed cube regions
+  pixels_cube.clear();
+  mask_cube.clear();
+
   if (fits_file_desc != -1)
     close(fits_file_desc);
 
@@ -1995,6 +1999,13 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     fits_cube.clear();
     // init the cube with nullptr
     fits_cube.resize(depth, nullptr);
+
+    // clear the compressed regions just in case
+    pixels_cube.clear();
+    mask_cube.clear();
+
+    pixels_cube.resize(depth / 4);
+    mask_cube.resize(depth);
 
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
