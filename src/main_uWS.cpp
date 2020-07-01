@@ -175,17 +175,7 @@ void signalHandler(int signum)
   exiting = true;
 #endif
 
-  // cleanup and close up stuff here
-  // terminate program
-
-  curl_global_cleanup();
-
-  if (splat_db != NULL)
-  {
-    sqlite3_close(splat_db);
-    splat_db = NULL;
-  }
-
+  // stop any inter-node cluster communication
 #ifdef CLUSTER
   if (speaker != NULL)
   {
@@ -207,13 +197,23 @@ void signalHandler(int signum)
   }
 #endif
 
+  // cleanup and close up stuff here
   {
     std::lock_guard<std::shared_mutex> guard(fits_mutex);
     DATASETS.clear();
   }
 
+  curl_global_cleanup();
+
+  if (splat_db != NULL)
+  {
+    sqlite3_close(splat_db);
+    splat_db = NULL;
+  }
+
   std::cout << "FITSWebQL shutdown completed." << std::endl;
 
+  // terminate program
   exit(signum);
 }
 
