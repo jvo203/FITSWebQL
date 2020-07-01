@@ -327,8 +327,11 @@ FITS::~FITS()
 
   for (auto &thread : zfp_pool)
   {
+    static int tid = 0;
     if (thread.joinable())
       thread.join();
+    else
+      printf("thread %d is not joinable\n", tid++);
   }
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
