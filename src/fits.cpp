@@ -3193,6 +3193,17 @@ void FITS::zfp_compress_cube(size_t start_k)
     if (fits_cube[i] == NULL)
       return;
 
+  // create subdirectories for ZFP and LZ4
+  int zfp_idz = start_k / 4;
+
+  std::string zfp_dir = FITSCACHE + std::string("/") +
+                        boost::replace_all_copy(dataset_id, "/", "_") +
+                        std::string(".zfp/") + std::to_string(zfp_idz);
+
+  // create a directory on a best-effort basis, ignoring any errors
+  if (mkdir(zfp_dir.c_str(), 0777) != 0)
+    perror("(non-critical) cannot create a pixels sub-cache directory");
+
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
@@ -3256,7 +3267,6 @@ void FITS::zfp_compress_cube(size_t start_k)
         // block indexing
         int idx = src_x / ZFP_CACHE_REGION;
         int idy = src_y / ZFP_CACHE_REGION;
-        int idz = start_k / 4;
 
         // start a new ZFP stream
         int encStateSize;
@@ -3319,10 +3329,7 @@ void FITS::zfp_compress_cube(size_t start_k)
         std::shared_ptr<Ipp8u> block_pixels;
 
         // use a file-backed mmap
-        std::string storage = FITSCACHE + std::string("/") +
-                              boost::replace_all_copy(dataset_id, "/", "_") +
-                              std::string(".zfp/" + std::to_string(idz) +
-                                          "_" + std::to_string(idy) + "_" + std::to_string(idx) + ".bin");
+        std::string storage = zfp_dir + "/" + std::to_string(idy) + "_" + std::to_string(idx) + ".bin";
 
         bool is_mmapped = false;
         int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
@@ -3365,7 +3372,7 @@ void FITS::zfp_compress_cube(size_t start_k)
             memcpy(ptr, pBuffer, pComprLen);
         }
 
-        pixels_cube[idz][idy][idx] = block_pixels;
+        pixels_cube[zfp_idz][idy][idx] = block_pixels;
       }
 
     ippsFree(pBuffer);
@@ -3383,13 +3390,21 @@ void FITS::zfp_compress_cube(size_t start_k)
   {
     for (int k = 0; k < 4; k++)
     {
+      int lz4_idz = start_k + k;
+
+      std::string lz4_dir = FITSCACHE + std::string("/") +
+                            boost::replace_all_copy(dataset_id, "/", "_") +
+                            std::string(".lz4/") + std::to_string(lz4_idz);
+
+      if (mkdir(lz4_dir.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a mask sub-cache directory");
+
       for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
         for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
         {
           // block indexing
           int idx = src_x / ZFP_CACHE_REGION;
           int idy = src_y / ZFP_CACHE_REGION;
-          int idz = start_k + k;
 
           int offset = 0;
           char val;
@@ -3425,10 +3440,7 @@ void FITS::zfp_compress_cube(size_t start_k)
           std::shared_ptr<Ipp8u> block_mask;
 
           // use a file-backed mmap
-          std::string storage = FITSCACHE + std::string("/") +
-                                boost::replace_all_copy(dataset_id, "/", "_") +
-                                std::string(".lz4/" + std::to_string(idz) +
-                                            "_" + std::to_string(idy) + "_" + std::to_string(idx) + ".bin");
+          std::string storage = lz4_dir + "/" + std::to_string(idy) + "_" + std::to_string(idx) + ".bin";
 
           bool is_mmapped = false;
           int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
@@ -3471,7 +3483,7 @@ void FITS::zfp_compress_cube(size_t start_k)
               memcpy(ptr, pBuffer, compressed_size);
           }
 
-          mask_cube[idz][idy][idx] = block_mask;
+          mask_cube[lz4_idz][idy][idx] = block_mask;
         }
     }
 
