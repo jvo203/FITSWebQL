@@ -328,6 +328,7 @@ FITS::~FITS()
   for (auto &thread : zfp_pool)
   {
     static int tid = 0;
+    
     if (thread.joinable())
       thread.join();
     else
