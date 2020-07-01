@@ -2004,6 +2004,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     pixels_cube.clear();
     mask_cube.clear();
 
+    // init the compressed regions
     pixels_cube.resize(depth / 4);
     mask_cube.resize(depth);
 
