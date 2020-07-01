@@ -240,8 +240,8 @@ private:
   std::vector<void *> fits_cube;
 
   // compressed FITS cube planes / block regions
-  std::shared_ptr<Ipp8u> pixels_cube;
-  std::shared_ptr<Ipp8u> mask_cube;
+  std::vector<std::shared_ptr<Ipp8u>> pixels_cube;
+  std::vector<::shared_ptr<Ipp8u>> mask_cube;
 
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
