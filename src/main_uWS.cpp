@@ -204,9 +204,11 @@ void signalHandler(int signum)
   }
 #endif
 
-  std::cout << "releasing the FITS datasets." << std::endl;
-  std::lock_guard<std::shared_mutex> guard(fits_mutex);
-  DATASETS.clear();
+  {
+    std::cout << "releasing the FITS datasets." << std::endl;
+    std::lock_guard<std::shared_mutex> guard(fits_mutex);
+    DATASETS.clear();
+  }
 
   std::cout << "FITSWebQL shutdown completed." << std::endl;
 
