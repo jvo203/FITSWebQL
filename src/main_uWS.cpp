@@ -181,7 +181,10 @@ void signalHandler(int signum)
   curl_global_cleanup();
 
   if (splat_db != NULL)
+  {
     sqlite3_close(splat_db);
+    splat_db = NULL;
+  }
 
 #ifdef CLUSTER
   if (speaker != NULL)
