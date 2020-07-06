@@ -1,0 +1,49 @@
+lz4-compressing mask 256x256x4 at (0,768,2356); compressed = 594, orig. = 65536 bytes.
+terminate called after throwing an instance of 'St9bad_alloc'
+lz4-compressing mask 256x256x4 at (0,1024,2304); compressed = 267, orig. = 65536 bytes.
+  what():  std::bad_alloclz4-compressing mask 256x256x4 at (512,1024,2344); compressed = 364, orig. = 65536 bytes.
+
+lz4-compressing mask 256x256x4 at (512,256,2460); compressed = 267, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (0,256,2380); compressed = 595, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (1024,768,2296); compressed = 606, orig. = 65536 bytes.
+zfp-compressing pixels 256x256x4 at (512,0,2500); pComprLen = 59832, orig. = 1048576 bytes.
+lz4-compressing mask 256x256x4 at (256,1024,2304); compressed = 659, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (512,1024,2304); compressed = 365, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (768,1024,2344); compressed = 661, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (768,256,2460); compressed = 625, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (256,768,2356); compressed = 616, orig. = 65536 bytes.
+zfp-compressing pixels 256x256x4 at (768,768,2368); pComprLen = 154584, orig. = 1048576 bytes.
+lz4-compressing mask 256x256x4 at (1024,1024,2344); compressed = 267, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (512,768,2356); compressed = 267, orig. = 65536 bytes.
+lz4-compressing mask 256x256x4 at (256,256,2380); compressed = 635, orig. = 65536 bytes.
+
+Thread 30 "fitswebql" received signal SIGABRT, Aborted.
+[Switching to Thread 0x7ffabd13d700 (LWP 24084)]
+0x00007ffff63c54b1 in raise () from /lib64/libc.so.6
+Missing separate debuginfos, use: zypper install krb5-debuginfo-1.18.2-1.1.x86_64 libHalf-2_4-24-debuginfo-2.4.1-1.2.x86_64 libIex-2_4-24-debuginfo-2.4.1-1.2.x86_64 libIexMath-2_4-24-debuginfo-2.4.1-1.2.x86_64 libIlmImf-2_4-24-debuginfo-2.4.1-1.2.x86_64 libIlmThread-2_4-24-debuginfo-2.4.1-1.2.x86_64 libImath-2_4-24-debuginfo-2.4.1-1.2.x86_64 libboost_system1_71_0-debuginfo-1.71.0-9.4.x86_64 libcom_err2-debuginfo-1.45.6-1.17.x86_64 libcurl4-debuginfo-7.71.0-1.1.x86_64 libczmq4-debuginfo-4.2.0-1.6.x86_64 libgcc_s1-debuginfo-10.1.1+git290-1.1.x86_64 libgomp1-debuginfo-10.1.1+git290-1.1.x86_64 libidn2-0-debuginfo-2.3.0-3.1.x86_64 libjemalloc2-debuginfo-5.2.1-1.2.x86_64 libkeyutils1-debuginfo-1.6-1.17.x86_64 libldap-2_4-2-debuginfo-2.4.50-53.1.x86_64 liblzma5-debuginfo-5.2.5-1.14.x86_64 libnghttp2-14-debuginfo-1.41.0-1.1.x86_64 libnghttp2_asio1-debuginfo-1.41.0-1.1.x86_64 libnss_usrfiles2-debuginfo-2.27-2.3.x86_64 libnuma1-debuginfo-2.0.13-1.2.x86_64 libopenssl1_1-debuginfo-1.1.1g-2.11.x86_64 libpcre1-debuginfo-8.44-1.17.x86_64 libpgm-5_2-0-debuginfo-5.2.122-8.4.x86_64 libpq5-debuginfo-12.3-1.1.x86_64 libpsl5-debuginfo-0.21.0-2.4.x86_64 libsasl2-3-debuginfo-2.1.27-3.3.x86_64 libsqlite3-0-debuginfo-3.32.3-1.2.x86_64 libssh4-debuginfo-0.9.4-1.2.x86_64 libstdc++6-debuginfo-10.1.1+git290-1.1.x86_64 libunistring2-debuginfo-0.9.10-2.7.x86_64 libunwind-debuginfo-1.4.0-2.2.x86_64 libz1-debuginfo-1.2.11-13.17.x86_64 libzmq5-debuginfo-4.3.2-1.4.x86_64
+(gdb) backtrace
+#0  0x00007ffff63c54b1 in raise () from /lib64/libc.so.6
+#1  0x00007ffff63ae539 in abort () from /lib64/libc.so.6
+#2  0x00007ffff664e816 in ?? () from /usr/lib64/libstdc++.so.6
+#3  0x00007ffff6659918 in ?? () from /usr/lib64/libstdc++.so.6
+#4  0x00007ffff6659983 in std::terminate() () from /usr/lib64/libstdc++.so.6
+#5  0x00007ffff6659c15 in __cxa_throw () from /usr/lib64/libstdc++.so.6
+#6  0x00007ffff664e452 in ?? () from /usr/lib64/libstdc++.so.6
+#7  0x0000000000451731 in __gnu_cxx::new_allocator<std::_Rb_tree_node<std::pair<int const, std::shared_ptr<unsigned char> > > >::allocate (__n=1, this=0x7ffa9b341348) at /usr/include/c++/10/ext/new_allocator.h:103
+#8  std::allocator_traits<std::allocator<std::_Rb_tree_node<std::pair<int const, std::shared_ptr<unsigned char> > > > >::allocate (__n=1, __a=...) at /usr/include/c++/10/bits/alloc_traits.h:460
+#9  std::_Rb_tree<int, std::pair<int const, std::shared_ptr<unsigned char> >, std::_Select1st<std::pair<int const, std::shared_ptr<unsigned char> > >, std::less<int>, std::allocator<std::pair<int const, std::shared_ptr<unsigned char> > > >::_M_get_node (this=0x7ffa9b341348) at /usr/include/c++/10/bits/stl_tree.h:584
+#10 std::_Rb_tree<int, std::pair<int const, std::shared_ptr<unsigned char> >, std::_Select1st<std::pair<int const, std::shared_ptr<unsigned char> > >, std::less<int>, std::allocator<std::pair<int const, std::shared_ptr<unsigned char> > > >::_M_create_node<std::piecewise_construct_t const&, std::tuple<int const&>, std::tuple<> >(std::piecewise_construct_t const&, std::tuple<int const&>&&, std::tuple<>&&) (this=0x7ffa9b341348)
+    at /usr/include/c++/10/bits/stl_tree.h:634
+#11 std::_Rb_tree<int, std::pair<int const, std::shared_ptr<unsigned char> >, std::_Select1st<std::pair<int const, std::shared_ptr<unsigned char> > >, std::less<int>, std::allocator<std::pair<int const, std::shared_ptr<unsigned char> > > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<int const&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<int const, std::shared_ptr<unsigned char> > >, std::piecewise_construct_t const&, std::tuple<int const&>&&, std::tuple<>&&) (this=0x7ffa9b341348, __pos=
+    {first = 0, second = std::shared_ptr<unsigned char> (empty) = {get() = 0x0}})
+    at /usr/include/c++/10/bits/stl_tree.h:2461
+#12 0x000000000045ada3 in std::map<int, std::shared_ptr<unsigned char>, std::less<int>, std::allocator<std::pair<int const, std::shared_ptr<unsigned char> > > >::operator[] (__k=@0x7ffabd12b0a8: 0, this=<optimized out>)
+    at /usr/include/c++/10/bits/stl_tree.h:350
+#13 FITS::zfp_compress_cube (this=0x7fffe4ee2340, start_k=<optimized out>) at src/fits.cpp:3486
+#14 0x000000000045cde8 in FITS::zfp_compression_thread (this=0x7fffe4ee2340, tid=2) at src/fits.cpp:3518
+#15 0x00007ffff6682f20 in ?? () from /usr/lib64/libstdc++.so.6
+#16 0x00007ffff79e5eaa in start_thread () from /lib64/libpthread.so.0
+#17 0x00007ffff6488b1f in clone () from /lib64/libc.so.6
+(gdb) 
+
+ALMA01166637
