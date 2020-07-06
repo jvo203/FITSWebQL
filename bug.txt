@@ -47,3 +47,7 @@ Missing separate debuginfos, use: zypper install krb5-debuginfo-1.18.2-1.1.x86_6
 (gdb) 
 
 ALMA01166637
+
+NAXIS1 = 1280
+NAXIS2 = 1280
+NAXIS3 = 3370
