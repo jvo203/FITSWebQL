@@ -3372,7 +3372,15 @@ void FITS::zfp_compress_cube(size_t start_k)
             memcpy(ptr, pBuffer, pComprLen);
         }
 
-        //pixels_cube_pixels[zfp_idz][idy][idx] = block_pixels;
+        try
+        {
+          cube_pixels[zfp_idz][idy][idx] = block_pixels;
+        }
+        catch (std::bad_alloc const &err)
+        {
+          std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << "," << idy << "," << idx << '\n';
+          exit(1);
+        }
       }
 
     ippsFree(pBuffer);
@@ -3483,7 +3491,15 @@ void FITS::zfp_compress_cube(size_t start_k)
               memcpy(ptr, pBuffer, compressed_size);
           }
 
-          //cube_mask[lz4_idz][idy][idx] = block_mask;
+          try
+          {
+            cube_mask[lz4_idz][idy][idx] = block_mask;
+          }
+          catch (std::bad_alloc const &err)
+          {
+            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << '\n';
+            exit(1);
+          }
         }
     }
 

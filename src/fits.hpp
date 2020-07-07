@@ -244,6 +244,9 @@ private:
   std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_pixels;
   std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_mask;
 
+  std::shared_mutex pixels_mtx;
+  std::shared_mutex mask_mtx;
+
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
 };
