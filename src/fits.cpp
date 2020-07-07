@@ -344,8 +344,8 @@ FITS::~FITS()
     munmap(fits_ptr, fits_ptr_size);
 
   // clear compressed cube regions
-  pixels_cube.clear();
-  mask_cube.clear();
+  cube_pixels.clear();
+  cube_mask.clear();
 
   if (fits_file_desc != -1)
     close(fits_file_desc);
@@ -2001,12 +2001,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     fits_cube.resize(depth, nullptr);
 
     // clear the compressed regions just in case
-    pixels_cube.clear();
-    mask_cube.clear();
+    cube_pixels.clear();
+    cube_mask.clear();
 
     // init the compressed regions (sizing: err on the side of caution)
-    pixels_cube.resize(depth / 4 + 4);
-    mask_cube.resize(depth + 4);
+    cube_pixels.resize(depth / 4 + 4);
+    cube_mask.resize(depth + 4);
 
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
@@ -3372,7 +3372,7 @@ void FITS::zfp_compress_cube(size_t start_k)
             memcpy(ptr, pBuffer, pComprLen);
         }
 
-        pixels_cube[zfp_idz][idy][idx] = block_pixels;
+        //pixels_cube_pixels[zfp_idz][idy][idx] = block_pixels;
       }
 
     ippsFree(pBuffer);
@@ -3483,7 +3483,7 @@ void FITS::zfp_compress_cube(size_t start_k)
               memcpy(ptr, pBuffer, compressed_size);
           }
 
-          mask_cube[lz4_idz][idy][idx] = block_mask;
+          //cube_mask[lz4_idz][idy][idx] = block_mask;
         }
     }
 
