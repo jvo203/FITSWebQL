@@ -2007,6 +2007,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // init the compressed regions (sizing: err on the side of caution)
     cube_pixels.resize(depth / 4 + 4);
     cube_mask.resize(depth + 4);
+    std::cout << "cube_pixels::size = " << cube_pixels.size() << ", cube_mask::size = " << cube_mask.size() << std::endl;
 
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
@@ -3380,7 +3381,7 @@ void FITS::zfp_compress_cube(size_t start_k)
         catch (std::bad_alloc const &err)
         {
           std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << "," << idy << "," << idx << '\n';
-          //exit(1);     
+          exit(1);     
         }
       }
 
@@ -3498,10 +3499,9 @@ void FITS::zfp_compress_cube(size_t start_k)
             cube_mask[lz4_idz][idy][idx] = block_mask;
           }
           catch (std::bad_alloc const &err)
-          {
-            std::lock_guard<std::shared_mutex> guard(mask_mtx);
-            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << ", size:" << cube_mask.size() << '\n';
-            //exit(1);
+          {            
+            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << '\n';
+            exit(1);
           }
         }
     }
