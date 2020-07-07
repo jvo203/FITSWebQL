@@ -51,3 +51,14 @@ ALMA01166637
 NAXIS1 = 1280
 NAXIS2 = 1280
 NAXIS3 = 3370
+
+The solution:
+
+chris@isis:~> sudo sysctl vm.max_map_count
+[sudo] root のパスワード:
+vm.max_map_count = 65530
+chris@isis:~> sudo sysctl -w vm.max_map_count=655300
+vm.max_map_count = 655300
+chris@isis:~> sudo sysctl vm.max_map_count
+vm.max_map_count = 655300
+
