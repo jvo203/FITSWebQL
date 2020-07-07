@@ -244,9 +244,6 @@ private:
   std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_pixels;
   std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_mask;
 
-  std::vector<std::shared_ptr<Ipp8u>> vec_pixels;
-  std::vector<std::shared_ptr<Ipp8u>> vec_mask;
-
   std::shared_mutex pixels_mtx;
   std::shared_mutex mask_mtx;
 
