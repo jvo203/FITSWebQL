@@ -3318,13 +3318,13 @@ void FITS::zfp_compress_cube(size_t start_k)
         ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
         ippsFree(pEncState);
 
-        printf("zfp-compressing pixels %dx%dx4 at (%d,%d,%zu); pComprLen "
+        /*printf("zfp-compressing pixels %dx%dx4 at (%d,%d,%zu); pComprLen "
                "= %d, "
                "orig. "
                "= %zu bytes.\n",
                ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
                pComprLen,
-               storage_size);
+               storage_size);*/
 
         std::shared_ptr<Ipp8u> block_pixels;
 
@@ -3374,12 +3374,13 @@ void FITS::zfp_compress_cube(size_t start_k)
 
         try
         {
+          std::lock_guard<std::shared_mutex> guard(pixels_mtx);
           cube_pixels[zfp_idz][idy][idx] = block_pixels;
         }
         catch (std::bad_alloc const &err)
         {
           std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << "," << idy << "," << idx << '\n';
-          exit(1);
+          //exit(1);     
         }
       }
 
@@ -3437,13 +3438,13 @@ void FITS::zfp_compress_cube(size_t start_k)
               LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
                               worst_size, LZ4HC_CLEVEL_MAX);
 
-          printf("lz4-compressing mask %dx%dx4 at (%d,%d,%zu); compressed "
+          /*printf("lz4-compressing mask %dx%dx4 at (%d,%d,%d); compressed "
                  "= %d, "
                  "orig. "
                  "= %zu bytes.\n",
-                 ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, start_k,
+                 ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, lz4_idz,
                  compressed_size,
-                 mask_size);
+                 mask_size);*/
 
           std::shared_ptr<Ipp8u> block_mask;
 
@@ -3493,12 +3494,13 @@ void FITS::zfp_compress_cube(size_t start_k)
 
           try
           {
+            std::lock_guard<std::shared_mutex> guard(mask_mtx);
             cube_mask[lz4_idz][idy][idx] = block_mask;
           }
           catch (std::bad_alloc const &err)
           {
             std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << '\n';
-            exit(1);
+            //exit(1);
           }
         }
     }
