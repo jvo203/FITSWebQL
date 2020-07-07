@@ -3499,7 +3499,7 @@ void FITS::zfp_compress_cube(size_t start_k)
           }
           catch (std::bad_alloc const &err)
           {
-            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << '\n';
+            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << ", size:" << cube_mask.size() << '\n';
             //exit(1);
           }
         }
