@@ -3380,7 +3380,6 @@ void FITS::zfp_compress_cube(size_t start_k)
         {
           //std::lock_guard<std::shared_mutex> guard(pixels_mtx);
           cube_pixels[zfp_idz][idy][idx] = std::move(block_pixels);
-          //vec_pixels.push_back(std::move(block_pixels));
         }
         catch (std::bad_alloc const &err)
         {
@@ -3510,7 +3509,6 @@ void FITS::zfp_compress_cube(size_t start_k)
           {
             //std::lock_guard<std::shared_mutex> guard(mask_mtx);
             cube_mask[lz4_idz][idy][idx] = std::move(block_mask);
-            //vec_mask.push_back(std::move(block_mask));
           }
           catch (std::bad_alloc const &err)
           {
