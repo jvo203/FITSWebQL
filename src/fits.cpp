@@ -3348,15 +3348,18 @@ void FITS::zfp_compress_cube(size_t start_k)
             // file-mmap pComprLen
             block_pixels = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE,
                                                                 MAP_SHARED, fd, 0),
-                                                  [=](void *ptr) { munmap(ptr, pComprLen); });
+                                                  [=](void *ptr) { if(ptr != MAP_FAILED) munmap(ptr, pComprLen); });
 
             if (block_pixels.get() != MAP_FAILED)
               is_mmapped = true;
+            else
+              std::cout << "block_pixels MAP_FAILED, will switch over to RAM\n";
           }
           else
             perror("ftruncate64");
 
           close(fd);
+          fd = -1;
         }
         else
           perror(storage.c_str());
@@ -3377,13 +3380,16 @@ void FITS::zfp_compress_cube(size_t start_k)
         {
           std::lock_guard<std::shared_mutex> guard(pixels_mtx);
           //cube_pixels[zfp_idz][idy][idx] = block_pixels;
-          vec_pixels.push_back(block_pixels);
+          vec_pixels.push_back(std::move(block_pixels));
         }
         catch (std::bad_alloc const &err)
         {
           std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << "," << idy << "," << idx << '\n';
           exit(1);
         }
+
+        if (fd != -1)
+          close(fd);
       }
 
     ippsFree(pBuffer);
@@ -3469,22 +3475,28 @@ void FITS::zfp_compress_cube(size_t start_k)
               // file-mmap compressed_size
               block_mask = std::shared_ptr<Ipp8u>((Ipp8u *)mmap(nullptr, compressed_size, PROT_READ | PROT_WRITE,
                                                                 MAP_SHARED, fd, 0),
-                                                  [=](void *ptr) { munmap(ptr, compressed_size); });
+                                                  [=](void *ptr) { if(ptr != MAP_FAILED) munmap(ptr, compressed_size); });
 
               if (block_mask.get() != MAP_FAILED)
                 is_mmapped = true;
+              else
+                std::cout << "block_mask MAP_FAILED, will switch over to RAM\n";
             }
             else
               perror("ftruncate64");
 
             close(fd);
+            fd = -1;
           }
           else
             perror(storage.c_str());
 
           // switch to RAM instead of mmap in case of trouble
           if (!is_mmapped)
+          {
+            //std::cout << "mmap failed, failover to RAM\n";
             block_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(compressed_size), Ipp8uFree);
+          }
 
           // finally memcpy compressed_size from pBuffer
           {
@@ -3498,13 +3510,16 @@ void FITS::zfp_compress_cube(size_t start_k)
           {
             std::lock_guard<std::shared_mutex> guard(mask_mtx);
             //cube_mask[lz4_idz][idy][idx] = block_mask;
-            vec_mask.push_back(block_mask);
+            vec_mask.push_back(std::move(block_mask));
           }
           catch (std::bad_alloc const &err)
           {
             std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << "," << idy << "," << idx << '\n';
             exit(1);
           }
+
+          if (fd != -1)
+            close(fd);
         }
     }
 
