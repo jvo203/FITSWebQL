@@ -17,15 +17,17 @@ INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSo
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq -lnghttp2_asio -lboost_system -lboost_thread-mt `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq -lnghttp2_asio `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o
 #-lIlmImf -lIlmThread -lHalf
 
+LIBS += -lboost_system
+
 ifeq ($(UNAME_S),Linux)
-	LIBS += -l:libpq.so.5 -l:libnuma.so.1
+	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lboost_thread
 endif
 
 ifeq ($(UNAME_S),Darwin)
-	LIBS += -lpq
+	LIBS += -lpq -lboost_thread-mt
 endif 
 
 #-lstdc++fs
