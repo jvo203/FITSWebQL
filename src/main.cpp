@@ -758,8 +758,6 @@ void stream_realtime_image_spectrum(const response *res,
 
     struct UserSession *session_ptr = session.get();
 
-    session_ptr->last_seq = seq;
-
     // gain unique access
     std::lock_guard<std::shared_mutex> unique_session(session->mtx);
 
@@ -776,6 +774,8 @@ void stream_realtime_image_spectrum(const response *res,
       queue->eof = true;
       return;
     }
+
+    session_ptr->last_seq = seq;
 
     session->ts = system_clock::now();
 

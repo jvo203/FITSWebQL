@@ -3,6 +3,8 @@
 #include <chrono>
 #include <mutex>
 #include <set>
+#include <boost/thread/thread.hpp>
+#include <thread>
 #include <unordered_map>
 #include <shared_mutex>
 
@@ -37,8 +39,10 @@ struct UserSession
   std::shared_ptr<Ipp32f> img_pixels;
   std::shared_ptr<Ipp8u> img_mask;
 
-  // used by libnghttp2
+  // thread management
   std::atomic<int> last_seq;
+  boost::thread_group active_threads;
+  std::atomic<bool> active;
 
   UserSession(boost::uuids::uuid _session_id, system_clock::time_point _ts, std::string _primary_id, std::vector<std::string> _ids)
   {
@@ -46,6 +50,8 @@ struct UserSession
     ts = _ts;
     primary_id = _primary_id;
     ids = _ids;
+    last_seq = -1;
+    active = true;
   }
 };
 

@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-07-07.0"
+#define VERSION_STRING "SV2020-07-09.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2691,242 +2691,400 @@ int main(int argc, char *argv[])
                            if (fits != nullptr)
                            {
                              if (!fits->has_error && fits->has_data)
-                             /*// launch a separate thread
-                               std::thread([fits, ws, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq]()*/
                              {
-                               fits->update_timestamp();
+                               // launch a separate thread
+                               boost::thread *spectrum_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq]() {
+                                 std::thread::id tid = std::this_thread::get_id();
 
-                               // copy over the default {pixels,mask}
-                               {
-                                 if (!user->ptr->img_pixels)
-                                   user->ptr->img_pixels = fits->img_pixels;
+                                 // insert itself into the list of active threads
 
-                                 if (!user->ptr->img_mask)
-                                   user->ptr->img_mask = fits->img_mask;
-                               }
+                                 fits->update_timestamp();
 
-                               int start, end;
-                               double elapsedMilliseconds;
+                                 // gain unique access
+                                 std::lock_guard<std::shared_mutex> unique_session(user->ptr->mtx);
+                                 user->ptr->last_seq = seq;
 
-                               fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
+                                 /*{
+                                   // gain unique access
+                                   std::lock_guard<std::shared_mutex> unique_session(user->ptr->mtx);
 
-                               // send the compressed viewport
-                               if (image_update && view_width > 0 && view_height > 0)
-                               {
-                                 auto start_t = steady_clock::now();
+                                   int last_seq = user->ptr->last_seq;
 
-                                 Ipp32f *img_pixels = user->ptr->img_pixels.get();
-                                 Ipp8u *img_mask = user->ptr->img_mask.get();
-
-                                 const int dimx = abs(x2 - x1 + 1);
-                                 const int dimy = abs(y2 - y1 + 1);
-
-                                 size_t native_size = size_t(dimx) * size_t(dimy);
-                                 std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(native_size), ippsFree);
-                                 std::shared_ptr<Ipp32f> view_mask(ippsMalloc_32f_L(native_size), ippsFree);
-
-                                 size_t dst_offset = 0;
-                                 Ipp32f *_pixels = view_pixels.get();
-                                 Ipp32f *_mask = view_mask.get();
-
-                                 // the loop could be parallelised
-                                 for (int j = y1; j <= y2; j++)
-                                 {
-                                   size_t src_offset = j * fits->width;
-
-                                   for (int i = x1; i <= x2; i++)
+                                   if (seq < last_seq)
                                    {
-                                     // a dark (inactive) pixel by default
-                                     Ipp32f pixel = 0.0f;
-                                     Ipp32f mask = 0.0f;
+                                     printf("skipping an old frame (%d < %d)\n", seq, last_seq);
 
-                                     if ((i >= 0) && (i < fits->width) && (j >= 0) && (j < fits->height))
-                                     {
-                                       pixel = img_pixels[src_offset + i];
-                                       mask = (img_mask[src_offset + i] == 255) ? 1.0f : 0.0f;
-                                     }
-
-                                     _pixels[dst_offset] = pixel;
-                                     _mask[dst_offset] = mask;
-                                     dst_offset++;
+                                     return;
                                    }
+
+                                   user->ptr->last_seq = seq;
+                                 }*/
+
+                                 // copy over the default {pixels,mask}
+                                 {
+                                   if (!user->ptr->img_pixels)
+                                     user->ptr->img_pixels = fits->img_pixels;
+
+                                   if (!user->ptr->img_mask)
+                                     user->ptr->img_mask = fits->img_mask;
                                  }
 
-                                 assert(dst_offset == native_size);
+                                 int start, end;
+                                 double elapsedMilliseconds;
 
-                                 // downsize when necessary to view_width x view_height
-                                 size_t viewport_size = size_t(view_width) * size_t(view_height);
+                                 fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                                 if (native_size > viewport_size)
+                                 // send the compressed viewport
+                                 if (image_update && view_width > 0 && view_height > 0)
                                  {
-                                   printf("downsizing viewport %d x %d --> %d x %d\n", dimx, dimy, view_width, view_height);
+                                   auto start_t = steady_clock::now();
 
-                                   std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
-                                   std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
+                                   Ipp32f *img_pixels = user->ptr->img_pixels.get();
+                                   Ipp8u *img_mask = user->ptr->img_mask.get();
 
-                                   if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+                                   const int dimx = abs(x2 - x1 + 1);
+                                   const int dimy = abs(y2 - y1 + 1);
+
+                                   size_t native_size = size_t(dimx) * size_t(dimy);
+                                   std::shared_ptr<Ipp32f> view_pixels(ippsMalloc_32f_L(native_size), ippsFree);
+                                   std::shared_ptr<Ipp32f> view_mask(ippsMalloc_32f_L(native_size), ippsFree);
+
+                                   size_t dst_offset = 0;
+                                   Ipp32f *_pixels = view_pixels.get();
+                                   Ipp32f *_mask = view_mask.get();
+
+                                   // the loop could be parallelised
+                                   for (int j = y1; j <= y2; j++)
                                    {
-                                     // downsize float32 pixels and a mask
-                                     IppiSize srcSize;
-                                     srcSize.width = dimx;
-                                     srcSize.height = dimy;
-                                     Ipp32s srcStep = srcSize.width;
+                                     size_t src_offset = j * fits->width;
 
-                                     IppiSize dstSize;
-                                     dstSize.width = view_width;
-                                     dstSize.height = view_height;
-                                     Ipp32s dstStep = dstSize.width;
-
-                                     IppStatus pixels_stat =
-                                         tileResize32f_C1R(_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
-
-                                     IppStatus mask_stat =
-                                         tileResize32f_C1R(_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
-
-                                     printf(" %d : %s, %d : %s\n", pixels_stat,
-                                            ippGetStatusString(pixels_stat), mask_stat,
-                                            ippGetStatusString(mask_stat));
-
-                                     // export EXR in a YA format
-                                     if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
+                                     for (int i = x1; i <= x2; i++)
                                      {
-                                       // in-memory output
-                                       StdOSStream oss;
+                                       // a dark (inactive) pixel by default
+                                       Ipp32f pixel = 0.0f;
+                                       Ipp32f mask = 0.0f;
 
-                                       try
+                                       if ((i >= 0) && (i < fits->width) && (j >= 0) && (j < fits->height))
                                        {
-                                         Header header(view_width, view_height);
-                                         header.compression() = DWAB_COMPRESSION;
-                                         addDwaCompressionLevel(header, quality);
-                                         header.channels().insert("Y", Channel(FLOAT));
-                                         header.channels().insert("A", Channel(FLOAT));
-
-                                         // OutputFile file(filename.c_str(), header);
-                                         OutputFile file(oss, header);
-                                         FrameBuffer frameBuffer;
-
-                                         frameBuffer.insert("Y",
-                                                            Slice(FLOAT, (char *)pixels_buf.get(), sizeof(Ipp32f) * 1,
-                                                                  sizeof(Ipp32f) * view_width));
-
-                                         frameBuffer.insert("A",
-                                                            Slice(FLOAT, (char *)mask_buf.get(), sizeof(Ipp32f) * 1,
-                                                                  sizeof(Ipp32f) * view_width));
-
-                                         file.setFrameBuffer(frameBuffer);
-                                         file.writePixels(view_height);
-                                       }
-                                       catch (const std::exception &exc)
-                                       {
-                                         std::cerr << exc.what() << std::endl;
+                                         pixel = img_pixels[src_offset + i];
+                                         mask = (img_mask[src_offset + i] == 255) ? 1.0f : 0.0f;
                                        }
 
-                                       std::string output = oss.str();
-                                       std::cout << "[" << fits->dataset_id
-                                                 << "]::viewport OpenEXR output: " << output.length()
-                                                 << " bytes." << std::endl;
+                                       _pixels[dst_offset] = pixel;
+                                       _mask[dst_offset] = mask;
+                                       dst_offset++;
+                                     }
+                                   }
 
-                                       auto end_t = steady_clock::now();
+                                   assert(dst_offset == native_size);
 
-                                       double elapsedSeconds = ((end_t - start_t).count()) *
-                                                               steady_clock::period::num /
-                                                               static_cast<double>(steady_clock::period::den);
-                                       double elapsedMs = 1000.0 * elapsedSeconds;
+                                   // downsize when necessary to view_width x view_height
+                                   size_t viewport_size = size_t(view_width) * size_t(view_height);
 
-                                       std::cout << "downsizing/compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+                                   if (native_size > viewport_size)
+                                   {
+                                     printf("downsizing viewport %d x %d --> %d x %d\n", dimx, dimy, view_width, view_height);
 
-                                       // send the viewport
-                                       if (output.length() > 0)
+                                     std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
+                                     std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(viewport_size), ippsFree);
+
+                                     if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+                                     {
+                                       // downsize float32 pixels and a mask
+                                       IppiSize srcSize;
+                                       srcSize.width = dimx;
+                                       srcSize.height = dimy;
+                                       Ipp32s srcStep = srcSize.width;
+
+                                       IppiSize dstSize;
+                                       dstSize.width = view_width;
+                                       dstSize.height = view_height;
+                                       Ipp32s dstStep = dstSize.width;
+
+                                       IppStatus pixels_stat =
+                                           tileResize32f_C1R(_pixels, srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+
+                                       IppStatus mask_stat =
+                                           tileResize32f_C1R(_mask, srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+
+                                       printf(" %d : %s, %d : %s\n", pixels_stat,
+                                              ippGetStatusString(pixels_stat), mask_stat,
+                                              ippGetStatusString(mask_stat));
+
+                                       // export EXR in a YA format
+                                       if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
                                        {
-                                         size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
-                                         char *buffer = (char *)malloc(bufferSize);
+                                         // in-memory output
+                                         StdOSStream oss;
 
-                                         if (buffer != NULL)
+                                         try
                                          {
-                                           float ts = timestamp;
-                                           uint32_t id = seq;
-                                           uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
-                                           size_t offset = 0;
+                                           Header header(view_width, view_height);
+                                           header.compression() = DWAB_COMPRESSION;
+                                           addDwaCompressionLevel(header, quality);
+                                           header.channels().insert("Y", Channel(FLOAT));
+                                           header.channels().insert("A", Channel(FLOAT));
 
-                                           memcpy(buffer + offset, &ts, sizeof(float));
-                                           offset += sizeof(float);
+                                           // OutputFile file(filename.c_str(), header);
+                                           OutputFile file(oss, header);
+                                           FrameBuffer frameBuffer;
 
-                                           memcpy(buffer + offset, &id, sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
+                                           frameBuffer.insert("Y",
+                                                              Slice(FLOAT, (char *)pixels_buf.get(), sizeof(Ipp32f) * 1,
+                                                                    sizeof(Ipp32f) * view_width));
 
-                                           memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
+                                           frameBuffer.insert("A",
+                                                              Slice(FLOAT, (char *)mask_buf.get(), sizeof(Ipp32f) * 1,
+                                                                    sizeof(Ipp32f) * view_width));
 
-                                           memcpy(buffer + offset, output.c_str(), output.length());
-                                           offset += output.length();
+                                           file.setFrameBuffer(frameBuffer);
+                                           file.writePixels(view_height);
+                                         }
+                                         catch (const std::exception &exc)
+                                         {
+                                           std::cerr << exc.what() << std::endl;
+                                         }
 
-                                           ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                         std::string output = oss.str();
+                                         std::cout << "[" << fits->dataset_id
+                                                   << "]::viewport OpenEXR output: " << output.length()
+                                                   << " bytes." << std::endl;
 
-                                           free(buffer);
+                                         auto end_t = steady_clock::now();
+
+                                         double elapsedSeconds = ((end_t - start_t).count()) *
+                                                                 steady_clock::period::num /
+                                                                 static_cast<double>(steady_clock::period::den);
+                                         double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                         std::cout << "downsizing/compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+
+                                         // send the viewport
+                                         if (output.length() > 0)
+                                         {
+                                           size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
+                                           char *buffer = (char *)malloc(bufferSize);
+
+                                           if (buffer != NULL)
+                                           {
+                                             float ts = timestamp;
+                                             uint32_t id = seq;
+                                             uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                             size_t offset = 0;
+
+                                             memcpy(buffer + offset, &ts, sizeof(float));
+                                             offset += sizeof(float);
+
+                                             memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                             offset += sizeof(uint32_t);
+
+                                             memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                             offset += sizeof(uint32_t);
+
+                                             memcpy(buffer + offset, output.c_str(), output.length());
+                                             offset += output.length();
+
+                                             if (user->ptr->active)
+                                               ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+
+                                             free(buffer);
+                                           }
                                          }
                                        }
                                      }
                                    }
+                                   else
+                                   // no re-scaling needed
+                                   {
+                                     // export the luma+mask to OpenEXR
+
+                                     // in-memory output
+                                     StdOSStream oss;
+
+                                     try
+                                     {
+                                       Header header(dimx, dimy);
+                                       header.compression() = DWAB_COMPRESSION;
+                                       addDwaCompressionLevel(header, quality);
+                                       header.channels().insert("Y", Channel(FLOAT));
+                                       header.channels().insert("A", Channel(FLOAT));
+
+                                       OutputFile file(oss, header);
+                                       FrameBuffer frameBuffer;
+
+                                       frameBuffer.insert("Y",
+                                                          Slice(FLOAT, (char *)_pixels, sizeof(Ipp32f) * 1,
+                                                                sizeof(Ipp32f) * dimx));
+
+                                       frameBuffer.insert("A", Slice(FLOAT, (char *)_mask, sizeof(Ipp32f) * 1,
+                                                                     sizeof(Ipp32f) * dimx));
+
+                                       file.setFrameBuffer(frameBuffer);
+                                       file.writePixels(dimy);
+                                     }
+                                     catch (const std::exception &exc)
+                                     {
+                                       std::cerr << exc.what() << std::endl;
+                                     }
+
+                                     std::string output = oss.str();
+                                     std::cout << "[" << fits->dataset_id
+                                               << "]::viewport OpenEXR output: " << output.length()
+                                               << " bytes." << std::endl;
+
+                                     auto end_t = steady_clock::now();
+
+                                     double elapsedSeconds = ((end_t - start_t).count()) *
+                                                             steady_clock::period::num /
+                                                             static_cast<double>(steady_clock::period::den);
+                                     double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                     std::cout << "compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+
+                                     // send the viewport
+                                     if (output.length() > 0)
+                                     {
+                                       size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
+                                       char *buffer = (char *)malloc(bufferSize);
+
+                                       if (buffer != NULL)
+                                       {
+                                         float ts = timestamp;
+                                         uint32_t id = seq;
+                                         uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                         size_t offset = 0;
+
+                                         memcpy(buffer + offset, &ts, sizeof(float));
+                                         offset += sizeof(float);
+
+                                         memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                         offset += sizeof(uint32_t);
+
+                                         memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                         offset += sizeof(uint32_t);
+
+                                         memcpy(buffer + offset, output.c_str(), output.length());
+                                         offset += output.length();
+
+                                         if (user->ptr->active)
+                                           ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+
+                                         free(buffer);
+                                       }
+                                     }
+                                   }
                                  }
-                                 else
-                                 // no re-scaling needed
+
+                                 // calculate a viewport spectrum
+                                 if (fits->depth > 1)
                                  {
-                                   // export the luma+mask to OpenEXR
+                                   auto start_watch = steady_clock::now();
 
-                                   // in-memory output
-                                   StdOSStream oss;
+                                   std::vector<float> spectrum = fits->get_spectrum(
+                                       start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
 
-                                   try
+                                   std::cout << "spectrum length = " << spectrum.size()
+                                             << " elapsed time: " << elapsedMilliseconds << " [ms]"
+                                             << std::endl;
+
+                                   int dst_len = dx / 2;
+
+                                   if (spectrum.size() > dst_len)
                                    {
-                                     Header header(dimx, dimy);
-                                     header.compression() = DWAB_COMPRESSION;
-                                     addDwaCompressionLevel(header, quality);
-                                     header.channels().insert("Y", Channel(FLOAT));
-                                     header.channels().insert("A", Channel(FLOAT));
+                                     auto start_t = steady_clock::now();
 
-                                     OutputFile file(oss, header);
-                                     FrameBuffer frameBuffer;
+                                     SpectrumPoint in[spectrum.size()];
 
-                                     frameBuffer.insert("Y",
-                                                        Slice(FLOAT, (char *)_pixels, sizeof(Ipp32f) * 1,
-                                                              sizeof(Ipp32f) * dimx));
+                                     for (unsigned int i = 0; i < spectrum.size(); i++)
+                                     {
+                                       in[i].x = i;
+                                       in[i].y = spectrum[i];
+                                     }
 
-                                     frameBuffer.insert("A", Slice(FLOAT, (char *)_mask, sizeof(Ipp32f) * 1,
-                                                                   sizeof(Ipp32f) * dimx));
+                                     SpectrumPoint out[dst_len];
 
-                                     file.setFrameBuffer(frameBuffer);
-                                     file.writePixels(dimy);
+                                     PointLttb::Downsample(in, spectrum.size(), out, dst_len);
+
+                                     spectrum.resize(dst_len);
+
+                                     for (int i = 0; i < dst_len; i++)
+                                       spectrum[i] = out[i].y;
+
+                                     auto end_t = steady_clock::now();
+
+                                     double elapsedSeconds = ((end_t - start_t).count()) *
+                                                             steady_clock::period::num /
+                                                             static_cast<double>(steady_clock::period::den);
+                                     double elapsedMs = 1000.0 * elapsedSeconds;
+
+                                     std::cout << "downsampling the spectrum with 'largestTriangleThreeBuckets', elapsed time: " << elapsedMs << " [ms]"
+                                               << std::endl;
+
+                                     elapsedMilliseconds += elapsedMs;
                                    }
-                                   catch (const std::exception &exc)
+
+                                   // send the spectrum
+                                   if (spectrum.size() > 0)
                                    {
-                                     std::cerr << exc.what() << std::endl;
-                                   }
+                                     // compress spectrum with fpzip
+                                     uint32_t spec_len = spectrum.size();
+                                     size_t bufbytes = 1024 + spec_len * sizeof(float);
+                                     size_t outbytes = 0;
+                                     bool success = false;
 
-                                   std::string output = oss.str();
-                                   std::cout << "[" << fits->dataset_id
-                                             << "]::viewport OpenEXR output: " << output.length()
-                                             << " bytes." << std::endl;
+                                     void *compressed = malloc(bufbytes);
 
-                                   auto end_t = steady_clock::now();
+                                     if (compressed != NULL)
+                                     {
+                                       int prec = image_update ? 24 : 16; // use a higher precision for still updates, and fewer bytes for dynamic spectra
 
-                                   double elapsedSeconds = ((end_t - start_t).count()) *
-                                                           steady_clock::period::num /
-                                                           static_cast<double>(steady_clock::period::den);
-                                   double elapsedMs = 1000.0 * elapsedSeconds;
+                                       /* compress to memory */
+                                       FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
+                                       fpz->type = FPZIP_TYPE_FLOAT;
+                                       fpz->prec = prec;
+                                       fpz->nx = spec_len;
+                                       fpz->ny = 1;
+                                       fpz->nz = 1;
+                                       fpz->nf = 1;
 
-                                   std::cout << "compressing the viewport elapsed time: " << elapsedMs << " [ms]" << std::endl;
+                                       /* write header */
+                                       if (!fpzip_write_header(fpz))
+                                         fprintf(stderr, "cannot write header: %s\n", fpzip_errstr[fpzip_errno]);
+                                       else
+                                       {
+                                         outbytes = fpzip_write(fpz, spectrum.data());
 
-                                   // send the viewport
-                                   if (output.length() > 0)
-                                   {
-                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + output.length();
+                                         if (!outbytes)
+                                           fprintf(stderr, "compression failed: %s\n", fpzip_errstr[fpzip_errno]);
+                                         else
+                                           success = true;
+                                       }
+
+                                       fpzip_write_close(fpz);
+                                     }
+
+                                     if (success)
+                                       std::cout << "FPZIP-compressed spectrum: " << outbytes << " bytes, original size " << spec_len * sizeof(float) << " bytes." << std::endl;
+                                     // end-of-compression
+
+                                     size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + outbytes; //+ spectrum.size() * sizeof(float);
                                      char *buffer = (char *)malloc(bufferSize);
 
-                                     if (buffer != NULL)
+                                     // construct a message
+                                     if (buffer != NULL && success)
                                      {
+                                       auto end_watch = steady_clock::now();
+
+                                       double elapsedSeconds = ((end_watch - start_watch).count()) *
+                                                               steady_clock::period::num /
+                                                               static_cast<double>(steady_clock::period::den);
+                                       double elapsedMs = 1000.0 * elapsedSeconds;
+
                                        float ts = timestamp;
                                        uint32_t id = seq;
-                                       uint32_t msg_type = 1; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                       uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                       float elapsed = elapsedMs;
+
                                        size_t offset = 0;
 
                                        memcpy(buffer + offset, &ts, sizeof(float));
@@ -2938,157 +3096,33 @@ int main(int argc, char *argv[])
                                        memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
 
-                                       memcpy(buffer + offset, output.c_str(), output.length());
-                                       offset += output.length();
+                                       memcpy(buffer + offset, &elapsed, sizeof(float));
+                                       offset += sizeof(float);
 
-                                       ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
-
-                                       free(buffer);
-                                     }
-                                   }
-                                 }
-                               }
-
-                               // calculate a viewport spectrum
-                               if (fits->depth > 1)
-                               {
-                                 auto start_watch = steady_clock::now();
-
-                                 std::vector<float> spectrum = fits->get_spectrum(
-                                     start, end, x1, y1, x2, y2, intensity, beam, elapsedMilliseconds);
-
-                                 std::cout << "spectrum length = " << spectrum.size()
-                                           << " elapsed time: " << elapsedMilliseconds << " [ms]"
-                                           << std::endl;
-
-                                 int dst_len = dx / 2;
-
-                                 if (spectrum.size() > dst_len)
-                                 {
-                                   auto start_t = steady_clock::now();
-
-                                   SpectrumPoint in[spectrum.size()];
-
-                                   for (unsigned int i = 0; i < spectrum.size(); i++)
-                                   {
-                                     in[i].x = i;
-                                     in[i].y = spectrum[i];
-                                   }
-
-                                   SpectrumPoint out[dst_len];
-
-                                   PointLttb::Downsample(in, spectrum.size(), out, dst_len);
-
-                                   spectrum.resize(dst_len);
-
-                                   for (int i = 0; i < dst_len; i++)
-                                     spectrum[i] = out[i].y;
-
-                                   auto end_t = steady_clock::now();
-
-                                   double elapsedSeconds = ((end_t - start_t).count()) *
-                                                           steady_clock::period::num /
-                                                           static_cast<double>(steady_clock::period::den);
-                                   double elapsedMs = 1000.0 * elapsedSeconds;
-
-                                   std::cout << "downsampling the spectrum with 'largestTriangleThreeBuckets', elapsed time: " << elapsedMs << " [ms]"
-                                             << std::endl;
-
-                                   elapsedMilliseconds += elapsedMs;
-                                 }
-
-                                 // send the spectrum
-                                 if (spectrum.size() > 0)
-                                 {
-                                   // compress spectrum with fpzip
-                                   uint32_t spec_len = spectrum.size();
-                                   size_t bufbytes = 1024 + spec_len * sizeof(float);
-                                   size_t outbytes = 0;
-                                   bool success = false;
-
-                                   void *compressed = malloc(bufbytes);
-
-                                   if (compressed != NULL)
-                                   {
-                                     int prec = image_update ? 24 : 16; // use a higher precision for still updates, and fewer bytes for dynamic spectra
-
-                                     /* compress to memory */
-                                     FPZ *fpz = fpzip_write_to_buffer(compressed, bufbytes);
-                                     fpz->type = FPZIP_TYPE_FLOAT;
-                                     fpz->prec = prec;
-                                     fpz->nx = spec_len;
-                                     fpz->ny = 1;
-                                     fpz->nz = 1;
-                                     fpz->nf = 1;
-
-                                     /* write header */
-                                     if (!fpzip_write_header(fpz))
-                                       fprintf(stderr, "cannot write header: %s\n", fpzip_errstr[fpzip_errno]);
-                                     else
-                                     {
-                                       outbytes = fpzip_write(fpz, spectrum.data());
-
-                                       if (!outbytes)
-                                         fprintf(stderr, "compression failed: %s\n", fpzip_errstr[fpzip_errno]);
-                                       else
-                                         success = true;
-                                     }
-
-                                     fpzip_write_close(fpz);
-                                   }
-
-                                   if (success)
-                                     std::cout << "FPZIP-compressed spectrum: " << outbytes << " bytes, original size " << spec_len * sizeof(float) << " bytes." << std::endl;
-                                   // end-of-compression
-
-                                   size_t bufferSize = sizeof(float) + sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + outbytes; //+ spectrum.size() * sizeof(float);
-                                   char *buffer = (char *)malloc(bufferSize);
-
-                                   // construct a message
-                                   if (buffer != NULL && success)
-                                   {
-                                     auto end_watch = steady_clock::now();
-
-                                     double elapsedSeconds = ((end_watch - start_watch).count()) *
-                                                             steady_clock::period::num /
-                                                             static_cast<double>(steady_clock::period::den);
-                                     double elapsedMs = 1000.0 * elapsedSeconds;
-
-                                     float ts = timestamp;
-                                     uint32_t id = seq;
-                                     uint32_t msg_type = 0; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
-                                     float elapsed = elapsedMs;
-
-                                     size_t offset = 0;
-
-                                     memcpy(buffer + offset, &ts, sizeof(float));
-                                     offset += sizeof(float);
-
-                                     memcpy(buffer + offset, &id, sizeof(uint32_t));
-                                     offset += sizeof(uint32_t);
-
-                                     memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
-                                     offset += sizeof(uint32_t);
-
-                                     memcpy(buffer + offset, &elapsed, sizeof(float));
-                                     offset += sizeof(float);
-
-                                     /*memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
+                                       /*memcpy(buffer + offset, spectrum.data(), spectrum.size() * sizeof(float));
                                      offset += spectrum.size() * sizeof(float);*/
-                                     memcpy(buffer + offset, compressed, outbytes);
-                                     offset += outbytes;
+                                       memcpy(buffer + offset, compressed, outbytes);
+                                       offset += outbytes;
 
-                                     ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                       if (user->ptr->active)
+                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                     }
+
+                                     if (buffer != NULL)
+                                       free(buffer);
+
+                                     if (compressed != NULL)
+                                       free(compressed);
                                    }
-
-                                   if (buffer != NULL)
-                                     free(buffer);
-
-                                   if (compressed != NULL)
-                                     free(compressed);
                                  }
-                               }
-                             }; //).detach();
+
+                                 // remove itself from the list of active threads
+                                 /*std::lock_guard<std::shared_mutex> unique_session(user->ptr->mtx);
+                                 user->ptr->active_threads.erase(tid);*/
+                               }); //.detach();
+
+                               user->ptr->active_threads.add_thread(spectrum_thread);
+                             }
                            }
                          }
 
@@ -3145,6 +3179,8 @@ int main(int argc, char *argv[])
                          {
                            if (user->ptr != NULL)
                            {
+                             user->ptr->active = false;
+
                              PrintThread{} << "[µWS] closing a session "
                                            << user->ptr->session_id << " for "
                                            << user->ptr->primary_id
@@ -3166,6 +3202,9 @@ int main(int argc, char *argv[])
                                if (connections.size() == 0)
                                  m_progress.erase(primary_id);
                              }).detach();
+
+                             // join on all active threads
+                             user->ptr->active_threads.join_all();
 
                              delete user->ptr;
                            }
