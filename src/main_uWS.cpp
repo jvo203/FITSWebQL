@@ -2694,9 +2694,8 @@ int main(int argc, char *argv[])
                              {
                                // launch a separate thread
                                boost::thread *spectrum_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq]() {
-                                 std::thread::id tid = std::this_thread::get_id();
-
-                                 // insert itself into the list of active threads
+                                 if (!user->ptr->active)
+                                   return;
 
                                  fits->update_timestamp();
 
