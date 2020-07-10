@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-07-09.0"
+#define VERSION_STRING "SV2020-07-10.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2699,25 +2699,20 @@ int main(int argc, char *argv[])
 
                                  fits->update_timestamp();
 
-                                 // gain unique access
-                                 std::lock_guard<std::shared_mutex> unique_session(user->ptr->mtx);
-                                 user->ptr->last_seq = seq;
-
-                                 /*{
+                                 {
                                    // gain unique access
-                                   std::lock_guard<std::shared_mutex> unique_session(user->ptr->mtx);
+                                   std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
 
                                    int last_seq = user->ptr->last_seq;
 
-                                   if (seq < last_seq)
+                                   if (last_seq > seq)
                                    {
                                      printf("skipping an old frame (%d < %d)\n", seq, last_seq);
-
                                      return;
                                    }
 
                                    user->ptr->last_seq = seq;
-                                 }*/
+                                 }
 
                                  // copy over the default {pixels,mask}
                                  {
@@ -2884,7 +2879,11 @@ int main(int argc, char *argv[])
                                              offset += output.length();
 
                                              if (user->ptr->active)
-                                               ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                             {
+                                               std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                               if (seq == user->ptr->last_seq)
+                                                 ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                             }
 
                                              free(buffer);
                                            }
@@ -2966,7 +2965,11 @@ int main(int argc, char *argv[])
                                          offset += output.length();
 
                                          if (user->ptr->active)
-                                           ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                         {
+                                           std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                           if (seq == user->ptr->last_seq)
+                                             ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                         }
 
                                          free(buffer);
                                        }
@@ -3104,7 +3107,11 @@ int main(int argc, char *argv[])
                                        offset += outbytes;
 
                                        if (user->ptr->active)
-                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                       {
+                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                         if (seq == user->ptr->last_seq)
+                                           ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                       }
                                      }
 
                                      if (buffer != NULL)
