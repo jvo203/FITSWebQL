@@ -71,6 +71,7 @@ int roundUp(int numToRound, int multiple)
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <tuple>
 
 #include <chrono>
 using std::chrono::steady_clock;
@@ -104,6 +105,14 @@ auto Ipp8uFree = [](Ipp8u *p) {
     ippsFree(p);
   }
 };
+
+inline std::tuple<int, int> make_indices(int x, int y)
+{
+  int idx = x / ZFP_CACHE_REGION;
+  int idy = y / ZFP_CACHE_REGION;
+
+  return {idx, idx};
+}
 
 void hdr_set_long_value(char *hdr, long value)
 {
@@ -3145,8 +3154,70 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   for (size_t i = start; i <= end; i++)
   {
     float spectrum_value = 0.0f;
+    bool pixels_cached = true;
+    bool mask_cached = true;
 
-    if (fits_cube[i] != NULL)
+    int pixels_idz = i / 4;
+    int mask_idz = i;
+
+    // get a list of regions based on the four corners defined by _x1, _x2, _y1, _y2
+    std::tuple<int, int> corners[4];
+
+    corners[0] = make_indices(_x1, _y1);
+    corners[1] = make_indices(_x1, _y2);
+    corners[2] = make_indices(_x2, _y1);
+    corners[3] = make_indices(_x2, _y2);
+
+    {
+      //std::shared_lock<std::shared_mutex> read_only(pixels_mtx);
+      auto z_entry = cube_pixels[pixels_idz];
+
+      //  check if all pixel regions are available
+      for (int j = 0; j < 4; j++)
+      {
+        auto [idx, idy] = corners[j];
+
+        // check the y-axis
+        if (z_entry.find(idy) == z_entry.end())
+          pixels_cached = false;
+        else
+        {
+          // check the x-axis
+          auto y_entry = z_entry[idy];
+          if (y_entry.find(idx) == y_entry.end())
+            pixels_cached = false;
+        }
+      }
+    }
+
+    {
+      //std::shared_lock<std::shared_mutex> read_only(mask_mtx);
+      auto z_entry = cube_mask[mask_idz];
+
+      //  check if all mask regions are available
+      for (int j = 0; j < 4; j++)
+      {
+        auto [idx, idy] = corners[j];
+
+        // check the y-axis
+        if (z_entry.find(idy) == z_entry.end())
+          mask_cached = false;
+        else
+        {
+          // check the x-axis
+          auto y_entry = z_entry[idy];
+          if (y_entry.find(idx) == y_entry.end())
+            mask_cached = false;
+        }
+      }
+    }
+
+    if (pixels_cached && mask_cached)
+    {
+      // TO DO : use the compressed data cache
+      spectrum_value = float(i % 3);
+    }
+    else if (fits_cube[i] != NULL)
     {
       if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
