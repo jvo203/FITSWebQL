@@ -3154,10 +3154,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   for (size_t i = start; i <= end; i++)
   {
     float spectrum_value = 0.0f;
-    bool pixels_cached = true;
-    bool mask_cached = true;
+    bool pixels_cached = false;
+    bool mask_cached = false;
 
-    int pixels_idz = i / 4;
+    /*int pixels_idz = i / 4;
     int mask_idz = i;
 
     // get a list of regions based on the four corners defined by _x1, _x2, _y1, _y2
@@ -3210,7 +3210,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
             mask_cached = false;
         }
       }
-    }
+    }*/
 
     if (pixels_cached && mask_cached)
     {
