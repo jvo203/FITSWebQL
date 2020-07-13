@@ -3171,6 +3171,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   for (size_t i = start; i <= end; i++)
   {
     float spectrum_value = 0.0f;
+    bool has_compressed_spectrum = false;
     bool pixels_cached = false;
     bool mask_cached = false;
 
@@ -3237,8 +3238,41 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
     {
       // TO DO : use the compressed data cache
       spectrum_value = float(i % 3);
+
+      auto [start_x, start_y] = make_indices(_x1, _y1);
+      auto [end_x, end_y] = make_indices(_x2, _y2);
+
+      // stitch together decompressed regions
+
+      // pixels
+
+      // mask
+      {
+        auto mask_blocks = cube_mask[mask_idz].load();
+
+        int dimx = end_x - start_x + 1;
+        int dimy = end_y - start_y + 1;
+
+        size_t mask_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION * sizeof(Ipp8u);
+        Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
+
+        for (auto idy = start_y; idy <= end_y;
+             idy++)
+          for (auto idx = start_x; idx <= end_x; idx++)
+          {
+            Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
+            int compressed_size = LZ4_decompress_fast((const char *)buffer, (char *)_mask, mask_size);
+            
+            if (compressed_size < 0)
+              printf("problems decompressing LZ4 mask [%d][%d];\n", idy, idx);
+            else {
+              // copy _mask to the mask mosaic
+            }
+          }
+      }
     }
-    else if (fits_cube[i] != NULL)
+
+    if (!has_compressed_spectrum && fits_cube[i] != NULL)
     {
       if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF32((int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax, width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
