@@ -2032,7 +2032,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // init the compressed regions (sizing: err on the side of caution)
     // cannot resize a vector of atomics in C++ ...
     cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
-    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth);
     std::cout << "cube_pixels::size = " << cube_pixels.size() << ", cube_mask::size = " << cube_mask.size() << std::endl;
 
     auto _img_pixels = img_pixels.get();
@@ -3171,10 +3171,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   for (size_t i = start; i <= end; i++)
   {
     float spectrum_value = 0.0f;
-    bool pixels_cached = false;
-    bool mask_cached = false;
+    bool pixels_cached = true;
+    bool mask_cached = true;
 
-    /*int pixels_idz = i / 4;
+    int pixels_idz = i / 4;
     int mask_idz = i;
 
     // get a list of regions based on the four corners defined by _x1, _x2, _y1, _y2
@@ -3185,49 +3185,47 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
     corners[2] = make_indices(_x2, _y1);
     corners[3] = make_indices(_x2, _y2);
 
+    auto pixel_blocks = cube_pixels[pixels_idz].load();
+    if (pixel_blocks != nullptr)
     {
-      //std::shared_lock<std::shared_mutex> read_only(pixels_mtx);
-      auto z_entry = cube_pixels[pixels_idz];
-
       //  check if all pixel regions are available
       for (int j = 0; j < 4; j++)
       {
         auto [idx, idy] = corners[j];
 
         // check the y-axis
-        if (z_entry.find(idy) == z_entry.end())
+        if (pixel_blocks->find(idy) == pixel_blocks->end())
           pixels_cached = false;
         else
         {
           // check the x-axis
-          auto y_entry = z_entry[idy];
+          auto y_entry = (*pixel_blocks)[idy];
           if (y_entry.find(idx) == y_entry.end())
             pixels_cached = false;
         }
       }
     }
 
+    auto mask_blocks = cube_mask[mask_idz].load();
+    if (mask_blocks != nullptr)
     {
-      //std::shared_lock<std::shared_mutex> read_only(mask_mtx);
-      auto z_entry = cube_mask[mask_idz];
-
       //  check if all mask regions are available
       for (int j = 0; j < 4; j++)
       {
         auto [idx, idy] = corners[j];
 
         // check the y-axis
-        if (z_entry.find(idy) == z_entry.end())
+        if (mask_blocks->find(idy) == mask_blocks->end())
           mask_cached = false;
         else
         {
           // check the x-axis
-          auto y_entry = z_entry[idy];
+          auto y_entry = (*mask_blocks)[idy];
           if (y_entry.find(idx) == y_entry.end())
             mask_cached = false;
         }
       }
-    }*/
+    }
 
     if (pixels_cached && mask_cached)
     {
@@ -3350,6 +3348,8 @@ void FITS::zfp_compress_cube(size_t start_k)
 
   if (pBuffer != NULL)
   {
+    compressed_blocks *blocks = new compressed_blocks();
+
     for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
       for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
       {
@@ -3466,8 +3466,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
         try
         {
-          //std::lock_guard<std::shared_mutex> guard(pixels_mtx);
-          //cube_pixels[zfp_idz][idy][idx] = std::move(block_pixels);
+          (*blocks)[idy][idx] = std::move(block_pixels);
         }
         catch (std::bad_alloc const &err)
         {
@@ -3478,6 +3477,9 @@ void FITS::zfp_compress_cube(size_t start_k)
         if (fd != -1)
           close(fd);
       }
+
+    // add the blocks to cube_pixels
+    cube_pixels[zfp_idz].store(blocks);
 
     ippsFree(pBuffer);
   }
@@ -3502,6 +3504,8 @@ void FITS::zfp_compress_cube(size_t start_k)
 
       if (mkdir(lz4_dir.c_str(), 0777) != 0)
         perror("(non-critical) cannot create a mask sub-cache directory");
+
+      compressed_blocks *blocks = new compressed_blocks();
 
       for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
         for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
@@ -3595,8 +3599,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
           try
           {
-            //std::lock_guard<std::shared_mutex> guard(mask_mtx);
-            //cube_mask[lz4_idz][idy][idx] = std::move(block_mask);
+            (*blocks)[idy][idx] = std::move(block_mask);
           }
           catch (std::bad_alloc const &err)
           {
@@ -3607,6 +3610,9 @@ void FITS::zfp_compress_cube(size_t start_k)
           if (fd != -1)
             close(fd);
         }
+
+      // add the blocks to cube_mask
+      cube_mask[lz4_idz].store(blocks);
     }
 
     // LZ4 done, release the buffer
