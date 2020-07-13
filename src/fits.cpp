@@ -3171,26 +3171,27 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
   for (size_t i = start; i <= end; i++)
   {
     float spectrum_value = 0.0f;
-    bool pixels_cached = true;
-    bool mask_cached = true;
+    bool pixels_cached = false;
+    bool mask_cached = false;
 
     int pixels_idz = i / 4;
     int mask_idz = i;
 
     // get a list of regions based on the four corners defined by _x1, _x2, _y1, _y2
-    std::tuple<int, int> corners[4];
+    /*std::tuple<int, int> corners[4];
 
     corners[0] = make_indices(_x1, _y1);
     corners[1] = make_indices(_x1, _y2);
     corners[2] = make_indices(_x2, _y1);
-    corners[3] = make_indices(_x2, _y2);
+    corners[3] = make_indices(_x2, _y2);*/
 
     {
       auto pixel_blocks = cube_pixels[pixels_idz].load();
       if (pixel_blocks != nullptr)
       {
+        pixels_cached = true;
         //  check if all pixel regions are available
-        for (int j = 0; j < 4; j++)
+        /*for (int j = 0; j < 4; j++)
         {
           auto [idx, idy] = corners[j];
 
@@ -3204,7 +3205,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
             if (y_entry.find(idx) == y_entry.end())
               pixels_cached = false;
           }
-        }
+        }*/
       }
     }
 
@@ -3212,8 +3213,9 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
       auto mask_blocks = cube_mask[mask_idz].load();
       if (mask_blocks != nullptr)
       {
+        mask_cached = true;
         //  check if all mask regions are available
-        for (int j = 0; j < 4; j++)
+        /*for (int j = 0; j < 4; j++)
         {
           auto [idx, idy] = corners[j];
 
@@ -3227,7 +3229,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
             if (y_entry.find(idx) == y_entry.end())
               mask_cached = false;
           }
-        }
+        }*/
       }
     }
 
