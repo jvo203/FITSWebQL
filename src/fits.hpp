@@ -83,6 +83,8 @@ enum beam_shape
   circle
 };
 
+typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
+
 class FITS
 {
 public:
@@ -241,11 +243,14 @@ private:
   std::vector<void *> fits_cube;
 
   // compressed FITS cube planes / block regions
-  std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_pixels;
-  std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_mask;
+  /*std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_pixels;
+  std::vector<std::map<int, std::map<int, std::shared_ptr<Ipp8u>>>> cube_mask;*/
+  std::vector<std::atomic<compressed_blocks *>> cube_pixels;
+  std::vector<std::atomic<compressed_blocks *>> cube_mask;
+  //std::vector<std::atomic<compressed_blocks *>> test;
 
-  std::shared_mutex pixels_mtx;
-  std::shared_mutex mask_mtx;
+  /*std::shared_mutex pixels_mtx;
+  std::shared_mutex mask_mtx;*/
 
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;

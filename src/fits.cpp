@@ -353,6 +353,26 @@ FITS::~FITS()
     munmap(fits_ptr, fits_ptr_size);
 
   // clear compressed cube regions
+  for (auto i = 0; i < cube_pixels.size(); i++)
+  {
+    auto ptr = cube_pixels[i].load();
+
+    if (ptr != nullptr)
+      delete ptr;
+    else
+      printf("a null cube_pixels element.\n");
+  }
+
+  for (auto i = 0; i < cube_mask.size(); i++)
+  {
+    auto ptr = cube_mask[i].load();
+
+    if (ptr != nullptr)
+      delete ptr;
+    else
+      printf("a null cube_mask element.\n");
+  }
+
   cube_pixels.clear();
   cube_mask.clear();
 
@@ -2009,13 +2029,10 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // init the cube with nullptr
     fits_cube.resize(depth, nullptr);
 
-    // clear the compressed regions just in case
-    cube_pixels.clear();
-    cube_mask.clear();
-
     // init the compressed regions (sizing: err on the side of caution)
-    cube_pixels.resize(depth / 4 + 4);
-    cube_mask.resize(depth + 4);
+    // cannot resize a vector of atomics in C++ ...
+    cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
     std::cout << "cube_pixels::size = " << cube_pixels.size() << ", cube_mask::size = " << cube_mask.size() << std::endl;
 
     auto _img_pixels = img_pixels.get();
@@ -3450,7 +3467,7 @@ void FITS::zfp_compress_cube(size_t start_k)
         try
         {
           //std::lock_guard<std::shared_mutex> guard(pixels_mtx);
-          cube_pixels[zfp_idz][idy][idx] = std::move(block_pixels);
+          //cube_pixels[zfp_idz][idy][idx] = std::move(block_pixels);
         }
         catch (std::bad_alloc const &err)
         {
@@ -3579,7 +3596,7 @@ void FITS::zfp_compress_cube(size_t start_k)
           try
           {
             //std::lock_guard<std::shared_mutex> guard(mask_mtx);
-            cube_mask[lz4_idz][idy][idx] = std::move(block_mask);
+            //cube_mask[lz4_idz][idy][idx] = std::move(block_mask);
           }
           catch (std::bad_alloc const &err)
           {
