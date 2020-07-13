@@ -3185,44 +3185,48 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
     corners[2] = make_indices(_x2, _y1);
     corners[3] = make_indices(_x2, _y2);
 
-    auto pixel_blocks = cube_pixels[pixels_idz].load();
-    if (pixel_blocks != nullptr)
     {
-      //  check if all pixel regions are available
-      for (int j = 0; j < 4; j++)
+      auto pixel_blocks = cube_pixels[pixels_idz].load();
+      if (pixel_blocks != nullptr)
       {
-        auto [idx, idy] = corners[j];
-
-        // check the y-axis
-        if (pixel_blocks->find(idy) == pixel_blocks->end())
-          pixels_cached = false;
-        else
+        //  check if all pixel regions are available
+        for (int j = 0; j < 4; j++)
         {
-          // check the x-axis
-          auto y_entry = (*pixel_blocks)[idy];
-          if (y_entry.find(idx) == y_entry.end())
+          auto [idx, idy] = corners[j];
+
+          // check the y-axis
+          if (pixel_blocks->find(idy) == pixel_blocks->end())
             pixels_cached = false;
+          else
+          {
+            // check the x-axis
+            auto y_entry = (*pixel_blocks)[idy];
+            if (y_entry.find(idx) == y_entry.end())
+              pixels_cached = false;
+          }
         }
       }
     }
 
-    auto mask_blocks = cube_mask[mask_idz].load();
-    if (mask_blocks != nullptr)
     {
-      //  check if all mask regions are available
-      for (int j = 0; j < 4; j++)
+      auto mask_blocks = cube_mask[mask_idz].load();
+      if (mask_blocks != nullptr)
       {
-        auto [idx, idy] = corners[j];
-
-        // check the y-axis
-        if (mask_blocks->find(idy) == mask_blocks->end())
-          mask_cached = false;
-        else
+        //  check if all mask regions are available
+        for (int j = 0; j < 4; j++)
         {
-          // check the x-axis
-          auto y_entry = (*mask_blocks)[idy];
-          if (y_entry.find(idx) == y_entry.end())
+          auto [idx, idy] = corners[j];
+
+          // check the y-axis
+          if (mask_blocks->find(idy) == mask_blocks->end())
             mask_cached = false;
+          else
+          {
+            // check the x-axis
+            auto y_entry = (*mask_blocks)[idy];
+            if (y_entry.find(idx) == y_entry.end())
+              mask_cached = false;
+          }
         }
       }
     }
