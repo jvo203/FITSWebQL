@@ -3262,10 +3262,11 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
           {
             Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
             int compressed_size = LZ4_decompress_fast((const char *)buffer, (char *)_mask, mask_size);
-            
+
             if (compressed_size < 0)
               printf("problems decompressing LZ4 mask [%d][%d];\n", idy, idx);
-            else {
+            else
+            {
               // copy _mask to the mask mosaic
             }
           }
