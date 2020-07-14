@@ -3267,7 +3267,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1, int x2
               printf("problems decompressing LZ4 mask [%d][%d];\n", idy, idx);
             else
             {
-              // copy _mask to the mask mosaic
+              // copy _mask to the mosaic
             }
           }
       }
