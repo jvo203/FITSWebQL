@@ -12,6 +12,7 @@
 #include <ippdc.h>
 
 #define ZFP_CACHE_REGION 256
+#define ZFPMAXPREC 11
 
 // base64 encoding with SSL
 #include <openssl/bio.h>
@@ -3206,6 +3207,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     bool mask_cached = false;
 
     int pixels_idz = i / 4;
+    int frame = i % 4; // a sub-pixels frame count in [0,4)
     int mask_idz = i;
 
     // get a list of regions based on the four corners defined by _x1, _x2, _y1,
@@ -3278,15 +3280,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int dimy = end_y - start_y + 1;
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
 
-      // pixels
-      Ipp32f pixels_mosaic[dimx * dimy * region_size];
-      {
-        auto pixel_blocks = cube_pixels[pixels_idz].load();
-
-        //size_t pixels_size = region_size * sizeof(Ipp32f);
-        Ipp32f _pixels[region_size];
-      }
-
       // mask
       Ipp8u mask_mosaic[dimx * dimy * region_size];
       {
@@ -3302,13 +3295,16 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           for (auto idx = start_x; idx <= end_x; idx++)
           {
             Ipp8u *offset = dst + (idx - start_x) * region_size;
-
             Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
-            int compressed_size = LZ4_decompress_fast((const char *)buffer,
-                                                      (char *)_mask, mask_size);
 
-            if (compressed_size < 0)
-              printf("problems decompressing LZ4 mask [%d][%d];\n", idy, idx);
+            int compressed_size = *((int *)buffer);
+            int decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask, compressed_size, mask_size);
+            /* int compressed_size = LZ4_decompress_fast((const char *)buffer,
+                                                      (char *)_mask, mask_size);*/
+
+            //if (compressed_size < 0)
+            if (decompressed_size != mask_size)
+              printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
             else
             {
               // copy _mask to the mosaic
@@ -3321,6 +3317,31 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                 memcpy(_dst, _src, line_size);
               }
             }
+          }
+        }
+      }
+
+      // pixels
+      Ipp32f pixels_mosaic[dimx * dimy * region_size];
+      {
+        auto pixel_blocks = cube_pixels[pixels_idz].load();
+
+        //size_t pixels_size = region_size * sizeof(Ipp32f);
+        Ipp32f _pixels[region_size];
+
+        for (auto idy = start_y; idy <= end_y; idy++)
+        {
+          Ipp32f *dst = pixels_mosaic + (idy - start_y) * dimx * region_size;
+
+          for (auto idx = start_x; idx <= end_x; idx++)
+          {
+            Ipp32f *offset = dst + (idx - start_x) * region_size;
+            Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
+
+            int decStateSize;
+            IppDecodeZfpState_32f *pDecState;
+
+            // decompress 4x4x4 zfp blocks from a zfp stream
           }
         }
       }
@@ -3474,7 +3495,7 @@ void FITS::zfp_compress_cube(size_t start_k)
         pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
         ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
         // relative accuracy (a Fixed-Precision mode)
-        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, 11, IppZFPMINEXP,
+        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
                              pEncState);
 
         // ... ZFP compression
@@ -3601,6 +3622,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
   // compress the four masks with LZ4
   int compressed_size = 0;
+  size_t compressed_size_plus = 0;
   Ipp8u _mask[ZFP_CACHE_REGION * ZFP_CACHE_REGION];
 
   size_t mask_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION * sizeof(Ipp8u);
@@ -3651,13 +3673,16 @@ void FITS::zfp_compress_cube(size_t start_k)
           compressed_size =
               LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
                               worst_size, LZ4HC_CLEVEL_MAX);
+          compressed_size_plus = compressed_size + sizeof(compressed_size);
 
           /*printf("lz4-compressing mask %dx%dx4 at (%d,%d,%d); compressed "
                  "= %d, "
+                 "plus = %d, "
                  "orig. "
                  "= %zu bytes.\n",
                  ZFP_CACHE_REGION, ZFP_CACHE_REGION, src_x, src_y, lz4_idz,
                  compressed_size,
+                 compressed_size_plus,
                  mask_size);*/
 
           std::shared_ptr<Ipp8u> block_mask;
@@ -3672,16 +3697,16 @@ void FITS::zfp_compress_cube(size_t start_k)
           if (fd != -1)
           {
 #if defined(__APPLE__) && defined(__MACH__)
-            int stat = ftruncate(fd, compressed_size);
+            int stat = ftruncate(fd, compressed_size_plus);
 #else
-            int stat = ftruncate64(fd, compressed_size);
+            int stat = ftruncate64(fd, compressed_size_plus);
 #endif
 
             if (!stat)
             {
               // file-mmap compressed_size
               block_mask = std::shared_ptr<Ipp8u>(
-                  (Ipp8u *)mmap(nullptr, compressed_size,
+                  (Ipp8u *)mmap(nullptr, compressed_size_plus,
                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0),
                   [=](void *ptr) {
                     if (ptr != MAP_FAILED)
@@ -3707,15 +3732,21 @@ void FITS::zfp_compress_cube(size_t start_k)
           {
             // std::cout << "mmap failed, failover to RAM\n";
             block_mask = std::shared_ptr<Ipp8u>(
-                ippsMalloc_8u_L(compressed_size), Ipp8uFree);
+                ippsMalloc_8u_L(compressed_size_plus), Ipp8uFree);
           }
 
-          // finally memcpy compressed_size from pBuffer
+          // finally memcpy <compressed_size> bytes+ from pBuffer
           {
             Ipp8u *ptr = block_mask.get();
 
             if (ptr != MAP_FAILED && ptr != NULL)
-              memcpy(ptr, pBuffer, compressed_size);
+            {
+              // compressed size
+              memcpy(ptr, &compressed_size, sizeof(compressed_size));
+
+              // compressed data
+              memcpy(ptr + sizeof(compressed_size), pBuffer, compressed_size);
+            }
           }
 
           try
