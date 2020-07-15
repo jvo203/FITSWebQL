@@ -3296,8 +3296,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           {
             Ipp8u *offset = dst + (idx - start_x) * region_size;
             Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
-
             int compressed_size = *((int *)buffer);
+
             int decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask, compressed_size, mask_size);
             /* int compressed_size = LZ4_decompress_fast((const char *)buffer,
                                                       (char *)_mask, mask_size);*/
@@ -3337,11 +3337,18 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           {
             Ipp32f *offset = dst + (idx - start_x) * region_size;
             Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
+            int pComprLen = *((int *)buffer);
 
             int decStateSize;
             IppDecodeZfpState_32f *pDecState;
 
+            ippsDecodeZfpGetStateSize_32f(&decStateSize);
+            pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
+            ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
+
             // decompress 4x4x4 zfp blocks from a zfp stream
+
+            ippsFree(pDecState);
           }
         }
       }
@@ -3490,6 +3497,7 @@ void FITS::zfp_compress_cube(size_t start_k)
         int encStateSize;
         IppEncodeZfpState_32f *pEncState;
         int pComprLen = 0;
+        int pComprLen_plus = 0;
 
         ippsEncodeZfpGetStateSize_32f(&encStateSize);
         pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
@@ -3536,6 +3544,8 @@ void FITS::zfp_compress_cube(size_t start_k)
         ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
         ippsFree(pEncState);
 
+        pComprLen_plus = pComprLen + sizeof(pComprLen);
+
         /*printf("zfp-compressing pixels %dx%dx4 at (%d,%d,%zu); pComprLen "
                "= %d, "
                "orig. "
@@ -3556,16 +3566,16 @@ void FITS::zfp_compress_cube(size_t start_k)
         if (fd != -1)
         {
 #if defined(__APPLE__) && defined(__MACH__)
-          int stat = ftruncate(fd, pComprLen);
+          int stat = ftruncate(fd, pComprLen_plus);
 #else
-          int stat = ftruncate64(fd, pComprLen);
+          int stat = ftruncate64(fd, pComprLen_plus);
 #endif
 
           if (!stat)
           {
             // file-mmap pComprLen
             block_pixels = std::shared_ptr<Ipp8u>(
-                (Ipp8u *)mmap(nullptr, pComprLen, PROT_READ | PROT_WRITE,
+                (Ipp8u *)mmap(nullptr, pComprLen_plus, PROT_READ | PROT_WRITE,
                               MAP_SHARED, fd, 0),
                 [=](void *ptr) {
                   if (ptr != MAP_FAILED)
@@ -3589,14 +3599,20 @@ void FITS::zfp_compress_cube(size_t start_k)
         // switch to RAM instead of mmap in case of trouble
         if (!is_mmapped)
           block_pixels =
-              std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen), Ipp8uFree);
+              std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus), Ipp8uFree);
 
-        // finally memcpy pComprLen from pBuffer
+        // finally memcpy <pComprLen> bytes+ from pBuffer
         {
           Ipp8u *ptr = block_pixels.get();
 
           if (ptr != MAP_FAILED && ptr != NULL)
-            memcpy(ptr, pBuffer, pComprLen);
+          {
+            // compressed size
+            memcpy(ptr, &pComprLen, sizeof(pComprLen));
+
+            // compressed data
+            memcpy(ptr + sizeof(pComprLen), pBuffer, pComprLen);
+          }
         }
 
         try
