@@ -3320,13 +3320,14 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         }
       }
 
-      if (i == depth / 2)
+      // debug
+      /*if (i == depth / 2)
       {
-        // debugging: print the mask_mosaic
+        // print the mask_mosaic
         for (int _i = 0; _i < dimx * dimy * region_size; _i++)
           printf("%d", mask_mosaic[_i]);
         printf("\n");
-      }
+      }*/
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
