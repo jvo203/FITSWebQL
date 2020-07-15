@@ -3280,10 +3280,15 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
       // pixels
       Ipp32f pixels_mosaic[dimx * dimy * region_size];
+      {
+        auto pixel_blocks = cube_pixels[pixels_idz].load();
+
+        //size_t pixels_size = region_size * sizeof(Ipp32f);
+        Ipp32f _pixels[region_size];
+      }
 
       // mask
       Ipp8u mask_mosaic[dimx * dimy * region_size];
-
       {
         auto mask_blocks = cube_mask[mask_idz].load();
 
