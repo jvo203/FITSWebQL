@@ -3345,8 +3345,21 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             ippsDecodeZfpGetStateSize_32f(&decStateSize);
             pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
             ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
+            // relative accuracy (a Fixed-Precision mode)
+            ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                                 pDecState);
 
             // decompress 4x4x4 zfp blocks from a zfp stream
+            float block[4 * 4 * 4];
+
+            for (int y = 0; y < ZFP_CACHE_REGION; y += 4)
+              for (int x = 0; x < ZFP_CACHE_REGION; x += 4)
+              {
+                ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
+                                     4 * 4 * sizeof(Ipp32f));
+
+                // extract data from a selected frame of a 4x4x4 block                                     
+              }
 
             ippsFree(pDecState);
           }
