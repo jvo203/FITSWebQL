@@ -13,6 +13,7 @@
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 11
+// perhaps we should use 16 bits as the maximum precision?
 
 // base64 encoding with SSL
 #include <openssl/bio.h>
@@ -3358,20 +3359,49 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                 ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
                                      4 * 4 * sizeof(Ipp32f));
 
-                // extract data from a selected frame of a 4x4x4 block                                     
+                // extract data from a selected frame of a 4x4x4 block
+                int _k = frame;
+                {
+                  int offset = 4 * 4 * _k;
+                  for (int _j = 0; _j < 4; _j++)
+                    for (int _i = 0; _i < 4; _i++)
+                    {
+                      size_t dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
+                      _pixels[dst] = block[offset++];
+                    }
+                }
               }
 
             ippsFree(pDecState);
+
+            // copy _pixels to the mosaic
+            for (int line = 0; line < ZFP_CACHE_REGION; line++)
+            {
+              // use memcpy here
+              Ipp32f *_src = _pixels + line * ZFP_CACHE_REGION;
+              Ipp32f *_dst = offset + line * ZFP_CACHE_REGION;
+              size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
+              memcpy(_dst, _src, line_size);
+            }
           }
         }
       }
 
-      // debug
+      // debug mask
       /*if (i == depth / 2)
       {
         // print the mask_mosaic
         for (int _i = 0; _i < dimx * dimy * region_size; _i++)
-          printf("%d", mask_mosaic[_i]);
+          printf("%d ", mask_mosaic[_i]);
+        printf("\n");
+      }*/
+
+      // debug pixels
+      /*if (i == depth / 2)
+      {
+        // print the mask_mosaic
+        for (int _i = 0; _i < dimx * dimy * region_size; _i++)
+          printf("%f ", pixels_mosaic[_i]);
         printf("\n");
       }*/
     }
