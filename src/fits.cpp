@@ -3404,6 +3404,11 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           printf("%f ", pixels_mosaic[_i]);
         printf("\n");
       }*/
+
+      // cross-check
+      /*for (int _i = 0; _i < dimx * dimy * region_size; _i++)
+        if (mask_mosaic[_i] == 0 && !FPzero(pixels_mosaic[_i]))
+          printf("failed a cross-check: %d : %f\n", mask_mosaic[_i], pixels_mosaic[_i]);*/
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
