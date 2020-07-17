@@ -12,7 +12,6 @@
 #include <ippdc.h>
 #include <limits>
 
-
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 11
 // perhaps we should use 16 bits as the maximum precision?
@@ -3414,7 +3413,28 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
       // apply the NaN mask to floating-point pixels
       size_t work_size = dimx * dimy * region_size;
-      ispc::mask2float32(pixels_mosaic, mask_mosaic, work_size);      
+      ispc::mask2float32(pixels_mosaic, mask_mosaic, work_size);
+
+      // re-base the bounding box
+      _x1 -= start_x * ZFP_CACHE_REGION;
+      _x2 -= start_x * ZFP_CACHE_REGION;
+
+      _y1 -= start_y * ZFP_CACHE_REGION;
+      _y2 -= start_y * ZFP_CACHE_REGION;
+
+      // will switch to half-float in the future, for now uses standard float32
+      if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumF16(
+            pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
+
+      // will switch to half-float in the future, for now uses standard float32
+      if (beam == square)
+        spectrum_value = ispc::calculate_square_spectrumF16(
+            pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, _x1, _x2, _y1, _y2, average, _cdelt3);
+
+      has_compressed_spectrum = true;
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
