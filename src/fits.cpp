@@ -474,7 +474,6 @@ void FITS::defaults()
 
 void FITS::update_timestamp()
 {
-  std::lock_guard<std::mutex> lock(fits_mutex);
   timestamp = std::time(nullptr);
 }
 
