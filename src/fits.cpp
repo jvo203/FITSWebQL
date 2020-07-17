@@ -13,7 +13,7 @@
 #include <limits>
 
 #define ZFP_CACHE_REGION 256
-#define ZFPMAXPREC 24
+#define ZFPMAXPREC 16
 // perhaps we should use 16 bits as the maximum precision?
 
 // base64 encoding with SSL
