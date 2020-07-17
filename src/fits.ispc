@@ -53,7 +53,7 @@ export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], unif
   foreach(i=0 ... size)
     {
       //in-place endian conversion, rebase the pixels
-      float tmp = bzero + bscale * floatbits(bswap32(src[i]));        
+      float tmp = bzero + bscale * floatbits(bswap32(src[i]));
 
       //next the min/max values & the mask
       cif(!(isnan(tmp) || isinf(tmp)) && (tmp > ignrval) && (tmp >= datamin) && (tmp <= datamax))
@@ -74,6 +74,15 @@ export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], unif
   rmin = reduce_min(vmin) ;
   rmax = reduce_max(vmax) ;
 } ;
+
+export void mask2float32(uniform float buffer[], uniform unsigned int8 mask[], uniform unsigned int size)
+{
+  foreach(i=0 ... size)
+    {
+      if(mask[i] == 0)
+        buffer[i] = 0x7ff80000; // quiet NaN        
+    }
+}
 
 export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
 {  
