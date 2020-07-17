@@ -2060,8 +2060,14 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // cannot resize a vector of atomics in C++ ...
     cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
     cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth);
+
+    cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
+    cache = std::vector<struct CacheEntry>(depth);
+
     std::cout << "cube_pixels::size = " << cube_pixels.size()
-              << ", cube_mask::size = " << cube_mask.size() << std::endl;
+              << ", cube_mask::size = " << cube_mask.size()
+              << ", cache::size = " << cache.size()
+              << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
 
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();

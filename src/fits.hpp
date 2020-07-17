@@ -84,12 +84,19 @@ enum beam_shape
 };
 
 typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
-typedef std::map<int, std::map<int, std::shared_ptr<Ipp32f>>> decompressed_blocks;
+
+// <short int> holds half-float pixels
+typedef std::map<int, std::map<int, std::shared_ptr<short>>> decompressed_blocks;
 
 struct CacheEntry
 {
   decompressed_blocks regions;
   std::atomic<std::time_t> timestamp;
+
+  CacheEntry()
+  {
+    timestamp = std::time(nullptr);
+  }
 };
 
 class FITS
