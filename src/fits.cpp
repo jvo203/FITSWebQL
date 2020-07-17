@@ -3435,7 +3435,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       }
 
       // will switch to half-float in the future, for now uses standard float32
-      /*if (beam == circle)
+      if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF16(
             pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
@@ -3444,7 +3444,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       if (beam == square)
         spectrum_value = ispc::calculate_square_spectrumF16(
             pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
-            dimx * ZFP_CACHE_REGION, _x1, _x2, _y1, _y2, average, _cdelt3);*/
+            dimx * ZFP_CACHE_REGION, _x1, _x2, _y1, _y2, average, _cdelt3);
 
       has_compressed_spectrum = true;
     }
