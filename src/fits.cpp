@@ -3413,9 +3413,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           printf("failed a cross-check: %d : %f\n", mask_mosaic[_i], pixels_mosaic[_i]);*/
 
       // apply the NaN mask to floating-point pixels
-      for (int _i = 0; _i < dimx * dimy * region_size; _i++)
-        if (mask_mosaic[_i] == 0)
-          pixels_mosaic[_i] = std::numeric_limits<float>::signaling_NaN();
+      size_t work_size = dimx * dimy * region_size;
+      ispc::mask2float32(pixels_mosaic, mask_mosaic, work_size);      
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
