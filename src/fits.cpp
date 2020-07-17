@@ -10,6 +10,8 @@
 
 // Intel IPP ZFP functions
 #include <ippdc.h>
+#include <limits>
+
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 11
@@ -3409,6 +3411,11 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       /*for (int _i = 0; _i < dimx * dimy * region_size; _i++)
         if (mask_mosaic[_i] == 0 && !FPzero(pixels_mosaic[_i]))
           printf("failed a cross-check: %d : %f\n", mask_mosaic[_i], pixels_mosaic[_i]);*/
+
+      // apply the NaN mask to floating-point pixels
+      for (int _i = 0; _i < dimx * dimy * region_size; _i++)
+        if (mask_mosaic[_i] == 0)
+          pixels_mosaic[_i] = std::numeric_limits<float>::signaling_NaN();
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
