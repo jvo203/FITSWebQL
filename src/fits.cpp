@@ -3425,14 +3425,14 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
       // debug
-      if (i == depth / 2)
+      /*if (i == depth / 2)
       {
         std::cout << "_x1: " << _x1 << " _x2: " << _x2 << " _y1: " << _y1 << " _y2: " << _y2 << std::endl;
         std::cout << "_width: " << dimx * ZFP_CACHE_REGION << " _height: " << dimy * ZFP_CACHE_REGION << std::endl;
         std::cout << "start_x: " << start_x << " start_y: " << start_y;
         std::cout << " __cx: " << __cx << " __cy: " << __cy << std::endl;
         std::cout << "__x1: " << __x1 << " __x2: " << __x2 << " __y1: " << __y1 << " __y2: " << __y2 << std::endl;
-      }
+      }*/
 
       // will switch to half-float in the future, for now uses standard float32
       if (beam == circle)
