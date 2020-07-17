@@ -3678,7 +3678,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                               MAP_SHARED, fd, 0),
                 [=](void *ptr) {
                   if (ptr != MAP_FAILED)
-                    munmap(ptr, pComprLen);
+                    munmap(ptr, pComprLen_plus);
                 });
 
             if (block_pixels.get() != MAP_FAILED)
@@ -3825,7 +3825,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0),
                   [=](void *ptr) {
                     if (ptr != MAP_FAILED)
-                      munmap(ptr, compressed_size);
+                      munmap(ptr, compressed_size_plus);
                   });
 
               if (block_mask.get() != MAP_FAILED)
