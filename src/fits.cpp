@@ -14,6 +14,7 @@
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 16
+#define ZFPACCURACY 1.0e-3
 // perhaps we should use 16 bits as the maximum precision?
 
 // base64 encoding with SSL
@@ -3137,7 +3138,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       beam_shape beam, double &elapsed)
 {
   std::vector<float> spectrum;
-  std::vector<float> test;
+  //std::vector<float> test;
 
   // sanity checks
   if (bitpix != -32)
@@ -3158,7 +3159,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // resize the spectrum vector
   spectrum.resize(length, 0);
-  test.resize(length, 0);
+  //test.resize(length, 0);
 
   // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
   // y2 << std::endl;
@@ -3279,8 +3280,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     if (pixels_cached && mask_cached)
     {
       // TO DO : use the compressed data cache
-      spectrum_value = float(i % 3);
-
+      //spectrum_value = float(i % 3);
       auto [start_x, start_y] = make_indices(_x1, _y1);
       auto [end_x, end_y] = make_indices(_x2, _y2);
 
@@ -3361,8 +3361,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
             ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
             // relative accuracy (a Fixed-Precision mode)
-            ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                                 pDecState);
+            /*ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                                 pDecState);*/
+            // absolute accuracy
+            ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
 
             // decompress 4x4x4 zfp blocks from a zfp stream
             float block[4 * 4 * 4];
@@ -3459,9 +3461,9 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
               pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
               dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
 
-        test[i - start] = spectrum_value;
+        //test[i - start] = spectrum_value;
         spectrum[i - start] = spectrum_value;
-        //has_compressed_spectrum = true;
+        has_compressed_spectrum = true;
       }
     }
 
@@ -3482,8 +3484,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   }
 
   // debug
-  for (int i = 0; i < length; i++)
-    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
+  /*for (int i = 0; i < length; i++)
+    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;*/
 
   auto end_t = steady_clock::now();
 
@@ -3609,8 +3611,10 @@ void FITS::zfp_compress_cube(size_t start_k)
         pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
         ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
         // relative accuracy (a Fixed-Precision mode)
-        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                             pEncState);
+        /*ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                             pEncState);*/
+        // absolute accuracy
+        ippsEncodeZfpSetAccuracy_32f(ZFPACCURACY, pEncState);
 
         // ... ZFP compression
         int x, y;
