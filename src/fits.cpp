@@ -3211,6 +3211,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 #pragma omp parallel for schedule(dynamic, 4)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
+    // ZFP needs a chunk of 4 iterations per thread; ignore non-esistent beginnings
     if (i < start)
       continue;
 
