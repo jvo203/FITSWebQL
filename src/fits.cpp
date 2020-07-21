@@ -3290,7 +3290,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
 
       // mask
-      Ipp8u mask_mosaic[dimx * dimy * region_size];
+      //Ipp8u mask_mosaic[dimx * dimy * region_size];
+      std::shared_ptr<Ipp8u> mask_mosaic =
+          std::shared_ptr<Ipp8u>(ippsMalloc_8u(dimx * dimy * region_size), Ipp8uFree);
+      if (mask_mosaic)
       {
         auto mask_blocks = cube_mask[mask_idz].load();
 
@@ -3299,7 +3302,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
         for (auto idy = start_y; idy <= end_y; idy++)
         {
-          Ipp8u *dst = mask_mosaic + (idy - start_y) * dimx * region_size;
+          Ipp8u *dst = mask_mosaic.get() + (idy - start_y) * dimx * region_size;
 
           for (auto idx = start_x; idx <= end_x; idx++)
           {
@@ -3331,7 +3334,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       }
 
       // pixels
-      Ipp32f pixels_mosaic[dimx * dimy * region_size];
+      //Ipp32f pixels_mosaic[dimx * dimy * region_size];
+      std::shared_ptr<Ipp32f> pixels_mosaic =
+          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
+      if (pixels_mosaic)
       {
         auto pixel_blocks = cube_pixels[pixels_idz].load();
 
@@ -3340,7 +3346,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
         for (auto idy = start_y; idy <= end_y; idy++)
         {
-          Ipp32f *dst = pixels_mosaic + (idy - start_y) * dimx * region_size;
+          Ipp32f *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
 
           for (auto idx = start_x; idx <= end_x; idx++)
           {
@@ -3395,8 +3401,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         }
       }
 
-      // debug mask
-      /*if (i == depth / 2)
+      if (pixels_mosaic && mask_mosaic)
+      {
+        // debug mask
+        /*if (i == depth / 2)
       {
         // print the mask_mosaic
         for (int _i = 0; _i < dimx * dimy * region_size; _i++)
@@ -3404,8 +3412,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         printf("\n");
       }*/
 
-      // debug pixels
-      /*if (i == depth / 2)
+        // debug pixels
+        /*if (i == depth / 2)
       {
         // print the mask_mosaic
         for (int _i = 0; _i < dimx * dimy * region_size; _i++)
@@ -3413,49 +3421,48 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         printf("\n");
       }*/
 
-      // cross-check
-      /*for (int _i = 0; _i < dimx * dimy * region_size; _i++)
+        // cross-check
+        /*for (int _i = 0; _i < dimx * dimy * region_size; _i++)
         if (mask_mosaic[_i] == 0 && !FPzero(pixels_mosaic[_i]))
           printf("failed a cross-check: %d : %f\n", mask_mosaic[_i], pixels_mosaic[_i]);*/
 
-      // apply the NaN mask to floating-point pixels
-      unsigned int work_size = dimx * dimy * region_size;
-      ispc::mask2float32(pixels_mosaic, mask_mosaic, work_size);
+        // apply the NaN mask to floating-point pixels
+        {
+          unsigned int work_size = dimx * dimy * region_size;
+          Ipp32f *_pixels = pixels_mosaic.get();
+          Ipp8u *_mask = mask_mosaic.get();
+          ispc::mask2float32(_pixels, _mask, work_size);
+          /*#pragma simd
+      for (unsigned int _i = 0; _i < work_size; _i++)
+        if (_mask[_i] == 0)
+          _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
+        }
 
-      // re-base the pixel coordinates
-      int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
-      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+        // re-base the pixel coordinates
+        int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+        int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+        int __cx = _cx - start_x * ZFP_CACHE_REGION;
 
-      int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
-      int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
-      int __cy = _cy - start_y * ZFP_CACHE_REGION;
+        int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
+        int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
+        int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
-      // debug
-      /*if (i == depth / 2)
-      {
-        std::cout << "_x1: " << _x1 << " _x2: " << _x2 << " _y1: " << _y1 << " _y2: " << _y2 << std::endl;
-        std::cout << "_width: " << dimx * ZFP_CACHE_REGION << " _height: " << dimy * ZFP_CACHE_REGION << std::endl;
-        std::cout << "start_x: " << start_x << " start_y: " << start_y;
-        std::cout << " __cx: " << __cx << " __cy: " << __cy << std::endl;
-        std::cout << "__x1: " << __x1 << " __x2: " << __x2 << " __y1: " << __y1 << " __y2: " << __y2 << std::endl;
-      }*/
+        // will switch to half-float in the future, for now uses standard float32
+        if (beam == circle)
+          spectrum_value = ispc::calculate_radial_spectrumF16(
+              pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+              dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
 
-      // will switch to half-float in the future, for now uses standard float32
-      if (beam == circle)
-        spectrum_value = ispc::calculate_radial_spectrumF16(
-            pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
-            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
+        // will switch to half-float in the future, for now uses standard float32
+        if (beam == square)
+          spectrum_value = ispc::calculate_square_spectrumF16(
+              pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+              dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
 
-      // will switch to half-float in the future, for now uses standard float32
-      if (beam == square)
-        spectrum_value = ispc::calculate_square_spectrumF16(
-            pixels_mosaic, 0.0f, 1.0f, ignrval, datamin, datamax,
-            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
-
-      test[i - start] = spectrum_value;
-      spectrum[i - start] = spectrum_value;
-      has_compressed_spectrum = true;
+        test[i - start] = spectrum_value;
+        spectrum[i - start] = spectrum_value;
+        //has_compressed_spectrum = true;
+      }
     }
 
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
@@ -3475,8 +3482,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   }
 
   // debug
-  /*for (int i = 0; i < length; i++)
-    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;*/
+  for (int i = 0; i < length; i++)
+    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
 
   auto end_t = steady_clock::now();
 
