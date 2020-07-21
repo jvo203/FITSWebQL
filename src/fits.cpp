@@ -3208,9 +3208,12 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   std::lock_guard<std::mutex> guard(fits_mtx);
 
-#pragma omp parallel for
-  for (size_t i = start; i <= end; i++)
+#pragma omp parallel for schedule(dynamic, 4)
+  for (size_t i = (start - (start % 4)); i <= end; i++)
   {
+    if (i < start)
+      continue;
+
     float spectrum_value = 0.0f;
     bool has_compressed_spectrum = false;
     bool pixels_cached = false;
