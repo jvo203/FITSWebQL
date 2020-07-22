@@ -3182,10 +3182,11 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
 
     Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
     int compressed_size = *((int *)buffer);
+    int decompressed_size = 0;
 
-    int decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
+    if (compressed_size > 0)
+      decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
 
-    //if (compressed_size < 0)
     if (decompressed_size != mask_size)
       printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
   }
