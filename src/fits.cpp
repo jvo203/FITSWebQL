@@ -3133,26 +3133,64 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
-bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *offset)
+bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
 {
   int pixels_idz = frame / 4;
   int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
   int mask_idz = frame;
-  bool cache_hit = false;
 
   // lock the cache
   std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
 
-  auto entry = cache[frame];
+  auto z_entry = cache[frame];
+  struct CacheEntry *entry = NULL;
 
   // check the y-axis
-  if (entry.find(idy) != entry.end())
+  if (z_entry.find(idy) != z_entry.end())
   {
     // check the x-axis
-    auto y_entry = entry[idy];
+    auto y_entry = z_entry[idy];
     if (y_entry.find(idx) != y_entry.end())
-      cache_hit = true;
+      entry = y_entry[idx];
   }
+
+  if (entry != NULL)
+  {
+    // TO-DO: copy the half-float data to dst while converting to float32
+
+    entry->timestamp = std::time(nullptr);
+
+    return true;
+  }
+
+  // decompress the pixels and a mask
+  size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+  size_t mask_size = region_size * sizeof(Ipp8u);
+
+  Ipp32f _pixels[4][region_size];
+  Ipp8u _mask[4][region_size];
+
+  // the mask goes first
+  for (int k = 0; k < 4; k++)
+  {
+    if (mask_idz + k >= depth)
+      break;
+
+    auto mask_blocks = cube_mask[mask_idz + k].load();
+    if (mask_blocks == nullptr)
+      return false;
+
+    Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
+    int compressed_size = *((int *)buffer);
+
+    int decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
+
+    //if (compressed_size < 0)
+    if (decompressed_size != mask_size)
+      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
+  }
+
+  // next the pixels
 
   return false;
 }
