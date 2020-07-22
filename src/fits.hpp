@@ -91,10 +91,14 @@ typedef std::map<int, std::map<int, std::shared_ptr<short>>> decompressed_blocks
 struct CacheEntry
 {
   decompressed_blocks regions;
+  float bscale;
+  float bzero;
   std::atomic<std::time_t> timestamp;
 
   CacheEntry()
   {
+    bscale = 1.0f;
+    bzero = 0.0f;
     timestamp = std::time(nullptr);
   }
 };
@@ -140,6 +144,7 @@ private:
   void zfp_compress();
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t frame);
+  bool request_cached_region(int i, int idy, int idx, Ipp32f *offset);
 
 public:
   std::string dataset_id;

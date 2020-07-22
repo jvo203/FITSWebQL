@@ -3133,6 +3133,11 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
+bool FITS::request_cached_region(int i, int idy, int idx, Ipp32f *offset)
+{
+  return false;
+}
+
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       int x2, int y2, intensity_mode intensity,
                                       beam_shape beam, double &elapsed)
@@ -3211,17 +3216,17 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 #pragma omp parallel for schedule(dynamic, 4)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
-    // ZFP needs a chunk of 4 iterations per thread; ignore non-esistent beginnings
+    // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a multiple of 4
     if (i < start)
       continue;
 
     float spectrum_value = 0.0f;
     bool has_compressed_spectrum = false;
-    bool pixels_cached = false;
-    bool mask_cached = false;
+    bool compressed_pixels = false;
+    bool compressed_mask = false;
 
     int pixels_idz = i / 4;
-    int frame = i % 4; // a sub-pixels frame count in [0,4)
+    int sub_frame = i % 4; // a sub-pixels frame count in [0,4)
     int mask_idz = i;
 
     // get a list of regions based on the four corners defined by _x1, _x2, _y1,
@@ -3237,7 +3242,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       auto pixel_blocks = cube_pixels[pixels_idz].load();
       if (pixel_blocks != nullptr)
       {
-        pixels_cached = true;
+        compressed_pixels = true;
         //  check if all pixel regions are available
         /*for (int j = 0; j < 4; j++)
         {
@@ -3261,7 +3266,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       auto mask_blocks = cube_mask[mask_idz].load();
       if (mask_blocks != nullptr)
       {
-        mask_cached = true;
+        compressed_mask = true;
         //  check if all mask regions are available
         /*for (int j = 0; j < 4; j++)
         {
@@ -3281,7 +3286,63 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       }
     }
 
-    if (pixels_cached && mask_cached)
+    // use the cache holding decompressed pixel data
+    if (compressed_pixels && compressed_mask)
+    {
+      auto [start_x, start_y] = make_indices(_x1, _y1);
+      auto [end_x, end_y] = make_indices(_x2, _y2);
+
+      // stitch together decompressed regions
+      int dimx = end_x - start_x + 1;
+      int dimy = end_y - start_y + 1;
+      size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+
+      std::shared_ptr<Ipp32f> pixels_mosaic =
+          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
+
+      if (!pixels_mosaic)
+        goto jmp;
+
+      // fill-in <pixels_mosaic> with decompressed regions from the cache
+      for (auto idy = start_y; idy <= end_y; idy++)
+      {
+        Ipp32f *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
+
+        for (auto idx = start_x; idx <= end_x; idx++)
+        {
+          Ipp32f *offset = dst + (idx - start_x) * region_size;
+          if (!request_cached_region(i, idy, idx, offset))
+            goto jmp;
+        }
+      }
+
+      // re-base the pixel coordinates
+      int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+
+      int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
+      int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
+      int __cy = _cy - start_y * ZFP_CACHE_REGION;
+
+      // will switch to half-float in the future, for now uses standard float32
+      if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumF16(
+            pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
+
+      // will switch to half-float in the future, for now uses standard float32
+      if (beam == square)
+        spectrum_value = ispc::calculate_square_spectrumF16(
+            pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
+
+      //test[i - start] = spectrum_value;
+      spectrum[i - start] = spectrum_value;
+      has_compressed_spectrum = true;
+    }
+
+    if (false) // disabled for now
     {
       // TO DO : use the compressed data cache
       //spectrum_value = float(i % 3);
@@ -3379,8 +3440,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                 ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
                                      4 * 4 * sizeof(Ipp32f));
 
-                // extract data from a selected frame of a 4x4x4 block
-                int _k = frame;
+                // extract data from a selected sub-frame of a 4x4x4 block
+                int _k = sub_frame;
                 {
                   int offset = 4 * 4 * _k;
                   for (int _j = 0; _j < 4; _j++)
@@ -3471,6 +3532,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       }
     }
 
+  jmp:
     if (!has_compressed_spectrum && fits_cube[i] != NULL)
     {
       if (beam == circle)
