@@ -86,22 +86,22 @@ enum beam_shape
 typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 
 // <short int> holds half-float pixels
-typedef std::map<int, std::map<int, std::shared_ptr<short>>> decompressed_blocks;
-
 struct CacheEntry
 {
-  decompressed_blocks regions;
+  std::time_t timestamp;
+  std::shared_ptr<short> region;
   float bscale;
   float bzero;
-  std::atomic<std::time_t> timestamp;
 
   CacheEntry()
   {
+    timestamp = std::time(nullptr);
     bscale = 1.0f;
     bzero = 0.0f;
-    timestamp = std::time(nullptr);
   }
 };
+
+typedef std::map<int, std::map<int, struct CacheEntry>> decompressed_blocks;
 
 class FITS
 {
@@ -144,7 +144,7 @@ private:
   void zfp_compress();
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t frame);
-  bool request_cached_region(int i, int idy, int idx, Ipp32f *offset);
+  bool request_cached_region(int frame, int idy, int idx, Ipp32f *offset);
 
 public:
   std::string dataset_id;
@@ -266,7 +266,7 @@ private:
   std::vector<std::atomic<compressed_blocks *>> cube_mask;
 
   // decompressed cache
-  std::vector<struct CacheEntry> cache;
+  std::vector<decompressed_blocks> cache;
   std::vector<std::shared_mutex> cache_mtx;
 
   // Boost/Beast shared state

@@ -2063,7 +2063,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth);
 
     cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
-    cache = std::vector<struct CacheEntry>(depth);
+    cache = std::vector<decompressed_blocks>(depth);
 
     std::cout << "cube_pixels::size = " << cube_pixels.size()
               << ", cube_mask::size = " << cube_mask.size()
@@ -3133,8 +3133,27 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
-bool FITS::request_cached_region(int i, int idy, int idx, Ipp32f *offset)
+bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *offset)
 {
+  int pixels_idz = frame / 4;
+  int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
+  int mask_idz = frame;
+  bool cache_hit = false;
+
+  // lock the cache
+  std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
+
+  auto entry = cache[frame];
+
+  // check the y-axis
+  if (entry.find(idy) != entry.end())
+  {
+    // check the x-axis
+    auto y_entry = entry[idy];
+    if (y_entry.find(idx) != y_entry.end())
+      cache_hit = true;
+  }
+
   return false;
 }
 
@@ -3329,7 +3348,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         spectrum_value = ispc::calculate_radial_spectrumLF32(
             pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
-      
+
       if (beam == square)
         spectrum_value = ispc::calculate_square_spectrumLF32(
             pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
@@ -3516,7 +3535,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           spectrum_value = ispc::calculate_radial_spectrumLF32(
               pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
               dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
-        
+
         if (beam == square)
           spectrum_value = ispc::calculate_square_spectrumLF32(
               pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
