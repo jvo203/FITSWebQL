@@ -88,7 +88,7 @@ typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 // <short int> holds half-float pixels
 struct CacheEntry
 {
-  std::time_t timestamp;
+  std::atomic<std::time_t> timestamp;
   std::shared_ptr<short> region;
   float bscale;
   float bzero;
@@ -101,7 +101,7 @@ struct CacheEntry
   }
 };
 
-typedef std::map<int, std::map<int, struct CacheEntry>> decompressed_blocks;
+typedef std::map<int, std::map<int, struct CacheEntry *>> decompressed_blocks;
 
 class FITS
 {
