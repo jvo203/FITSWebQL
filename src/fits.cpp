@@ -3188,9 +3188,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
       decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
 
     if (decompressed_size != mask_size)
-      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
-    else
-      printf("decompressed LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
+      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);    
   }
 
   // next the pixels
