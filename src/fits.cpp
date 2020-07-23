@@ -3167,10 +3167,8 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   size_t mask_size = region_size * sizeof(Ipp8u);
 
-  Ipp32f _pixels[4][region_size];
-  Ipp8u _mask[4][region_size];
-
   // the mask goes first
+  Ipp8u _mask[4][region_size];
   for (int k = 0; k < 4; k++)
   {
     if (mask_idz + k >= depth)
@@ -3188,10 +3186,54 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
       decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
 
     if (decompressed_size != mask_size)
-      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);    
+      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
   }
 
   // next the pixels
+  Ipp32f _pixels[4][region_size];
+  {
+    auto pixel_blocks = cube_pixels[pixels_idz].load();
+    Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
+    int pComprLen = *((int *)buffer);
+
+    int decStateSize;
+    IppDecodeZfpState_32f *pDecState;
+
+    ippsDecodeZfpGetStateSize_32f(&decStateSize);
+    pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
+    ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
+    // relative accuracy (a Fixed-Precision mode)
+    /*ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                                 pDecState);*/
+    // absolute accuracy
+    ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
+
+    // decompress 4x4x4 zfp blocks from a zfp stream
+    float block[4 * 4 * 4];
+
+    for (int y = 0; y < ZFP_CACHE_REGION; y += 4)
+      for (int x = 0; x < ZFP_CACHE_REGION; x += 4)
+      {
+        ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
+                             4 * 4 * sizeof(Ipp32f));
+
+        // extract 4-frame data from a 4x4x4 block
+        for (int _k = 0; _k < 4; _k++)
+        {
+          int offset = 4 * 4 * _k;
+          for (int _j = 0; _j < 4; _j++)
+            for (int _i = 0; _i < 4; _i++)
+            {
+              size_t dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
+              _pixels[_k][dst] = block[offset++];
+            }
+        }
+      }
+
+    ippsFree(pDecState);
+  }
+
+  // 4 frames: combine the pixels with the mask, convert to half-float
 
   return false;
 }
