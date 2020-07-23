@@ -3133,7 +3133,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
-bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
+bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int stride)
 {
   int pixels_idz = frame / 4;
   int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
@@ -3241,7 +3241,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
     if (k == sub_frame)
     {
       // copy the NaN-adjusted pixels to dst
-      memcpy(dst, _pixels[k], region_size * sizeof(Ipp32f));
+      memcpy(dst, _pixels[k], region_size * sizeof(Ipp32f)); // do it line by line with a stride
     }
   }
 
@@ -3452,7 +3452,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       has_compressed_spectrum = true;
     }*/
 
-    //if (false) // disabled for now
+    if (false) // disabled for now
     {
       // TO DO : use the compressed data cache
       //spectrum_value = float(i % 3);
