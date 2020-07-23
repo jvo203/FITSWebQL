@@ -3167,29 +3167,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   size_t mask_size = region_size * sizeof(Ipp8u);
 
-  // the mask goes first
-  Ipp8u _mask[4][region_size];
-  for (int k = 0; k < 4; k++)
-  {
-    if (mask_idz + k >= depth)
-      break;
-
-    auto mask_blocks = cube_mask[mask_idz + k].load();
-    if (mask_blocks == nullptr)
-      return false;
-
-    Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
-    int compressed_size = *((int *)buffer);
-    int decompressed_size = 0;
-
-    if (compressed_size > 0)
-      decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask[k], compressed_size, mask_size);
-
-    if (decompressed_size != mask_size)
-      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
-  }
-
-  // next the pixels
+  // first the pixels (four frames)
   Ipp32f _pixels[4][region_size];
   {
     auto pixel_blocks = cube_pixels[pixels_idz].load();
@@ -3233,7 +3211,41 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
     ippsFree(pDecState);
   }
 
-  // 4 frames: combine the pixels with the mask, convert to half-float
+  // then the mask and final post-processing
+  Ipp8u _mask[region_size];
+  for (int k = 0; k < 4; k++)
+  {
+    if (mask_idz + k >= depth)
+      break;
+
+    auto mask_blocks = cube_mask[mask_idz + k].load();
+    if (mask_blocks == nullptr)
+      return false;
+
+    Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
+    int compressed_size = *((int *)buffer);
+    int decompressed_size = 0;
+
+    if (compressed_size > 0)
+      decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask, compressed_size, mask_size);
+
+    if (decompressed_size != mask_size)
+    {
+      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
+      return false;
+    }
+
+    // apply the NaN mask to floating-point pixels
+    ispc::mask2float32(_pixels[k], _mask, region_size);
+
+    if (k == sub_frame)
+    {
+      // copy the NaN-adjusted pixels to dst
+      memcpy(dst, _pixels[k], region_size * sizeof(Ipp32f));
+    }
+  }
+
+  // add a new decompressed cache entry
 
   return false;
 }
