@@ -3224,8 +3224,8 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
           for (int _j = 0; _j < 4; _j++)
             for (int _i = 0; _i < 4; _i++)
             {
-              size_t dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
-              _pixels[_k][dst] = block[offset++];
+              size_t _dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
+              _pixels[_k][_dst] = block[offset++];
             }
         }
       }
