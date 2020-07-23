@@ -79,7 +79,7 @@ export void mask2float32(uniform float buffer[], uniform unsigned int8 mask[], u
 {
   foreach(i=0 ... size)
     {
-      if(mask[i] != 255)
+      if(mask[i] == 0)
         buffer[i] = 0x7ff80000; // quiet NaN        
     }
 }
