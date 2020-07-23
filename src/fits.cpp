@@ -3247,7 +3247,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst)
 
   // add a new decompressed cache entry
 
-  return false;
+  return true;
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
