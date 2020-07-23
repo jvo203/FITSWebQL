@@ -3363,49 +3363,13 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     {
       auto pixel_blocks = cube_pixels[pixels_idz].load();
       if (pixel_blocks != nullptr)
-      {
         compressed_pixels = true;
-        //  check if all pixel regions are available
-        /*for (int j = 0; j < 4; j++)
-        {
-          auto [idx, idy] = corners[j];
-
-          // check the y-axis
-          if (pixel_blocks->find(idy) == pixel_blocks->end())
-            pixels_cached = false;
-          else
-          {
-            // check the x-axis
-            auto y_entry = (*pixel_blocks)[idy];
-            if (y_entry.find(idx) == y_entry.end())
-              pixels_cached = false;
-          }
-        }*/
-      }
     }
 
     {
       auto mask_blocks = cube_mask[mask_idz].load();
       if (mask_blocks != nullptr)
-      {
         compressed_mask = true;
-        //  check if all mask regions are available
-        /*for (int j = 0; j < 4; j++)
-        {
-          auto [idx, idy] = corners[j];
-
-          // check the y-axis
-          if (mask_blocks->find(idy) == mask_blocks->end())
-            mask_cached = false;
-          else
-          {
-            // check the x-axis
-            auto y_entry = (*mask_blocks)[idy];
-            if (y_entry.find(idx) == y_entry.end())
-              mask_cached = false;
-          }
-        }*/
-      }
     }
 
     // use the cache holding decompressed pixel data
@@ -3418,12 +3382,20 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int dimx = end_x - start_x + 1;
       int dimy = end_y - start_y + 1;
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+      printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
       std::shared_ptr<Ipp32f> pixels_mosaic =
           std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
 
       if (!pixels_mosaic)
         goto jmp;
+
+      {
+        Ipp32f *_ptr = pixels_mosaic.get();
+#pragma simd
+        for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
+          _ptr[_i] = 0.0f;// for testing purposes use NaN later on
+      }
 
       // fill-in <pixels_mosaic> with decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
