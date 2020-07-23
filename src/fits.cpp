@@ -3399,7 +3399,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     }
 
     // use the cache holding decompressed pixel data
-    if (compressed_pixels && compressed_mask)
+    /*if (compressed_pixels && compressed_mask)
     {
       auto [start_x, start_y] = make_indices(_x1, _y1);
       auto [end_x, end_y] = make_indices(_x2, _y2);
@@ -3450,9 +3450,9 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       //test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
       has_compressed_spectrum = true;
-    }
+    }*/
 
-    if (false) // disabled for now
+    //if (false) // disabled for now
     {
       // TO DO : use the compressed data cache
       //spectrum_value = float(i % 3);
@@ -3463,6 +3463,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int dimx = end_x - start_x + 1;
       int dimy = end_y - start_y + 1;
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+      printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
       // mask
       //Ipp8u mask_mosaic[dimx * dimy * region_size];
@@ -3658,8 +3659,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   }
 
   // debug
-  /*for (int i = 0; i < length; i++)
-    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;*/
+  for (int i = 0; i < length; i++)
+    //std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
+    std::cout << i << " : " << spectrum[i] << "\t";
+  std::cout << std::endl;
 
   auto end_t = steady_clock::now();
 
