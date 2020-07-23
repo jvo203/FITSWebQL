@@ -89,13 +89,14 @@ typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 struct CacheEntry
 {
   std::atomic<std::time_t> timestamp;
-  std::shared_ptr<short> region;
+  std::shared_ptr<short> data;
   float bscale;
   float bzero;
 
-  CacheEntry()
+  CacheEntry(std::shared_ptr<short> ptr)
   {
     timestamp = std::time(nullptr);
+    data = ptr;
     bscale = 1.0f;
     bzero = 0.0f;
   }
