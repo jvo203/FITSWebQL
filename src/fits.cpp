@@ -3240,8 +3240,18 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
 
     if (k == sub_frame)
     {
-      // copy the NaN-adjusted pixels to dst
-      memcpy(dst, _pixels[k], region_size * sizeof(Ipp32f)); // do it line by line with a stride
+      // copy the NaN-adjusted pixels to dst (line by line with a stride)
+      size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
+      Ipp32f *_src = _pixels;
+      Ipp32f *_dst = dst;
+
+      for (int line = 0; line < ZFP_CACHE_REGION; line++)
+      {
+        // use memcpy here
+        memcpy(_dst, _src, line_size);
+        _src += ZFP_CACHE_REGION;
+        _dst += stride;
+      }
     }
   }
 
@@ -3399,7 +3409,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     }
 
     // use the cache holding decompressed pixel data
-    /*if (compressed_pixels && compressed_mask)
+    if (compressed_pixels && compressed_mask)
     {
       auto [start_x, start_y] = make_indices(_x1, _y1);
       auto [end_x, end_y] = make_indices(_x2, _y2);
@@ -3423,7 +3433,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         for (auto idx = start_x; idx <= end_x; idx++)
         {
           Ipp32f *offset = dst + (idx - start_x) * region_size;
-          if (!request_cached_region(i, idy, idx, offset))
+          if (!request_cached_region(i, idy, idx, offset, dimx * ZFP_CACHE_REGION))
             goto jmp;
         }
       }
@@ -3450,7 +3460,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       //test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
       has_compressed_spectrum = true;
-    }*/
+    }
 
     if (false) // disabled for now
     {
