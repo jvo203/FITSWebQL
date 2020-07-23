@@ -3242,7 +3242,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
     {
       // copy the NaN-adjusted pixels to dst (line by line with a stride)
       size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
-      Ipp32f *_src = _pixels;
+      Ipp32f *_src = _pixels[k];
       Ipp32f *_dst = dst;
 
       for (int line = 0; line < ZFP_CACHE_REGION; line++)
