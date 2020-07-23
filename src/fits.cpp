@@ -3394,7 +3394,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         Ipp32f *_ptr = pixels_mosaic.get();
 #pragma simd
         for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
-          _ptr[_i] = 0.0f;// for testing purposes use NaN later on
+          _ptr[_i] = std::numeric_limits<float>::quiet_NaN();// for testing purposes use NaN
       }
 
       // fill-in <pixels_mosaic> with decompressed regions from the cache
