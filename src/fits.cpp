@@ -12,6 +12,9 @@
 #include <ippdc.h>
 #include <limits>
 
+// bytes swap
+#include <byteswap.h>
+
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 16
 #define ZFPACCURACY 1.0e-3
@@ -3687,8 +3690,6 @@ void FITS::zfp_decompress_cube(size_t start_k)
     if (fits_cube[i] == NULL)
       return;
 
-  printf("verifying frame %zu\n", start_k);
-
   // decompress the frame
   int _x1 = 0;
   int _y1 = 0;
@@ -3702,7 +3703,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
   int dimx = end_x - start_x + 1;
   int dimy = end_y - start_y + 1;
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-  printf("dimx: %d\tdimy: %d\n", dimx, dimy);
+  printf("verifying frame %zu; dimx: %d\tdimy: %d\n", start_k, dimx, dimy);
 
   std::shared_ptr<Ipp32f> pixels_mosaic =
       std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
@@ -3734,6 +3735,18 @@ void FITS::zfp_decompress_cube(size_t start_k)
   }
 
   // verify data
+  size_t offset = 0;
+  int32_t *src = (int32_t *)fits_cube[start_k];
+
+  for (int line = 0; line < height; line++)
+  {
+    for (int x = 0; x < width; x++)
+    {
+      uint32_t raw = bswap_32(src[offset++]);
+      float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
+      bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
+    }
+  }
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
