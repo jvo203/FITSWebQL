@@ -144,8 +144,8 @@ private:
   void send_progress_notification(size_t running, size_t total);
   void zfp_compress();
   void zfp_compression_thread(int tid);
-  void zfp_compress_cube(size_t frame);
-  void zfp_decompress_cube(size_t frame);
+  void zfp_compress_cube(size_t start_k);
+  void zfp_decompress_cube(size_t start_k);
   bool request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int stride);
 
 public:
