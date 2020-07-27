@@ -351,10 +351,13 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-// trust but verify
-#pragma omp parallel for
+  // trust but verify
+  /*#pragma omp parallel for
   for (size_t k = 0; k < depth; k++)
-    zfp_decompress_cube(k);
+    zfp_decompress_cube(k);*/
+
+  if (depth > 100)
+    zfp_decompress_cube(100);
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
@@ -3737,14 +3740,21 @@ void FITS::zfp_decompress_cube(size_t start_k)
   // verify data
   size_t offset = 0;
   int32_t *src = (int32_t *)fits_cube[start_k];
+  Ipp32f *_ptr = pixels_mosaic.get();
 
   for (int line = 0; line < height; line++)
   {
+    size_t dst = line * dimx * ZFP_CACHE_REGION;
     for (int x = 0; x < width; x++)
     {
       uint32_t raw = bswap_32(src[offset++]);
       float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
       bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
+
+      if (!nan)
+      {
+        //printf("real: %f\tapprox.: %f\n", tmp, _ptr[dst + x]);
+      }
     }
   }
 }
