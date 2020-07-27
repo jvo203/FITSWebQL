@@ -348,6 +348,11 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
+  // trust but verify
+  #pragma omp parallel for
+  for (size_t k = 0; k < depth; k += 4)
+    zfp_decompress_cube(k);
+
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
   // clear the cube containing pointers to mmaped regions
@@ -3672,6 +3677,11 @@ void FITS::zfp_compress()
     zfp_compress_cube(k);
 
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
+}
+
+void FITS::zfp_decompress_cube(size_t frame)
+{
+
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
