@@ -348,9 +348,9 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-  // trust but verify
-  #pragma omp parallel for
-  for (size_t k = 0; k < depth; k += 4)
+// trust but verify
+#pragma omp parallel for
+  for (size_t k = 0; k < depth; k++)
     zfp_decompress_cube(k);
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
@@ -3679,9 +3679,61 @@ void FITS::zfp_compress()
   printf("[%s]::zfp_compress ended.\n", dataset_id.c_str());
 }
 
-void FITS::zfp_decompress_cube(size_t frame)
+void FITS::zfp_decompress_cube(size_t start_k)
 {
+  size_t end_k = MIN(start_k + 4, depth);
 
+  for (size_t i = start_k; i < end_k; i++)
+    if (fits_cube[i] == NULL)
+      return;
+
+  printf("verifying frame %zu\n", start_k);
+
+  // decompress the frame
+  int _x1 = 0;
+  int _y1 = 0;
+  int _x2 = width - 1;
+  int _y2 = height - 1;
+
+  auto [start_x, start_y] = make_indices(_x1, _y1);
+  auto [end_x, end_y] = make_indices(_x2, _y2);
+
+  // stitch together decompressed regions
+  int dimx = end_x - start_x + 1;
+  int dimy = end_y - start_y + 1;
+  size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+  printf("dimx: %d\tdimy: %d\n", dimx, dimy);
+
+  std::shared_ptr<Ipp32f> pixels_mosaic =
+      std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
+
+  if (!pixels_mosaic)
+    return;
+
+  {
+    Ipp32f *_ptr = pixels_mosaic.get();
+#pragma simd
+    for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
+      _ptr[_i] = std::numeric_limits<float>::quiet_NaN(); // for testing purposes use NaN
+  }
+
+  // fill-in <pixels_mosaic> with decompressed regions from the cache
+  for (auto idy = start_y; idy <= end_y; idy++)
+  {
+    Ipp32f *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
+
+    for (auto idx = start_x; idx <= end_x; idx++)
+    {
+      Ipp32f *offset = dst + (idx - start_x) * region_size;
+      if (!request_cached_region(start_k, idy, idx, offset, dimx * ZFP_CACHE_REGION))
+      {
+        printf("frame %zu, cannot decompress a region idy = %d, idx = %d\n", start_k, idy, idx);
+        return;
+      }
+    }
+  }
+
+  // verify data
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
