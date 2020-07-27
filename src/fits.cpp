@@ -3394,7 +3394,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         Ipp32f *_ptr = pixels_mosaic.get();
 #pragma simd
         for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
-          _ptr[_i] = std::numeric_limits<float>::quiet_NaN();// for testing purposes use NaN
+          _ptr[_i] = std::numeric_limits<float>::quiet_NaN(); // for testing purposes use NaN
       }
 
       // fill-in <pixels_mosaic> with decompressed regions from the cache
@@ -3788,7 +3788,6 @@ void FITS::zfp_compress_cube(size_t start_k)
             // fill a 4x4x4 block
             int offset = 0;
             for (k = 0; k < 4; k++)
-            {
               for (j = y; j < y + 4; j++)
                 for (i = x; i < x + 4; i++)
                 {
@@ -3803,7 +3802,6 @@ void FITS::zfp_compress_cube(size_t start_k)
 
                   block[offset++] = val;
                 }
-            }
 
             ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
                                  4 * 4 * sizeof(Ipp32f), pEncState);
