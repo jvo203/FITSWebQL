@@ -351,13 +351,13 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-  // trust but verify
-  /*#pragma omp parallel for
+// trust but verify
+#pragma omp parallel for
   for (size_t k = 0; k < depth; k++)
-    zfp_decompress_cube(k);*/
+    zfp_decompress_cube(k);
 
-  if (depth > 100)
-    zfp_decompress_cube(100);
+  /*if (depth > 100)
+    zfp_decompress_cube(100);*/
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
@@ -3415,7 +3415,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
         for (auto idx = start_x; idx <= end_x; idx++)
         {
-          Ipp32f *offset = dst + (idx - start_x) * region_size;
+          Ipp32f *offset = dst + (idx - start_x) * ZFP_CACHE_REGION;
           if (!request_cached_region(i, idy, idx, offset, dimx * ZFP_CACHE_REGION))
             goto jmp;
         }
@@ -3706,7 +3706,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
   int dimx = end_x - start_x + 1;
   int dimy = end_y - start_y + 1;
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-  printf("verifying frame %zu; dimx: %d\tdimy: %d\n", start_k, dimx, dimy);
+  printf("verifying frame %zu; dimx: %d\tdimy: %d; start_x: %d, start_y: %d, end_x: %d, end_y: %d\n", start_k, dimx, dimy, start_x, start_y, end_x, end_y);
 
   std::shared_ptr<Ipp32f> pixels_mosaic =
       std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
@@ -3728,7 +3728,8 @@ void FITS::zfp_decompress_cube(size_t start_k)
 
     for (auto idx = start_x; idx <= end_x; idx++)
     {
-      Ipp32f *offset = dst + (idx - start_x) * region_size;
+      //Ipp32f *offset = dst + (idx - start_x) * region_size;// the bug lies here!!!
+      Ipp32f *offset = dst + (idx - start_x) * ZFP_CACHE_REGION;
       if (!request_cached_region(start_k, idy, idx, offset, dimx * ZFP_CACHE_REGION))
       {
         printf("frame %zu, cannot decompress a region idy = %d, idx = %d\n", start_k, idy, idx);
@@ -3763,6 +3764,8 @@ void FITS::zfp_decompress_cube(size_t start_k)
 
   if (invalid)
     printf("frame %zu: decompression mismatch.\n", start_k);
+  else
+    printf("frame %zu: OK.\n", start_k);
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
