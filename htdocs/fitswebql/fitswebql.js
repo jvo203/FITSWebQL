@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-06-26.1";
+	return "JS2020-07-28.0";
 }
 
 const wasm_supported = (() => {
@@ -823,7 +823,7 @@ function webgl_viewport_renderer(gl, container, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");// alpha was 0.3
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
@@ -999,7 +999,7 @@ function webgl_zoom_renderer(gl, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");// alpha was 0.3
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
@@ -1402,7 +1402,7 @@ function clear_webgl_image_buffers(index) {
 	image.gl = null;
 }
 
-function process_hdr_viewport(img_width, img_height, pixels, alpha, index) {
+function process_hdr_viewport(img_width, img_height, pixels, alpha) {
 	if (streaming || moving || windowLeft)
 		return;
 
@@ -2616,7 +2616,7 @@ function open_websocket_connection(datasetId, index) {
 
 								image.delete();
 
-								process_hdr_viewport(img_width, img_height, pixels, alpha, index);
+								process_hdr_viewport(img_width, img_height, pixels, alpha);
 							})
 							.catch(e => console.error(e));
 
