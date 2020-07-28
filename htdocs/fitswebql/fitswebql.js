@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-07-28.0";
+	return "JS2020-07-28.1";
 }
 
 const wasm_supported = (() => {
@@ -823,7 +823,7 @@ function webgl_viewport_renderer(gl, container, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");// alpha was 0.3
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");// alpha was 0.3
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
@@ -999,7 +999,7 @@ function webgl_zoom_renderer(gl, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.0);\n");// alpha was 0.3
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");// alpha was 0.3
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
@@ -1420,6 +1420,14 @@ function process_hdr_viewport(img_width, img_height, pixels, alpha) {
 	}
 
 	var viewportContainer = { width: img_width, height: img_height, pixels: pixels, alpha: alpha, texture: texture };
+
+	if (viewport != null) {
+		// Clear the ZOOM Canvas
+		console.log("clearing the ZOOM Canvas");
+		var gl = viewport.gl;
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+	}
 
 	//next project the viewport
 	if (va_count == 1)
