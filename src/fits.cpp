@@ -3741,6 +3741,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
   size_t offset = 0;
   int32_t *src = (int32_t *)fits_cube[start_k];
   Ipp32f *_ptr = pixels_mosaic.get();
+  size_t invalid = false;
 
   for (int line = 0; line < height; line++)
   {
@@ -3753,10 +3754,15 @@ void FITS::zfp_decompress_cube(size_t start_k)
 
       if (!nan)
       {
+        if (fabs(tmp - _ptr[dst + x]) > ZFPACCURACY)
+          invalid = true;
         //printf("real: %f\tapprox.: %f\n", tmp, _ptr[dst + x]);
       }
     }
   }
+
+  if (invalid)
+    printf("frame %zu: decompression mismatch.\n", start_k);
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
