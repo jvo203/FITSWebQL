@@ -351,10 +351,10 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-// trust but verify
-#pragma omp parallel for
+  // trust but verify
+  /*#pragma omp parallel for
   for (size_t k = 0; k < depth; k++)
-    zfp_decompress_cube(k);
+    zfp_decompress_cube(k);*/
 
   /*if (depth > 100)
     zfp_decompress_cube(100);*/
@@ -3706,7 +3706,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
   int dimx = end_x - start_x + 1;
   int dimy = end_y - start_y + 1;
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-  printf("verifying frame %zu; dimx: %d\tdimy: %d; start_x: %d, start_y: %d, end_x: %d, end_y: %d\n", start_k, dimx, dimy, start_x, start_y, end_x, end_y);
+  //printf("verifying frame %zu; dimx: %d\tdimy: %d; start_x: %d, start_y: %d, end_x: %d, end_y: %d\n", start_k, dimx, dimy, start_x, start_y, end_x, end_y);
 
   std::shared_ptr<Ipp32f> pixels_mosaic =
       std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
