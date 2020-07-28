@@ -823,7 +823,7 @@ function webgl_viewport_renderer(gl, container, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");// alpha was 0.3
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
@@ -999,7 +999,7 @@ function webgl_zoom_renderer(gl, height) {
 
 	// grey-out pixels for alpha = 0.0
 	var pos = fragmentShaderCode.lastIndexOf("}");
-	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");// alpha was 0.3
+	fragmentShaderCode = fragmentShaderCode.insert_at(pos, "if (gl_FragColor.a == 0.0) gl_FragColor.rgba = vec4(0.0, 0.0, 0.0, 0.3);\n");
 
 	if (zoom_shape == "circle") {
 		pos = fragmentShaderCode.lastIndexOf("}");
