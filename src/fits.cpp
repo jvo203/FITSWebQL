@@ -3249,7 +3249,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
     }
 
     // apply the NaN mask to floating-point pixels
-    ispc::mask2NaN(_pixels[k], _mask, region_size);
+    ispc::nan_mask(_pixels[k], _mask, region_size);
 
     if (k == sub_frame)
     {
@@ -3604,7 +3604,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           unsigned int work_size = dimx * dimy * region_size;
           Ipp32f *_pixels = pixels_mosaic.get();
           Ipp8u *_mask = mask_mosaic.get();
-          ispc::mask2NaN(_pixels, _mask, work_size);
+          ispc::nan_mask(_pixels, _mask, work_size);
           /*#pragma simd
       for (unsigned int _i = 0; _i < work_size; _i++)
         if (_mask[_i] == 0)
