@@ -351,8 +351,8 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-  // trust but verify
-  /*#pragma omp parallel for
+// trust but verify
+/*#pragma omp parallel for
   for (size_t k = 0; k < depth; k++)
     zfp_decompress_cube(k);*/
 
@@ -3247,7 +3247,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
     }
 
     // apply the NaN mask to floating-point pixels
-    ispc::mask2float32(_pixels[k], _mask, region_size);
+    ispc::mask2NaN(_pixels[k], _mask, region_size);
 
     if (k == sub_frame)
     {
@@ -3393,7 +3393,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int dimx = end_x - start_x + 1;
       int dimy = end_y - start_y + 1;
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-      printf("dimx: %d\tdimy: %d\n", dimx, dimy);
+      //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
       std::shared_ptr<Ipp32f> pixels_mosaic =
           std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
@@ -3602,7 +3602,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           unsigned int work_size = dimx * dimy * region_size;
           Ipp32f *_pixels = pixels_mosaic.get();
           Ipp8u *_mask = mask_mosaic.get();
-          ispc::mask2float32(_pixels, _mask, work_size);
+          ispc::mask2NaN(_pixels, _mask, work_size);
           /*#pragma simd
       for (unsigned int _i = 0; _i < work_size; _i++)
         if (_mask[_i] == 0)
@@ -3652,10 +3652,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   }
 
   // debug
-  for (int i = 0; i < length; i++)
+  /*for (int i = 0; i < length; i++)
     //std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
     std::cout << i << " : " << spectrum[i] << "\t";
-  std::cout << std::endl;
+  std::cout << std::endl;*/
 
   auto end_t = steady_clock::now();
 
@@ -3742,7 +3742,8 @@ void FITS::zfp_decompress_cube(size_t start_k)
   size_t offset = 0;
   int32_t *src = (int32_t *)fits_cube[start_k];
   Ipp32f *_ptr = pixels_mosaic.get();
-  size_t invalid = false;
+  bool invalid_real = false;
+  bool invalid_nan = false;
 
   for (int line = 0; line < height; line++)
   {
@@ -3752,18 +3753,27 @@ void FITS::zfp_decompress_cube(size_t start_k)
       uint32_t raw = bswap_32(src[offset++]);
       float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
       bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
+      //bool nan = std::isnan(_ptr[dst + x]) || std::isinf(_ptr[dst + x]) || (_ptr[dst + x] <= ignrval) || (_ptr[dst + x] < datamin) || (_ptr[dst + x] > datamax);
+
+      /*if (offset < 100)
+        printf("real: %f\tapprox.: %f\n", tmp, _ptr[dst + x]);*/
 
       if (!nan)
       {
         if (fabs(tmp - _ptr[dst + x]) > ZFPACCURACY)
-          invalid = true;
+          invalid_real = true;
         //printf("real: %f\tapprox.: %f\n", tmp, _ptr[dst + x]);
+      }
+      else
+      {
+        if (!std::isnan(_ptr[dst + x]))
+          invalid_nan = true;
       }
     }
   }
 
-  if (invalid)
-    printf("frame %zu: decompression mismatch.\n", start_k);
+  if (invalid_real || invalid_nan)
+    printf("frame %zu: decompression mismatch: real(%d), NaN(%d).\n", start_k, invalid_real, invalid_nan);
   else
     printf("frame %zu: OK.\n", start_k);
 }

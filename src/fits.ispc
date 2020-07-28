@@ -75,12 +75,12 @@ export void fits2float32(uniform int32 src[], uniform unsigned int8 mask[], unif
   rmax = reduce_max(vmax) ;
 } ;
 
-export void mask2float32(uniform float buffer[], uniform unsigned int8 mask[], uniform unsigned int size)
+export void mask2NaN(uniform float buffer[], uniform unsigned int8 mask[], uniform unsigned int size)
 {
   foreach(i=0 ... size)
     {
       if(mask[i] == 0)
-        buffer[i] = 0x7ff80000; // quiet NaN        
+        buffer[i] = floatbits(0x7ff80000); // quiet NaN        
     }
 }
 
