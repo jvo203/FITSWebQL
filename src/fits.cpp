@@ -12,8 +12,10 @@
 #include <ippdc.h>
 #include <limits>
 
+#if !defined(__APPLE__) || !defined(__MACH__)
 // bytes swap
 #include <byteswap.h>
+#endif
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 16
@@ -3738,6 +3740,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
     }
   }
 
+#if !defined(__APPLE__) || !defined(__MACH__)
   // verify data
   size_t offset = 0;
   int32_t *src = (int32_t *)fits_cube[start_k];
@@ -3753,10 +3756,6 @@ void FITS::zfp_decompress_cube(size_t start_k)
       uint32_t raw = bswap_32(src[offset++]);
       float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
       bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
-      //bool nan = std::isnan(_ptr[dst + x]) || std::isinf(_ptr[dst + x]) || (_ptr[dst + x] <= ignrval) || (_ptr[dst + x] < datamin) || (_ptr[dst + x] > datamax);
-
-      /*if (offset < 100)
-        printf("real: %f\tapprox.: %f\n", tmp, _ptr[dst + x]);*/
 
       if (!nan)
       {
@@ -3776,6 +3775,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
     printf("frame %zu: decompression mismatch: real(%d), NaN(%d).\n", start_k, invalid_real, invalid_nan);
   else
     printf("frame %zu: OK.\n", start_k);
+#endif
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
