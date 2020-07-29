@@ -353,8 +353,8 @@ FITS::~FITS()
       printf("thread %d is not joinable\n", tid++);
   }
 
-// trust but verify
-/*#pragma omp parallel for
+  // trust but verify
+  /*#pragma omp parallel for
   for (size_t k = 0; k < depth; k++)
     zfp_decompress_cube(k);*/
 
@@ -3180,8 +3180,44 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   size_t mask_size = region_size * sizeof(Ipp8u);
 
+  Ipp32f *_pixels[4];
+  Ipp8u *_mask;
+  bool ok = true;
+
+  // pixels
+  for (int i = 0; i < 4; i++)
+  {
+    _pixels[i] = ippsMalloc_32f_L(region_size);
+    if (_pixels[i] == NULL)
+      ok = false;
+    else
+      for (size_t j = 0; j < region_size; j++)
+        _pixels[i][j] = 0.0f;
+  }
+
+  // the mask
+  _mask = ippsMalloc_8u_L(region_size);
+  if (_mask == NULL)
+    ok = false;
+  else
+    memset(_mask, 0, region_size);
+
+  if (!ok)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      if (_pixels[i] != NULL)
+        ippsFree(_pixels[i]);
+    }
+
+    if (_mask != NULL)
+      ippsFree(_mask);
+
+    return false;
+  }
+
   // first the pixels (four frames)
-  Ipp32f _pixels[4][region_size];
+  //Ipp32f _pixels[4][region_size];
   {
     auto pixel_blocks = cube_pixels[pixels_idz].load();
     Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
@@ -3225,7 +3261,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
   }
 
   // then the mask and final post-processing
-  Ipp8u _mask[region_size];
+  //Ipp8u _mask[region_size];
   for (int k = 0; k < 4; k++)
   {
     if (mask_idz + k >= depth)
@@ -3269,6 +3305,16 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
   }
 
   // add a new decompressed cache entry
+
+  // release the memory
+  for (int i = 0; i < 4; i++)
+  {
+    if (_pixels[i] != NULL)
+      ippsFree(_pixels[i]);
+  }
+
+  if (_mask != NULL)
+    ippsFree(_mask);
 
   return true;
 }
@@ -3403,12 +3449,12 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       if (!pixels_mosaic)
         goto jmp;
 
-      {
+      /*{
         Ipp32f *_ptr = pixels_mosaic.get();
 #pragma simd
         for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
           _ptr[_i] = std::numeric_limits<float>::quiet_NaN(); // for testing purposes use NaN
-      }
+      }*/
 
       // fill-in <pixels_mosaic> with decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
@@ -3730,7 +3776,6 @@ void FITS::zfp_decompress_cube(size_t start_k)
 
     for (auto idx = start_x; idx <= end_x; idx++)
     {
-      //Ipp32f *offset = dst + (idx - start_x) * region_size;// the bug lies here!!!
       Ipp32f *offset = dst + (idx - start_x) * ZFP_CACHE_REGION;
       if (!request_cached_region(start_k, idy, idx, offset, dimx * ZFP_CACHE_REGION))
       {
@@ -3803,7 +3848,6 @@ void FITS::zfp_compress_cube(size_t start_k)
 
   Ipp32f *pixels[4];
   Ipp8u *mask[4];
-
   bool ok = true;
 
   for (int i = 0; i < 4; i++)
