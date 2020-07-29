@@ -17,11 +17,6 @@
 #include <byteswap.h>
 #endif
 
-#define ZFP_CACHE_REGION 256
-#define ZFPMAXPREC 16
-#define ZFPACCURACY 1.0e-3
-// perhaps we should use 16 bits as the maximum precision?
-
 // base64 encoding with SSL
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -362,6 +357,10 @@ FITS::~FITS()
     zfp_decompress_cube(100);*/
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
+
+  // clear the cache
+  // iterate through all elements of the cache, deleting the pointers to CacheEntry
+  cache.clear();
 
   // clear the cube containing pointers to mmaped regions
   fits_cube.clear();
