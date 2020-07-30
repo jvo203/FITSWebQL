@@ -84,6 +84,21 @@ export void nan_mask(uniform float buffer[], uniform unsigned int8 mask[], unifo
     }
 }
 
+export void f32tof16(uniform float src[], uniform unsigned int16 dst[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform unsigned int size)
+{
+  foreach(i=0 ... size)
+  {
+    float tmp = min16 + (src[i] - frame_min) / (frame_max - frame_min) * (max16 - min16);
+    dst[i] = float_to_half_fast(tmp);
+  } 
+}
+
+export void f16tof32(uniform unsigned int16 src[], uniform float dst[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform unsigned int size)
+{
+  foreach(i=0 ... size)
+    dst[i] = frame_min + (half_to_float_fast(src[i]) - min16) / (max16 - min16) * (frame_max - frame_min);
+}
+
 export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
 {  
   varying float partial_sum = 0.0f ;
