@@ -3229,10 +3229,10 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
     pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
     ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
     // relative accuracy (a Fixed-Precision mode)
-    /*ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                                 pDecState);*/
+    ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                                 pDecState);
     // absolute accuracy
-    ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
+    //ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
 
     // decompress 4x4x4 zfp blocks from a zfp stream
     float block[4 * 4 * 4];
@@ -3285,6 +3285,10 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
 
     // apply the NaN mask to floating-point pixels
     ispc::nan_mask(_pixels[k], _mask, region_size);
+    /*#pragma simd
+      for (unsigned int _i = 0; _i < work_size; _i++)
+        if (_mask[_i] == 0)
+          _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
 
     if (k == sub_frame)
     {
@@ -3323,7 +3327,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       beam_shape beam, double &elapsed)
 {
   std::vector<float> spectrum;
-  //std::vector<float> test;
+  std::vector<float> test;
 
   // sanity checks
   if (bitpix != -32)
@@ -3344,7 +3348,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // resize the spectrum vector
   spectrum.resize(length, 0);
-  //test.resize(length, 0);
+  test.resize(length, 0);
 
   // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
   // y2 << std::endl;
@@ -3409,15 +3413,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     int sub_frame = i % 4; // a sub-pixels frame count in [0,4)
     int mask_idz = i;
 
-    // get a list of regions based on the four corners defined by _x1, _x2, _y1,
-    // _y2
-    /*std::tuple<int, int> corners[4];
-
-    corners[0] = make_indices(_x1, _y1);
-    corners[1] = make_indices(_x1, _y2);
-    corners[2] = make_indices(_x2, _y1);
-    corners[3] = make_indices(_x2, _y2);*/
-
     {
       auto pixel_blocks = cube_pixels[pixels_idz].load();
       if (pixel_blocks != nullptr)
@@ -3447,13 +3442,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
       if (!pixels_mosaic)
         goto jmp;
-
-      /*{
-        Ipp32f *_ptr = pixels_mosaic.get();
-#pragma simd
-        for (size_t _i = 0; _i < dimx * dimy * region_size; _i++)
-          _ptr[_i] = std::numeric_limits<float>::quiet_NaN(); // for testing purposes use NaN
-      }*/
 
       // fill-in <pixels_mosaic> with decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
@@ -3487,198 +3475,9 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
 
-      //test[i - start] = spectrum_value;
+      test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
       has_compressed_spectrum = true;
-    }
-
-    if (false) // disabled for now
-    {
-      // TO DO : use the compressed data cache
-      //spectrum_value = float(i % 3);
-      auto [start_x, start_y] = make_indices(_x1, _y1);
-      auto [end_x, end_y] = make_indices(_x2, _y2);
-
-      // stitch together decompressed regions
-      int dimx = end_x - start_x + 1;
-      int dimy = end_y - start_y + 1;
-      size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-      printf("dimx: %d\tdimy: %d\n", dimx, dimy);
-
-      // mask
-      //Ipp8u mask_mosaic[dimx * dimy * region_size];
-      std::shared_ptr<Ipp8u> mask_mosaic =
-          std::shared_ptr<Ipp8u>(ippsMalloc_8u(dimx * dimy * region_size), Ipp8uFree);
-      if (mask_mosaic)
-      {
-        auto mask_blocks = cube_mask[mask_idz].load();
-
-        size_t mask_size = region_size * sizeof(Ipp8u);
-        Ipp8u _mask[region_size];
-
-        for (auto idy = start_y; idy <= end_y; idy++)
-        {
-          Ipp8u *dst = mask_mosaic.get() + (idy - start_y) * dimx * region_size;
-
-          for (auto idx = start_x; idx <= end_x; idx++)
-          {
-            Ipp8u *offset = dst + (idx - start_x) * region_size;
-            Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
-            int compressed_size = *((int *)buffer);
-
-            int decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask, compressed_size, mask_size);
-            /* int compressed_size = LZ4_decompress_fast((const char *)buffer,
-                                                      (char *)_mask, mask_size);*/
-
-            //if (compressed_size < 0)
-            if (decompressed_size != mask_size)
-              printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
-            else
-            {
-              // copy _mask to the mosaic
-              for (int line = 0; line < ZFP_CACHE_REGION; line++)
-              {
-                // use memcpy here
-                Ipp8u *_src = _mask + line * ZFP_CACHE_REGION;
-                Ipp8u *_dst = offset + line * ZFP_CACHE_REGION;
-                size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp8u);
-                memcpy(_dst, _src, line_size);
-              }
-            }
-          }
-        }
-      }
-
-      // pixels
-      //Ipp32f pixels_mosaic[dimx * dimy * region_size];
-      std::shared_ptr<Ipp32f> pixels_mosaic =
-          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
-      if (pixels_mosaic)
-      {
-        auto pixel_blocks = cube_pixels[pixels_idz].load();
-
-        //size_t pixels_size = region_size * sizeof(Ipp32f);
-        Ipp32f _pixels[region_size];
-
-        for (auto idy = start_y; idy <= end_y; idy++)
-        {
-          Ipp32f *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
-
-          for (auto idx = start_x; idx <= end_x; idx++)
-          {
-            Ipp32f *offset = dst + (idx - start_x) * region_size;
-            Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
-            int pComprLen = *((int *)buffer);
-
-            int decStateSize;
-            IppDecodeZfpState_32f *pDecState;
-
-            ippsDecodeZfpGetStateSize_32f(&decStateSize);
-            pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
-            ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
-            // relative accuracy (a Fixed-Precision mode)
-            /*ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                                 pDecState);*/
-            // absolute accuracy
-            ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
-
-            // decompress 4x4x4 zfp blocks from a zfp stream
-            float block[4 * 4 * 4];
-
-            for (int y = 0; y < ZFP_CACHE_REGION; y += 4)
-              for (int x = 0; x < ZFP_CACHE_REGION; x += 4)
-              {
-                ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
-                                     4 * 4 * sizeof(Ipp32f));
-
-                // extract data from a selected sub-frame of a 4x4x4 block
-                int _k = sub_frame;
-                {
-                  int offset = 4 * 4 * _k;
-                  for (int _j = 0; _j < 4; _j++)
-                    for (int _i = 0; _i < 4; _i++)
-                    {
-                      size_t dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
-                      _pixels[dst] = block[offset++];
-                    }
-                }
-              }
-
-            ippsFree(pDecState);
-
-            // copy _pixels to the mosaic
-            for (int line = 0; line < ZFP_CACHE_REGION; line++)
-            {
-              // use memcpy here
-              Ipp32f *_src = _pixels + line * ZFP_CACHE_REGION;
-              Ipp32f *_dst = offset + line * ZFP_CACHE_REGION;
-              size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
-              memcpy(_dst, _src, line_size);
-            }
-          }
-        }
-      }
-
-      if (pixels_mosaic && mask_mosaic)
-      {
-        // debug mask
-        /*if (i == depth / 2)
-      {
-        // print the mask_mosaic
-        for (int _i = 0; _i < dimx * dimy * region_size; _i++)
-          printf("%d ", mask_mosaic[_i]);
-        printf("\n");
-      }*/
-
-        // debug pixels
-        /*if (i == depth / 2)
-      {
-        // print the mask_mosaic
-        for (int _i = 0; _i < dimx * dimy * region_size; _i++)
-          printf("%f ", pixels_mosaic[_i]);
-        printf("\n");
-      }*/
-
-        // cross-check
-        /*for (int _i = 0; _i < dimx * dimy * region_size; _i++)
-        if (mask_mosaic[_i] == 0 && !FPzero(pixels_mosaic[_i]))
-          printf("failed a cross-check: %d : %f\n", mask_mosaic[_i], pixels_mosaic[_i]);*/
-
-        // apply the NaN mask to floating-point pixels
-        {
-          unsigned int work_size = dimx * dimy * region_size;
-          Ipp32f *_pixels = pixels_mosaic.get();
-          Ipp8u *_mask = mask_mosaic.get();
-          ispc::nan_mask(_pixels, _mask, work_size);
-          /*#pragma simd
-      for (unsigned int _i = 0; _i < work_size; _i++)
-        if (_mask[_i] == 0)
-          _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
-        }
-
-        // re-base the pixel coordinates
-        int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
-        int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-        int __cx = _cx - start_x * ZFP_CACHE_REGION;
-
-        int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
-        int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
-        int __cy = _cy - start_y * ZFP_CACHE_REGION;
-
-        if (beam == circle)
-          spectrum_value = ispc::calculate_radial_spectrumLF32(
-              pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
-              dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
-
-        if (beam == square)
-          spectrum_value = ispc::calculate_square_spectrumLF32(
-              pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
-              dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
-
-        //test[i - start] = spectrum_value;
-        spectrum[i - start] = spectrum_value;
-        has_compressed_spectrum = true;
-      }
     }
 
   jmp:
@@ -3700,8 +3499,8 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // debug
   /*for (int i = 0; i < length; i++)
-    //std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
-    std::cout << i << " : " << spectrum[i] << "\t";
+    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
+  //std::cout << i << " : " << spectrum[i] << "\t";
   std::cout << std::endl;*/
 
   auto end_t = steady_clock::now();
@@ -3734,7 +3533,7 @@ void FITS::zfp_compress()
 
 void FITS::zfp_decompress_cube(size_t start_k)
 {
-  size_t end_k = MIN(start_k + 4, depth);
+  /*size_t end_k = MIN(start_k + 4, depth);
 
   for (size_t i = start_k; i < end_k; i++)
     if (fits_cube[i] == NULL)
@@ -3819,7 +3618,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
     printf("frame %zu: decompression mismatch: real(%d), NaN(%d).\n", start_k, invalid_real, invalid_nan);
   else
     printf("frame %zu: OK.\n", start_k);
-#endif
+#endif*/
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
@@ -3917,10 +3716,10 @@ void FITS::zfp_compress_cube(size_t start_k)
         pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
         ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
         // relative accuracy (a Fixed-Precision mode)
-        /*ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                             pEncState);*/
+        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                             pEncState);
         // absolute accuracy
-        ippsEncodeZfpSetAccuracy_32f(ZFPACCURACY, pEncState);
+        //ippsEncodeZfpSetAccuracy_32f(ZFPACCURACY, pEncState);
 
         // ... ZFP compression
         int x, y;

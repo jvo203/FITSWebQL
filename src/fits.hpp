@@ -46,9 +46,9 @@ using namespace std::chrono;
 #define NBINS 1024
 
 #define ZFP_CACHE_REGION 256
-#define ZFPMAXPREC 16
+#define ZFPMAXPREC 11
 #define ZFPACCURACY 1.0e-3
-// perhaps we should use 16 bits as the maximum precision?
+// perhaps we should use 16 bits as the maximum precision instead of 11 or 8?
 
 int histogram_classifier(float *Slot);
 void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
@@ -95,15 +95,11 @@ struct CacheEntry
 {
   std::atomic<std::time_t> timestamp;
   std::shared_ptr<short> data;
-  float bscale;
-  float bzero;
 
   CacheEntry(std::shared_ptr<short> ptr)
   {
     timestamp = std::time(nullptr);
     data = ptr;
-    bscale = 1.0f;
-    bzero = 0.0f;
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
     data = std::shared_ptr<short>((short*)malloc(region_size * sizeof(short)),
