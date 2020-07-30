@@ -3172,7 +3172,25 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
     entry->timestamp = std::time(nullptr);
 
-    return false;
+    if (entry->data)
+    {
+      // copy the NaN-adjusted half-float pixels to dst (line by line with a stride)
+      size_t line_size = ZFP_CACHE_REGION * sizeof(unsigned short);
+      unsigned short *_src = entry->data.get();
+      unsigned short *_dst = dst;
+
+      for (int line = 0; line < ZFP_CACHE_REGION; line++)
+      {
+        // use memcpy here
+        memcpy(_dst, _src, line_size);
+        _src += ZFP_CACHE_REGION;
+        _dst += stride;
+      }
+
+      return false; // needs to return 'true' in reality
+    }
+    else
+      return false;
   }
 
   // decompress the pixels and a mask
@@ -3330,7 +3348,23 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
       cache[_frame][idy][idx] = entry;
 
       // copy half-float pixels to dst
-      //if (k == sub_frame)
+      if (k == sub_frame)
+      {
+        // copy the NaN-adjusted half-float pixels to dst (line by line with a stride)
+        size_t line_size = ZFP_CACHE_REGION * sizeof(unsigned short);
+        unsigned short *_src = f16;
+        unsigned short *_dst = dst;
+
+        for (int line = 0; line < ZFP_CACHE_REGION; line++)
+        {
+          // use memcpy here
+          memcpy(_dst, _src, line_size);
+          _src += ZFP_CACHE_REGION;
+          _dst += stride;
+        }
+
+        ok = false; // should be set 'true' in real operation
+      }
     }
   }
 
