@@ -90,20 +90,20 @@ enum beam_shape
 
 typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 
-// <short int> holds half-float pixels
+// <unsigned short int> holds half-float pixels
 struct CacheEntry
 {
   std::atomic<std::time_t> timestamp;
-  std::shared_ptr<short> data;
+  std::shared_ptr<unsigned short> data;
 
-  CacheEntry(std::shared_ptr<short> ptr)
+  CacheEntry(std::shared_ptr<unsigned short> ptr)
   {
     timestamp = std::time(nullptr);
     data = ptr;
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-    data = std::shared_ptr<short>((short*)malloc(region_size * sizeof(short)),
-            [](short *ptr) { free(ptr); });
+    data = std::shared_ptr<unsigned short>((unsigned short*)malloc(region_size * sizeof(unsigned short)),
+            [](unsigned short *ptr) { free(ptr); });
   }
 };
 
