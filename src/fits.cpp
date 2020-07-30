@@ -3187,7 +3187,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
         _dst += stride;
       }
 
-      return false; // needs to return 'true' in reality
+      return true;
     }
     else
       return false;
@@ -3363,7 +3363,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
           _dst += stride;
         }
 
-        ok = false; // should be set 'true' in real operation
+        ok = true;
       }
     }
   }
@@ -3525,19 +3525,19 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
       int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
-      /*if (beam == circle)
-        spectrum_value = ispc::calculate_radial_spectrumLF32(
-            pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+      if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumF16(
+            pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
 
       if (beam == square)
-        spectrum_value = ispc::calculate_square_spectrumLF32(
-            pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
+        spectrum_value = ispc::calculate_square_spectrumF16(
+            pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
 
       test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
-      has_compressed_spectrum = true;*/
+      has_compressed_spectrum = true;
     }
 
   jmp:
