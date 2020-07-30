@@ -151,7 +151,7 @@ private:
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t start_k);
   void zfp_decompress_cube(size_t start_k);
-  bool request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int stride);
+  bool request_cached_region(int frame, int idy, int idx, unsigned short *dst, int stride);
 
 public:
   std::string dataset_id;

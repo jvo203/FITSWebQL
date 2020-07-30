@@ -3145,7 +3145,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
-bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int stride)
+bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *dst, int stride)
 {
   int pixels_idz = frame / 4;
   int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
@@ -3230,7 +3230,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
     ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
     // relative accuracy (a Fixed-Precision mode)
     ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
-                                 pDecState);
+                         pDecState);
     // absolute accuracy
     //ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
 
@@ -3290,7 +3290,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
         if (_mask[_i] == 0)
           _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
 
-    if (k == sub_frame)
+    /*if (k == sub_frame)
     {
       // copy the NaN-adjusted pixels to dst (line by line with a stride)
       size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
@@ -3304,10 +3304,26 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
         _src += ZFP_CACHE_REGION;
         _dst += stride;
       }
-    }
+    }*/
   }
 
-  // add a new decompressed cache entry
+  // add four new decompressed cache entries
+  ok = false;
+
+  for (int k = 0; k < 4; k++)
+  {
+    size_t _frame = mask_idz + k; 
+    if (_frame >= depth)
+      break;
+
+    // create a new cache entry
+
+    // convert _pixels[k] into half-float
+
+    // copy half-float pixels to dst
+
+    // set cache[_frame][idy][idx]
+  }
 
   // release the memory
   for (int i = 0; i < 4; i++)
@@ -3319,7 +3335,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, Ipp32f *dst, int s
   if (_mask != NULL)
     ippsFree(_mask);
 
-  return true;
+  return ok;
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
@@ -3437,8 +3453,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
       //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
-      std::shared_ptr<Ipp32f> pixels_mosaic =
-          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);
+      /*std::shared_ptr<Ipp32f> pixels_mosaic =
+          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);*/
+      std::shared_ptr<unsigned short> pixels_mosaic = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
+                                                                                      [](unsigned short *ptr) { free(ptr); });
 
       if (!pixels_mosaic)
         goto jmp;
@@ -3446,11 +3464,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       // fill-in <pixels_mosaic> with decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
       {
-        Ipp32f *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
-
+        unsigned short *dst = pixels_mosaic.get() + (idy - start_y) * dimx * region_size;
         for (auto idx = start_x; idx <= end_x; idx++)
         {
-          Ipp32f *offset = dst + (idx - start_x) * ZFP_CACHE_REGION;
+          unsigned short *offset = dst + (idx - start_x) * ZFP_CACHE_REGION;
           if (!request_cached_region(i, idy, idx, offset, dimx * ZFP_CACHE_REGION))
             goto jmp;
         }
@@ -3465,7 +3482,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
       int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
-      if (beam == circle)
+      /*if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumLF32(
             pixels_mosaic.get(), 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
@@ -3477,7 +3494,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
       test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
-      has_compressed_spectrum = true;
+      has_compressed_spectrum = true;*/
     }
 
   jmp:
