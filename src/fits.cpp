@@ -3172,7 +3172,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
     entry->timestamp = std::time(nullptr);
 
-    return true;
+    return false;
   }
 
   // decompress the pixels and a mask
@@ -3312,7 +3312,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
   for (int k = 0; k < 4; k++)
   {
-    size_t _frame = mask_idz + k; 
+    size_t _frame = mask_idz + k;
     if (_frame >= depth)
       break;
 
@@ -3320,14 +3320,18 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
     entry = new struct CacheEntry();
 
     // convert _pixels[k] into half-float
-    if(entry->data)
+    if (entry->data)
     {
       //printf("[%zu] float32 --> half-float conversion.\n", _frame);
+      unsigned short *f16 = entry->data.get();
+
+      ispc::f32tof16(_pixels[k], f16, frame_min[_frame], frame_max[_frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, region_size);
+
+      cache[_frame][idy][idx] = entry;
+
+      // copy half-float pixels to dst
+      //if (k == sub_frame)
     }
-
-    // copy half-float pixels to dst
-
-    // set cache[_frame][idy][idx]
   }
 
   // release the memory

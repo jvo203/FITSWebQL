@@ -40,6 +40,8 @@ using namespace std::chrono;
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
+#define MIN_HALF_FLOAT -65504
+#define MAX_HALF_FLOAT 65504
 #define EPSILON 1.0E-15
 #define FPzero(A) (fabs(A) <= EPSILON)
 
