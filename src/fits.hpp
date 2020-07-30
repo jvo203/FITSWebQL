@@ -96,10 +96,9 @@ struct CacheEntry
   std::atomic<std::time_t> timestamp;
   std::shared_ptr<unsigned short> data;
 
-  CacheEntry(std::shared_ptr<unsigned short> ptr)
+  CacheEntry()
   {
     timestamp = std::time(nullptr);
-    data = ptr;
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
     data = std::shared_ptr<unsigned short>((unsigned short*)malloc(region_size * sizeof(unsigned short)),

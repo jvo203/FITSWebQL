@@ -3317,8 +3317,13 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
       break;
 
     // create a new cache entry
+    entry = new struct CacheEntry();
 
     // convert _pixels[k] into half-float
+    if(entry->data)
+    {
+      //printf("[%zu] float32 --> half-float conversion.\n", _frame);
+    }
 
     // copy half-float pixels to dst
 
