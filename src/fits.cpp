@@ -3386,7 +3386,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       beam_shape beam, double &elapsed)
 {
   std::vector<float> spectrum;
-  std::vector<float> test;
+  //std::vector<float> test;
 
   // sanity checks
   if (bitpix != -32)
@@ -3407,7 +3407,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // resize the spectrum vector
   spectrum.resize(length, 0);
-  test.resize(length, 0);
+  //test.resize(length, 0);
 
   // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
   // y2 << std::endl;
@@ -3535,7 +3535,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
 
-      test[i - start] = spectrum_value;
+      //test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
       has_compressed_spectrum = true;
     }
