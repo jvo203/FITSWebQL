@@ -358,8 +358,31 @@ FITS::~FITS()
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
-  // clear the cache
   // iterate through all elements of the cache, deleting the pointers to CacheEntry
+  for (auto i = 0; i < cache.size(); i++)
+  {
+    int pixels_idz = i / 4;
+
+    // lock the cache
+    std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
+
+    auto z_entry = cache[i];
+    //int count = 0;
+
+    for (auto &j : z_entry)
+      for (auto &k : j.second)
+      {
+        struct CacheEntry *entry = k.second;
+
+        if (entry != NULL)
+        {
+          //std::cout << "frame " << frame << ", deleting element #" << (++count) << std::endl;
+          delete entry;
+        }
+      }
+  }
+
+  // clear the cache of nested std::maps
   cache.clear();
 
   // clear the cube containing pointers to mmaped regions
@@ -3168,8 +3191,6 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
   if (entry != NULL)
   {
-    // TO-DO: copy the half-float data to dst while converting to float32
-
     entry->timestamp = std::time(nullptr);
 
     if (entry->data)
@@ -3307,22 +3328,6 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
       for (unsigned int _i = 0; _i < work_size; _i++)
         if (_mask[_i] == 0)
           _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
-
-    /*if (k == sub_frame)
-    {
-      // copy the NaN-adjusted pixels to dst (line by line with a stride)
-      size_t line_size = ZFP_CACHE_REGION * sizeof(Ipp32f);
-      Ipp32f *_src = _pixels[k];
-      Ipp32f *_dst = dst;
-
-      for (int line = 0; line < ZFP_CACHE_REGION; line++)
-      {
-        // use memcpy here
-        memcpy(_dst, _src, line_size);
-        _src += ZFP_CACHE_REGION;
-        _dst += stride;
-      }
-    }*/
   }
 
   // add four new decompressed cache entries
@@ -3337,7 +3342,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
     // create a new cache entry
     entry = new struct CacheEntry();
 
-    // convert _pixels[k] into half-float
+    // convert float32 _pixels[k] to half-float
     if (entry->data)
     {
       //printf("[%zu] float32 --> half-float conversion.\n", _frame);
@@ -3496,8 +3501,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
       //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
-      /*std::shared_ptr<Ipp32f> pixels_mosaic =
-          std::shared_ptr<Ipp32f>(ippsMalloc_32f(dimx * dimy * region_size), Ipp32fFree);*/
       std::shared_ptr<unsigned short> pixels_mosaic = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
                                                                                       [](unsigned short *ptr) { free(ptr); });
 
