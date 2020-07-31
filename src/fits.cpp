@@ -3219,10 +3219,13 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
   // decompress the pixels and a mask
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   size_t mask_size = region_size * sizeof(Ipp8u);
+  bool ok;
 
+#if defined(__APPLE__) && defined(__MACH__)
   Ipp32f *_pixels[4];
   Ipp8u *_mask;
-  bool ok = true;
+
+  ok = true;
 
   // pixels
   for (int i = 0; i < 4; i++)
@@ -3255,9 +3258,12 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
     return false;
   }
+#else
+  Ipp32f _pixels[4][region_size];
+  Ipp8u _mask[region_size];
+#endif
 
   // first the pixels (four frames)
-  //Ipp32f _pixels[4][region_size];
   {
     auto pixel_blocks = cube_pixels[pixels_idz].load();
     Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
@@ -3301,7 +3307,6 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
   }
 
   // then the mask and final post-processing
-  //Ipp8u _mask[region_size];
   for (int k = 0; k < 4; k++)
   {
     if (mask_idz + k >= depth)
@@ -3377,6 +3382,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
     }
   }
 
+#if defined(__APPLE__) && defined(__MACH__)
   // release the memory
   for (int i = 0; i < 4; i++)
   {
@@ -3386,6 +3392,7 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
   if (_mask != NULL)
     ippsFree(_mask);
+#endif
 
   return ok;
 }
