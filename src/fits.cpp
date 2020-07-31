@@ -3479,11 +3479,20 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
-  //std::lock_guard<std::mutex> guard(fits_mtx);
+  int max_threads = omp_get_max_threads();
+  std::vector<std::shared_ptr<unsigned short>> omp_mosaic(max_threads);
+
+  for (int i = 0; i < max_threads; i++)
+    omp_mosaic[i] = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
+                                                    [](unsigned short *ptr) { free(ptr); });
+
+    //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
+    int tid = omp_get_thread_num();
+
     // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a multiple of 4
     if (i < start)
       continue;
@@ -3512,8 +3521,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     // use the cache holding decompressed pixel data
     if (compressed_pixels && compressed_mask)
     {
-      std::shared_ptr<unsigned short> pixels_mosaic = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
-                                                                                      [](unsigned short *ptr) { free(ptr); });
+      std::shared_ptr<unsigned short> pixels_mosaic = omp_mosaic[tid];
 
       if (!pixels_mosaic)
         goto jmp;
