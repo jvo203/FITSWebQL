@@ -3168,6 +3168,204 @@ void FITS::send_progress_notification(size_t running, size_t total)
   };
 }
 
+std::shared_ptr<unsigned short> FITS::request_cached_region_ptr(int frame, int idy, int idx)
+{
+  int pixels_idz = frame / 4;
+  int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
+  int mask_idz = frame;
+
+  // lock the cache
+  std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
+
+  std::shared_ptr<unsigned short> res;
+
+  auto z_entry = cache[frame];
+  struct CacheEntry *entry = NULL;
+
+  // check the y-axis
+  if (z_entry.find(idy) != z_entry.end())
+  {
+    // check the x-axis
+    auto y_entry = z_entry[idy];
+    if (y_entry.find(idx) != y_entry.end())
+      entry = y_entry[idx];
+  }
+
+  if (entry != NULL)
+  {
+    entry->timestamp = std::time(nullptr);
+
+    if (entry->data)
+    {
+      // zero-copy transfer (return the shared pointer)
+      return entry->data;
+    }
+    else
+      return res;
+  }
+
+  // decompress the pixels and a mask
+  size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+  size_t mask_size = region_size * sizeof(Ipp8u);
+  bool ok;
+
+#if defined(__APPLE__) && defined(__MACH__)
+  Ipp32f *_pixels[4];
+  Ipp8u *_mask;
+
+  ok = true;
+
+  // pixels
+  for (int i = 0; i < 4; i++)
+  {
+    _pixels[i] = ippsMalloc_32f_L(region_size);
+    if (_pixels[i] == NULL)
+      ok = false;
+    else
+      for (size_t j = 0; j < region_size; j++)
+        _pixels[i][j] = 0.0f;
+  }
+
+  // the mask
+  _mask = ippsMalloc_8u_L(region_size);
+  if (_mask == NULL)
+    ok = false;
+  else
+    memset(_mask, 0, region_size);
+
+  if (!ok)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      if (_pixels[i] != NULL)
+        ippsFree(_pixels[i]);
+    }
+
+    if (_mask != NULL)
+      ippsFree(_mask);
+
+    return res;
+  }
+#else
+  Ipp32f _pixels[4][region_size];
+  Ipp8u _mask[region_size];
+#endif
+
+  // first the pixels (four frames)
+  {
+    auto pixel_blocks = cube_pixels[pixels_idz].load();
+    Ipp8u *buffer = (*pixel_blocks)[idy][idx].get();
+    int pComprLen = *((int *)buffer);
+
+    int decStateSize;
+    IppDecodeZfpState_32f *pDecState;
+
+    ippsDecodeZfpGetStateSize_32f(&decStateSize);
+    pDecState = (IppDecodeZfpState_32f *)ippsMalloc_8u(decStateSize);
+    ippsDecodeZfpInit_32f((buffer + sizeof(pComprLen)), pComprLen, pDecState);
+    // relative accuracy (a Fixed-Precision mode)
+    ippsDecodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC, IppZFPMINEXP,
+                         pDecState);
+    // absolute accuracy
+    //ippsDecodeZfpSetAccuracy_32f(ZFPACCURACY, pDecState);
+
+    // decompress 4x4x4 zfp blocks from a zfp stream
+    float block[4 * 4 * 4];
+
+    for (int y = 0; y < ZFP_CACHE_REGION; y += 4)
+      for (int x = 0; x < ZFP_CACHE_REGION; x += 4)
+      {
+        ippsDecodeZfp444_32f(pDecState, block, 4 * sizeof(Ipp32f),
+                             4 * 4 * sizeof(Ipp32f));
+
+        // extract 4-frame data from a 4x4x4 block
+        for (int _k = 0; _k < 4; _k++)
+        {
+          int offset = 4 * 4 * _k;
+          for (int _j = 0; _j < 4; _j++)
+            for (int _i = 0; _i < 4; _i++)
+            {
+              size_t _dst = (y + _j) * ZFP_CACHE_REGION + x + _i;
+              _pixels[_k][_dst] = block[offset++];
+            }
+        }
+      }
+
+    ippsFree(pDecState);
+  }
+
+  // then the mask and final post-processing
+  for (int k = 0; k < 4; k++)
+  {
+    if (mask_idz + k >= depth)
+      break;
+
+    auto mask_blocks = cube_mask[mask_idz + k].load();
+    if (mask_blocks == nullptr)
+      return res;
+
+    Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
+    int compressed_size = *((int *)buffer);
+    int decompressed_size = 0;
+
+    if (compressed_size > 0)
+      decompressed_size = LZ4_decompress_safe((const char *)(buffer + sizeof(compressed_size)), (char *)_mask, compressed_size, mask_size);
+
+    if (decompressed_size != mask_size)
+    {
+      printf("problems decompressing LZ4 mask [%d][%d]; compressed_size = %d, decompressed = %d\n", idy, idx, compressed_size, decompressed_size);
+      return res;
+    }
+
+    // apply the NaN mask to floating-point pixels
+    ispc::nan_mask(_pixels[k], _mask, region_size);
+    /*#pragma simd
+      for (unsigned int _i = 0; _i < work_size; _i++)
+        if (_mask[_i] == 0)
+          _pixels[_i] = std::numeric_limits<float>::quiet_NaN();*/
+  }
+
+  // add four new decompressed cache entries
+  for (int k = 0; k < 4; k++)
+  {
+    size_t _frame = mask_idz + k;
+    if (_frame >= depth)
+      break;
+
+    // create a new cache entry
+    entry = new struct CacheEntry();
+
+    // convert float32 _pixels[k] to half-float
+    if (entry->data)
+    {
+      //printf("[%zu] float32 --> half-float conversion.\n", _frame);
+      unsigned short *f16 = entry->data.get();
+
+      ispc::f32tof16(_pixels[k], f16, frame_min[_frame], frame_max[_frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, region_size);
+
+      cache[_frame][idy][idx] = entry;
+
+      // zero-copy transfer (return the shared pointer)
+      if (k == sub_frame)
+        res = entry->data;
+    }
+  }
+
+#if defined(__APPLE__) && defined(__MACH__)
+  // release the memory
+  for (int i = 0; i < 4; i++)
+  {
+    if (_pixels[i] != NULL)
+      ippsFree(_pixels[i]);
+  }
+
+  if (_mask != NULL)
+    ippsFree(_mask);
+#endif
+
+  return res;
+}
+
 bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *dst, int stride)
 {
   int pixels_idz = frame / 4;
@@ -3492,7 +3690,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     omp_mosaic[i] = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
                                                     [](unsigned short *ptr) { free(ptr); });
 
-  //std::lock_guard<std::mutex> guard(fits_mtx);
+    //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
