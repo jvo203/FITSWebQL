@@ -3488,7 +3488,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
     //std::lock_guard<std::mutex> guard(fits_mtx);
 
-#pragma omp parallel for schedule(dynamic, 4)
+#pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
     int tid = omp_get_thread_num();
