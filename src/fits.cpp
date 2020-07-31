@@ -3470,6 +3470,15 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                       ? this->cdelt3 * this->frame_multiplier / 1000.0f
                       : 1.0f;
 
+  auto [start_x, start_y] = make_indices(_x1, _y1);
+  auto [end_x, end_y] = make_indices(_x2, _y2);
+
+  // stitch together decompressed regions
+  int dimx = end_x - start_x + 1;
+  int dimy = end_y - start_y + 1;
+  size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
+  //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
+
   std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4)
@@ -3503,15 +3512,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     // use the cache holding decompressed pixel data
     if (compressed_pixels && compressed_mask)
     {
-      auto [start_x, start_y] = make_indices(_x1, _y1);
-      auto [end_x, end_y] = make_indices(_x2, _y2);
-
-      // stitch together decompressed regions
-      int dimx = end_x - start_x + 1;
-      int dimy = end_y - start_y + 1;
-      size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-      //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
-
       std::shared_ptr<unsigned short> pixels_mosaic = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
                                                                                       [](unsigned short *ptr) { free(ptr); });
 
