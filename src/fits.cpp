@@ -3196,14 +3196,16 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
     if (entry->data)
     {
       // copy the NaN-adjusted half-float pixels to dst (line by line with a stride)
-      size_t line_size = ZFP_CACHE_REGION * sizeof(unsigned short);
       unsigned short *_src = entry->data.get();
       unsigned short *_dst = dst;
 
       for (int line = 0; line < ZFP_CACHE_REGION; line++)
       {
-        // use memcpy here
-        memcpy(_dst, _src, line_size);
+// use SIMD
+#pragma simd
+        for (int col = 0; col < ZFP_CACHE_REGION; col++)
+          _dst[col] = _src[col];
+
         _src += ZFP_CACHE_REGION;
         _dst += stride;
       }
@@ -3356,14 +3358,16 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
       if (k == sub_frame)
       {
         // copy the NaN-adjusted half-float pixels to dst (line by line with a stride)
-        size_t line_size = ZFP_CACHE_REGION * sizeof(unsigned short);
         unsigned short *_src = f16;
         unsigned short *_dst = dst;
 
         for (int line = 0; line < ZFP_CACHE_REGION; line++)
         {
-          // use memcpy here
-          memcpy(_dst, _src, line_size);
+          // use SIMD
+#pragma simd
+          for (int col = 0; col < ZFP_CACHE_REGION; col++)
+            _dst[col] = _src[col];
+
           _src += ZFP_CACHE_REGION;
           _dst += stride;
         }
