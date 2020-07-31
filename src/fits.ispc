@@ -583,11 +583,17 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
 {
   float partial_sum = 0.0f ;
   unsigned int64 partial_count = 0 ;
-  
+
+  uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bzero_new = bzero + bscale * bzero16 ;
+  uniform float bscale_new = bscale * bscale16;
+
   foreach (y=y1 ... y2, x=x1 ... x2)
     {      
-      float tmp = frame_min + (half_to_float_fast(src[y*width+x]) - min16) / (max16 - min16) * (frame_max - frame_min);
-      tmp = bzero + bscale * tmp;      
+      //float tmp = frame_min + (half_to_float_fast(src[y*width+x]) - min16) / (max16 - min16) * (frame_max - frame_min);
+      //tmp = bzero + bscale * tmp;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
       float dist2 = (cx-x)*(cx-x) + (cy-y)*(cy-y) ;
