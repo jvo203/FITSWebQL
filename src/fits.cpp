@@ -3492,7 +3492,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     omp_mosaic[i] = std::shared_ptr<unsigned short>((unsigned short *)malloc(dimx * dimy * region_size * sizeof(unsigned short)),
                                                     [](unsigned short *ptr) { free(ptr); });
 
-    //std::lock_guard<std::mutex> guard(fits_mtx);
+  //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
