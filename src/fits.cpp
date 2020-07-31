@@ -3470,8 +3470,14 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                       ? this->cdelt3 * this->frame_multiplier / 1000.0f
                       : 1.0f;
 
-  auto [start_x, start_y] = make_indices(_x1, _y1);
-  auto [end_x, end_y] = make_indices(_x2, _y2);
+  auto [_start_x, _start_y] = make_indices(_x1, _y1);
+  auto [_end_x, _end_y] = make_indices(_x2, _y2);
+
+  // a workaround for macOS
+  int start_x = _start_x;
+  int start_y = _start_y;
+  int end_x = _end_x;
+  int end_y = _end_y;
 
   // stitch together decompressed regions
   int dimx = end_x - start_x + 1;
