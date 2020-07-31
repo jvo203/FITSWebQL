@@ -3479,7 +3479,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
   //printf("dimx: %d\tdimy: %d\n", dimx, dimy);
 
-  std::lock_guard<std::mutex> guard(fits_mtx);
+  //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4)
   for (size_t i = (start - (start % 4)); i <= end; i++)
