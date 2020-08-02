@@ -3714,15 +3714,16 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     {
       // a zero-copy virtual <pixels_mosaic> operating on pointers to decompressed regions from the cache
 
+      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+      int __cy = _cy - start_y * ZFP_CACHE_REGION;
+
       int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
       int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
-      int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
       for (auto idy = start_y; idy <= end_y; idy++)
       {
         int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
         int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-        int __cx = _cx - start_x * ZFP_CACHE_REGION;
 
         for (auto idx = start_x; idx <= end_x; idx++)
         {
@@ -3963,7 +3964,7 @@ std::vector<float> FITS::get_spectrum_cache_copy(int start, int end, int x1, int
       if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF16(
             pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
-            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, 0, 0, __cx, __cy, _r2, average, _cdelt3);
 
       if (beam == square)
         spectrum_value = ispc::calculate_square_spectrumF16(
