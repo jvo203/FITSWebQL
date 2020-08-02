@@ -585,7 +585,7 @@ export uniform float calculate_square_spectrumF16(uniform unsigned int16 src[], 
 } ;
 
 // half-float
-export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform int cx, uniform int cy, uniform int r2, uniform bool average, uniform float cdelt3)
+export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int width, uniform int x1, uniform int x2, uniform int y1, uniform int y2, uniform int dx, uniform int dy, uniform int cx, uniform int cy, uniform int r2, uniform bool average, uniform float cdelt3)
 {
   float partial_sum = 0.0f ;
   unsigned int64 partial_count = 0 ;
@@ -602,7 +602,7 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
       float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
-      float dist2 = (cx-x)*(cx-x) + (cy-y)*(cy-y) ;
+      float dist2 = (cx-(x+dx))*(cx-(x+dx)) + (cy-(y+dy))*(cy-(y+dy)) ;
       bool exclude = (dist2 > r2) ;
       //tmp = (dist2 <= r2) ? tmp : 0.0f ;
       
