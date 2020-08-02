@@ -3731,7 +3731,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
           if (!region)
             goto jmp;
 
-          // calculate a partial spectrum value based on the region
+          // calculate a partial spectrum value based on one mosaic region
         }
       }
 
