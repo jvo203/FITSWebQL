@@ -3677,6 +3677,196 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   int end_x = _end_x;
   int end_y = _end_y;
 
+  // re-base the pixel coordinates
+  int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+  int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+  int __cx = _cx - start_x * ZFP_CACHE_REGION;
+
+  int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
+  int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
+  int __cy = _cy - start_y * ZFP_CACHE_REGION;
+
+  //std::lock_guard<std::mutex> guard(fits_mtx);
+
+#pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
+  for (size_t i = (start - (start % 4)); i <= end; i++)
+  {
+    int tid = omp_get_thread_num();
+
+    // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a multiple of 4
+    if (i < start)
+      continue;
+
+    float spectrum_value = 0.0f;
+    bool has_compressed_spectrum = false;
+    bool compressed_pixels = false;
+    bool compressed_mask = false;
+
+    int pixels_idz = i / 4;
+    int sub_frame = i % 4; // a sub-pixels frame count in [0,4)
+    int mask_idz = i;
+
+    {
+      auto pixel_blocks = cube_pixels[pixels_idz].load();
+      if (pixel_blocks != nullptr)
+        compressed_pixels = true;
+    }
+
+    {
+      auto mask_blocks = cube_mask[mask_idz].load();
+      if (mask_blocks != nullptr)
+        compressed_mask = true;
+    }
+
+    // use the cache holding decompressed pixel data
+    if (compressed_pixels && compressed_mask)
+    {
+      // a zero-copy virtual <pixels_mosaic> operating on pointers to decompressed regions from the cache
+      for (auto idy = start_y; idy <= end_y; idy++)
+      {
+        for (auto idx = start_x; idx <= end_x; idx++)
+        {
+          std::shared_ptr<unsigned short> region = request_cached_region_ptr(i, idy, idx);
+
+          if (!region)
+            goto jmp;
+
+          // calculate a partial spectrum value based on the region
+        }
+      }
+
+      /*if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumF16(
+            pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
+
+      if (beam == square)
+        spectrum_value = ispc::calculate_square_spectrumF16(
+            pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
+
+      //test[i - start] = spectrum_value;
+      spectrum[i - start] = spectrum_value;
+      has_compressed_spectrum = true;*/
+    }
+
+  jmp:
+    if (!has_compressed_spectrum && fits_cube[i] != NULL)
+    {
+      if (beam == circle)
+        spectrum_value = ispc::calculate_radial_spectrumBF32(
+            (int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax,
+            width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
+
+      if (beam == square)
+        spectrum_value = ispc::calculate_square_spectrumBF32(
+            (int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax,
+            width, _x1, _x2, _y1, _y2, average, _cdelt3);
+    }
+
+    spectrum[i - start] = spectrum_value;
+  }
+
+  // debug
+  /*for (int i = 0; i < length; i++)
+    std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
+  //std::cout << i << " : " << spectrum[i] << "\t";
+  std::cout << std::endl;*/
+
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  elapsed = elapsedMilliseconds;
+
+  return spectrum;
+}
+
+std::vector<float> FITS::get_spectrum_cache_copy(int start, int end, int x1, int y1,
+                                                 int x2, int y2, intensity_mode intensity,
+                                                 beam_shape beam, double &elapsed)
+{
+  std::vector<float> spectrum;
+  //std::vector<float> test;
+
+  // sanity checks
+  if (bitpix != -32)
+    return spectrum;
+
+  if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
+    return spectrum;
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  // passed the sanity checks
+  int length = end - start + 1;
+
+  // resize the spectrum vector
+  spectrum.resize(length, 0);
+  //test.resize(length, 0);
+
+  // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
+  // y2 << std::endl;
+
+  int _x1 = MAX(0, x1);
+  int _y1 = MAX(0, y1);
+  int _x2 = MIN(width - 1, x2);
+  int _y2 = MIN(height - 1, y2);
+
+  // std::cout << "[get_spectrum]#1 " << _x1 << " " << _x2 << " " << _y1 << " "
+  // << _y2 << std::endl;
+
+  // include at least one pixel
+  /*if (_x1 == _x2)
+    _x2 = _x1 + 1;
+
+  if (_y1 == _y2)
+    _y2 = _y1 + 1;*/
+
+  // std::cout << "[get_spectrum]#2 " << _x1 << " " << _x2 << " " << _y1 << " "
+  // << _y2 << std::endl;
+
+  bool average = (intensity == mean) ? true : false;
+
+  int _cx = 0;
+  int _cy = 0;
+  int _r = 0;
+  int _r2 = 0;
+
+  if (beam == circle)
+  {
+    // calculate the centre and squared radius
+    _cx = (_x1 + _x2) >> 1;
+    _cy = (_y1 + _y2) >> 1;
+    _r = MIN((_x2 - _x1) >> 1, (_y2 - _y1) >> 1);
+    _r2 = _r * _r;
+
+    // printf("cx = %d\tcy = %d\tr = %d\n", _cx, _cy, _r);
+  };
+
+  auto start_t = steady_clock::now();
+
+  float _cdelt3 = this->has_velocity
+                      ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                      : 1.0f;
+
+  auto [_start_x, _start_y] = make_indices(_x1, _y1);
+  auto [_end_x, _end_y] = make_indices(_x2, _y2);
+
+  // a workaround for macOS
+  int start_x = _start_x;
+  int start_y = _start_y;
+  int end_x = _end_x;
+  int end_y = _end_y;
+
   // stitch together decompressed regions
   int dimx = end_x - start_x + 1;
   int dimy = end_y - start_y + 1;
