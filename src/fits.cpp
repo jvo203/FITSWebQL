@@ -3712,17 +3712,18 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     // use the cache holding decompressed pixel data
     if (compressed_pixels && compressed_mask)
     {
-      int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
-      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+      // a zero-copy virtual <pixels_mosaic> operating on pointers to decompressed regions from the cache
 
       int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
       int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
       int __cy = _cy - start_y * ZFP_CACHE_REGION;
 
-      // a zero-copy virtual <pixels_mosaic> operating on pointers to decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
       {
+        int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+        int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+        int __cx = _cx - start_x * ZFP_CACHE_REGION;
+
         for (auto idx = start_x; idx <= end_x; idx++)
         {
           std::shared_ptr<unsigned short> region = request_cached_region_ptr(i, idy, idx);
@@ -3740,7 +3741,15 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             spectrum_value += ispc::calculate_square_spectrumF16(
                 region.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
                 ZFP_CACHE_REGION, ___x1, ___x2, ___y1, ___y2, average, _cdelt3);
+
+          __x1 -= ZFP_CACHE_REGION;
+          __x2 -= ZFP_CACHE_REGION;
+          __cx -= ZFP_CACHE_REGION;
         }
+
+        __y1 -= ZFP_CACHE_REGION;
+        __y2 -= ZFP_CACHE_REGION;
+        __cy -= ZFP_CACHE_REGION;
       }
 
       // re-base the pixel coordinates
