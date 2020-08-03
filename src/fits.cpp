@@ -3757,7 +3757,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
       test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
-      //has_compressed_spectrum = true;
+      has_compressed_spectrum = true;
     }
 
   jmp:
@@ -3778,10 +3778,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   }
 
   // debug
-  for (int i = 0; i < length; i++)
+  /*for (int i = 0; i < length; i++)
     std::cout << i << ": " << test[i] << " *** " << spectrum[i] << std::endl;
   //std::cout << i << " : " << spectrum[i] << "\t";
-  std::cout << std::endl;
+  std::cout << std::endl;*/
 
   auto end_t = steady_clock::now();
 

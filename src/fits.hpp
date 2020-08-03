@@ -103,8 +103,8 @@ struct CacheEntry
     timestamp = std::time(nullptr);
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-    data = std::shared_ptr<unsigned short>((unsigned short*)malloc(region_size * sizeof(unsigned short)),
-            [](unsigned short *ptr) { free(ptr); });
+    data = std::shared_ptr<unsigned short>((unsigned short *)malloc(region_size * sizeof(unsigned short)),
+                                           [](unsigned short *ptr) { free(ptr); });
   }
 };
 
