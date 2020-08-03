@@ -3731,8 +3731,10 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             goto jmp;
 
           // calculate a partial spectrum value based on one mosaic region
-          int ___y1 = __y1 - (idy - start_y) * ZFP_CACHE_REGION;
-          int ___y2 = __y2 - (idy - start_y) * ZFP_CACHE_REGION;
+          int ___x1 = MAX(__x1, 0);
+          int ___y1 = MAX(__y1, 0);
+          int ___x2 = MIN(__x2, ZFP_CACHE_REGION);
+          int ___y2 = MIN(__y2, ZFP_CACHE_REGION);
 
           if (beam == square)
             spectrum_value += ispc::calculate_square_spectrumF16(
