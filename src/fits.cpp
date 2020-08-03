@@ -3712,6 +3712,14 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     // use the cache holding decompressed pixel data
     if (compressed_pixels && compressed_mask)
     {
+      int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+
+      int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
+      int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
+      int __cy = _cy - start_y * ZFP_CACHE_REGION;
+
       // a zero-copy virtual <pixels_mosaic> operating on pointers to decompressed regions from the cache
       for (auto idy = start_y; idy <= end_y; idy++)
       {
@@ -3723,18 +3731,18 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
             goto jmp;
 
           // calculate a partial spectrum value based on one mosaic region
+          int ___y1 = __y1 - (idy - start_y) * ZFP_CACHE_REGION;
+          int ___y2 = __y2 - (idy - start_y) * ZFP_CACHE_REGION;
+
+          if (beam == square)
+            spectrum_value += ispc::calculate_square_spectrumF16(
+                region.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
+                ZFP_CACHE_REGION, ___x1, ___x2, ___y1, ___y2, average, _cdelt3);
         }
       }
 
       // re-base the pixel coordinates
-      /*int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
-      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-      int __cx = _cx - start_x * ZFP_CACHE_REGION;
-
-      int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
-      int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
-      int __cy = _cy - start_y * ZFP_CACHE_REGION;
-
+      /*
       if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF16(
             pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
