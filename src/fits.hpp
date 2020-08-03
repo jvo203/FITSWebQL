@@ -128,7 +128,6 @@ public:
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
   void get_spectrum_range(double frame_start, double frame_end, double ref_freq, int &start, int &end);
-  std::vector<float> get_spectrum_cache_copy(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed);
   std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed);
   void to_json(std::ostringstream &json);
 
@@ -153,7 +152,6 @@ private:
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t start_k);
   void zfp_decompress_cube(size_t start_k);
-  bool request_cached_region(int frame, int idy, int idx, unsigned short *dst, int stride);
   std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy, int idx);
 
 public:
