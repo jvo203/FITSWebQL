@@ -3600,7 +3600,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       beam_shape beam, double &elapsed)
 {
   std::vector<float> spectrum;
-  //std::vector<float> test;
+  std::vector<float> test;
 
   // sanity checks
   if (bitpix != -32)
@@ -3621,7 +3621,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // resize the spectrum vector
   spectrum.resize(length, 0);
-  //test.resize(length, 0);
+  test.resize(length, 0);
 
   // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
   // y2 << std::endl;
@@ -3677,15 +3677,6 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
   int end_x = _end_x;
   int end_y = _end_y;
 
-  // re-base the pixel coordinates
-  int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
-  int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
-  int __cx = _cx - start_x * ZFP_CACHE_REGION;
-
-  int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
-  int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
-  int __cy = _cy - start_y * ZFP_CACHE_REGION;
-
   //std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
@@ -3735,7 +3726,16 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         }
       }
 
-      /*if (beam == circle)
+      // re-base the pixel coordinates
+      /*int __x1 = _x1 - start_x * ZFP_CACHE_REGION;
+      int __x2 = _x2 - start_x * ZFP_CACHE_REGION;
+      int __cx = _cx - start_x * ZFP_CACHE_REGION;
+
+      int __y1 = _y1 - start_y * ZFP_CACHE_REGION;
+      int __y2 = _y2 - start_y * ZFP_CACHE_REGION;
+      int __cy = _cy - start_y * ZFP_CACHE_REGION;
+
+      if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumF16(
             pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
             dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, __cx, __cy, _r2, average, _cdelt3);
@@ -3743,11 +3743,11 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
       if (beam == square)
         spectrum_value = ispc::calculate_square_spectrumF16(
             pixels_mosaic.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, 0.0f, 1.0f, ignrval, datamin, datamax,
-            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);
+            dimx * ZFP_CACHE_REGION, __x1, __x2, __y1, __y2, average, _cdelt3);*/
 
-      //test[i - start] = spectrum_value;
+      test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
-      has_compressed_spectrum = true;*/
+      //has_compressed_spectrum = true;
     }
 
   jmp:
