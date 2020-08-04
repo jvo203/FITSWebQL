@@ -372,7 +372,7 @@ FITS::~FITS()
     // lock the cache
     std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
 
-    auto z_entry = cache[i];
+    decompressed_blocks& z_entry = cache[i];
     //int count = 0;
 
     for (auto &j : z_entry)
@@ -457,7 +457,7 @@ void FITS::purge_cache()
     // lock the cache
     std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
 
-    auto z_entry = cache[i];
+    decompressed_blocks& z_entry = cache[i];
 
     auto y_it = z_entry.begin();
     while (y_it != z_entry.end())
@@ -478,12 +478,12 @@ void FITS::purge_cache()
           if (timestamp - entry->timestamp > CACHE_TIMEOUT)
           {
             // release the memory
-            //delete entry;
+            delete entry;
 
             // remove the key from std::map too
             x_it = y_it->second.erase(x_it);
             deleted = true;
-            printf("[...] erased a stale cache entry(%zu:%d:%d).\n", i, y_key, x_key);
+            printf("[%s] erased a stale cache entry(%zu:%d:%d).\n", dataset_id.c_str(), i, y_key, x_key);
           }
         }
 
@@ -492,45 +492,6 @@ void FITS::purge_cache()
       }
 
       y_it++;
-    }
-
-    for (auto &j : z_entry)
-    {
-      int y_key = j.first;
-      std::vector<int> keys;
-
-      for (auto &k : j.second)
-      {
-        int x_key = k.first;
-        struct CacheEntry *entry = k.second;
-
-        if (entry != NULL)
-        {
-          // check the timestamp
-          timestamp = std::time(nullptr);
-
-          if (timestamp - entry->timestamp > CACHE_TIMEOUT)
-          {
-            // release the memory
-            //delete entry;
-
-            // append a key to be deleted
-            keys.push_back(x_key);
-
-            // remove the key from std::map too
-            /*j.second.erase(x_key);
-            printf("erased a stale cache entry(%zu:%d:%d).\n", i, y_key, x_key);*/
-          }
-        }
-      }
-
-      // erase keys if there are any
-      for (auto &x_key : keys)
-      {
-        int no_erased = j.second.erase(x_key);
-        //int no_erased = z_entry[y_key].erase(x_key);
-        printf("erased a stale cache entry(%zu:%d:%d), #erased = %d.\n", i, y_key, x_key, no_erased);
-      }
     }
   }
 }
@@ -2203,6 +2164,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
               << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
 
     // set up a cache purging thread
+    //purge_thread = std::thread(&FITS::purge_thread, this);
     purge_thread = std::thread([this]() {
       std::unique_lock<std::mutex> purge_lck(purge_mtx);
 
@@ -3290,7 +3252,8 @@ std::shared_ptr<unsigned short> FITS::request_cached_region_ptr(int frame, int i
 
   std::shared_ptr<unsigned short> res;
 
-  auto z_entry = cache[frame];
+  //auto z_entry = cache[frame];
+  decompressed_blocks& z_entry = cache[frame];
   struct CacheEntry *entry = NULL;
 
   // check the y-axis
