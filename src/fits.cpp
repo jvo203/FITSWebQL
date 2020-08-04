@@ -438,6 +438,42 @@ FITS::~FITS()
   }*/
 }
 
+void FITS::purge_cache()
+{
+  // iterate through all elements of the cache, purging stale entries
+  for (auto i = 0; i < cache.size(); i++)
+  {
+    int pixels_idz = i / 4;
+
+    // lock the cache
+    std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
+
+    auto z_entry = cache[i];
+
+    for (auto &j : z_entry)
+      for (auto &k : j.second)
+      {
+        int key = k.first;
+        struct CacheEntry *entry = k.second;
+
+        if (entry != NULL)
+        {
+          // check the timestamp
+          timestamp = std::time(nullptr);
+
+          if (timestamp - entry->timestamp > CACHE_TIMEOUT)
+          {
+            // release the memory
+            delete entry;
+
+            // remove the key from std::map too
+            j.second.erase(key);
+          }
+        }
+      }
+  }
+}
+
 void FITS::defaults()
 {
   object = dataset_id;
