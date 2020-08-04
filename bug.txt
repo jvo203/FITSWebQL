@@ -62,3 +62,36 @@ vm.max_map_count = 655300
 chris@isis:~> sudo sysctl vm.max_map_count
 vm.max_map_count = 655300
 
+============== MEMORY LEAK TESTING WITH VALGRIND =============================
+valgrind --leak-check=full ./fitswebql 
+
+==7294== 
+==7294== HEAP SUMMARY:
+==7294==     in use at exit: 4,008,360 bytes in 350 blocks
+==7294==   total heap usage: 116,979 allocs, 116,629 frees, 1,543,825,340 bytes allocated
+==7294== 
+==7294== Thread 1:
+==7294== 1,600 bytes in 4 blocks are possibly lost in loss record 55 of 70
+==7294==    at 0x483EB95: calloc (vg_replace_malloc.c:760)
+==7294==    by 0x4014C6A: allocate_dtv (dl-tls.c:286)
+==7294==    by 0x4014C6A: _dl_allocate_tls (dl-tls.c:532)
+==7294==    by 0x4DE24F5: allocate_stack (allocatestack.c:624)
+==7294==    by 0x4DE24F5: pthread_create@@GLIBC_2.2.5 (pthread_create.c:660)
+==7294==    by 0x6061098: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib64/libstdc++.so.6.0.28)
+==7294==    by 0x11D95A: thread<main(int, char**)::<lambda(std::thread*)>::<lambda()> > (thread:149)
+==7294==    by 0x11D95A: operator() (main_uWS.cpp:3254)
+==7294==    by 0x11D95A: transform<__gnu_cxx::__normal_iterator<std::thread**, std::vector<std::thread*> >, __gnu_cxx::__normal_iterator<std::thread**, std::vector<std::thread*> >, main(int, char**)::<lambda(std::thread*)> > (stl_algo.h:4313)
+==7294==    by 0x11D95A: main (main_uWS.cpp:3255)
+==7294== 
+==7294== LEAK SUMMARY:
+==7294==    definitely lost: 0 bytes in 0 blocks
+==7294==    indirectly lost: 0 bytes in 0 blocks
+==7294==      possibly lost: 1,600 bytes in 4 blocks
+==7294==    still reachable: 4,006,760 bytes in 346 blocks
+==7294==         suppressed: 0 bytes in 0 blocks
+==7294== Reachable blocks (those to which a pointer was found) are not shown.
+==7294== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==7294== 
+==7294== Use --track-origins=yes to see where uninitialised values come from
+==7294== For lists of detected and suppressed errors, rerun with: -s
+==7294== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 136 from 1)
