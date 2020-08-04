@@ -335,6 +335,9 @@ FITS::FITS(std::string id, std::string flux)
 
 FITS::~FITS()
 {
+  terminate = true;
+  purge_cv.notify_all();
+
   /*if (compress_thread.joinable())
     compress_thread.join();*/
 
@@ -358,6 +361,9 @@ FITS::~FITS()
 
   std::cout << this->dataset_id << "::destructor." << std::endl;
 
+  if (purge_thread.joinable())
+    purge_thread.join();
+
   // iterate through all elements of the cache, deleting the pointers to CacheEntry
   for (auto i = 0; i < cache.size(); i++)
   {
@@ -372,12 +378,15 @@ FITS::~FITS()
     for (auto &j : z_entry)
       for (auto &k : j.second)
       {
+        int key = k.first;
         struct CacheEntry *entry = k.second;
 
         if (entry != NULL)
         {
           //std::cout << "frame " << frame << ", deleting element #" << (++count) << std::endl;
           delete entry;
+
+          j.second.erase(key);
         }
       }
   }
@@ -441,7 +450,7 @@ FITS::~FITS()
 void FITS::purge_cache()
 {
   // iterate through all elements of the cache, purging stale entries
-  for (auto i = 0; i < cache.size(); i++)
+  for (size_t i = 0; i < cache.size(); i++)
   {
     int pixels_idz = i / 4;
 
@@ -450,10 +459,49 @@ void FITS::purge_cache()
 
     auto z_entry = cache[i];
 
+    auto y_it = z_entry.begin();
+    while (y_it != z_entry.end())
+    {
+      int y_key = y_it->first;
+      auto x_it = y_it->second.begin();
+      while (x_it != y_it->second.end())
+      {
+        int x_key = x_it->first;
+        struct CacheEntry *entry = x_it->second;
+        bool deleted = false;
+
+        if (entry != NULL)
+        {
+          // check the timestamp
+          timestamp = std::time(nullptr);
+
+          if (timestamp - entry->timestamp > CACHE_TIMEOUT)
+          {
+            // release the memory
+            //delete entry;
+
+            // remove the key from std::map too
+            x_it = y_it->second.erase(x_it);
+            deleted = true;
+            printf("[...] erased a stale cache entry(%zu:%d:%d).\n", i, y_key, x_key);
+          }
+        }
+
+        if (!deleted)
+          x_it++;
+      }
+
+      y_it++;
+    }
+
     for (auto &j : z_entry)
+    {
+      int y_key = j.first;
+      std::vector<int> keys;
+
       for (auto &k : j.second)
       {
-        int key = k.first;
+        int x_key = k.first;
         struct CacheEntry *entry = k.second;
 
         if (entry != NULL)
@@ -464,13 +512,26 @@ void FITS::purge_cache()
           if (timestamp - entry->timestamp > CACHE_TIMEOUT)
           {
             // release the memory
-            delete entry;
+            //delete entry;
+
+            // append a key to be deleted
+            keys.push_back(x_key);
 
             // remove the key from std::map too
-            j.second.erase(key);
+            /*j.second.erase(x_key);
+            printf("erased a stale cache entry(%zu:%d:%d).\n", i, y_key, x_key);*/
           }
         }
       }
+
+      // erase keys if there are any
+      for (auto &x_key : keys)
+      {
+        int no_erased = j.second.erase(x_key);
+        //int no_erased = z_entry[y_key].erase(x_key);
+        printf("erased a stale cache entry(%zu:%d:%d), #erased = %d.\n", i, y_key, x_key, no_erased);
+      }
+    }
   }
 }
 
@@ -2141,6 +2202,20 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
               << ", cache::size = " << cache.size()
               << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
 
+    // set up a cache purging thread
+    purge_thread = std::thread([this]() {
+      std::unique_lock<std::mutex> purge_lck(purge_mtx);
+
+      while (!terminate)
+      {
+        purge_cache();
+
+        purge_cv.wait_for(purge_lck, 1s);
+      }
+
+      printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
+    });
+
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
 
@@ -3379,11 +3454,12 @@ std::shared_ptr<unsigned short> FITS::request_cached_region_ptr(int frame, int i
 
       ispc::f32tof16(_pixels[k], f16, frame_min[_frame], frame_max[_frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, region_size);
 
-      cache[_frame][idy][idx] = entry;
-
       // zero-copy transfer (return the shared pointer)
       if (k == sub_frame)
         res = entry->data;
+
+      // finally add a new entry to the cache
+      cache[_frame][idy][idx] = entry;
     }
   }
 

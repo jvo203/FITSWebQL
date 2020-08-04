@@ -278,6 +278,12 @@ private:
   std::vector<decompressed_blocks> cache;
   std::vector<std::shared_mutex> cache_mtx;
 
+  // cache purge thread
+  std::atomic<bool> terminate = false;
+  std::condition_variable purge_cv;
+  std::thread purge_thread;
+  std::mutex purge_mtx;
+
   // Boost/Beast shared state
   // boost::weak_ptr<shared_state> state_;
 };
