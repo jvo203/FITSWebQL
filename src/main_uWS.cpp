@@ -215,6 +215,9 @@ void signalHandler(int signum)
 
   // terminate program
   exit(signum);
+
+  // raise the original signal
+  //raise(signum);
 }
 
 bool is_gzip(const char *filename)
@@ -1910,6 +1913,14 @@ int main(int argc, char *argv[])
   // register signal SIGINT and signal handler
   signal(SIGINT, signalHandler);
 
+  // a one-time signal handler
+  /*struct sigaction action;
+  action.sa_handler = signalHandler;
+  action.sa_flags = SA_RESETHAND;
+
+  if (sigaction(SIGINT, &action, NULL) == -1)
+    perror("Failed to install signal handler for SIGINT");*/
+
   // parse local command-line options
   if (argc > 2)
   {
@@ -3246,6 +3257,5 @@ int main(int argc, char *argv[])
   std::for_each(threads.begin(), threads.end(),
                 [](std::thread *t) { t->join(); });
 
-  if (splat_db != NULL)
-    sqlite3_close(splat_db);
+  printf("uWS HTTP/WebSockets server shutdown completed.\n");
 }
