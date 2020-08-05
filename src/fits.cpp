@@ -3027,7 +3027,7 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx) {
 
   // auto z_entry = cache[frame];
   decompressed_blocks &z_entry = cache[frame];
-  struct CacheEntry *entry = NULL;
+  std::shared_ptr<CacheEntry> entry;
 
   // check the y-axis
   if (z_entry.find(idy) != z_entry.end()) {
@@ -3037,12 +3037,13 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx) {
       entry = y_entry[idx];
   }
 
-  if (entry != NULL) {
-    entry->timestamp = std::time(nullptr);
+  if (entry) {
+    struct CacheEntry *_entry = entry.get();
+    _entry->timestamp = std::time(nullptr);
 
-    if (entry->data) {
+    if (_entry->data) {
       // zero-copy transfer (return the shared pointer)
-      return entry->data;
+      return _entry->data;
     } else
       return res;
   }
@@ -3171,22 +3172,26 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx) {
       break;
 
     // create a new cache entry
-    entry = new struct CacheEntry();
+    entry = std::shared_ptr<struct CacheEntry>(new struct CacheEntry());
 
     // convert float32 _pixels[k] to half-float
-    if (entry->data) {
-      // printf("[%zu] float32 --> half-float conversion.\n", _frame);
-      unsigned short *f16 = entry->data.get();
+    if (entry) {
+      struct CacheEntry *_entry = entry.get();
 
-      ispc::f32tof16(_pixels[k], f16, frame_min[_frame], frame_max[_frame],
-                     MIN_HALF_FLOAT, MAX_HALF_FLOAT, region_size);
+      if (_entry->data) {
+        // printf("[%zu] float32 --> half-float conversion.\n", _frame);
+        unsigned short *f16 = _entry->data.get();
 
-      // zero-copy transfer (return the shared pointer)
-      if (k == sub_frame)
-        res = entry->data;
+        ispc::f32tof16(_pixels[k], f16, frame_min[_frame], frame_max[_frame],
+                       MIN_HALF_FLOAT, MAX_HALF_FLOAT, region_size);
 
-      // finally add a new entry to the cache
-      cache[_frame][idy][idx] = entry;
+        // zero-copy transfer (return the shared pointer)
+        if (k == sub_frame)
+          res = _entry->data;
+
+        // finally add a new entry to the cache
+        cache[_frame][idy][idx] = std::move(entry);
+      }
     }
   }
 
