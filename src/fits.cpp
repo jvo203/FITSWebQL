@@ -341,7 +341,7 @@ FITS::~FITS() {
 
   // iterate through all elements of the cache, deleting the pointers to
   // CacheEntry
-  for (auto i = 0; i < cache.size(); i++) {
+  /*for (auto i = 0; i < cache.size(); i++) {
     int pixels_idz = i / 4;
 
     // lock the cache
@@ -362,7 +362,7 @@ FITS::~FITS() {
           // j.second.erase(key);
         }
       }
-  }
+  }*/
 
   // clear the cache of nested std::maps
   cache.clear();
@@ -437,17 +437,17 @@ void FITS::purge_cache() {
 
       while (x_it != y_it->second.end()) {
         int x_key = x_it->first;
-        struct CacheEntry *entry = x_it->second;
+        std::shared_ptr<struct CacheEntry> entry = x_it->second;
+
         bool deleted = false;
 
-        if (entry != NULL) {
+        if (entry) {
+          struct CacheEntry *_entry = entry.get();
+
           // check the timestamp
           timestamp = std::time(nullptr);
 
-          if (timestamp - entry->timestamp > CACHE_TIMEOUT) {
-            // release the memory
-            delete entry;
-
+          if (timestamp - _entry->timestamp > CACHE_TIMEOUT) {
             // remove the key from std::map too
             x_it = y_it->second.erase(x_it);
             deleted = true;
