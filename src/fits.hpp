@@ -4,6 +4,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <ctime>
+#include <map>
 #include <math.h>
 #include <mutex>
 #include <optional>
@@ -12,7 +13,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <map>
 #include <zlib.h>
 
 #include "lz4.h"
@@ -59,59 +59,50 @@ void make_histogram(const std::vector<Ipp32f> &v, Ipp32u *bins, int nbins,
 void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height);
 
 IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror = false);
+                            Ipp32f *pDst, IppiSize dstSize, Ipp32s dstStep,
+                            bool mirror = false);
 
 IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
-                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep, bool mirror = false);
+                           Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep,
+                           bool mirror = false);
 
-struct Progress
-{
+struct Progress {
   size_t running;
   size_t total;
   double elapsed;
 
-  Progress()
-  {
+  Progress() {
     running = 0;
     total = 0;
     elapsed = 0.0;
   }
 };
 
-enum intensity_mode
-{
-  mean,
-  integrated
-};
+enum intensity_mode { mean, integrated };
 
-enum beam_shape
-{
-  square,
-  circle
-};
+enum beam_shape { square, circle };
 
 typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 
 // <unsigned short int> holds half-float pixels
-struct CacheEntry
-{
+struct CacheEntry {
   std::atomic<std::time_t> timestamp;
   std::shared_ptr<unsigned short> data;
 
-  CacheEntry()
-  {
+  CacheEntry() {
     timestamp = std::time(nullptr);
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
-    data = std::shared_ptr<unsigned short>((unsigned short *)malloc(region_size * sizeof(unsigned short)),
-                                           [](unsigned short *ptr) { free(ptr); });
+    data = std::shared_ptr<unsigned short>(
+        (unsigned short *)malloc(region_size * sizeof(unsigned short)),
+        [](unsigned short *ptr) { free(ptr); });
   }
 };
 
-typedef std::map<int, std::map<int, struct CacheEntry *>> decompressed_blocks;
+typedef std::map<int, std::map<int, std::shared_ptr<struct CacheEntry>>>
+    decompressed_blocks;
 
-class FITS
-{
+class FITS {
 public:
   FITS();
   FITS(std::string id, std::string flux);
@@ -127,8 +118,11 @@ public:
   void from_path_mmap(std::string path, bool is_compressed, std::string flux,
                       int va_count);
   void get_frequency_range(double &freq_start, double &freq_end);
-  void get_spectrum_range(double frame_start, double frame_end, double ref_freq, int &start, int &end);
-  std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2, int y2, intensity_mode intensity, beam_shape beam, double &elapsed);
+  void get_spectrum_range(double frame_start, double frame_end, double ref_freq,
+                          int &start, int &end);
+  std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2,
+                                  int y2, intensity_mode intensity,
+                                  beam_shape beam, double &elapsed);
   void to_json(std::ostringstream &json);
 
 private:
@@ -136,9 +130,12 @@ private:
   const char *check_null(const char *str);
   void frame_reference_unit();
   void frame_reference_type();
-  void get_freq2vel_bounds(double frame_start, double frame_end, double ref_freq, int &start, int &end);
-  void get_frequency_bounds(double freq_start, double freq_end, int &start, int &end);
-  void get_velocity_bounds(double vel_start, double vel_end, int &start, int &end);
+  void get_freq2vel_bounds(double frame_start, double frame_end,
+                           double ref_freq, int &start, int &end);
+  void get_frequency_bounds(double freq_start, double freq_end, int &start,
+                            int &end);
+  void get_velocity_bounds(double vel_start, double vel_end, int &start,
+                           int &end);
   bool process_fits_header_unit(const char *buf);
   void make_image_statistics();
   void make_image_luma();
@@ -152,7 +149,8 @@ private:
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t start_k);
   void zfp_decompress_cube(size_t start_k);
-  std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy, int idx);
+  std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy,
+                                                            int idx);
   void purge_cache();
 
 public:
