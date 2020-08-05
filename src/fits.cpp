@@ -339,31 +339,6 @@ FITS::~FITS() {
   if (purge_thread.joinable())
     purge_thread.join();
 
-  // iterate through all elements of the cache, deleting the pointers to
-  // CacheEntry
-  /*for (auto i = 0; i < cache.size(); i++) {
-    int pixels_idz = i / 4;
-
-    // lock the cache
-    std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
-
-    decompressed_blocks &z_entry = cache[i];
-    // int count = 0;
-
-    for (auto &j : z_entry)
-      for (auto &k : j.second) {
-        int key = k.first;
-        struct CacheEntry *entry = k.second;
-
-        if (entry != NULL) {
-          // std::cout << "frame " << frame << ", deleting element #" <<
-          // (++count) << std::endl;
-          delete entry;
-          // j.second.erase(key);
-        }
-      }
-  }*/
-
   // clear the cache of nested std::maps
   cache.clear();
 
@@ -448,7 +423,8 @@ void FITS::purge_cache() {
           timestamp = std::time(nullptr);
 
           if (timestamp - _entry->timestamp > CACHE_TIMEOUT) {
-            // remove the key from std::map too
+            // remove the key from std::map
+            // this will deallocate the std::shared_ptr cache entry too
             x_it = y_it->second.erase(x_it);
             deleted = true;
             printf("[%s] erased a stale cache entry(%zu:%d:%d).\n",
