@@ -99,3 +99,7 @@ valgrind --leak-check=full ./fitswebql
 ALMA01195213::destructor.
 found 278 null cube_pixels entries.
 found 1097 null cube_mask entries.
+
+ALMA01195213::destructor.
+found 973 null cube_pixels entries.
+found 3880 null cube_mask entries.
