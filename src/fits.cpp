@@ -3939,7 +3939,8 @@ void FITS::zfp_compress_cube(size_t start_k)
                                 std::to_string(idx) + ".bin";
 
           bool is_mmapped = false;
-          int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+          int fd = -1;
+          /*fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
 
           if (fd != -1)
           {
@@ -3975,7 +3976,7 @@ void FITS::zfp_compress_cube(size_t start_k)
             fd = -1;
           }
           else
-            perror(storage.c_str());
+            perror(storage.c_str());*/
 
           // switch to RAM instead of mmap in case of trouble
           if (!is_mmapped)
@@ -4092,7 +4093,8 @@ void FITS::zfp_compress_cube(size_t start_k)
                                   std::to_string(idx) + ".bin";
 
             bool is_mmapped = false;
-            int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+            int fd = -1;
+            /*fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
 
             if (fd != -1)
             {
@@ -4128,7 +4130,7 @@ void FITS::zfp_compress_cube(size_t start_k)
               fd = -1;
             }
             else
-              perror(storage.c_str());
+              perror(storage.c_str());*/
 
             // switch to RAM instead of mmap in case of trouble
             if (!is_mmapped)
