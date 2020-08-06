@@ -374,6 +374,7 @@ FITS::~FITS()
     munmap(fits_ptr, fits_ptr_size);
 
   // clear compressed cube regions
+  int null_pixels = 0;
   for (auto i = 0; i < cube_pixels.size(); i++)
   {
     auto ptr = cube_pixels[i].load();
@@ -381,9 +382,10 @@ FITS::~FITS()
     if (ptr != nullptr)
       delete ptr;
     else
-      printf("a null cube_pixels element.\n");
+      null_pixels++;
   }
 
+  int null_masks = 0;
   for (auto i = 0; i < cube_mask.size(); i++)
   {
     auto ptr = cube_mask[i].load();
@@ -391,8 +393,11 @@ FITS::~FITS()
     if (ptr != nullptr)
       delete ptr;
     else
-      printf("a null cube_mask element.\n");
+      null_masks++;
   }
+
+  printf("found %d null cube_pixels entries.\n", null_pixels);
+  printf("found %d null cube_mask entries.\n", null_masks);
 
   cube_pixels.clear();
   cube_mask.clear();
