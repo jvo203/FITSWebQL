@@ -3861,67 +3861,70 @@ void FITS::zfp_compress_cube(size_t start_k)
   {
     compressed_blocks *blocks = new compressed_blocks();
 
-    for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
-      for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
-      {
-        // block indexing
-        int idx = src_x / ZFP_CACHE_REGION;
-        int idy = src_y / ZFP_CACHE_REGION;
+    if (blocks == NULL)
+      printf("error allocating memory for pixels::compressed_blocks@%d\n", zfp_idz);
+    else
+      for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+        for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
+        {
+          // block indexing
+          int idx = src_x / ZFP_CACHE_REGION;
+          int idy = src_y / ZFP_CACHE_REGION;
 
-        // start a new ZFP stream
-        int encStateSize;
-        IppEncodeZfpState_32f *pEncState;
-        int pComprLen = 0;
-        int pComprLen_plus = 0;
+          // start a new ZFP stream
+          int encStateSize;
+          IppEncodeZfpState_32f *pEncState;
+          int pComprLen = 0;
+          int pComprLen_plus = 0;
 
-        ippsEncodeZfpGetStateSize_32f(&encStateSize);
-        pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
-        ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
-        // relative accuracy (a Fixed-Precision mode)
-        ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC,
-                             IppZFPMINEXP, pEncState);
-        // absolute accuracy
-        // ippsEncodeZfpSetAccuracy_32f(ZFPACCURACY, pEncState);
+          ippsEncodeZfpGetStateSize_32f(&encStateSize);
+          pEncState = (IppEncodeZfpState_32f *)ippsMalloc_8u(encStateSize);
+          ippsEncodeZfpInit_32f(pBuffer, storage_size, pEncState);
+          // relative accuracy (a Fixed-Precision mode)
+          ippsEncodeZfpSet_32f(IppZFPMINBITS, IppZFPMAXBITS, ZFPMAXPREC,
+                               IppZFPMINEXP, pEncState);
+          // absolute accuracy
+          // ippsEncodeZfpSetAccuracy_32f(ZFPACCURACY, pEncState);
 
-        // ... ZFP compression
-        int x, y;
-        int i, j, k;
-        float val;
-        float block[4 * 4 * 4];
+          // ... ZFP compression
+          int x, y;
+          int i, j, k;
+          float val;
+          float block[4 * 4 * 4];
 
-        // compress the pixels with ZFP
-        for (y = 0; y < ZFP_CACHE_REGION; y += 4)
-          for (x = 0; x < ZFP_CACHE_REGION; x += 4)
-          {
-            // fill a 4x4x4 block
-            int offset = 0;
-            for (k = 0; k < 4; k++)
-              for (j = y; j < y + 4; j++)
-                for (i = x; i < x + 4; i++)
-                {
-                  if (src_x + i >= width || src_y + j >= height)
-                    val = 0.0f;
-                  else
+          // compress the pixels with ZFP
+          for (y = 0; y < ZFP_CACHE_REGION; y += 4)
+            for (x = 0; x < ZFP_CACHE_REGION; x += 4)
+            {
+              // fill a 4x4x4 block
+              int offset = 0;
+              for (k = 0; k < 4; k++)
+                for (j = y; j < y + 4; j++)
+                  for (i = x; i < x + 4; i++)
                   {
-                    // adjust the src offset for src_x and src_y
-                    size_t src = (src_y + j) * width + src_x + i;
-                    val = pixels[k][src];
+                    if (src_x + i >= width || src_y + j >= height)
+                      val = 0.0f;
+                    else
+                    {
+                      // adjust the src offset for src_x and src_y
+                      size_t src = (src_y + j) * width + src_x + i;
+                      val = pixels[k][src];
+                    }
+
+                    block[offset++] = val;
                   }
 
-                  block[offset++] = val;
-                }
+              ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
+                                   4 * 4 * sizeof(Ipp32f), pEncState);
+            }
 
-            ippsEncodeZfp444_32f(block, 4 * sizeof(Ipp32f),
-                                 4 * 4 * sizeof(Ipp32f), pEncState);
-          }
+          ippsEncodeZfpFlush_32f(pEncState);
+          ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
+          ippsFree(pEncState);
 
-        ippsEncodeZfpFlush_32f(pEncState);
-        ippsEncodeZfpGetCompressedSize_32f(pEncState, &pComprLen);
-        ippsFree(pEncState);
+          pComprLen_plus = pComprLen + sizeof(pComprLen);
 
-        pComprLen_plus = pComprLen + sizeof(pComprLen);
-
-        /*printf("zfp-compressing pixels %dx%dx4 at (%d,%d,%zu); pComprLen "
+          /*printf("zfp-compressing pixels %dx%dx4 at (%d,%d,%zu); pComprLen "
                "= %d, "
                "orig. "
                "= %zu bytes.\n",
@@ -3929,84 +3932,84 @@ void FITS::zfp_compress_cube(size_t start_k)
                pComprLen,
                storage_size);*/
 
-        std::shared_ptr<Ipp8u> block_pixels;
+          std::shared_ptr<Ipp8u> block_pixels;
 
-        // use a file-backed mmap
-        std::string storage = zfp_dir + "/" + std::to_string(idy) + "_" +
-                              std::to_string(idx) + ".bin";
+          // use a file-backed mmap
+          std::string storage = zfp_dir + "/" + std::to_string(idy) + "_" +
+                                std::to_string(idx) + ".bin";
 
-        bool is_mmapped = false;
-        int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+          bool is_mmapped = false;
+          int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
 
-        if (fd != -1)
-        {
+          if (fd != -1)
+          {
 #if defined(__APPLE__) && defined(__MACH__)
-          int stat = ftruncate(fd, pComprLen_plus);
+            int stat = ftruncate(fd, pComprLen_plus);
 #else
-          int stat = ftruncate64(fd, pComprLen_plus);
+            int stat = ftruncate64(fd, pComprLen_plus);
 #endif
 
-          if (!stat)
-          {
-            // file-mmap pComprLen
-            block_pixels = std::shared_ptr<Ipp8u>(
-                (Ipp8u *)mmap(nullptr, pComprLen_plus, PROT_READ | PROT_WRITE,
-                              MAP_SHARED, fd, 0),
-                [=](void *ptr) {
-                  if (ptr != MAP_FAILED)
-                    munmap(ptr, pComprLen_plus);
-                });
-
-            if (block_pixels.get() != MAP_FAILED)
+            if (!stat)
             {
-              is_mmapped = true;
-              madvise(block_pixels.get(), pComprLen_plus, MADV_WILLNEED);
+              // file-mmap pComprLen
+              block_pixels = std::shared_ptr<Ipp8u>(
+                  (Ipp8u *)mmap(nullptr, pComprLen_plus, PROT_READ | PROT_WRITE,
+                                MAP_SHARED, fd, 0),
+                  [=](void *ptr) {
+                    if (ptr != MAP_FAILED)
+                      munmap(ptr, pComprLen_plus);
+                  });
+
+              if (block_pixels.get() != MAP_FAILED)
+              {
+                is_mmapped = true;
+                madvise(block_pixels.get(), pComprLen_plus, MADV_WILLNEED);
+              }
+              else
+                std::cout << "block_pixels MAP_FAILED, will switch over to RAM\n";
             }
             else
-              std::cout << "block_pixels MAP_FAILED, will switch over to RAM\n";
+              perror("ftruncate64");
+
+            close(fd);
+            fd = -1;
           }
           else
-            perror("ftruncate64");
+            perror(storage.c_str());
 
-          close(fd);
-          fd = -1;
-        }
-        else
-          perror(storage.c_str());
+          // switch to RAM instead of mmap in case of trouble
+          if (!is_mmapped)
+            block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
+                                                  Ipp8uFree);
 
-        // switch to RAM instead of mmap in case of trouble
-        if (!is_mmapped)
-          block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
-                                                Ipp8uFree);
-
-        // finally memcpy <pComprLen> bytes+ from pBuffer
-        {
-          Ipp8u *ptr = block_pixels.get();
-
-          if (ptr != MAP_FAILED && ptr != NULL)
+          // finally memcpy <pComprLen> bytes+ from pBuffer
           {
-            // compressed size
-            memcpy(ptr, &pComprLen, sizeof(pComprLen));
+            Ipp8u *ptr = block_pixels.get();
 
-            // compressed data
-            memcpy(ptr + sizeof(pComprLen), pBuffer, pComprLen);
+            if (ptr != MAP_FAILED && ptr != NULL)
+            {
+              // compressed size
+              memcpy(ptr, &pComprLen, sizeof(pComprLen));
+
+              // compressed data
+              memcpy(ptr + sizeof(pComprLen), pBuffer, pComprLen);
+            }
           }
-        }
 
-        try
-        {
-          (*blocks)[idy][idx] = std::move(block_pixels);
-        }
-        catch (std::bad_alloc const &err)
-        {
-          std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << ","
-                    << idy << "," << idx << '\n';
-          exit(1);
-        }
+          try
+          {
+            (*blocks)[idy][idx] = std::move(block_pixels);
+          }
+          catch (std::bad_alloc const &err)
+          {
+            std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << ","
+                      << idy << "," << idx << '\n';
+            exit(1);
+          }
 
-        if (fd != -1)
-          close(fd);
-      }
+          if (fd != -1)
+            close(fd);
+        }
 
     // add the blocks to cube_pixels
     cube_pixels[zfp_idz].store(blocks);
@@ -4038,38 +4041,41 @@ void FITS::zfp_compress_cube(size_t start_k)
 
       compressed_blocks *blocks = new compressed_blocks();
 
-      for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
-        for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
-        {
-          // block indexing
-          int idx = src_x / ZFP_CACHE_REGION;
-          int idy = src_y / ZFP_CACHE_REGION;
+      if (blocks == NULL)
+        printf("error allocating memory for mask::compressed_blocks@%d\n", lz4_idz);
+      else
+        for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+          for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
+          {
+            // block indexing
+            int idx = src_x / ZFP_CACHE_REGION;
+            int idy = src_y / ZFP_CACHE_REGION;
 
-          int offset = 0;
-          char val;
+            int offset = 0;
+            char val;
 
-          for (int y = 0; y < ZFP_CACHE_REGION; y++)
-            for (int x = 0; x < ZFP_CACHE_REGION; x++)
-            {
-              if (src_x + x >= width || src_y + y >= height)
-                val = 0;
-              else
+            for (int y = 0; y < ZFP_CACHE_REGION; y++)
+              for (int x = 0; x < ZFP_CACHE_REGION; x++)
               {
-                // adjust the src offset for src_x and src_y
-                size_t src = (src_y + y) * width + src_x + x;
-                val = mask[k][src];
+                if (src_x + x >= width || src_y + y >= height)
+                  val = 0;
+                else
+                {
+                  // adjust the src offset for src_x and src_y
+                  size_t src = (src_y + y) * width + src_x + x;
+                  val = mask[k][src];
+                }
+
+                _mask[offset++] = val;
               }
 
-              _mask[offset++] = val;
-            }
+            // _mask has been filled-in; compress it
+            compressed_size =
+                LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
+                                worst_size, LZ4HC_CLEVEL_MAX);
+            compressed_size_plus = compressed_size + sizeof(compressed_size);
 
-          // _mask has been filled-in; compress it
-          compressed_size =
-              LZ4_compress_HC((const char *)_mask, (char *)pBuffer, mask_size,
-                              worst_size, LZ4HC_CLEVEL_MAX);
-          compressed_size_plus = compressed_size + sizeof(compressed_size);
-
-          /*printf("lz4-compressing mask %dx%dx4 at (%d,%d,%d); compressed "
+            /*printf("lz4-compressing mask %dx%dx4 at (%d,%d,%d); compressed "
                  "= %d, "
                  "plus = %d, "
                  "orig. "
@@ -4079,87 +4085,87 @@ void FITS::zfp_compress_cube(size_t start_k)
                  compressed_size_plus,
                  mask_size);*/
 
-          std::shared_ptr<Ipp8u> block_mask;
+            std::shared_ptr<Ipp8u> block_mask;
 
-          // use a file-backed mmap
-          std::string storage = lz4_dir + "/" + std::to_string(idy) + "_" +
-                                std::to_string(idx) + ".bin";
+            // use a file-backed mmap
+            std::string storage = lz4_dir + "/" + std::to_string(idy) + "_" +
+                                  std::to_string(idx) + ".bin";
 
-          bool is_mmapped = false;
-          int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
+            bool is_mmapped = false;
+            int fd = open(storage.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
 
-          if (fd != -1)
-          {
+            if (fd != -1)
+            {
 #if defined(__APPLE__) && defined(__MACH__)
-            int stat = ftruncate(fd, compressed_size_plus);
+              int stat = ftruncate(fd, compressed_size_plus);
 #else
-            int stat = ftruncate64(fd, compressed_size_plus);
+              int stat = ftruncate64(fd, compressed_size_plus);
 #endif
 
-            if (!stat)
-            {
-              // file-mmap compressed_size
-              block_mask = std::shared_ptr<Ipp8u>(
-                  (Ipp8u *)mmap(nullptr, compressed_size_plus,
-                                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0),
-                  [=](void *ptr) {
-                    if (ptr != MAP_FAILED)
-                      munmap(ptr, compressed_size_plus);
-                  });
-
-              if (block_mask.get() != MAP_FAILED)
+              if (!stat)
               {
-                is_mmapped = true;
-                madvise(block_mask.get(), compressed_size_plus, MADV_WILLNEED);
+                // file-mmap compressed_size
+                block_mask = std::shared_ptr<Ipp8u>(
+                    (Ipp8u *)mmap(nullptr, compressed_size_plus,
+                                  PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0),
+                    [=](void *ptr) {
+                      if (ptr != MAP_FAILED)
+                        munmap(ptr, compressed_size_plus);
+                    });
+
+                if (block_mask.get() != MAP_FAILED)
+                {
+                  is_mmapped = true;
+                  madvise(block_mask.get(), compressed_size_plus, MADV_WILLNEED);
+                }
+                else
+                  std::cout << "block_mask MAP_FAILED, will switch over to RAM\n";
               }
               else
-                std::cout << "block_mask MAP_FAILED, will switch over to RAM\n";
+                perror("ftruncate64");
+
+              close(fd);
+              fd = -1;
             }
             else
-              perror("ftruncate64");
+              perror(storage.c_str());
 
-            close(fd);
-            fd = -1;
-          }
-          else
-            perror(storage.c_str());
-
-          // switch to RAM instead of mmap in case of trouble
-          if (!is_mmapped)
-          {
-            // std::cout << "mmap failed, failover to RAM\n";
-            block_mask = std::shared_ptr<Ipp8u>(
-                ippsMalloc_8u_L(compressed_size_plus), Ipp8uFree);
-          }
-
-          // finally memcpy <compressed_size> bytes+ from pBuffer
-          {
-            Ipp8u *ptr = block_mask.get();
-
-            if (ptr != MAP_FAILED && ptr != NULL)
+            // switch to RAM instead of mmap in case of trouble
+            if (!is_mmapped)
             {
-              // compressed size
-              memcpy(ptr, &compressed_size, sizeof(compressed_size));
-
-              // compressed data
-              memcpy(ptr + sizeof(compressed_size), pBuffer, compressed_size);
+              // std::cout << "mmap failed, failover to RAM\n";
+              block_mask = std::shared_ptr<Ipp8u>(
+                  ippsMalloc_8u_L(compressed_size_plus), Ipp8uFree);
             }
-          }
 
-          try
-          {
-            (*blocks)[idy][idx] = std::move(block_mask);
-          }
-          catch (std::bad_alloc const &err)
-          {
-            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << ","
-                      << idy << "," << idx << '\n';
-            exit(1);
-          }
+            // finally memcpy <compressed_size> bytes+ from pBuffer
+            {
+              Ipp8u *ptr = block_mask.get();
 
-          if (fd != -1)
-            close(fd);
-        }
+              if (ptr != MAP_FAILED && ptr != NULL)
+              {
+                // compressed size
+                memcpy(ptr, &compressed_size, sizeof(compressed_size));
+
+                // compressed data
+                memcpy(ptr + sizeof(compressed_size), pBuffer, compressed_size);
+              }
+            }
+
+            try
+            {
+              (*blocks)[idy][idx] = std::move(block_mask);
+            }
+            catch (std::bad_alloc const &err)
+            {
+              std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << ","
+                        << idy << "," << idx << '\n';
+              exit(1);
+            }
+
+            if (fd != -1)
+              close(fd);
+          }
 
       // add the blocks to cube_mask
       cube_mask[lz4_idz].store(blocks);
