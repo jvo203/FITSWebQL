@@ -422,12 +422,14 @@ FITS::~FITS()
 
 void FITS::purge_cache()
 {
+  int count = 0;
+
   // iterate through all elements of the cache, purging stale entries
   for (size_t i = 0; i < cache.size(); i++)
   {
     int pixels_idz = i / 4;
 
-    // lock the cache
+    // lock the cache for writing (just in case)
     std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
 
     decompressed_blocks &z_entry = cache[i];
@@ -459,9 +461,11 @@ void FITS::purge_cache()
             // remove the key from std::map
             // this will deallocate the std::shared_ptr cache entry too
             x_it = y_it->second.erase(x_it);
+
             deleted = true;
-            printf("[%s] erased a stale cache entry(%zu:%d:%d).\n",
-                   dataset_id.c_str(), i, y_key, x_key);
+            /*printf("[%s] erased a stale cache entry(%zu:%d:%d).\n",
+                   dataset_id.c_str(), i, y_key, x_key);*/
+            count++;
           }
         }
 
@@ -472,6 +476,9 @@ void FITS::purge_cache()
       y_it++;
     }
   }
+
+  if (count > 0)
+    printf("[%s] erased %d stale cache entries.\n", dataset_id.c_str(), count);
 }
 
 void FITS::defaults()
@@ -2146,7 +2153,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       {
         purge_cache();
 
-        purge_cv.wait_for(purge_lck, 1s);
+        purge_cv.wait_for(purge_lck, 10s);
       }
 
       printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
@@ -3243,22 +3250,26 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx)
   int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
   int mask_idz = frame;
 
-  // lock the cache
-  std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]);
-
   std::shared_ptr<unsigned short> res;
-
-  // auto z_entry = cache[frame];
-  decompressed_blocks &z_entry = cache[frame];
   std::shared_ptr<CacheEntry> entry;
 
-  // check the y-axis
-  if (z_entry.find(idy) != z_entry.end())
   {
-    // check the x-axis
-    auto &y_entry = z_entry[idy];
-    if (y_entry.find(idx) != y_entry.end())
-      entry = y_entry[idx];
+    // lock the cache (a shared read lock)
+    std::shared_lock<std::shared_mutex> reader(cache_mtx[pixels_idz]);
+
+    // auto z_entry = cache[frame];
+    decompressed_blocks &z_entry = cache[frame];
+
+    // check the y-axis
+    if (z_entry.find(idy) != z_entry.end())
+    {
+      // check the x-axis
+      auto &y_entry = z_entry[idy];
+      if (y_entry.find(idx) != y_entry.end())
+        entry = y_entry[idx];
+    }
+
+    // the shared lock gets released here
   }
 
   if (entry)
@@ -3428,6 +3439,7 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx)
           res = _entry->data;
 
         // finally add a new entry to the cache
+        std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]); // lock the cache for writing
         cache[_frame][idy][idx] = std::move(entry);
       }
     }
@@ -3941,7 +3953,10 @@ void FITS::zfp_compress_cube(size_t start_k)
                 });
 
             if (block_pixels.get() != MAP_FAILED)
+            {
               is_mmapped = true;
+              madvise(block_pixels.get(), pComprLen_plus, MADV_WILLNEED);
+            }
             else
               std::cout << "block_pixels MAP_FAILED, will switch over to RAM\n";
           }
@@ -4088,7 +4103,10 @@ void FITS::zfp_compress_cube(size_t start_k)
                   });
 
               if (block_mask.get() != MAP_FAILED)
+              {
                 is_mmapped = true;
+                madvise(block_mask.get(), compressed_size_plus, MADV_WILLNEED);
+              }
               else
                 std::cout << "block_mask MAP_FAILED, will switch over to RAM\n";
             }

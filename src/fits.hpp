@@ -66,30 +66,42 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep,
                            bool mirror = false);
 
-struct Progress {
+struct Progress
+{
   size_t running;
   size_t total;
   double elapsed;
 
-  Progress() {
+  Progress()
+  {
     running = 0;
     total = 0;
     elapsed = 0.0;
   }
 };
 
-enum intensity_mode { mean, integrated };
+enum intensity_mode
+{
+  mean,
+  integrated
+};
 
-enum beam_shape { square, circle };
+enum beam_shape
+{
+  square,
+  circle
+};
 
 typedef std::map<int, std::map<int, std::shared_ptr<Ipp8u>>> compressed_blocks;
 
 // <unsigned short int> holds half-float pixels
-struct CacheEntry {
+struct CacheEntry
+{
   std::atomic<std::time_t> timestamp;
   std::shared_ptr<unsigned short> data;
 
-  CacheEntry() {
+  CacheEntry()
+  {
     timestamp = std::time(nullptr);
 
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
@@ -102,7 +114,8 @@ struct CacheEntry {
 typedef std::map<int, std::map<int, std::shared_ptr<struct CacheEntry>>>
     decompressed_blocks;
 
-class FITS {
+class FITS
+{
 public:
   FITS();
   FITS(std::string id, std::string flux);
