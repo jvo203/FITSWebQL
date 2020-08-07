@@ -3983,8 +3983,26 @@ void FITS::zfp_compress_cube(size_t start_k)
 
           // switch to RAM instead of mmap in case of trouble
           if (!is_mmapped)
+            /*block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
+                                                  Ipp8uFree);*/
             block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
-                                                  Ipp8uFree);
+                                                  [=](Ipp8u *ptr) {
+                                                  if(ptr != NULL) {
+                                                    // append the buffer to the zfp_file
+                                                    int _fd = open(zfp_file.c_str(), O_WRONLY | O_APPEND | O_CREAT, (mode_t)0600);
+
+                                                    if(_fd != -1)
+                                                    {
+
+
+                                                      close(_fd);
+                                                    }
+                                                    else
+                                                      perror(zfp_file.c_str());
+
+                                                    // finally release the memory
+                                                    Ipp8uFree(ptr);
+                                                   } });
 
           // finally memcpy <pComprLen> bytes+ from pBuffer
           {
