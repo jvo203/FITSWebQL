@@ -3804,7 +3804,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
   std::string zfp_file = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
-                         std::string(".zfp/") + std::to_string(zfp_idz);
+                         std::string(".zfp/") + std::to_string(zfp_idz) + ".bin";
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
@@ -3985,15 +3985,31 @@ void FITS::zfp_compress_cube(size_t start_k)
           if (!is_mmapped)
             /*block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
                                                   Ipp8uFree);*/
-            block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(pComprLen_plus),
+            block_pixels = std::shared_ptr<Ipp8u>(ippsMalloc_8u(pComprLen_plus),
                                                   [=](Ipp8u *ptr) {
                                                   if(ptr != NULL) {
                                                     // append the buffer to the zfp_file
-                                                    int _fd = open(zfp_file.c_str(), O_WRONLY | O_APPEND | O_CREAT, (mode_t)0600);
+                                                    int _fd = open(zfp_file.c_str(), O_WRONLY | O_APPEND | O_CREAT, (mode_t)0600);                                                              
 
                                                     if(_fd != -1)
                                                     {
+                                                      // prepare an in-memory buffer
+                                                      size_t offset = 0;
+                                                      size_t size = sizeof(idy) + sizeof(idx) + pComprLen_plus;
+                                                      char out[size];
+                                                      
+                                                      memcpy(ptr + offset, &idy, sizeof(idy));
+                                                      offset += sizeof(idy);
 
+                                                      memcpy(ptr + offset, &idx, sizeof(idx));
+                                                      offset += sizeof(idx);
+
+                                                      memcpy(ptr + offset, ptr, pComprLen_plus);
+
+                                                      // finally an atomic append write to the file
+                                                      ssize_t bytes_written = pwrite(_fd, out, size, 0);
+                                                      if(bytes_written != size)
+                                                        printf("an error appending a pixel block [%d][%d] to %s\n", idy, idx, zfp_file.c_str());
 
                                                       close(_fd);
                                                     }
@@ -4063,7 +4079,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
       std::string lz4_file = FITSCACHE + std::string("/") +
                              boost::replace_all_copy(dataset_id, "/", "_") +
-                             std::string(".lz4/") + std::to_string(lz4_idz);
+                             std::string(".lz4/") + std::to_string(lz4_idz) + ".bin";
 
       compressed_blocks *blocks = new compressed_blocks();
 
@@ -4160,8 +4176,42 @@ void FITS::zfp_compress_cube(size_t start_k)
             if (!is_mmapped)
             {
               // std::cout << "mmap failed, failover to RAM\n";
-              block_mask = std::shared_ptr<Ipp8u>(
-                  ippsMalloc_8u_L(compressed_size_plus), Ipp8uFree);
+              /*block_mask = std::shared_ptr<Ipp8u>(
+                  ippsMalloc_8u_L(compressed_size_plus), Ipp8uFree);*/
+              block_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u(compressed_size_plus),
+                                                  [=](Ipp8u *ptr) {
+                                                  if(ptr != NULL) {
+                                                    // append the buffer to the zfp_file
+                                                    int _fd = open(lz4_file.c_str(), O_WRONLY | O_APPEND | O_CREAT, (mode_t)0600);                                                              
+
+                                                    if(_fd != -1)
+                                                    {
+                                                      // prepare an in-memory buffer
+                                                      size_t offset = 0;
+                                                      size_t size = sizeof(idy) + sizeof(idx) + compressed_size_plus;
+                                                      char out[size];
+                                                      
+                                                      memcpy(ptr + offset, &idy, sizeof(idy));
+                                                      offset += sizeof(idy);
+
+                                                      memcpy(ptr + offset, &idx, sizeof(idx));
+                                                      offset += sizeof(idx);
+
+                                                      memcpy(ptr + offset, ptr, compressed_size_plus);
+
+                                                      // finally an atomic append write to the file
+                                                      ssize_t bytes_written = pwrite(_fd, out, size, 0);
+                                                      if(bytes_written != size)
+                                                        printf("an error appending a mask block [%d][%d] to %s\n", idy, idx, lz4_file.c_str());
+
+                                                      close(_fd);
+                                                    }
+                                                    else
+                                                      perror(lz4_file.c_str());
+
+                                                    // finally release the memory
+                                                    Ipp8uFree(ptr);
+                                                   } });
             }
 
             // finally memcpy <compressed_size> bytes+ from pBuffer
