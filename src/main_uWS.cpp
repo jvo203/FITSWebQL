@@ -1816,6 +1816,9 @@ int main(int argc, char *argv[])
   system_clock::time_point offset = system_clock::now();
   FILE *fp = fopen("memory_usage.csv", "w");
 
+  if(fp != NULL)
+    fprintf(fp, "\"ts [ms]\",\"stats.allocated [MB]\",\"stats.active [MB]\",\"stats.mapped [MB]\"n");
+
   // track/log memory usage
   memory_thread = std::thread([offset, fp]() {
     while (!exiting)
@@ -1823,6 +1826,7 @@ int main(int argc, char *argv[])
       // memory statistics using jemalloc
       uint64_t epoch = 1;
       size_t sz = sizeof(epoch);
+      mallctl("thread.tcache.flush", NULL, NULL, NULL, 0);
       mallctl("epoch", &epoch, &sz, &epoch, sz);
 
       size_t allocated, active, mapped;
@@ -1831,7 +1835,7 @@ int main(int argc, char *argv[])
       mallctl("stats.active", &active, &sz, NULL, 0);
       mallctl("stats.mapped", &mapped, &sz, NULL, 0);
 
-      //printf("allocated/active/mapped: %zu/%zu/%zu\n", allocated, active, mapped);
+      //printf("allocated/active/mapped: %zu/%zu/%zu [MB]\n", allocated / (1024 * 1024), active / (1024 * 1024), mapped / (1024 * 1024));
 
       if (fp != NULL)
       {
