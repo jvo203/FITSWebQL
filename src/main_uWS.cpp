@@ -1816,8 +1816,8 @@ int main(int argc, char *argv[])
   system_clock::time_point offset = system_clock::now();
   FILE *fp = fopen("memory_usage.csv", "w");
 
-  if(fp != NULL)
-    fprintf(fp, "\"ts [ms]\",\"stats.allocated [MB]\",\"stats.active [MB]\",\"stats.mapped [MB]\"n");
+  if (fp != NULL)
+    fprintf(fp, "\"elapsed time [ms]\",\"stats.allocated\",\"stats.active\",\"stats.mapped\"\n");
 
   // track/log memory usage
   memory_thread = std::thread([offset, fp]() {
@@ -1839,8 +1839,8 @@ int main(int argc, char *argv[])
 
       if (fp != NULL)
       {
-        duration<double, std::milli> timestamp = system_clock::now() - offset;
-        fprintf(fp, "%f,%zu,%zu,%zu\n", timestamp, allocated, active, mapped);
+        duration<double, std::milli> elapsed = system_clock::now() - offset;
+        fprintf(fp, "%f,%zu,%zu,%zu\n", elapsed, allocated, active, mapped);
       }
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
