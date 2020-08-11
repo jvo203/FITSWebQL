@@ -74,6 +74,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #include <thread>
 #include <unordered_map>
 
+#if !defined(__APPLE__) || !defined(__MACH__)
 //////////////////////////////////////////////////////////////////////////////
 //
 // process_mem_usage(double &, double &) - takes two doubles by reference,
@@ -115,6 +116,7 @@ void process_mem_usage(double &vm_usage, double &resident_set)
   vm_usage = vsize / 1024.0;
   resident_set = rss * page_size_kb;
 }
+#endif
 
 /** Thread safe cout class
  * Exemple of use:
@@ -144,11 +146,16 @@ std::mutex PrintThread::_mutexPrint{};
 
 #include "global.h"
 
+std::atomic<bool> exiting(false);
+
+#if !defined(__APPLE__) || !defined(__MACH__)
+std::thread memory_thread;
+#endif
+
 #ifdef CLUSTER
 zactor_t *speaker = NULL;
 zactor_t *listener = NULL;
 std::thread beacon_thread;
-std::atomic<bool> exiting(false);
 #endif
 
 #include <curl/curl.h>
@@ -213,9 +220,7 @@ void signalHandler(int signum)
 {
   std::cout << "Interrupt signal (" << signum << ") received.\n";
 
-#ifdef CLUSTER
   exiting = true;
-#endif
 
   // stop any inter-node cluster communication
 #ifdef CLUSTER
@@ -237,6 +242,10 @@ void signalHandler(int signum)
     beacon_thread.join();
     zactor_destroy(&listener);
   }
+#endif
+
+#if !defined(__APPLE__) || !defined(__MACH__)
+  memory_thread.join();
 #endif
 
   // cleanup and close up stuff here
@@ -1843,6 +1852,22 @@ void ipp_init()
 
 int main(int argc, char *argv[])
 {
+#if !defined(__APPLE__) || !defined(__MACH__)
+  // track/log memory usage
+  memory_thread = std::thread([]() {
+    while (!exiting)
+    {
+      double vm, rss;
+      process_mem_usage(vm, rss);
+      std::cout << "VM: " << vm << "KB; RSS: " << rss << "KB" << std::endl;
+
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    printf("memory tracking thread terminated.\n");
+  });
+#endif
+
 #ifdef CLUSTER
   setenv("ZSYS_SIGHANDLER", "false", 1);
   // LAN cluster node auto-discovery
