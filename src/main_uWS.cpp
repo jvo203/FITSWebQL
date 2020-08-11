@@ -74,6 +74,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #include <thread>
 #include <unordered_map>
 
+#include <jemalloc/jemalloc.h>
 #if !defined(__APPLE__) || !defined(__MACH__)
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1857,9 +1858,22 @@ int main(int argc, char *argv[])
   memory_thread = std::thread([]() {
     while (!exiting)
     {
-      double vm, rss;
+      /*double vm, rss;
       process_mem_usage(vm, rss);
-      std::cout << "VM: " << vm / (1024 * 1024) << " GB; RSS: " << rss / (1024 * 1024) << " GB" << std::endl;
+      std::cout << "VM: " << vm / (1024 * 1024) << " GB; RSS: " << rss / (1024 * 1024) << " GB" << std::endl;*/
+
+      // memory statistics using jemalloc
+      uint64_t epoch = 1;
+      size_t sz = sizeof(epoch);
+      mallctl("epoch", &epoch, &sz, &epoch, sz);
+
+      size_t allocated, active, mapped;
+      sz = sizeof(size_t);
+      mallctl("stats.allocated", &allocated, &sz, NULL, 0);
+      mallctl("stats.active", &active, &sz, NULL, 0);
+      mallctl("stats.mapped", &mapped, &sz, NULL, 0);
+
+      printf("allocated/active/mapped: %zu/%zu/%zu\n", allocated, active, mapped);
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
