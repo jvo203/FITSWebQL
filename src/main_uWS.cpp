@@ -1812,9 +1812,12 @@ void ipp_init()
 
 int main(int argc, char *argv[])
 {
-  #ifdef DEBUG
+#ifdef DEBUG
+  system_clock::time_point offset = system_clock::now();
+  FILE *fp = fopen("memory_usage.csv", "w");
+
   // track/log memory usage
-  memory_thread = std::thread([]() {
+  memory_thread = std::thread([offset, fp]() {
     while (!exiting)
     {
       // memory statistics using jemalloc
@@ -1828,10 +1831,19 @@ int main(int argc, char *argv[])
       mallctl("stats.active", &active, &sz, NULL, 0);
       mallctl("stats.mapped", &mapped, &sz, NULL, 0);
 
-      printf("allocated/active/mapped: %zu/%zu/%zu\n", allocated, active, mapped);
+      //printf("allocated/active/mapped: %zu/%zu/%zu\n", allocated, active, mapped);
+
+      if (fp != NULL)
+      {
+        duration<double, std::milli> timestamp = system_clock::now() - offset;
+        fprintf(fp, "%f,%zu,%zu,%zu\n", timestamp, allocated, active, mapped);
+      }
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    if (fp != NULL)
+      fclose(fp);
 
     printf("memory tracking thread terminated.\n");
   });
