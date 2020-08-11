@@ -24,7 +24,7 @@ inline std::shared_mutex m_progress_mutex;
 inline progress_list m_progress;
 
 #define uWS_PROGRESS_TIMEOUT 0.25
-#define CACHE_TIMEOUT 60
+#define CACHE_TIMEOUT 10
 
 struct UserSession
 {
