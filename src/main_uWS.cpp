@@ -1859,7 +1859,7 @@ int main(int argc, char *argv[])
     {
       double vm, rss;
       process_mem_usage(vm, rss);
-      std::cout << "VM: " << vm << "KB; RSS: " << rss << "KB" << std::endl;
+      std::cout << "VM: " << vm / (1024 * 1024) << " GB; RSS: " << rss / (1024 * 1024) << " GB" << std::endl;
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
