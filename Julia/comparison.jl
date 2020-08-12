@@ -10,5 +10,7 @@ allocated4 = data4[:,2] ./ (1024 * 1024)
 timestamp5 = data5[:,1] ./ 1000
 allocated5 = data5[:,2] ./ (1024 * 1024)
 
-plot(timestamp4, [allocated4, allocated5], label=["Rust fits_web_ql v4" "C/C++ FITSWebQL SE v5"], xlabel="elapsed time [s]", ylabel="jemalloc stats.allocated memory usage [MB]")
+common = min(size(timestamp4)[1], size(timestamp5)[1])
+
+plot(timestamp5[1:common], [allocated4[1:common], allocated5[1:common]], label=["Rust fits_web_ql v4" "C/C++ FITSWebQL SE v5"], xlabel="elapsed time [s]", ylabel="jemalloc stats.allocated memory usage [MB]")
 savefig("mem_two_way.pdf")
