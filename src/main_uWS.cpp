@@ -1840,7 +1840,7 @@ int main(int argc, char *argv[])
       if (fp != NULL)
       {
         duration<double, std::milli> elapsed = system_clock::now() - offset;
-        fprintf(fp, "%f,%zu,%zu,%zu\n", elapsed, allocated, active, mapped);
+        fprintf(fp, "%f,%zu,%zu,%zu\n", elapsed.count(), allocated, active, mapped);
       }
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -2643,6 +2643,11 @@ int main(int argc, char *argv[])
 
                          if (message.find("realtime_image_spectrum") != std::string::npos)
                          {
+                           // get deltat (no need to lock the mutex at this point)
+                           auto now = system_clock::now();
+                           duration<double, std::milli> deltat = now - user->ptr->ts;
+                           user->ptr->ts = now;
+
                            int seq = -1;
                            int dx = 0;
                            float quality = 45;
@@ -2756,7 +2761,7 @@ int main(int argc, char *argv[])
                              if (!fits->has_error && fits->has_data)
                              {
                                // launch a separate thread
-                               boost::thread *spectrum_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq]() {
+                               boost::thread *spectrum_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, image_update, quality, dx, x1, x2, y1, y2, view_width, view_height, intensity, beam, timestamp, seq, deltat]() {
                                  if (!user->ptr->active)
                                    return;
 
@@ -3188,18 +3193,31 @@ int main(int argc, char *argv[])
                                    double pos_x = 0.5 * double(x1 + x2);
                                    double pos_y = 0.5 * double(y1 + y2);
 
-                                   if (!user->ptr->kal_x)
-                                     user->ptr->kal_x = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_x));
-
-                                   if (!user->ptr->kal_y)
-                                     user->ptr->kal_y = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_y));
-
                                    if (user->ptr->kal_x && user->ptr->kal_y)
                                    {
                                      KalmanFilter *kal_x = user->ptr->kal_x.get();
                                      KalmanFilter *kal_y = user->ptr->kal_y.get();
-                                     
-                                     /* update the x and y coordinates */
+
+                                     /* update the x and y positions */
+                                     kal_x->update(pos_x, deltat.count());
+                                     kal_y->update(pos_y, deltat.count());
+
+                                     // predict the positions one second ahead
+                                     double look_ahead = 1000.0; // [ms]
+                                     double pred_x = kal_x->predict(pos_x, look_ahead);
+                                     double pred_y = kal_y->predict(pos_y, look_ahead);
+
+#ifdef DEBUG
+                                     printf("[%s] X: %f, Y: %f,\tpredicted after 1s X*: %f, Y*: %f\n", fits->dataset_id.c_str(), pos_x, pos_y, pred_x, pred_y);
+#endif
+                                   }
+                                   else
+                                   {
+                                     if (!user->ptr->kal_x)
+                                       user->ptr->kal_x = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_x));
+
+                                     if (!user->ptr->kal_y)
+                                       user->ptr->kal_y = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_y));
                                    }
                                  }
 
