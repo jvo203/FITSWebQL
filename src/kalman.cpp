@@ -1,4 +1,5 @@
 #include "kalman.hpp"
+#include <stdio.h>
 
 KalmanFilter::KalmanFilter(double position)
 {
@@ -33,6 +34,7 @@ void KalmanFilter::update(double position, double deltat)
     }
     else
     {
+        //printf("position_variance: %f, velocity_variance: %f\n", position_variance, velocity_variance);
         //Temporal update (predictive)
         estimate_position += estimate_velocity * deltat;
 
