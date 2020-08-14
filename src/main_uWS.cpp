@@ -3183,6 +3183,24 @@ int main(int argc, char *argv[])
                                      if (compressed != NULL)
                                        free(compressed);
                                    }
+
+                                   // track the mouse with the Kalman Filter
+                                   double pos_x = 0.5 * double(x1 + x2);
+                                   double pos_y = 0.5 * double(y1 + y2);
+
+                                   if (!user->ptr->kal_x)
+                                     user->ptr->kal_x = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_x));
+
+                                   if (!user->ptr->kal_y)
+                                     user->ptr->kal_y = std::shared_ptr<KalmanFilter>(new KalmanFilter(pos_y));
+
+                                   if (user->ptr->kal_x && user->ptr->kal_y)
+                                   {
+                                     KalmanFilter *kal_x = user->ptr->kal_x.get();
+                                     KalmanFilter *kal_y = user->ptr->kal_y.get();
+                                     
+                                     /* update the x and y coordinates */
+                                   }
                                  }
 
                                  // remove itself from the list of active threads
