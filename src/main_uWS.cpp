@@ -3208,7 +3208,7 @@ int main(int argc, char *argv[])
                                      double pred_y = kal_y->predict(pos_y, look_ahead);
 
 #ifdef DEBUG
-                                     printf("[%s] X: %f, Y: %f,\tpredicted after 1s X*: %f, Y*: %f\n", fits->dataset_id.c_str(), pos_x, pos_y, pred_x, pred_y);
+                                     printf("[%s]::KalmanFilter: X: %f, Y: %f,\tpredicted after 1s X*: %f, Y*: %f\n", fits->dataset_id.c_str(), pos_x, pos_y, pred_x, pred_y);
 #endif
                                    }
                                    else
