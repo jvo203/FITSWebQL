@@ -47,7 +47,6 @@ void KalmanFilter::update(double position, double deltat)
 
         // Observational update (reactive)
         double vi = 1.0 / (p_xx + r);
-
         double kx = p_xx * vi;
         double kv = p_xv * vi;
 
