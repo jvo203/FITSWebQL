@@ -16,6 +16,8 @@ using namespace std::chrono;
 
 #include "App.h"
 
+#include "kalman.hpp"
+
 typedef uWS::WebSocket<false, true> TWebSocket;
 typedef std::set<TWebSocket *> TWebSocketList;
 
@@ -39,6 +41,10 @@ struct UserSession
 
   std::shared_ptr<Ipp32f> img_pixels;
   std::shared_ptr<Ipp8u> img_mask;
+
+  // used by the pre-emptive cache
+  std::shared_ptr<KalmanFilter> kal_x;
+  std::shared_ptr<KalmanFilter> kal_y;
 
   // thread management
   std::atomic<int> last_seq;
