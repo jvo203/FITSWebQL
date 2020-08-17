@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-07-28.1";
+	return "JS2020-08-17.0";
 }
 
 const wasm_supported = (() => {
@@ -9316,6 +9316,13 @@ function setup_image_selection() {
 			resetKalman();
 
 			init_webgl_zoom_buffers();
+
+			// send a "mouseenter" WebSocket message in order to reset the server-side Kalman Filter
+			var msg = 'mouseenter?seq_id=' + (++sent_seq_id);
+			for (let index = 0; index < va_count; index++) {
+				if (wsConn[index].readyState == 1)
+					wsConn[index].send(msg);
+			}
 		})
 		.on("mouseleave", function () {
 			clearTimeout(idleMouse);
