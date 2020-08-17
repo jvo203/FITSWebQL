@@ -10,7 +10,7 @@ KalmanFilter::KalmanFilter(double position)
     p_vv = 0.1;
     position_variance = 0.01;
     velocity_variance = 0.01;
-    r = 0.1;
+    r = 100000.0;
     has_velocity = false;
 }
 
@@ -75,5 +75,9 @@ void KalmanFilter::update(double position, double deltat)
 
 double KalmanFilter::predict(double position, double deltat)
 {
+#if DEBUG
+    printf("position: %f, velocity: %f, deltat: %f\n", position, estimate_velocity, deltat);
+#endif
+
     return position + estimate_velocity * deltat;
 }
