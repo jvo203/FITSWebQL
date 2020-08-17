@@ -9318,7 +9318,7 @@ function setup_image_selection() {
 			init_webgl_zoom_buffers();
 
 			// send a "mouseenter" WebSocket message in order to reset the server-side Kalman Filter
-			var msg = 'mouseenter?seq_id=' + (++sent_seq_id);
+			var msg = 'kalman_reset?seq_id=' + (++sent_seq_id);
 			for (let index = 0; index < va_count; index++) {
 				if (wsConn[index].readyState == 1)
 					wsConn[index].send(msg);
@@ -9326,6 +9326,13 @@ function setup_image_selection() {
 		})
 		.on("mouseleave", function () {
 			clearTimeout(idleMouse);
+
+			// send a "mouseleave" WebSocket message in order to reset the server-side Kalman Filter
+			var msg = 'kalman_reset?seq_id=' + (++sent_seq_id);
+			for (let index = 0; index < va_count; index++) {
+				if (wsConn[index].readyState == 1)
+					wsConn[index].send(msg);
+			}
 
 			// clear the ViewportCanvas in WebGL
 			if (viewport != null) {
