@@ -12,7 +12,21 @@ KalmanFilter::KalmanFilter(double position)
     velocity_variance = 0.01 * position / 1000.0;
     r = 0.01 * position;
     has_velocity = false;
-}
+}*
+
+// settings used by the video streaming (frequency tracking)
+/*KalmanFilter::KalmanFilter(double position)
+{
+    estimate_position = position;
+    estimate_velocity = 0.0;
+    p_xx = 0.1 * position;
+    p_xv = 1.0;
+    p_vv = 1.0;
+    position_variance = 0.1 * position;
+    velocity_variance = 0.01 * position / 1000.0;
+    r = 0.01 * position;
+    has_velocity = false;
+}*/
 
 void KalmanFilter::reset(double position)
 {
