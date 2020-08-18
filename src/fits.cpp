@@ -3467,6 +3467,71 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx)
 
 void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
 {
+
+  if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
+    return;
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  // passed the sanity checks
+
+  int _x1 = MAX(0, x1);
+  int _y1 = MAX(0, y1);
+  int _x2 = MIN(width - 1, x2);
+  int _y2 = MIN(height - 1, y2);
+
+  auto [_start_x, _start_y] = make_indices(_x1, _y1);
+  auto [_end_x, _end_y] = make_indices(_x2, _y2);
+
+  // a workaround for macOS
+  int start_x = _start_x;
+  int start_y = _start_y;
+  int end_x = _end_x;
+  int end_y = _end_y;
+
+#pragma omp parallel for schedule(dynamic, 4) \
+    shared(start_x, end_x, start_y, end_y)
+  for (size_t i = (start - (start % 4)); i <= end; i++)
+  {
+    //int tid = omp_get_thread_num();
+
+    // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a
+    // multiple of 4
+    if (i < start)
+      continue;
+
+    bool compressed_pixels = false;
+    bool compressed_mask = false;
+
+    int pixels_idz = i / 4;
+    int sub_frame = i % 4; // a sub-pixels frame count in [0,4)
+    int mask_idz = i;
+
+    {
+      auto pixel_blocks = cube_pixels[pixels_idz].load();
+      if (pixel_blocks != nullptr)
+        compressed_pixels = true;
+    }
+
+    {
+      auto mask_blocks = cube_mask[mask_idz].load();
+      if (mask_blocks != nullptr)
+        compressed_mask = true;
+    }
+
+    // pre-empt the cache, ignore the result (std::shared_ptr<unsigned short> )
+    if (compressed_pixels && compressed_mask)
+    {
+      for (auto idy = start_y; idy <= end_y; idy++)
+        for (auto idx = start_x; idx <= end_x; idx++)
+          request_cached_region_ptr(i, idy, idx);
+    }
+  }
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
@@ -3557,7 +3622,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
-    int tid = omp_get_thread_num();
+    //int tid = omp_get_thread_num();
 
     // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a
     // multiple of 4
