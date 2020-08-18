@@ -2624,7 +2624,7 @@ int main(int argc, char *argv[])
                          }
                          else
                          {
-                           PrintThread{} << "[µWS] message " << message
+                           PrintThread{} << "[µWS::message] " << message
                                          << std::endl;
                          }
 
