@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-08-17.0"
+#define VERSION_STRING "SV2020-08-18.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2641,6 +2641,56 @@ int main(int argc, char *argv[])
 
                          std::string datasetid = user->ptr->primary_id;
 
+                         if (message.find("kalman_reset") != std::string::npos)
+                         {
+                           int seq = -1;
+
+                           std::string_view query;
+                           size_t pos = message.find("?");
+
+                           if (pos != std::string::npos)
+                             query = message.substr(pos + 1, std::string::npos);
+
+                           std::vector<std::string> params;
+                           boost::split(params, query, [](char c) { return c == '&'; });
+
+                           for (auto const &s : params)
+                           {
+                             // find '='
+                             size_t pos = s.find("=");
+
+                             if (pos != std::string::npos)
+                             {
+                               std::string key = s.substr(0, pos);
+                               std::string value = s.substr(pos + 1, std::string::npos);
+
+                               if (key.find("seq") != std::string::npos)
+                                 seq = std::stoi(value);
+                             }
+                           }
+
+                           if (seq > -1)
+                           {
+                             // gain unique access
+                             std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+
+                             int last_seq = user->ptr->last_seq;
+
+                             if (seq > last_seq)
+                               user->ptr->last_seq = seq;
+                           }
+
+                           if (user->ptr->kal_x && user->ptr->kal_y)
+                           {
+                             KalmanFilter *kal_x = user->ptr->kal_x.get();
+                             KalmanFilter *kal_y = user->ptr->kal_y.get();
+
+                             // need to know the entry position ...
+                             kal_x->reset(0.0);
+                             kal_y->reset(0.0);
+                           }
+                         }
+
                          if (message.find("realtime_image_spectrum") != std::string::npos)
                          {
                            // get deltat (no need to lock the mutex at this point)
@@ -2683,9 +2733,6 @@ int main(int argc, char *argv[])
                              {
                                std::string key = s.substr(0, pos);
                                std::string value = s.substr(pos + 1, std::string::npos);
-
-                               if (key.find("dataset") != std::string::npos)
-                                 datasetid = value;
 
                                if (key.find("seq") != std::string::npos)
                                  seq = std::stoi(value);
