@@ -2674,20 +2674,14 @@ int main(int argc, char *argv[])
                              // gain unique access
                              std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
 
+                             // remove any previous Kalman Filters
+                             user->ptr->kal_x.reset();
+                             user->ptr->kal_y.reset();
+
                              int last_seq = user->ptr->last_seq;
 
                              if (seq > last_seq)
                                user->ptr->last_seq = seq;
-                           }
-
-                           if (user->ptr->kal_x && user->ptr->kal_y)
-                           {
-                             KalmanFilter *kal_x = user->ptr->kal_x.get();
-                             KalmanFilter *kal_y = user->ptr->kal_y.get();
-
-                             // need to know the entry position ...
-                             kal_x->reset(0.0);
-                             kal_y->reset(0.0);
                            }
                          }
 
