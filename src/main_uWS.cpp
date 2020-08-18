@@ -3248,9 +3248,20 @@ int main(int argc, char *argv[])
                                      double pred_x = kal_x->predict(pos_x, look_ahead);
                                      double pred_y = kal_y->predict(pos_y, look_ahead);
 
+                                     double dx = pred_x - pos_x;
+                                     double dy = pred_y - pos_y;
+
 #ifdef DEBUG
-                                     printf("[%s]::KalmanFilter: X: %f, Y: %f,\tpredicted after 1s X*: %f, Y*: %f\n", fits->dataset_id.c_str(), pos_x, pos_y, pred_x, pred_y);
+                                     printf("[%s]::KalmanFilter: X: %f, Y: %f,\tpredicted after 1s X*: %f, Y*: %f, dx : %f, dy : %f\n", fits->dataset_id.c_str(), pos_x, pos_y, pred_x, pred_y, dx, dy);
 #endif
+
+                                     // pre-empt cache
+                                     int _x1 = x1 + dx;
+                                     int _y1 = y1 + dy;
+                                     int _x2 = x2 + dx;
+                                     int _y2 = y2 + dy;
+
+                                     fits->preempt_cache(start, end, _x1, _y1, _x2, _y2);
                                    }
                                    else
                                    {
