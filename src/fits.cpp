@@ -3465,6 +3465,10 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx)
   return res;
 }
 
+void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
+{
+}
+
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       int x2, int y2, intensity_mode intensity,
                                       beam_shape beam, double &elapsed)
