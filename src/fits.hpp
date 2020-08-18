@@ -136,6 +136,7 @@ public:
   std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2,
                                   int y2, intensity_mode intensity,
                                   beam_shape beam, double &elapsed);
+  void preempt_cache(int start, int end, int x1, int y1, int x2, int y2);
   void to_json(std::ostringstream &json);
 
 private:
