@@ -2814,11 +2814,11 @@ int main(int argc, char *argv[])
 
                                    int last_seq = user->ptr->last_seq;
 
-                                   /*if (last_seq > seq)
+                                   if (last_seq > seq)
                                    {
                                      printf("skipping an old frame (%d < %d)\n", seq, last_seq);
                                      return;
-                                   }*/
+                                   }
 
                                    user->ptr->last_seq = seq;
                                  }
