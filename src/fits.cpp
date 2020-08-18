@@ -3494,8 +3494,7 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   int end_x = _end_x;
   int end_y = _end_y;
 
-#pragma omp parallel for schedule(dynamic, 4) \
-    shared(start_x, end_x, start_y, end_y)
+  //#pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
     //int tid = omp_get_thread_num();
