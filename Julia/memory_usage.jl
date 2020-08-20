@@ -1,6 +1,8 @@
 using CSV
 using Plots
 
+gr(linewidth = 2)
+
 data = CSV.read("../memory_usage.csv")
 println(data[1:5,:])
 

@@ -1,6 +1,8 @@
 using CSV
 using Plots
 
+gr(linewidth = 2)
+
 data4 = CSV.read("../../fits_web_ql/memory_usage.csv")
 data5 = CSV.read("../memory_usage.csv")
 
