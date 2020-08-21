@@ -3923,6 +3923,11 @@ void FITS::zfp_compress_cube(size_t start_k)
     plane_count++;
   }
 
+#ifdef PRELOAD
+  // 1. for each pixels[place_count] and mask[place_count] divide the image and convert float32 into half-float
+  // 2. move ownership of the half-float shared pointer  to the cache
+#endif
+
   // divide the image into 256 x 256 x 4 regions to be compressed individually
   // a cache scheme will decompress those regions on demand
   size_t storage_size =
