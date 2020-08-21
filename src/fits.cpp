@@ -3920,13 +3920,29 @@ void FITS::zfp_compress_cube(size_t start_k)
                         datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
+#ifdef PRELOAD
+    // for each pixels[place_count] and mask[place_count] divide the image and convert float32 into half-float
+    for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+      for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
+      {
+        // block indexing
+        int idx = src_x / ZFP_CACHE_REGION;
+        int idy = src_y / ZFP_CACHE_REGION;
+
+        // allocate memory for a <short> (<half-float>) region
+
+        // convert to half-float (TO DO)
+        /*ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+                        datamin, datamax, pixels[plane_count],
+                        mask[plane_count], plane_size);*/
+
+        // move ownership of the half-float shared pointer  to the cache
+        // (...)
+      }
+#endif
+
     plane_count++;
   }
-
-#ifdef PRELOAD
-  // 1. for each pixels[place_count] and mask[place_count] divide the image and convert float32 into half-float
-  // 2. move ownership of the half-float shared pointer  to the cache
-#endif
 
   // divide the image into 256 x 256 x 4 regions to be compressed individually
   // a cache scheme will decompress those regions on demand
