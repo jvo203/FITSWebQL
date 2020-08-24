@@ -86,7 +86,23 @@ export void nan_mask(uniform float buffer[], uniform unsigned int8 mask[], unifo
 
 export void f32PIXMtof16(uniform float pixels[], uniform unsigned int8 mask[], uniform unsigned int stride,  uniform unsigned int16 dst[], uniform unsigned int size, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16)
 {
+  for(uniform int line = 0; line < size; line++)
+  {
+    int src_offset = line * stride;
+    int dst_offset = line * size;
 
+    foreach(i=0 ... size)
+    {
+      float tmp;
+
+      if(mask[src_offset + i] == 0)
+        tmp = floatbits(0x7ff80000); // quiet NaN  
+      else
+        tmp = min16 + (pixels[src_offset + i] - frame_min) / (frame_max - frame_min) * (max16 - min16);
+
+      dst[dst_offset + i] = float_to_half_fast(tmp);
+    }
+  }
 }
 
 export void f32tof16(uniform float src[], uniform unsigned int16 dst[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform unsigned int size)
