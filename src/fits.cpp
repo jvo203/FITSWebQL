@@ -3949,8 +3949,8 @@ void FITS::zfp_compress_cube(size_t start_k)
             // adjust the src offset for src_x and src_y
             Ipp32f *src_pixels = &(pixels[plane_count][src_y * width + src_x]);
             Ipp8u *src_mask = &(mask[plane_count][src_y * width + src_x]);
-            /*ispc::f32tof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[_frame], frame_max[_frame],
-                           MIN_HALF_FLOAT, MAX_HALF_FLOAT, ZFP_CACHE_REGION);// <no_lines> is the last argument
+            /*ispc::f32PIXMASKtof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[_frame], frame_max[_frame],
+                           MIN_HALF_FLOAT, MAX_HALF_FLOAT);// <no_lines> is the last argument
             * /
 
             // finally add a new entry to the cache
