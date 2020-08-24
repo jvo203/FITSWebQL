@@ -3947,10 +3947,9 @@ void FITS::zfp_compress_cube(size_t start_k)
             Ipp8u *src_mask = &(mask[plane_count][src_y * width + src_x]);
 
             // convert to half-float
-            ispc::f32PIXMtof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[_frame], frame_max[_frame],
-                                  MIN_HALF_FLOAT, MAX_HALF_FLOAT);
+            ispc::f32PIXMtof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[frame], frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT);
 
-            // finally add a new entry to the cache
+            // finally add a new entry to the decompression cache
             std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]); // lock the cache for writing
             cache[frame][idy][idx] = std::move(entry);
           }
