@@ -84,6 +84,11 @@ export void nan_mask(uniform float buffer[], uniform unsigned int8 mask[], unifo
     }
 }
 
+export void f32PIXMtof16(uniform float pixels[], uniform unsigned int8 mask[], uniform unsigned int stride,  uniform unsigned int16 dst[], uniform unsigned int size, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16)
+{
+
+}
+
 export void f32tof16(uniform float src[], uniform unsigned int16 dst[], uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform unsigned int size)
 {
   foreach(i=0 ... size)
