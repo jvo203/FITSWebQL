@@ -3921,6 +3921,8 @@ void FITS::zfp_compress_cube(size_t start_k)
                         mask[plane_count], plane_size);
 
 #ifdef PRELOAD
+    int pixels_idz = frame / 4;
+
     // for each pixels[place_count] and mask[place_count] divide the image and convert float32 into half-float
     for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
       for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
@@ -3929,15 +3931,33 @@ void FITS::zfp_compress_cube(size_t start_k)
         int idx = src_x / ZFP_CACHE_REGION;
         int idy = src_y / ZFP_CACHE_REGION;
 
-        // allocate memory for a <short> (<half-float>) region
+        // create a new cache entry
+        std::shared_ptr<CacheEntry> entry = std::shared_ptr<struct CacheEntry>(new struct CacheEntry());
 
-        // convert to half-float (TO DO)
-        /*ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+        if (entry)
+        {
+          struct CacheEntry *_entry = entry.get();
+
+          if (_entry->data)
+          {
+            unsigned short *f16 = _entry->data.get();
+
+            // convert to half-float (TO DO)
+            /*ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
                         datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);*/
+            // adjust the src offset for src_x and src_y
+            Ipp32f *src_pixels = &(pixels[plane_count][src_y * width + src_x]);
+            Ipp8u *src_mask = &(mask[plane_count][src_y * width + src_x]);
+            /*ispc::f32tof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[_frame], frame_max[_frame],
+                           MIN_HALF_FLOAT, MAX_HALF_FLOAT, ZFP_CACHE_REGION);// <no_lines> is the last argument
+            * /
 
-        // move ownership of the half-float shared pointer  to the cache
-        // (...)
+            // finally add a new entry to the cache
+            /*std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]); // lock the cache for writing
+            cache[frame][idy][idx] = std::move(entry);*/
+          }
+        }
       }
 #endif
 
