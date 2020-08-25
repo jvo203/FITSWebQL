@@ -410,19 +410,6 @@ FITS::~FITS()
 
   if (header != NULL)
     free(header);
-
-  /*if (img_pixels != NULL)
-  {
-    size_t plane_size = width * height;
-    size_t frame_size = plane_size * abs(bitpix / 8);
-    munmap(img_pixels, frame_size);
-  }
-
-  if (img_mask != NULL)
-  {
-    size_t plane_size = width * height;
-    munmap(img_mask, plane_size);
-  }*/
 }
 
 void FITS::purge_cache()
