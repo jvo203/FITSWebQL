@@ -1939,3 +1939,12 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
       close(fd);
     }
   }
+
+if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
+  {
+    printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
+           dataset_id.c_str());
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }

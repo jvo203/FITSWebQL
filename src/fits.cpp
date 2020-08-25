@@ -1306,62 +1306,85 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     return;
   }
 
-  // use mmap
-  if (!img_pixels && !img_mask)
+  // do not use mmap
+  if (!img_pixels)
+    img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size),
+                                         [=](Ipp32f *ptr) {
+                                           const size_t frame_size = plane_size * sizeof(Ipp32f);
+                                           std::string filename = FITSCACHE + std::string("/") +
+                                                                  boost::replace_all_copy(dataset_id, "/", "_") +
+                                                                  std::string(".pixels");
+
+                                           struct stat64 st;
+                                           int stat = stat64(filename.c_str(), &st);
+
+                                           bool save = false;
+
+                                           if (stat == -1)
+                                             save = true;
+                                           else if (st.st_size != frame_size)
+                                             save = true;
+
+                                           if (save)
+                                           {
+                                             printf("[%s]::saving img_pixels.\n", dataset_id.c_str());
+
+                                             FILE *fp = fopen(filename.c_str(), "wb");
+
+                                             if (fp != NULL)
+                                             {
+                                               size_t no_written = fwrite(ptr, sizeof(Ipp32f), plane_size, fp);
+
+                                               if (no_written != plane_size)
+                                                 perror("error writing img_pixels.\n");
+
+                                               fclose(fp);
+                                             }
+                                           }
+
+                                           Ipp32fFree(ptr);
+                                         });
+
+  if (!img_mask)
+    img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size),
+                                      [=](Ipp8u *ptr) {
+                                        std::string filename = FITSCACHE + std::string("/") +
+                                                               boost::replace_all_copy(dataset_id, "/", "_") +
+                                                               std::string(".mask");
+
+                                        struct stat64 st;
+                                        int stat = stat64(filename.c_str(), &st);
+
+                                        bool save = false;
+
+                                        if (stat == -1)
+                                          save = true;
+                                        else if (st.st_size != plane_size)
+                                          save = true;
+
+                                        if (save)
+                                        {
+                                          printf("[%s]::saving img_mask.\n", dataset_id.c_str());
+
+                                          FILE *fp = fopen(filename.c_str(), "wb");
+
+                                          if (fp != NULL)
+                                          {
+                                            size_t no_written = fwrite(ptr, 1, plane_size, fp);
+
+                                            if (no_written != plane_size)
+                                              perror("error writing img_mask.\n");
+
+                                            fclose(fp);
+                                          }
+                                        }
+
+                                        Ipp8uFree(ptr);
+                                      });
+
+  if (!img_pixels || !img_mask)
   {
-    int fd, stat;
-    std::string filename;
-
-    filename = FITSCACHE + std::string("/") +
-               boost::replace_all_copy(dataset_id, "/", "_") +
-               std::string(".pixels");
-
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
-
-    if (fd != -1)
-    {
-#if defined(__APPLE__) && defined(__MACH__)
-      stat = ftruncate(fd, frame_size);
-#else
-      stat = ftruncate64(fd, frame_size);
-#endif
-
-      if (!stat)
-        img_pixels = std::shared_ptr<Ipp32f>(
-            (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                           fd, 0),
-            [=](void *ptr) { munmap(ptr, frame_size); });
-
-      close(fd);
-    }
-
-    filename = FITSCACHE + std::string("/") +
-               boost::replace_all_copy(dataset_id, "/", "_") +
-               std::string(".mask");
-
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
-
-    if (fd != -1)
-    {
-#if defined(__APPLE__) && defined(__MACH__)
-      stat = ftruncate(fd, plane_size);
-#else
-      stat = ftruncate64(fd, plane_size);
-#endif
-
-      if (!stat)
-        img_mask = std::shared_ptr<Ipp8u>(
-            (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                          fd, 0),
-            [=](void *ptr) { munmap(ptr, plane_size); });
-
-      close(fd);
-    }
-  }
-
-  if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
-  {
-    printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
+    printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
     processed_data = true;
     data_cv.notify_all();
@@ -1930,15 +1953,82 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
   // do not use mmap
   if (!img_pixels)
     img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size),
-                                         [=](Ipp32f *ptr) { Ipp32fFree(ptr); });
+                                         [=](Ipp32f *ptr) {
+                                           const size_t frame_size = plane_size * sizeof(Ipp32f);
+                                           std::string filename = FITSCACHE + std::string("/") +
+                                                                  boost::replace_all_copy(dataset_id, "/", "_") +
+                                                                  std::string(".pixels");
+
+                                           struct stat64 st;
+                                           int stat = stat64(filename.c_str(), &st);
+
+                                           bool save = false;
+
+                                           if (stat == -1)
+                                             save = true;
+                                           else if (st.st_size != frame_size)
+                                             save = true;
+
+                                           if (save)
+                                           {
+                                             printf("[%s]::saving img_pixels.\n", dataset_id.c_str());
+
+                                             FILE *fp = fopen(filename.c_str(), "wb");
+
+                                             if (fp != NULL)
+                                             {
+                                               size_t no_written = fwrite(ptr, sizeof(Ipp32f), plane_size, fp);
+
+                                               if (no_written != plane_size)
+                                                 perror("error writing img_pixels.\n");
+
+                                               fclose(fp);
+                                             }
+                                           }
+
+                                           Ipp32fFree(ptr);
+                                         });
 
   if (!img_mask)
     img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size),
-                                      [=](Ipp8u *ptr) { Ipp8uFree(ptr); });
+                                      [=](Ipp8u *ptr) {
+                                        std::string filename = FITSCACHE + std::string("/") +
+                                                               boost::replace_all_copy(dataset_id, "/", "_") +
+                                                               std::string(".mask");
 
-  if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
+                                        struct stat64 st;
+                                        int stat = stat64(filename.c_str(), &st);
+
+                                        bool save = false;
+
+                                        if (stat == -1)
+                                          save = true;
+                                        else if (st.st_size != plane_size)
+                                          save = true;
+
+                                        if (save)
+                                        {
+                                          printf("[%s]::saving img_mask.\n", dataset_id.c_str());
+
+                                          FILE *fp = fopen(filename.c_str(), "wb");
+
+                                          if (fp != NULL)
+                                          {
+                                            size_t no_written = fwrite(ptr, 1, plane_size, fp);
+
+                                            if (no_written != plane_size)
+                                              perror("error writing img_mask.\n");
+
+                                            fclose(fp);
+                                          }
+                                        }
+
+                                        Ipp8uFree(ptr);
+                                      });
+
+  if (!img_pixels || !img_mask)
   {
-    printf("%s::cannot mmap memory for a 2D image buffer (pixels+mask).\n",
+    printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask).\n",
            dataset_id.c_str());
     processed_data = true;
     data_cv.notify_all();
