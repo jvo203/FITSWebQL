@@ -1927,58 +1927,14 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     return;
   }
 
-  // use mmap
-  if (img_pixels == NULL && img_mask == NULL)
-  {
-    int fd, stat;
-    std::string filename;
+  // do not use mmap
+  if (!img_pixels)
+    img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size),
+                                         [=](Ipp32f *ptr) { Ipp32fFree(ptr); });
 
-    filename = FITSCACHE + std::string("/") +
-               boost::replace_all_copy(dataset_id, "/", "_") +
-               std::string(".pixels");
-
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
-
-    if (fd != -1)
-    {
-#if defined(__APPLE__) && defined(__MACH__)
-      stat = ftruncate(fd, frame_size);
-#else
-      stat = ftruncate64(fd, frame_size);
-#endif
-
-      if (!stat)
-        img_pixels = std::shared_ptr<Ipp32f>(
-            (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                           fd, 0),
-            [=](void *ptr) { munmap(ptr, frame_size); });
-
-      close(fd);
-    }
-
-    filename = FITSCACHE + std::string("/") +
-               boost::replace_all_copy(dataset_id, "/", "_") +
-               std::string(".mask");
-
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
-
-    if (fd != -1)
-    {
-#if defined(__APPLE__) && defined(__MACH__)
-      stat = ftruncate(fd, plane_size);
-#else
-      stat = ftruncate64(fd, plane_size);
-#endif
-
-      if (!stat)
-        img_mask = std::shared_ptr<Ipp8u>(
-            (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                          fd, 0),
-            [=](void *ptr) { munmap(ptr, plane_size); });
-
-      close(fd);
-    }
-  }
+  if (!img_mask)
+    img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size),
+                                      [=](Ipp8u *ptr) { Ipp8uFree(ptr); });
 
   if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
   {

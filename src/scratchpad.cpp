@@ -1886,3 +1886,56 @@ bool FITS::request_cached_region(int frame, int idy, int idx, unsigned short *ds
 
   return ok;
 }
+
+ // use mmap
+  if (!img_pixels && !img_mask)
+  {
+    int fd, stat;
+    std::string filename;
+
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".pixels");
+
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
+
+    if (fd != -1)
+    {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, frame_size);
+#else
+      stat = ftruncate64(fd, frame_size);
+#endif
+
+      if (!stat)
+        img_pixels = std::shared_ptr<Ipp32f>(
+            (Ipp32f *)mmap(NULL, frame_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                           fd, 0),
+            [=](void *ptr) { munmap(ptr, frame_size); });
+
+      close(fd);
+    }
+
+    filename = FITSCACHE + std::string("/") +
+               boost::replace_all_copy(dataset_id, "/", "_") +
+               std::string(".mask");
+
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
+
+    if (fd != -1)
+    {
+#if defined(__APPLE__) && defined(__MACH__)
+      stat = ftruncate(fd, plane_size);
+#else
+      stat = ftruncate64(fd, plane_size);
+#endif
+
+      if (!stat)
+        img_mask = std::shared_ptr<Ipp8u>(
+            (Ipp8u *)mmap(NULL, plane_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                          fd, 0),
+            [=](void *ptr) { munmap(ptr, plane_size); });
+
+      close(fd);
+    }
+  }
