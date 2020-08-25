@@ -410,6 +410,9 @@ FITS::~FITS()
 
   if (header != NULL)
     free(header);
+
+  img_pixels.reset();
+  img_mask.reset();
 }
 
 void FITS::purge_cache()
