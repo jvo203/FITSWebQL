@@ -88,8 +88,8 @@ export void f32PIXMtof16(uniform float pixels[], uniform unsigned int8 mask[], u
 {
   for(uniform int line = 0; line < size; line++)
   {
-    int src_offset = line * stride;
-    int dst_offset = line * size;
+    uniform int src_offset = line * stride;
+    uniform int dst_offset = line * size;
 
     foreach(i=0 ... size)
     {
