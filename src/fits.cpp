@@ -367,7 +367,7 @@ FITS::~FITS()
   // clear the cache of nested std::maps
   cache.clear();
 
-  // clear the cube containing pointers to mmaped regions
+  // clear the cube containing shared pointers to (mmaped or not) memory regions
   fits_cube.clear();
 
   if (fits_ptr != MAP_FAILED && fits_ptr_size > 0)
@@ -2170,8 +2170,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
     // reset the cube just in case
     fits_cube.clear();
-    // init the cube with nullptr
-    fits_cube.resize(depth, nullptr);
+
+    // resize/init the cube with default nullptr-filled std::shared_ptr
+    fits_cube.resize(depth);
 
     // init the compressed regions (sizing: err on the side of caution)
     // cannot resize a vector of atomics in C++ ...
@@ -2320,7 +2321,10 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           {
             char *ptr = (char *)this->fits_ptr;
             ptr += this->hdr_len + frame_size * frame;
+
             fits_cube[frame] = ptr;
+            //madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
+
             pixels_buf = (Ipp32f *)ptr;
           }
 
@@ -3744,16 +3748,16 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
     }
 
   jmp:
-    if (!has_compressed_spectrum && fits_cube[i] != NULL)
+    if (!has_compressed_spectrum && fits_cube[i])
     {
       if (beam == circle)
         spectrum_value = ispc::calculate_radial_spectrumBF32(
-            (int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax,
+            (int32_t *)fits_cube[i].get(), bzero, bscale, ignrval, datamin, datamax,
             width, _x1, _x2, _y1, _y2, _cx, _cy, _r2, average, _cdelt3);
 
       if (beam == square)
         spectrum_value = ispc::calculate_square_spectrumBF32(
-            (int32_t *)fits_cube[i], bzero, bscale, ignrval, datamin, datamax,
+            (int32_t *)fits_cube[i].get(), bzero, bscale, ignrval, datamin, datamax,
             width, _x1, _x2, _y1, _y2, average, _cdelt3);
     }
 
@@ -3799,7 +3803,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
   /*size_t end_k = MIN(start_k + 4, depth);
 
   for (size_t i = start_k; i < end_k; i++)
-    if (fits_cube[i] == NULL)
+    if (!fits_cube[i])
       return;
 
   // decompress the frame
@@ -3853,7 +3857,7 @@ start_k, idy, idx); return;
 #if !defined(__APPLE__) || !defined(__MACH__)
   // verify data
   size_t offset = 0;
-  int32_t *src = (int32_t *)fits_cube[start_k];
+  int32_t *src = (int32_t *)fits_cube[start_k].get();
   Ipp32f *_ptr = pixels_mosaic.get();
   bool invalid_real = false;
   bool invalid_nan = false;
@@ -3892,7 +3896,7 @@ void FITS::zfp_compress_cube(size_t start_k)
   size_t end_k = MIN(start_k + 4, depth);
 
   for (size_t i = start_k; i < end_k; i++)
-    if (fits_cube[i] == NULL)
+    if (!fits_cube[i])
       return;
 
   // create subdirectories for ZFP and LZ4
@@ -3952,7 +3956,7 @@ void FITS::zfp_compress_cube(size_t start_k)
   int plane_count = 0;
   for (size_t frame = start_k; frame < end_k; frame++)
   {
-    ispc::make_planeF32((int32_t *)fits_cube[frame], bzero, bscale, ignrval,
+    ispc::make_planeF32((int32_t *)fits_cube[frame].get(), bzero, bscale, ignrval,
                         datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
@@ -4403,7 +4407,7 @@ void FITS::zfp_compress_cube(size_t start_k)
 
   // advise the OS it's OK to release memory pages
   for (size_t frame = start_k; frame < end_k; frame++)
-    madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
+    fits_cube[frame].reset();
 }
 
 void FITS::zfp_compression_thread(int tid)
