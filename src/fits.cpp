@@ -2316,7 +2316,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           Ipp32f *pixels_buf = nullptr;
 
           // point the cube element to an mmaped region
-          if (this->fits_ptr)
+          if (this->fits_ptr && this->fits_ptr.get() != MAP_FAILED)
           {
             char *ptr = (char *)this->fits_ptr.get();
             ptr += this->hdr_len + frame_size * frame;
