@@ -1948,3 +1948,22 @@ if (img_pixels.get() == MAP_FAILED || img_mask.get() == MAP_FAILED)
     data_cv.notify_all();
     return;
   }
+
+    // mmap the FITS file
+      /*this->fits_ptr_size = this->depth * frame_size;
+      this->fits_ptr =
+          mmap(nullptr, this->fits_ptr_size, PROT_READ | PROT_WRITE,
+               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+      if (this->fits_ptr == MAP_FAILED)
+      {
+        printf("%s::error mmaping ANON memory...\n", dataset_id.c_str());
+        processed_header = true;
+        header_cv.notify_all();
+        processed_data = true;
+        data_cv.notify_all();
+        return;
+      }
+      else
+        printf("%s::mmapped ANON <%zu> memory...\n", dataset_id.c_str(),
+               this->fits_ptr_size);*/

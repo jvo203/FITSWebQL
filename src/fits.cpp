@@ -308,8 +308,6 @@ FITS::FITS()
   this->gz_compressed = false;
   this->header = NULL;
   this->hdr_len = 0;
-  this->fits_ptr = nullptr;
-  this->fits_ptr_size = 0;
   this->defaults();
 }
 
@@ -328,8 +326,6 @@ FITS::FITS(std::string id, std::string flux)
   this->gz_compressed = false;
   this->header = NULL;
   this->hdr_len = 0;
-  this->fits_ptr = nullptr;
-  this->fits_ptr_size = 0;
   this->defaults();
 }
 
@@ -370,8 +366,8 @@ FITS::~FITS()
   // clear the cube containing shared pointers to (mmaped or not) memory regions
   fits_cube.clear();
 
-  if (fits_ptr != MAP_FAILED && fits_ptr_size > 0)
-    munmap(fits_ptr, fits_ptr_size);
+  // reset the pointer to the underlying FITS file memory region
+  fits_ptr.reset();
 
   // clear compressed cube regions
   int null_pixels = 0;
@@ -1834,12 +1830,15 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
   // mmap the FITS file
   if (this->fits_file_desc != -1)
   {
-    this->fits_ptr_size = this->fits_file_size;
-    this->fits_ptr =
-        mmap(nullptr, this->fits_ptr_size, PROT_READ,
-             MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0);
+    this->fits_ptr = std::shared_ptr<void>(
+        mmap(nullptr, this->fits_file_size, PROT_READ,
+             MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0),
+        [=](void *ptr) {
+          if (ptr != MAP_FAILED)
+            munmap(ptr, fits_file_size);
+        });
 
-    if (this->fits_ptr == MAP_FAILED)
+    if (this->fits_ptr.get() == MAP_FAILED)
     {
       printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
       processed_header = true;
@@ -2317,15 +2316,17 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           Ipp32f *pixels_buf = nullptr;
 
           // point the cube element to an mmaped region
-          if (this->fits_ptr != nullptr)
+          if (this->fits_ptr)
           {
-            char *ptr = (char *)this->fits_ptr;
+            char *ptr = (char *)this->fits_ptr.get();
             ptr += this->hdr_len + frame_size * frame;
 
-            fits_cube[frame] = ptr;
-            //madvise(fits_cube[frame], frame_size, MADV_DONTNEED);
+            fits_cube[frame] = std::shared_ptr<void>(ptr, [=](void *ptr) {
+              if (ptr != NULL)
+                madvise(ptr, frame_size, MADV_DONTNEED);
+            });
 
-            pixels_buf = (Ipp32f *)ptr;
+            pixels_buf = (Ipp32f *)fits_cube[frame].get();
           }
 
           if (pixels_buf == nullptr)
@@ -2422,25 +2423,6 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
       printf("%s::gz-compressed depth > 1: work-in-progress.\n",
              dataset_id.c_str());
 
-      // mmap the FITS file
-      this->fits_ptr_size = this->depth * frame_size;
-      this->fits_ptr =
-          mmap(nullptr, this->fits_ptr_size, PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-      if (this->fits_ptr == MAP_FAILED)
-      {
-        printf("%s::error mmaping ANON memory...\n", dataset_id.c_str());
-        processed_header = true;
-        header_cv.notify_all();
-        processed_data = true;
-        data_cv.notify_all();
-        return;
-      }
-      else
-        printf("%s::mmapped ANON <%zu> memory...\n", dataset_id.c_str(),
-               this->fits_ptr_size);
-
       // allocate {pixel_buf, mask_buf}
       /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
                                          Ipp32fFree);*/
@@ -2462,17 +2444,18 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
           for (size_t frame = start_k; frame < end_k; frame++)
           {
-            Ipp32f *pixels_buf = nullptr;
+            fits_cube[frame] = std::shared_ptr<void>(ippsMalloc_32f_L(plane_size), [=](void *ptr) {
+              if (ptr != NULL)
+                Ipp32fFree((Ipp32f *)ptr);
+            });
 
-            // point the cube element to an mmaped region
-            char *ptr = (char *)this->fits_ptr;
-            ptr += frame_size * frame;
-            fits_cube[frame] = ptr;
-            pixels_buf = (Ipp32f *)ptr;
+            Ipp32f *pixels_buf = (Ipp32f *)fits_cube[frame].get();
 
             // load data into the buffer sequentially
-            ssize_t bytes_read =
-                gzread(this->compressed_fits_stream, pixels_buf, frame_size);
+            ssize_t bytes_read = 0;
+            if (pixels_buf != NULL)
+              bytes_read =
+                  gzread(this->compressed_fits_stream, pixels_buf, frame_size);
 
             if (bytes_read != frame_size)
             {
@@ -4405,7 +4388,7 @@ void FITS::zfp_compress_cube(size_t start_k)
       ippsFree(mask[i]);
   }
 
-  // advise the OS it's OK to release memory pages
+  // free memory / release mmap pages
   for (size_t frame = start_k; frame < end_k; frame++)
     fits_cube[frame].reset();
 }

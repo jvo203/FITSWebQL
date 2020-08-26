@@ -276,11 +276,10 @@ private:
   bool gz_compressed;
 
   // mmap pointer to the underlying FITS file
-  void *fits_ptr;
-  size_t fits_ptr_size;
+  std::shared_ptr<void> fits_ptr;
 
   // a pointer array to 2D planes in a 3D cube
-  std::vector<std::shared_ptr<void *>> fits_cube;
+  std::vector<std::shared_ptr<void>> fits_cube;
 
   // compressed FITS cube planes / block regions
   std::vector<std::atomic<compressed_blocks *>> cube_pixels;
