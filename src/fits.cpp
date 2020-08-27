@@ -596,6 +596,33 @@ void FITS::serialise()
   if (depth_json != NULL)
     json_append_member(json, "depth", depth_json);
 
+  JsonNode *polarisation_json = json_mknumber(polarisation);
+  if (polarisation_json != NULL)
+    json_append_member(json, "polarisation", polarisation_json);
+
+  JsonNode *bitpix_json = json_mknumber(bitpix);
+  if (bitpix_json != NULL)
+    json_append_member(json, "bitpix", bitpix_json);
+
+  JsonNode *naxis_json = json_mknumber(naxis);
+  if (naxis_json != NULL)
+    json_append_member(json, "naxis", naxis_json);
+
+  // next build up an array <int naxes[4]>
+  JsonNode *_naxes[4];
+  JsonNode *naxes_json = json_mkarray();
+  if (naxes_json != NULL)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      _naxes[i] = json_mknumber(naxes[i]);
+      if (_naxes[i] != NULL)
+        json_append_element(naxes_json, _naxes[i]);
+    }
+
+    json_append_member(json, "naxes", naxes_json);
+  }
+
   char *json_str = json_encode(json);
 
   if (json_str != NULL)
@@ -615,6 +642,24 @@ void FITS::serialise()
 
   if (depth_json != NULL)
     json_delete(depth_json);
+
+  if (polarisation_json != NULL)
+    json_delete(polarisation_json);
+
+  if (bitpix_json != NULL)
+    json_delete(bitpix_json);
+
+  if (naxis_json != NULL)
+    json_delete(naxis_json);
+
+  if (naxes_json != NULL)
+  {
+    for (int i = 0; i < 4; i++)
+      if (_naxes[i] != NULL)
+        json_delete(_naxes[i]);
+
+    json_delete(naxes_json);
+  }
 
   json_delete(json);
 
