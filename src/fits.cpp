@@ -327,6 +327,8 @@ FITS::FITS(std::string id, std::string flux)
   this->header = NULL;
   this->hdr_len = 0;
   this->defaults();
+
+  // deserialise();
 }
 
 FITS::~FITS()
@@ -409,6 +411,9 @@ FITS::~FITS()
 
   img_pixels.reset();
   img_mask.reset();
+
+  // serialise to disk
+  serialise();
 }
 
 void FITS::purge_cache()
@@ -544,6 +549,59 @@ void FITS::defaults()
 
 void FITS::serialise()
 {
+  std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".json");
+
+  struct stat64 st;
+  int stat = stat64(filename.c_str(), &st);
+
+  if (stat == 0)
+    // the file already exists, do nothing
+    return;
+
+  std::string tmp = filename + ".tmp";
+
+  /*FILE *fp = fopen(tmp.c_str(), "wb");
+  if (fp == NULL)
+    return;*/
+
+  std::ofstream fp(tmp);
+
+  if (!fp)
+    return;
+
+  // serialise to JSON
+  JsonNode *json = json_mkobject();
+
+  if (json == NULL)
+    return;
+
+  JsonNode *flux_json = json_mkstring(flux.c_str());
+  json_append_member(json, "flux", flux_json);
+
+  JsonNode *width_json = json_mknumber(width);
+  json_append_member(json, "width", width_json);
+
+  char *json_str = json_encode(json);
+
+  if (json_str != NULL)
+  {
+    std::cout << "JSON :\n"
+              << json_str << std::endl;
+
+    fp << json_str << std::endl;
+    free(json_str);
+  }
+
+  json_delete(flux_json);
+  json_delete(width_json);
+  json_delete(json);
+
+  fp.close();
+
+  //rename the temporary file
+  //rename(tmp.c_str(), filename.c_str());
 }
 
 void FITS::update_timestamp() { timestamp = std::time(nullptr); }
