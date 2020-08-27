@@ -542,6 +542,10 @@ void FITS::defaults()
     hist[i] = 0;
 }
 
+void FITS::serialise()
+{
+}
+
 void FITS::update_timestamp() { timestamp = std::time(nullptr); }
 
 void FITS::frame_reference_type()
