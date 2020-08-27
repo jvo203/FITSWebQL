@@ -84,24 +84,23 @@ export void nan_mask(uniform float buffer[], uniform unsigned int8 mask[], unifo
     }
 }
 
-export void f32PIXMtof16(uniform float pixels[], uniform unsigned int8 mask[], uniform unsigned int stride,  uniform unsigned int16 dst[], uniform unsigned int size, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16)
+export void f32PIXMtof16(uniform float pixels[], uniform unsigned int8 mask[], uniform int src_x, uniform int src_y, uniform unsigned int width, uniform unsigned int height, uniform unsigned int16 dst[], uniform unsigned int size, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16)
 {
-  for(uniform int line = 0; line < size; line++)
+  foreach (j=0 ... size, i=0 ... size)
   {
-    uniform int src_offset = line * stride;
-    uniform int dst_offset = line * size;
+    int idx_src = (src_y + j) * width + src_x + i;
+    int idx_dst = j * size + i;
 
-    foreach(i=0 ... size)
-    {
-      float tmp;
+    // a default value
+    float tmp = floatbits(0x7ff80000); // quiet NaN
 
-      if(mask[src_offset + i] == 0)
-        tmp = floatbits(0x7ff80000); // quiet NaN  
-      else
-        tmp = min16 + (pixels[src_offset + i] - frame_min) / (frame_max - frame_min) * (max16 - min16);
+    // check whether or not the original image dimensions are exceeded
+    if ((src_x + i < width) && (src_y + j < height))
+      // finally test the mask
+      if(mask[idx_src] != 0)
+        tmp = min16 + (pixels[idx_src] - frame_min) / (frame_max - frame_min) * (max16 - min16);
 
-      dst[dst_offset + i] = float_to_half_fast(tmp);
-    }
+    dst[idx_dst] = float_to_half_fast(tmp);
   }
 }
 

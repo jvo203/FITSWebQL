@@ -3964,13 +3964,12 @@ void FITS::zfp_compress_cube(size_t start_k)
           if (_entry->data)
           {
             unsigned short *f16 = _entry->data.get();
+            
+            Ipp32f *_pixels = pixels[plane_count];
+            Ipp8u *_mask = mask[plane_count];
 
-            // adjust the src offset for src_x and src_y
-            Ipp32f *src_pixels = &(pixels[plane_count][src_y * width + src_x]);
-            Ipp8u *src_mask = &(mask[plane_count][src_y * width + src_x]);
-
-            // convert to half-float
-            ispc::f32PIXMtof16(src_pixels, src_mask, width, f16, ZFP_CACHE_REGION, frame_min[frame], frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT);
+            // convert to half-float (adjust the src offset for src_x and src_y)
+            ispc::f32PIXMtof16(_pixels, _mask, src_x, src_y, width, height, f16, ZFP_CACHE_REGION, frame_min[frame], frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT);
 
             // finally add a new entry to the decompression cache
             std::lock_guard<std::shared_mutex> guard(cache_mtx[pixels_idz]); // lock the cache for writing
