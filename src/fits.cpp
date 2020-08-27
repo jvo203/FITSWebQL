@@ -3561,7 +3561,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       beam_shape beam, double &elapsed)
 {
   std::vector<float> spectrum;
-  // std::vector<float> test;
+  //std::vector<float> test;
 
   // sanity checks
   if (bitpix != -32)
@@ -3582,7 +3582,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
 
   // resize the spectrum vector
   spectrum.resize(length, 0);
-  // test.resize(length, 0);
+  //test.resize(length, 0);
 
   // std::cout << "[get_spectrum]#0 " << x1 << " " << x2 << " " << y1 << " " <<
   // y2 << std::endl;
@@ -3725,7 +3725,7 @@ std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
         __y2 -= ZFP_CACHE_REGION;
       }
 
-      // test[i - start] = spectrum_value;
+      //test[i - start] = spectrum_value;
       spectrum[i - start] = spectrum_value;
       has_compressed_spectrum = true;
     }
@@ -3964,7 +3964,7 @@ void FITS::zfp_compress_cube(size_t start_k)
           if (_entry->data)
           {
             unsigned short *f16 = _entry->data.get();
-            
+
             Ipp32f *_pixels = pixels[plane_count];
             Ipp8u *_mask = mask[plane_count];
 
