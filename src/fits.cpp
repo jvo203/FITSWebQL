@@ -578,10 +578,23 @@ void FITS::serialise()
     return;
 
   JsonNode *flux_json = json_mkstring(flux.c_str());
-  json_append_member(json, "flux", flux_json);
+  if (flux_json != NULL)
+  {
+    json_append_member(json, "flux", flux_json);
+    json_delete(flux_json);
+  }
 
   JsonNode *width_json = json_mknumber(width);
-  json_append_member(json, "width", width_json);
+  if (width_json != NULL)
+    json_append_member(json, "width", width_json);
+
+  JsonNode *height_json = json_mknumber(height);
+  if (height_json != NULL)
+    json_append_member(json, "height", height_json);
+
+  JsonNode *depth_json = json_mknumber(depth);
+  if (depth_json != NULL)
+    json_append_member(json, "depth", depth_json);
 
   char *json_str = json_encode(json);
 
@@ -594,8 +607,15 @@ void FITS::serialise()
     free(json_str);
   }
 
-  json_delete(flux_json);
-  json_delete(width_json);
+  if (width_json != NULL)
+    json_delete(width_json);
+
+  if (height_json != NULL)
+    json_delete(height_json);
+
+  if (depth_json != NULL)
+    json_delete(depth_json);
+
   json_delete(json);
 
   fp.close();
