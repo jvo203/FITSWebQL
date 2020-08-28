@@ -862,6 +862,22 @@ void FITS::serialise()
 
     json_append_member(json, "integrated_spectrum", integrated_spectrum_json);
   }
+
+  
+  // build up an array <Ipp32u hist[NBINS]>
+  std::vector<JsonNode *> _hist(NBINS);
+  JsonNode *hist_json = json_mkarray();
+  if (hist_json != NULL)
+  {
+    for (int i = 0; i < NBINS; i++)
+    {
+      _hist[i] = json_mknumber(hist[i]);
+      if (_hist[i] != NULL)
+        json_append_element(hist_json, _hist[i]);
+    }
+
+    json_append_member(json, "hist", hist_json);
+  }
   
   // export JSON to string
 
@@ -1091,6 +1107,17 @@ void FITS::serialise()
     _integrated_spectrum.clear();
     
     json_delete(integrated_spectrum_json);
+  }
+
+  if (hist_json != NULL)
+  {
+    for (int i = 0; i < _hist.size(); i++)
+      if (_hist[i] != NULL)
+        json_delete(_hist[i]);
+
+    _hist.clear();
+    
+    json_delete(hist_json);
   }
   
   json_delete(json);
