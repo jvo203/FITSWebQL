@@ -847,6 +847,21 @@ void FITS::serialise()
 
     json_append_member(json, "mean_spectrum", mean_spectrum_json);
   }
+
+  // build up an array <std::vector<float> integrated_spectrum>
+  std::vector<JsonNode *> _integrated_spectrum(integrated_spectrum.size());
+  JsonNode *integrated_spectrum_json = json_mkarray();
+  if (integrated_spectrum_json != NULL)
+  {
+    for (int i = 0; i < integrated_spectrum.size(); i++)
+    {
+      _integrated_spectrum[i] = json_mknumber(integrated_spectrum[i]);
+      if (_integrated_spectrum[i] != NULL)
+        json_append_element(integrated_spectrum_json, _integrated_spectrum[i]);
+    }
+
+    json_append_member(json, "integrated_spectrum", integrated_spectrum_json);
+  }
   
   // export JSON to string
 
@@ -1065,6 +1080,17 @@ void FITS::serialise()
     _mean_spectrum.clear();
     
     json_delete(mean_spectrum_json);
+  }
+
+  if (integrated_spectrum_json != NULL)
+  {
+    for (int i = 0; i < _integrated_spectrum.size(); i++)
+      if (_integrated_spectrum[i] != NULL)
+        json_delete(_integrated_spectrum[i]);
+
+    _integrated_spectrum.clear();
+    
+    json_delete(integrated_spectrum_json);
   }
   
   json_delete(json);
