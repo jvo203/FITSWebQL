@@ -771,6 +771,34 @@ void FITS::serialise()
   JsonNode *object_json = json_mkstring(object.c_str());
   if (object_json != NULL)
     json_append_member(json, "object", object_json);
+
+  JsonNode *date_obs_json = json_mkstring(date_obs.c_str());
+  if (date_obs_json != NULL)
+    json_append_member(json, "date_obs", date_obs_json);
+
+  JsonNode *beam_unit_json = json_mkstring(beam_unit.c_str());
+  if (beam_unit_json != NULL)
+    json_append_member(json, "beam_unit", beam_unit_json);
+
+  JsonNode *beam_type_json = json_mkstring(beam_type.c_str());
+  if (beam_type_json != NULL)
+    json_append_member(json, "beam_type", beam_type_json);
+
+  JsonNode *has_frequency_json = json_mkbool(has_frequency);
+  if (has_frequency_json != NULL)
+    json_append_member(json, "has_frequency", has_frequency_json);
+
+  JsonNode *has_velocity_json = json_mkbool(has_velocity);
+  if (has_velocity_json != NULL)
+    json_append_member(json, "has_velocity", has_velocity_json);
+
+  JsonNode *is_optical_json = json_mkbool(is_optical);
+  if (is_optical_json != NULL)
+    json_append_member(json, "is_optical", is_optical_json);
+
+  JsonNode *is_xray_json = json_mkbool(is_xray);
+  if (is_xray_json != NULL)
+    json_append_member(json, "is_xray", is_xray_json);
   
   // export JSON to string
 
@@ -929,6 +957,27 @@ void FITS::serialise()
 
   if (object_json != NULL)
     json_delete(object_json);
+
+  if (date_obs_json != NULL)
+    json_delete(date_obs_json);
+
+  if (beam_unit_json != NULL)
+    json_delete(beam_unit_json);
+
+  if (beam_type_json != NULL)
+    json_delete(beam_type_json);
+
+  if (has_frequency_json != NULL)
+    json_delete(has_frequency_json);
+
+  if (has_velocity_json != NULL)
+    json_delete(has_velocity_json);
+
+  if (is_optical_json != NULL)
+    json_delete(is_optical_json);
+
+   if (is_xray_json != NULL)
+    json_delete(is_xray_json);
   
   json_delete(json);
 
