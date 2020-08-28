@@ -720,6 +720,22 @@ void FITS::serialise()
   if (cd2_2_json != NULL)
     json_append_member(json, "cd2_2", cd2_2_json);
 
+  JsonNode *bmaj_json = json_mknumber(bmaj);
+  if (bmaj_json != NULL)
+    json_append_member(json, "bmaj", bmaj_json);
+
+  JsonNode *bmin_json = json_mknumber(bmin);
+  if (bmin_json != NULL)
+    json_append_member(json, "bmin", bmin_json);
+
+  JsonNode *bpa_json = json_mknumber(bpa);
+  if (bpa_json != NULL)
+    json_append_member(json, "bpa", bpa_json);
+
+  JsonNode *restfrq_json = json_mknumber(restfrq);
+  if (restfrq_json != NULL)
+    json_append_member(json, "restfrq", restfrq_json);
+
   // export JSON to string
 
   char *json_str = json_encode(json);
@@ -838,6 +854,18 @@ void FITS::serialise()
 
   if (cd2_2_json != NULL)
     json_delete(cd2_2_json);
+
+  if (bmaj_json != NULL)
+    json_delete(bmaj_json);
+
+  if (bmin_json != NULL)
+    json_delete(bmin_json);
+
+  if (bpa_json != NULL)
+    json_delete(bpa_json);
+
+  if (restfrq_json != NULL)
+    json_delete(restfrq_json);
 
   json_delete(json);
 
