@@ -736,6 +736,22 @@ void FITS::serialise()
   if (restfrq_json != NULL)
     json_append_member(json, "restfrq", restfrq_json);
 
+  JsonNode *obsra_json = json_mknumber(obsra);
+  if (obsra_json != NULL)
+    json_append_member(json, "obsra", obsra_json);
+
+  JsonNode *obsdec_json = json_mknumber(obsdec);
+  if (obsdec_json != NULL)
+    json_append_member(json, "obsdec", obsdec_json);
+
+  JsonNode *datamin_json = json_mknumber(datamin);
+  if (datamin_json != NULL)
+    json_append_member(json, "datamin", datamin_json);
+
+  JsonNode *datamax_json = json_mknumber(datamax);
+  if (datamax_json != NULL)
+    json_append_member(json, "datamax", datamax_json);
+
   // export JSON to string
 
   char *json_str = json_encode(json);
@@ -866,6 +882,18 @@ void FITS::serialise()
 
   if (restfrq_json != NULL)
     json_delete(restfrq_json);
+
+  if (obsra_json != NULL)
+    json_delete(obsra_json);
+
+  if (obsdec_json != NULL)
+    json_delete(obsdec_json);
+
+  if (datamin_json != NULL)
+    json_delete(datamin_json);
+
+  if (datamax_json != NULL)
+    json_delete(datamax_json);
 
   json_delete(json);
 
