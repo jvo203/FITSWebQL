@@ -889,6 +889,18 @@ void FITS::serialise()
   JsonNode *median_json = json_mknumber(median);
   if (median_json != NULL)
     json_append_member(json, "median", median_json);
+
+  JsonNode *mad_json = json_mknumber(mad);
+  if (mad_json != NULL)
+    json_append_member(json, "mad", mad_json);
+
+  JsonNode *madP_json = json_mknumber(madP);
+  if (madP_json != NULL)
+    json_append_member(json, "madP", madP_json);
+
+  JsonNode *madN_json = json_mknumber(madN);
+  if (madN_json != NULL)
+    json_append_member(json, "madN", madN_json);
   
   // export JSON to string
 
@@ -1139,6 +1151,15 @@ void FITS::serialise()
 
   if (median_json != NULL)
     json_delete(median_json);
+
+  if (mad_json != NULL)
+    json_delete(mad_json);
+
+  if (madN_json != NULL)
+    json_delete(madN_json);
+
+  if (madP_json != NULL)
+    json_delete(madP_json);
   
   json_delete(json);
 
