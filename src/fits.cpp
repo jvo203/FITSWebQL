@@ -752,6 +752,26 @@ void FITS::serialise()
   if (datamax_json != NULL)
     json_append_member(json, "datamax", datamax_json);
 
+  JsonNode *line_json = json_mkstring(line.c_str());
+  if (line_json != NULL)
+    json_append_member(json, "line", line_json);
+
+  JsonNode *filter_json = json_mkstring(filter.c_str());
+  if (filter_json != NULL)
+    json_append_member(json, "filter", filter_json);
+  
+  JsonNode *specsys_json = json_mkstring(specsys.c_str());
+  if (specsys_json != NULL)
+    json_append_member(json, "specsys", specsys_json);
+
+  JsonNode *timesys_json = json_mkstring(timesys.c_str());
+  if (timesys_json != NULL)
+    json_append_member(json, "timesys", timesys_json);
+
+  JsonNode *object_json = json_mkstring(object.c_str());
+  if (object_json != NULL)
+    json_append_member(json, "object", object_json);
+  
   // export JSON to string
 
   char *json_str = json_encode(json);
@@ -895,6 +915,21 @@ void FITS::serialise()
   if (datamax_json != NULL)
     json_delete(datamax_json);
 
+  if (line_json != NULL)
+    json_delete(line_json);
+
+  if (filter_json != NULL)
+    json_delete(filter_json);
+
+  if (specsys_json != NULL)
+    json_delete(specsys_json);
+
+  if (timesys_json != NULL)
+    json_delete(timesys_json);
+
+  if (object_json != NULL)
+    json_delete(object_json);
+  
   json_delete(json);
 
   fp.close();
