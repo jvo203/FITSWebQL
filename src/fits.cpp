@@ -562,13 +562,8 @@ void FITS::serialise()
 
   std::string tmp = filename + ".tmp";
 
-  /*FILE *fp = fopen(tmp.c_str(), "wb");
+  FILE *fp = fopen(tmp.c_str(), "w");
   if (fp == NULL)
-    return;*/
-
-  std::ofstream fp(tmp);
-
-  if (!fp)
     return;
 
   // serialise to JSON
@@ -846,7 +841,8 @@ void FITS::serialise()
   {
     std::cout << json_str << std::endl;
 
-    fp << json_str << std::endl;
+    fputs(json_str, fp);
+
     free(json_str);
   }
 
@@ -1047,7 +1043,7 @@ void FITS::serialise()
   
   json_delete(json);
 
-  fp.close();
+  fclose(fp);
 
   //rename the temporary file
   //rename(tmp.c_str(), filename.c_str());
