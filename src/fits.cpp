@@ -579,10 +579,7 @@ void FITS::serialise()
 
   JsonNode *flux_json = json_mkstring(flux.c_str());
   if (flux_json != NULL)
-  {
     json_append_member(json, "flux", flux_json);
-    json_delete(flux_json);
-  }
 
   JsonNode *width_json = json_mknumber(width);
   if (width_json != NULL)
@@ -623,16 +620,102 @@ void FITS::serialise()
     json_append_member(json, "naxes", naxes_json);
   }
 
+  JsonNode *btype_json = json_mkstring(btype.c_str());
+  if (btype_json != NULL)
+    json_append_member(json, "btype", btype_json);
+
+  JsonNode *bunit_json = json_mkstring(bunit.c_str());
+  if (bunit_json != NULL)
+    json_append_member(json, "bunit", bunit_json);
+
+  JsonNode *bscale_json = json_mknumber(bscale);
+  if (bscale_json != NULL)
+    json_append_member(json, "bscale", bscale_json);
+
+  JsonNode *bzero_json = json_mknumber(bzero);
+  if (bzero_json != NULL)
+    json_append_member(json, "bzero", bzero_json);
+
+  JsonNode *ignrval_json = json_mknumber(ignrval);
+  if (ignrval_json != NULL)
+    json_append_member(json, "ignrval", ignrval_json);
+
+  JsonNode *crval1_json = json_mknumber(crval1);
+  if (crval1_json != NULL)
+    json_append_member(json, "crval1", crval1_json);
+
+  JsonNode *cdelt1_json = json_mknumber(cdelt1);
+  if (cdelt1_json != NULL)
+    json_append_member(json, "cdelt1", cdelt1_json);
+
+  JsonNode *crpix1_json = json_mknumber(crpix1);
+  if (crpix1_json != NULL)
+    json_append_member(json, "crpix1", crpix1_json);
+
+  JsonNode *cunit1_json = json_mkstring(cunit1.c_str());
+  if (cunit1_json != NULL)
+    json_append_member(json, "cunit1", cunit1_json);
+
+  JsonNode *ctype1_json = json_mkstring(ctype1.c_str());
+  if (ctype1_json != NULL)
+    json_append_member(json, "ctype1", ctype1_json);
+
+  JsonNode *crval2_json = json_mknumber(crval2);
+  if (crval2_json != NULL)
+    json_append_member(json, "crval2", crval2_json);
+
+  JsonNode *cdelt2_json = json_mknumber(cdelt2);
+  if (cdelt2_json != NULL)
+    json_append_member(json, "cdelt2", cdelt2_json);
+
+  JsonNode *crpix2_json = json_mknumber(crpix2);
+  if (crpix2_json != NULL)
+    json_append_member(json, "crpix2", crpix2_json);
+
+  JsonNode *cunit2_json = json_mkstring(cunit2.c_str());
+  if (cunit2_json != NULL)
+    json_append_member(json, "cunit2", cunit2_json);
+
+  JsonNode *ctype2_json = json_mkstring(ctype2.c_str());
+  if (ctype2_json != NULL)
+    json_append_member(json, "ctype2", ctype2_json);
+
+  JsonNode *crval3_json = json_mknumber(crval3);
+  if (crval3_json != NULL)
+    json_append_member(json, "crval3", crval3_json);
+
+  JsonNode *cdelt3_json = json_mknumber(cdelt3);
+  if (cdelt3_json != NULL)
+    json_append_member(json, "cdelt3", cdelt3_json);
+
+  JsonNode *crpix3_json = json_mknumber(crpix3);
+  if (crpix3_json != NULL)
+    json_append_member(json, "crpix3", crpix3_json);
+
+  JsonNode *cunit3_json = json_mkstring(cunit3.c_str());
+  if (cunit3_json != NULL)
+    json_append_member(json, "cunit3", cunit3_json);
+
+  JsonNode *ctype3_json = json_mkstring(ctype3.c_str());
+  if (ctype3_json != NULL)
+    json_append_member(json, "ctype3", ctype3_json);
+
+  // export JSON to string
+
   char *json_str = json_encode(json);
 
   if (json_str != NULL)
   {
-    std::cout << "JSON :\n"
-              << json_str << std::endl;
+    std::cout << json_str << std::endl;
 
     fp << json_str << std::endl;
     free(json_str);
   }
+
+  // clear out JSON nodes
+
+  if (flux_json != NULL)
+    json_delete(flux_json);
 
   if (width_json != NULL)
     json_delete(width_json);
@@ -660,6 +743,66 @@ void FITS::serialise()
 
     json_delete(naxes_json);
   }
+
+  if (btype_json != NULL)
+    json_delete(btype_json);
+
+  if (bunit_json != NULL)
+    json_delete(bunit_json);
+
+  if (bscale_json != NULL)
+    json_delete(bscale_json);
+
+  if (bzero_json != NULL)
+    json_delete(bzero_json);
+
+  if (ignrval_json != NULL)
+    json_delete(ignrval_json);
+
+  if (crval1_json != NULL)
+    json_delete(crval1_json);
+
+  if (cdelt1_json != NULL)
+    json_delete(cdelt1_json);
+
+  if (crpix1_json != NULL)
+    json_delete(crpix1_json);
+
+  if (cunit1_json != NULL)
+    json_delete(cunit1_json);
+
+  if (ctype1_json != NULL)
+    json_delete(ctype1_json);
+
+  if (crval2_json != NULL)
+    json_delete(crval2_json);
+
+  if (cdelt2_json != NULL)
+    json_delete(cdelt2_json);
+
+  if (crpix2_json != NULL)
+    json_delete(crpix2_json);
+
+  if (cunit2_json != NULL)
+    json_delete(cunit2_json);
+
+  if (ctype2_json != NULL)
+    json_delete(ctype2_json);
+
+  if (crval3_json != NULL)
+    json_delete(crval3_json);
+
+  if (cdelt3_json != NULL)
+    json_delete(cdelt3_json);
+
+  if (crpix3_json != NULL)
+    json_delete(crpix3_json);
+
+  if (cunit3_json != NULL)
+    json_delete(cunit3_json);
+
+  if (ctype3_json != NULL)
+    json_delete(ctype3_json);
 
   json_delete(json);
 
