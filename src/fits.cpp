@@ -700,6 +700,26 @@ void FITS::serialise()
   if (ctype3_json != NULL)
     json_append_member(json, "ctype3", ctype3_json);
 
+  JsonNode *frame_multiplier_json = json_mknumber(frame_multiplier);
+  if (frame_multiplier_json != NULL)
+    json_append_member(json, "frame_multiplier", frame_multiplier_json);
+
+  JsonNode *cd1_1_json = json_mknumber(cd1_1);
+  if (cd1_1_json != NULL)
+    json_append_member(json, "cd1_1", cd1_1_json);
+
+  JsonNode *cd1_2_json = json_mknumber(cd1_2);
+  if (cd1_2_json != NULL)
+    json_append_member(json, "cd1_2", cd1_2_json);
+
+  JsonNode *cd2_1_json = json_mknumber(cd2_1);
+  if (cd2_1_json != NULL)
+    json_append_member(json, "cd2_1", cd2_1_json);
+
+  JsonNode *cd2_2_json = json_mknumber(cd2_2);
+  if (cd2_2_json != NULL)
+    json_append_member(json, "cd2_2", cd2_2_json);
+
   // export JSON to string
 
   char *json_str = json_encode(json);
@@ -803,6 +823,21 @@ void FITS::serialise()
 
   if (ctype3_json != NULL)
     json_delete(ctype3_json);
+
+  if (frame_multiplier_json != NULL)
+    json_delete(frame_multiplier_json);
+
+  if (cd1_1_json != NULL)
+    json_delete(cd1_1_json);
+
+  if (cd1_2_json != NULL)
+    json_delete(cd1_2_json);
+
+  if (cd2_1_json != NULL)
+    json_delete(cd2_1_json);
+
+  if (cd2_2_json != NULL)
+    json_delete(cd2_2_json);
 
   json_delete(json);
 
