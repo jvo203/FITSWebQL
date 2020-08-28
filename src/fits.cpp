@@ -901,6 +901,14 @@ void FITS::serialise()
   JsonNode *madN_json = json_mknumber(madN);
   if (madN_json != NULL)
     json_append_member(json, "madN", madN_json);
+
+  JsonNode *black_json = json_mknumber(black);
+  if (black_json != NULL)
+    json_append_member(json, "black", black_json);
+
+  JsonNode *white_json = json_mknumber(white);
+  if (white_json != NULL)
+    json_append_member(json, "white", white_json);
   
   // export JSON to string
 
@@ -1160,6 +1168,12 @@ void FITS::serialise()
 
   if (madP_json != NULL)
     json_delete(madP_json);
+
+  if (black_json != NULL)
+    json_delete(black_json);
+
+  if (white_json != NULL)
+    json_delete(white_json);
   
   json_delete(json);
 
