@@ -885,6 +885,10 @@ void FITS::serialise()
   JsonNode *max_json = json_mknumber(max);
   if (max_json != NULL)
     json_append_member(json, "max", max_json);
+
+  JsonNode *median_json = json_mknumber(median);
+  if (median_json != NULL)
+    json_append_member(json, "median", median_json);
   
   // export JSON to string
 
@@ -1132,6 +1136,9 @@ void FITS::serialise()
 
   if (max_json != NULL)
     json_delete(max_json);
+
+  if (median_json != NULL)
+    json_delete(median_json);
   
   json_delete(json);
 
