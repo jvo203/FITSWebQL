@@ -822,6 +822,21 @@ void FITS::serialise()
 
     json_append_member(json, "frame_min", frame_min_json);
   }
+
+  // build up an array <std::vector<float> frame_max>
+  std::vector<JsonNode *> _frame_max(frame_max.size());
+  JsonNode *frame_max_json = json_mkarray();
+  if (frame_max_json != NULL)
+  {
+    for (int i = 0; i < frame_max.size(); i++)
+    {
+      _frame_max[i] = json_mknumber(frame_max[i]);
+      if (_frame_max[i] != NULL)
+        json_append_element(frame_max_json, _frame_max[i]);
+    }
+
+    json_append_member(json, "frame_max", frame_max_json);
+  }
   
   // export JSON to string
 
@@ -1017,6 +1032,17 @@ void FITS::serialise()
     _frame_min.clear();
     
     json_delete(frame_min_json);
+  }
+
+  if (frame_max_json != NULL)
+  {
+    for (int i = 0; i < _frame_max.size(); i++)
+      if (_frame_max[i] != NULL)
+        json_delete(_frame_max[i]);
+
+    _frame_max.clear();
+    
+    json_delete(frame_max_json);
   }
   
   json_delete(json);
