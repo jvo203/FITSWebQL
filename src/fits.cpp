@@ -605,7 +605,7 @@ void FITS::serialise()
   if (naxis_json != NULL)
     json_append_member(json, "naxis", naxis_json);
 
-  // next build up an array <int naxes[4]>
+  // build up an array <int naxes[4]>
   JsonNode *_naxes[4];
   JsonNode *naxes_json = json_mkarray();
   if (naxes_json != NULL)
@@ -807,6 +807,21 @@ void FITS::serialise()
   JsonNode *dmax_json = json_mknumber(dmax);
   if (dmax_json != NULL)
     json_append_member(json, "dmax", dmax_json);
+
+  // build up an array <std::vector<float> frame_min>
+  std::vector<JsonNode *> _frame_min(frame_min.size());
+  JsonNode *frame_min_json = json_mkarray();
+  if (frame_min_json != NULL)
+  {
+    for (int i = 0; i < frame_min.size(); i++)
+    {
+      _frame_min[i] = json_mknumber(frame_min[i]);
+      if (_frame_min[i] != NULL)
+        json_append_element(frame_min_json, _frame_min[i]);
+    }
+
+    json_append_member(json, "frame_min", frame_min_json);
+  }
   
   // export JSON to string
 
@@ -992,7 +1007,18 @@ void FITS::serialise()
 
   if (dmax_json != NULL)
     json_delete(dmax_json);
-   
+
+  if (frame_min_json != NULL)
+  {
+    for (int i = 0; i < _frame_min.size(); i++)
+      if (_frame_min[i] != NULL)
+        json_delete(_frame_min[i]);
+
+    _frame_min.clear();
+    
+    json_delete(frame_min_json);
+  }
+  
   json_delete(json);
 
   fp.close();
