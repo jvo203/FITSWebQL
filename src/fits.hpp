@@ -220,6 +220,10 @@ public:
   std::string date_obs;
   std::string beam_unit;
   std::string beam_type;
+  bool has_frequency;
+  bool has_velocity;
+  bool is_optical;
+  bool is_xray;
 
   // values derived from the FITS data
   float dmin, dmax; // global data range
@@ -249,10 +253,6 @@ public:
   std::mutex data_mtx;
   std::condition_variable header_cv;
   std::condition_variable data_cv;
-  bool has_frequency;
-  bool has_velocity;
-  bool is_optical;
-  bool is_xray;
   std::mutex fits_mutex;
 
   // progress
