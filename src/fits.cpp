@@ -799,6 +799,14 @@ void FITS::serialise()
   JsonNode *is_xray_json = json_mkbool(is_xray);
   if (is_xray_json != NULL)
     json_append_member(json, "is_xray", is_xray_json);
+
+  JsonNode *dmin_json = json_mknumber(dmin);
+  if (dmin_json != NULL)
+    json_append_member(json, "dmin", dmin_json);
+
+  JsonNode *dmax_json = json_mknumber(dmax);
+  if (dmax_json != NULL)
+    json_append_member(json, "dmax", dmax_json);
   
   // export JSON to string
 
@@ -976,9 +984,15 @@ void FITS::serialise()
   if (is_optical_json != NULL)
     json_delete(is_optical_json);
 
-   if (is_xray_json != NULL)
+  if (is_xray_json != NULL)
     json_delete(is_xray_json);
-  
+
+  if (dmin_json != NULL)
+    json_delete(dmin_json);
+
+  if (dmax_json != NULL)
+    json_delete(dmax_json);
+   
   json_delete(json);
 
   fp.close();
