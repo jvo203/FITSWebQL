@@ -562,10 +562,6 @@ void FITS::serialise()
 
   std::string tmp = filename + ".tmp";
 
-  /*FILE *fp = fopen(tmp.c_str(), "w");
-  if (fp == NULL)
-    return;*/
-
   gzFile fp = gzopen(tmp.c_str(), "w");
   if (!fp)
     return;
@@ -922,7 +918,6 @@ void FITS::serialise()
   {
     std::cout << json_str << std::endl;
 
-    //fputs(json_str, fp);
     gzwrite(fp, json_str, strlen(json_str));
 
     free(json_str);
@@ -1182,7 +1177,6 @@ void FITS::serialise()
   
   json_delete(json);
 
-  //fclose(fp);
   gzclose(fp);
 
   //rename the temporary file
