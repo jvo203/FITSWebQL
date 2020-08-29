@@ -937,6 +937,10 @@ void FITS::serialise()
   JsonNode *has_error_json = json_mkbool(has_error);
   if (has_error_json != NULL)
     json_append_member(json, "has_error", has_error_json);
+
+  JsonNode *header_json = json_mkstring(header);
+  if (header_json != NULL)
+    json_append_member(json, "header", header_json);
   
   // export JSON to string
 
@@ -944,8 +948,6 @@ void FITS::serialise()
 
   if (json_str != NULL)
   {
-    std::cout << json_str << std::endl;
-
     gzwrite(fp, json_str, strlen(json_str));
 
     free(json_str);
@@ -1223,13 +1225,16 @@ void FITS::serialise()
 
   if (has_error_json != NULL)
     json_delete(has_error_json);
+
+  if (header_json != NULL)
+    json_delete(header_json);
   
   json_delete(json);
 
   gzclose(fp);
 
   //rename the temporary file
-  //rename(tmp.c_str(), filename.c_str());
+  rename(tmp.c_str(), filename.c_str());
 }
 
 void FITS::update_timestamp() { timestamp = std::time(nullptr); }
