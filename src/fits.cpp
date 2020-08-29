@@ -909,6 +909,34 @@ void FITS::serialise()
   JsonNode *white_json = json_mknumber(white);
   if (white_json != NULL)
     json_append_member(json, "white", white_json);
+
+  JsonNode *sensitivity_json = json_mknumber(sensitivity);
+  if (sensitivity_json != NULL)
+    json_append_member(json, "sensitivity", sensitivity_json);
+
+  JsonNode *ratio_sensitivity_json = json_mknumber(ratio_sensitivity);
+  if (ratio_sensitivity_json != NULL)
+    json_append_member(json, "ratio_sensitivity", ratio_sensitivity_json);
+
+  JsonNode *lmin_json = json_mknumber(lmin);
+  if (lmin_json != NULL)
+    json_append_member(json, "lmin", lmin_json);
+
+  JsonNode *lmax_json = json_mknumber(lmax);
+  if (lmax_json != NULL)
+    json_append_member(json, "lmax", lmax_json);
+
+  JsonNode *has_header_json = json_mkbool(has_header);
+  if (has_header_json != NULL)
+    json_append_member(json, "has_header", has_header_json);
+
+  JsonNode *has_data_json = json_mkbool(has_data);
+  if (has_data_json != NULL)
+    json_append_member(json, "has_data", has_data_json);
+
+  JsonNode *has_error_json = json_mkbool(has_error);
+  if (has_error_json != NULL)
+    json_append_member(json, "has_error", has_error_json);
   
   // export JSON to string
 
@@ -1174,6 +1202,27 @@ void FITS::serialise()
 
   if (white_json != NULL)
     json_delete(white_json);
+
+  if (sensitivity_json != NULL)
+    json_delete(sensitivity_json);
+
+  if (ratio_sensitivity_json != NULL)
+    json_delete(ratio_sensitivity_json);
+
+  if (lmin_json != NULL)
+    json_delete(lmin_json);
+
+  if (lmax_json != NULL)
+    json_delete(lmax_json);
+
+  if (has_header_json != NULL)
+    json_delete(has_header_json);
+
+  if (has_data_json != NULL)
+    json_delete(has_data_json);
+
+  if (has_error_json != NULL)
+    json_delete(has_error_json);
   
   json_delete(json);
 
