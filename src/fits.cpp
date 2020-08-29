@@ -551,7 +551,7 @@ void FITS::serialise()
 {
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
-                         std::string(".json");
+                         std::string(".json.gz");
 
   struct stat64 st;
   int stat = stat64(filename.c_str(), &st);
@@ -562,8 +562,12 @@ void FITS::serialise()
 
   std::string tmp = filename + ".tmp";
 
-  FILE *fp = fopen(tmp.c_str(), "w");
+  /*FILE *fp = fopen(tmp.c_str(), "w");
   if (fp == NULL)
+    return;*/
+
+  gzFile fp = gzopen(tmp.c_str(), "w");
+  if (!fp)
     return;
 
   // serialise to JSON
@@ -918,7 +922,8 @@ void FITS::serialise()
   {
     std::cout << json_str << std::endl;
 
-    fputs(json_str, fp);
+    //fputs(json_str, fp);
+    gzwrite(fp, json_str, strlen(json_str));
 
     free(json_str);
   }
@@ -1177,7 +1182,8 @@ void FITS::serialise()
   
   json_delete(json);
 
-  fclose(fp);
+  //fclose(fp);
+  gzclose(fp);
 
   //rename the temporary file
   //rename(tmp.c_str(), filename.c_str());
