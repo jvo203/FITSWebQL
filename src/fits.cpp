@@ -571,8 +571,9 @@ void FITS::deserialise()
   gzread(fp, &len, sizeof(len));
 
   // read-in the JSON string
-  char json_str[len];
+  char json_str[len+1];
   gzread(fp, json_str, len);
+  json_str[len] = '\0';
 
   std::cout << json_str << std::endl;
 
