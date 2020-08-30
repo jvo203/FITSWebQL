@@ -328,7 +328,7 @@ FITS::FITS(std::string id, std::string flux)
   this->hdr_len = 0;
   this->defaults();
 
-  // deserialise();
+  deserialise();
 }
 
 FITS::~FITS()
@@ -547,6 +547,38 @@ void FITS::defaults()
     hist[i] = 0;
 }
 
+void FITS::deserialise()
+{
+  std::string filename = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".json.gz");
+
+  struct stat64 st;
+  int stat = stat64(filename.c_str(), &st);
+
+  if (stat == -1)
+    return;
+
+  if (st.st_size == 0)
+    return;
+
+  gzFile fp = gzopen(filename.c_str(), "r");
+  if (!fp)
+    return;
+
+  // read the <unsigned int len> first
+  unsigned int len;
+  gzread(fp, &len, sizeof(len));
+
+  // read-in the JSON string
+  char json_str[len];
+  gzread(fp, json_str, len);
+
+  std::cout << json_str << std::endl;
+
+  gzclose(fp);
+}
+
 void FITS::serialise()
 {
   std::string filename = FITSCACHE + std::string("/") +
@@ -754,7 +786,7 @@ void FITS::serialise()
   JsonNode *filter_json = json_mkstring(filter.c_str());
   if (filter_json != NULL)
     json_append_member(json, "filter", filter_json);
-  
+
   JsonNode *specsys_json = json_mkstring(specsys.c_str());
   if (specsys_json != NULL)
     json_append_member(json, "specsys", specsys_json);
@@ -862,7 +894,7 @@ void FITS::serialise()
 
     json_append_member(json, "integrated_spectrum", integrated_spectrum_json);
   }
-  
+
   // build up an array <Ipp32u hist[NBINS]>
   std::vector<JsonNode *> _hist(NBINS);
   JsonNode *hist_json = json_mkarray();
@@ -941,14 +973,17 @@ void FITS::serialise()
   JsonNode *header_json = json_mkstring(header);
   if (header_json != NULL)
     json_append_member(json, "header", header_json);
-  
+
   // export JSON to string
 
   char *json_str = json_encode(json);
 
   if (json_str != NULL)
   {
-    gzwrite(fp, json_str, strlen(json_str));
+    unsigned int len = strlen(json_str);
+
+    gzwrite(fp, &len, sizeof(len));
+    gzwrite(fp, json_str, len);
 
     free(json_str);
   }
@@ -1133,7 +1168,7 @@ void FITS::serialise()
         json_delete(_frame_min[i]);
 
     _frame_min.clear();
-    
+
     json_delete(frame_min_json);
   }
 
@@ -1144,7 +1179,7 @@ void FITS::serialise()
         json_delete(_frame_max[i]);
 
     _frame_max.clear();
-    
+
     json_delete(frame_max_json);
   }
 
@@ -1155,7 +1190,7 @@ void FITS::serialise()
         json_delete(_mean_spectrum[i]);
 
     _mean_spectrum.clear();
-    
+
     json_delete(mean_spectrum_json);
   }
 
@@ -1166,7 +1201,7 @@ void FITS::serialise()
         json_delete(_integrated_spectrum[i]);
 
     _integrated_spectrum.clear();
-    
+
     json_delete(integrated_spectrum_json);
   }
 
@@ -1177,7 +1212,7 @@ void FITS::serialise()
         json_delete(_hist[i]);
 
     _hist.clear();
-    
+
     json_delete(hist_json);
   }
 
@@ -1228,7 +1263,7 @@ void FITS::serialise()
 
   if (header_json != NULL)
     json_delete(header_json);
-  
+
   json_delete(json);
 
   gzclose(fp);

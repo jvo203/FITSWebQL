@@ -142,6 +142,7 @@ public:
 private:
   void defaults();
   void serialise();
+  void deserialise();
   const char *check_null(const char *str);
   void frame_reference_unit();
   void frame_reference_type();
