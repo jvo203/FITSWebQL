@@ -571,7 +571,7 @@ void FITS::deserialise()
   gzread(fp, &len, sizeof(len));
 
   // read-in the JSON string
-  char json_str[len+1];
+  char json_str[len + 1];
   gzread(fp, json_str, len);
   json_str[len] = '\0';
 
@@ -4221,6 +4221,10 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx)
 
 void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
 {
+  std::unique_lock<std::mutex> lock(preempt_mutex, std::defer_lock);
+
+  if (!lock.try_lock())
+    return;
 
   if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
     return;
@@ -4248,7 +4252,7 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   int end_x = _end_x;
   int end_y = _end_y;
 
-  #pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
+#pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
   for (size_t i = (start - (start % 4)); i <= end; i++)
   {
     //int tid = omp_get_thread_num();
