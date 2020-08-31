@@ -255,6 +255,7 @@ public:
   std::condition_variable header_cv;
   std::condition_variable data_cv;
   std::mutex fits_mutex;
+  std::mutex preempt_mutex;
 
   // progress
   struct Progress progress;
