@@ -107,7 +107,7 @@ struct CacheEntry
     size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
     data = std::shared_ptr<unsigned short>(
         (unsigned short *)malloc(region_size * sizeof(unsigned short)),
-        [](unsigned short *ptr) { free(ptr); });
+        [](unsigned short *ptr) { if(ptr != NULL) free(ptr); });
   }
 };
 
