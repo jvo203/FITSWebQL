@@ -38,3 +38,72 @@ member.uid___A001_X1295_X3b.M83_CTR_sci.spw25.cube.I.pbcor
 #18 0x00007ffff79fdeaa in start_thread () from /lib64/libpthread.so.0
 #19 0x00007ffff64feaff in clone () from /lib64/libc.so.6
 (gdb)
+
+member.uid___A001_X1295_X3b.M83_CTR_sci.spw25.cube.I.pbcor]::KalmanFilter: X: 68.000000, Y: 202.000000,	predicted after 1s X*: 50.945060, Y*: 203.038715, dx : -17.054940, dy : 1.038715
+downsampling the spectrum with 'largestTriangleThreeBuckets', elapsed time: 0.67172 [ms]
+Use --max-threads=INT to specify a larger number of threads
+and rerun valgrind
+
+valgrind: the 'impossible' happened:
+   Max number of threads is too low
+
+host stacktrace:
+==2092==    at 0x580444B2: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580445F0: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x58044860: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x5804488A: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x5809C752: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580F0C16: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580A0160: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x5809B9EA: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x5809DB33: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580EE3D5: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580EE6CA: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0x580AF95D: ??? (in /usr/lib64/valgrind/memcheck-amd64-linux)
+==2092==    by 0xDEADBEEFDEADBEEE: ???
+==2092==    by 0xDEADBEEFDEADBEEE: ???
+==2092==    by 0xDEADBEEFDEADBEEE: ???
+
+sched status:
+  running_tid=75
+
+Thread 1: status = VgTs_WaitSys syscall 202 (lwpid 2092)
+==2092==    at 0x4DE7E97: __pthread_clockjoin_ex (pthread_join_common.c:145)
+==2092==    by 0x5FA0F46: std::thread::join() (in /usr/lib64/libstdc++.so.6.0.28)
+==2092==    by 0x11E2B8: operator() (main_uWS.cpp:3398)
+==2092==    by 0x11E2B8: for_each<__gnu_cxx::__normal_iterator<std::thread**, std::vector<std::thread*> >, main(int, char**)::<lambda(std::thread*)> > (stl_algo.h:3839)
+==2092==    by 0x11E2B8: main (main_uWS.cpp:3398)
+client stack range: [0x1FFEFFA000 0x1FFF000FFF] client SP: 0x1FFEFFD8B0
+valgrind stack range: [0x1002DB3000 0x1002EB2FFF] top usage: 13120 of 1048576
+
+Thread 2: status = VgTs_WaitSys syscall 230 (lwpid 2180)
+==2092==    at 0x634F614: clock_nanosleep (in /usr/lib64/haswell/libc-2.31.so)
+==2092==    by 0x6355656: nanosleep (in /usr/lib64/haswell/libc-2.31.so)
+==2092==    by 0x1CFA8A: sleep_for<long int, std::ratio<1> > (thread:405)
+==2092==    by 0x1CFA8A: operator() (main_uWS.cpp:1846)
+==2092==    by 0x1CFA8A: __invoke_impl<void, main(int, char**)::<lambda()> > (invoke.h:60)
+==2092==    by 0x1CFA8A: __invoke<main(int, char**)::<lambda()> > (invoke.h:95)
+==2092==    by 0x1CFA8A: _M_invoke<0> (thread:264)
+==2092==    by 0x1CFA8A: operator() (thread:271)
+==2092==    by 0x1CFA8A: std::thread::_State_impl<std::thread::_Invoker<std::tuple<main::{lambda()#1}> > >::_M_run() (thread:215)
+==2092==    by 0x5FA0D03: ??? (in /usr/lib64/libstdc++.so.6.0.28)
+==2092==    by 0x4DE681E: start_thread (pthread_create.c:477)
+==2092==    by 0x6392962: clone (in /usr/lib64/haswell/libc-2.31.so)
+client stack range: [0x9B19000 0xA316FFF] client SP: 0xA3164C0
+valgrind stack range: [0x10062E6000 0x10063E5FFF] top usage: 3848 of 1048576
+
+Thread 3: status = VgTs_WaitSys syscall 7 (lwpid 2185)
+==2092==    at 0x6386742: poll (in /usr/lib64/haswell/libc-2.31.so)
+==2092==    by 0x6538AD3: ??? (in /usr/lib64/libzmq.so.5.2.2)
+==2092==    by 0x651BA31: ??? (in /usr/lib64/libzmq.so.5.2.2)
+==2092==    by 0x653A725: ??? (in /usr/lib64/libzmq.so.5.2.2)
+==2092==    by 0x653B699: ??? (in /usr/lib64/libzmq.so.5.2.2)
+==2092==    by 0x655BCB1: ??? (in /usr/lib64/libzmq.so.5.2.2)
+==2092==    by 0x4E534F0: zstr_recv (zstr.c:132)
+==2092==    by 0x1DF8A4: main::{lambda()#2}::operator()() const [clone .constprop.0] (main_uWS.cpp:1891)
+==2092==    by 0x5FA0D03: ??? (in /usr/lib64/libstdc++.so.6.0.28)
+==2092==    by 0x4DE681E: start_thread (pthread_create.c:477)
+==2092==    by 0x6392962: clone (in /usr/lib64/haswell/libc-2.31.so)
+client stack range: [0xA31A000 0xAB17FFF] client SP: 0xAB170E0
+valgrind stack range: [0x10068E2000 0x10069E1FFF] top usage: 5544 of 1048576
+
