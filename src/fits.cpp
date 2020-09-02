@@ -378,7 +378,10 @@ FITS::~FITS()
     auto ptr = cube_pixels[i].load();
 
     if (ptr != nullptr)
+    {
+      ptr->clear();
       delete ptr;
+    }
     else
       null_pixels++;
   }
@@ -389,7 +392,10 @@ FITS::~FITS()
     auto ptr = cube_mask[i].load();
 
     if (ptr != nullptr)
+    {
+      ptr->clear();
       delete ptr;
+    }
     else
       null_masks++;
   }
@@ -2907,7 +2913,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     // init the compressed regions (sizing: err on the side of caution)
     // cannot resize a vector of atomics in C++ ...
     cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
-    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
 
     for (auto i = 0; i < cube_pixels.size(); i++)
       cube_pixels[i].store(nullptr);
