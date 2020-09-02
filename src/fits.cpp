@@ -2909,6 +2909,12 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
     cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth);
 
+    for (auto i = 0; i < cube_pixels.size(); i++)
+      cube_pixels[i].store(nullptr);
+
+    for (auto i = 0; i < cube_mask.size(); i++)
+      cube_mask[i].store(nullptr);
+
     cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
     cache = std::vector<decompressed_blocks>(depth);
 
