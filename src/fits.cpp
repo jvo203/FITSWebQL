@@ -4872,13 +4872,13 @@ void FITS::zfp_compress_cube(size_t start_k)
                                                       size_t size = sizeof(idy) + sizeof(idx) + pComprLen_plus;
                                                       char out[size];
                                                       
-                                                      memcpy(ptr + offset, &idy, sizeof(idy));
+                                                      memcpy(out + offset, &idy, sizeof(idy));
                                                       offset += sizeof(idy);
 
-                                                      memcpy(ptr + offset, &idx, sizeof(idx));
+                                                      memcpy(out + offset, &idx, sizeof(idx));
                                                       offset += sizeof(idx);
 
-                                                      memcpy(ptr + offset, ptr, pComprLen_plus);
+                                                      memcpy(out + offset, ptr, pComprLen_plus);
 
                                                       // finally an atomic append write to the file
                                                       ssize_t bytes_written = pwrite(_fd, out, size, 0);
@@ -5065,13 +5065,13 @@ void FITS::zfp_compress_cube(size_t start_k)
                                                       size_t size = sizeof(idy) + sizeof(idx) + compressed_size_plus;
                                                       char out[size];
                                                       
-                                                      memcpy(ptr + offset, &idy, sizeof(idy));
+                                                      memcpy(out + offset, &idy, sizeof(idy));
                                                       offset += sizeof(idy);
 
-                                                      memcpy(ptr + offset, &idx, sizeof(idx));
+                                                      memcpy(out + offset, &idx, sizeof(idx));
                                                       offset += sizeof(idx);
 
-                                                      memcpy(ptr + offset, ptr, compressed_size_plus);
+                                                      memcpy(out + offset, ptr, compressed_size_plus);
 
                                                       // finally an atomic append write to the file
                                                       ssize_t bytes_written = pwrite(_fd, out, size, 0);
