@@ -406,14 +406,14 @@ FITS::~FITS()
   if (compressed_fits_stream != NULL)
     gzclose(compressed_fits_stream);
 
-  if (header != NULL)
-    free(header);
-
   img_pixels.reset();
   img_mask.reset();
 
   // serialise to disk
   serialise();
+
+  if (header != NULL)
+    free(header);
 }
 
 void FITS::purge_cache()
