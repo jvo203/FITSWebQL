@@ -551,6 +551,7 @@ void FITS::deserialise() {
     return;
 
   JsonNode *node = NULL;
+
   json_foreach(node, json) {
     char *key = node->key;
 
