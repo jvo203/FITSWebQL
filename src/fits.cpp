@@ -581,9 +581,9 @@ void FITS::deserialise()
   gzread(fp, json_str, len);
   json_str[len] = '\0';
 
-  std::cout << json_str << std::endl;
-
   gzclose(fp);
+
+  // parse the JSON
 }
 
 void FITS::serialise()
