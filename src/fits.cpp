@@ -810,6 +810,66 @@ void FITS::deserialise()
 
       std::cout << "read " << count << "/" << NBINS << " histogram elements" << std::endl;
     }
+
+    if (strcmp(key, "min") == 0 && node->tag == JSON_NUMBER)
+      this->min = node->number_;
+
+    if (strcmp(key, "max") == 0 && node->tag == JSON_NUMBER)
+      this->max = node->number_;
+
+    if (strcmp(key, "median") == 0 && node->tag == JSON_NUMBER)
+      this->median = node->number_;
+
+    if (strcmp(key, "mad") == 0 && node->tag == JSON_NUMBER)
+      this->mad = node->number_;
+
+    if (strcmp(key, "madP") == 0 && node->tag == JSON_NUMBER)
+      this->madP = node->number_;
+
+    if (strcmp(key, "madN") == 0 && node->tag == JSON_NUMBER)
+      this->madN = node->number_;
+
+    if (strcmp(key, "black") == 0 && node->tag == JSON_NUMBER)
+      this->black = node->number_;
+
+    if (strcmp(key, "white") == 0 && node->tag == JSON_NUMBER)
+      this->white = node->number_;
+
+    if (strcmp(key, "sensitivity") == 0 && node->tag == JSON_NUMBER)
+      this->sensitivity = node->number_;
+
+    if (strcmp(key, "ratio_sensitivity") == 0 && node->tag == JSON_NUMBER)
+      this->ratio_sensitivity = node->number_;
+
+    if (strcmp(key, "lmin") == 0 && node->tag == JSON_NUMBER)
+      this->lmin = node->number_;
+
+    if (strcmp(key, "lmax") == 0 && node->tag == JSON_NUMBER)
+      this->lmax = node->number_;
+
+    if (strcmp(key, "has_data") == 0 && node->tag == JSON_BOOL)
+      this->has_data = node->bool_;
+
+    if (strcmp(key, "has_error") == 0 && node->tag == JSON_BOOL)
+      this->has_error = node->bool_;
+
+    if (strcmp(key, "header") == 0 && node->tag == JSON_STRING)
+    {
+      int len = strlen(node->string_);
+
+      if (this->header != NULL)
+        free(this->header);
+
+      this->header = (char *)malloc(len + 1);
+
+      if (this->header != NULL)
+      {
+        strncpy(this->header, node->string_, len);
+        this->hdr_len = len;
+
+        std::cout << this->header << std::endl;
+      }
+    }
   }
 
   // release memory
