@@ -674,6 +674,69 @@ void FITS::deserialise()
 
     if (strcmp(key, "ctype3") == 0 && node->tag == JSON_STRING)
       this->ctype3 = std::string(node->string_);
+
+    if (strcmp(key, "frame_multiplier") == 0 && node->tag == JSON_NUMBER)
+      this->frame_multiplier = node->number_;
+
+    if (strcmp(key, "cd1_1") == 0 && node->tag == JSON_NUMBER)
+      this->cd1_1 = node->number_;
+
+    if (strcmp(key, "cd1_2") == 0 && node->tag == JSON_NUMBER)
+      this->cd1_2 = node->number_;
+
+    if (strcmp(key, "cd2_1") == 0 && node->tag == JSON_NUMBER)
+      this->cd2_1 = node->number_;
+
+    if (strcmp(key, "cd2_2") == 0 && node->tag == JSON_NUMBER)
+      this->cd2_2 = node->number_;
+
+    if (strcmp(key, "bmaj") == 0 && node->tag == JSON_NUMBER)
+      this->bmaj = node->number_;
+
+    if (strcmp(key, "bmin") == 0 && node->tag == JSON_NUMBER)
+      this->bmin = node->number_;
+
+    if (strcmp(key, "bpa") == 0 && node->tag == JSON_NUMBER)
+      this->bpa = node->number_;
+
+    if (strcmp(key, "restfrq") == 0 && node->tag == JSON_NUMBER)
+      this->restfrq = node->number_;
+
+    if (strcmp(key, "obsra") == 0 && node->tag == JSON_NUMBER)
+      this->obsra = node->number_;
+
+    if (strcmp(key, "obsdec") == 0 && node->tag == JSON_NUMBER)
+      this->obsdec = node->number_;
+
+    if (strcmp(key, "datamin") == 0 && node->tag == JSON_NUMBER)
+      this->datamin = node->number_;
+
+    if (strcmp(key, "datamax") == 0 && node->tag == JSON_NUMBER)
+      this->datamax = node->number_;
+
+    if (strcmp(key, "line") == 0 && node->tag == JSON_STRING)
+      this->line = std::string(node->string_);
+
+    if (strcmp(key, "filter") == 0 && node->tag == JSON_STRING)
+      this->filter = std::string(node->string_);
+    
+    if (strcmp(key, "specsys") == 0 && node->tag == JSON_STRING)
+      this->specsys = std::string(node->string_);
+
+    if (strcmp(key, "timesys") == 0 && node->tag == JSON_STRING)
+      this->timesys = std::string(node->string_);
+
+    if (strcmp(key, "object") == 0 && node->tag == JSON_STRING)
+      this->object = std::string(node->string_);
+
+    if (strcmp(key, "date_obs") == 0 && node->tag == JSON_STRING)
+      this->date_obs = std::string(node->string_);
+
+    if (strcmp(key, "beam_unit") == 0 && node->tag == JSON_STRING)
+      this->beam_unit = std::string(node->string_);
+
+    if (strcmp(key, "beam_type") == 0 && node->tag == JSON_STRING)
+      this->beam_type = std::string(node->string_);
   }
 
   // release memory
