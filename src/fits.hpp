@@ -179,7 +179,6 @@ public:
   long polarisation;
   int bitpix;
   int naxis;
-  int naxes[4];
   std::string btype;
   std::string bunit;
   float bscale;

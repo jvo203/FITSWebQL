@@ -498,10 +498,6 @@ void FITS::defaults()
   datamax = FLT_MAX;
   bitpix = 0;
   naxis = 0;
-  naxes[0] = 0;
-  naxes[1] = 0;
-  naxes[2] = 0;
-  naxes[3] = 0;
   width = 0;
   height = 0;
   depth = 1;
@@ -676,21 +672,6 @@ void FITS::serialise()
   JsonNode *naxis_json = json_mknumber(naxis);
   if (naxis_json != NULL)
     json_append_member(json, "naxis", naxis_json);
-
-  // build up an array <int naxes[4]>
-  JsonNode *_naxes[4];
-  JsonNode *naxes_json = json_mkarray();
-  if (naxes_json != NULL)
-  {
-    for (int i = 0; i < 4; i++)
-    {
-      _naxes[i] = json_mknumber(naxes[i]);
-      if (_naxes[i] != NULL)
-        json_append_element(naxes_json, _naxes[i]);
-    }
-
-    json_append_member(json, "naxes", naxes_json);
-  }
 
   JsonNode *btype_json = json_mkstring(btype.c_str());
   if (btype_json != NULL)
@@ -1055,15 +1036,6 @@ void FITS::serialise()
 
   if (naxis_json != NULL)
     json_delete(naxis_json);
-
-  if (naxes_json != NULL)
-  {
-    for (int i = 0; i < 4; i++)
-      if (_naxes[i] != NULL)
-        json_delete(_naxes[i]);
-
-    json_delete(naxes_json);
-  }
 
   if (btype_json != NULL)
     json_delete(btype_json);
