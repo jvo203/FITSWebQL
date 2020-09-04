@@ -719,7 +719,7 @@ void FITS::deserialise()
 
     if (strcmp(key, "filter") == 0 && node->tag == JSON_STRING)
       this->filter = std::string(node->string_);
-    
+
     if (strcmp(key, "specsys") == 0 && node->tag == JSON_STRING)
       this->specsys = std::string(node->string_);
 
@@ -749,6 +749,30 @@ void FITS::deserialise()
 
     if (strcmp(key, "is_xray") == 0 && node->tag == JSON_BOOL)
       this->is_xray = node->bool_;
+
+    if (strcmp(key, "dmin") == 0 && node->tag == JSON_NUMBER)
+      this->dmin = node->number_;
+
+    if (strcmp(key, "dmax") == 0 && node->tag == JSON_NUMBER)
+      this->dmax = node->number_;
+
+    if (strcmp(key, "frame_min") == 0 && node->tag == JSON_ARRAY)
+    {
+      frame_min.clear();
+      JsonNode *elem = NULL;
+
+      json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
+          frame_min.push_back(elem->number_);
+    }
+
+    if (strcmp(key, "frame_max") == 0 && node->tag == JSON_ARRAY)
+    {
+      frame_max.clear();
+      JsonNode *elem = NULL;
+
+      json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
+          frame_max.push_back(elem->number_);
+    }
   }
 
   // release memory
