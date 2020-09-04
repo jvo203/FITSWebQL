@@ -737,6 +737,18 @@ void FITS::deserialise()
 
     if (strcmp(key, "beam_type") == 0 && node->tag == JSON_STRING)
       this->beam_type = std::string(node->string_);
+
+    if (strcmp(key, "has_frequency") == 0 && node->tag == JSON_BOOL)
+      this->has_frequency = node->bool_;
+
+    if (strcmp(key, "has_velocity") == 0 && node->tag == JSON_BOOL)
+      this->has_velocity = node->bool_;
+
+    if (strcmp(key, "is_optical") == 0 && node->tag == JSON_BOOL)
+      this->is_optical = node->bool_;
+
+    if (strcmp(key, "is_xray") == 0 && node->tag == JSON_BOOL)
+      this->is_xray = node->bool_;
   }
 
   // release memory
