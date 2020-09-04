@@ -763,6 +763,8 @@ void FITS::deserialise()
 
       json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
           frame_min.push_back(elem->number_);
+
+      std::cout << "frame_min.size() = " << frame_min.size() << std::endl;
     }
 
     if (strcmp(key, "frame_max") == 0 && node->tag == JSON_ARRAY)
@@ -772,6 +774,41 @@ void FITS::deserialise()
 
       json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
           frame_max.push_back(elem->number_);
+
+      std::cout << "frame_max.size() = " << frame_max.size() << std::endl;
+    }
+
+    if (strcmp(key, "mean_spectrum") == 0 && node->tag == JSON_ARRAY)
+    {
+      mean_spectrum.clear();
+      JsonNode *elem = NULL;
+
+      json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
+          mean_spectrum.push_back(elem->number_);
+
+      std::cout << "mean_spectrum.size() = " << mean_spectrum.size() << std::endl;
+    }
+
+    if (strcmp(key, "integrated_spectrum") == 0 && node->tag == JSON_ARRAY)
+    {
+      integrated_spectrum.clear();
+      JsonNode *elem = NULL;
+
+      json_foreach(elem, node) if (elem->tag == JSON_NUMBER)
+          integrated_spectrum.push_back(elem->number_);
+
+      std::cout << "integrated_spectrum.size() = " << integrated_spectrum.size() << std::endl;
+    }
+
+    if (strcmp(key, "hist") == 0 && node->tag == JSON_ARRAY)
+    {
+      int count = 0;
+      JsonNode *elem = NULL;
+
+      json_foreach(elem, node) if (elem->tag == JSON_NUMBER && count < NBINS)
+          hist[count++] = elem->number_;
+
+      std::cout << "read " << count << "/" << NBINS << " histogram elements" << std::endl;
     }
   }
 
