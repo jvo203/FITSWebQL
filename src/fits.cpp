@@ -2208,7 +2208,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   printf("%s::reading FITS header...\n", dataset_id.c_str());
 
   int no_hu = 0;
-  size_t offset = 0;
+  size_t offset = this->hdr_len; //0;
 
   while (naxis == 0)
   {
@@ -2855,7 +2855,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
   printf("%s::reading FITS header...\n", dataset_id.c_str());
 
   int no_hu = 0;
-  size_t offset = 0;
+  size_t offset = this->hdr_len; //0;
 
   while (naxis == 0)
   {
