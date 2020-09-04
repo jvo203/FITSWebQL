@@ -614,6 +614,66 @@ void FITS::deserialise()
 
     if (strcmp(key, "naxis") == 0 && node->tag == JSON_NUMBER)
       this->naxis = node->number_;
+
+    if (strcmp(key, "btype") == 0 && node->tag == JSON_STRING)
+      this->btype = std::string(node->string_);
+
+    if (strcmp(key, "bunit") == 0 && node->tag == JSON_STRING)
+      this->bunit = std::string(node->string_);
+
+    if (strcmp(key, "bscale") == 0 && node->tag == JSON_NUMBER)
+      this->bscale = node->number_;
+
+    if (strcmp(key, "bzero") == 0 && node->tag == JSON_NUMBER)
+      this->bzero = node->number_;
+
+    if (strcmp(key, "ignrval") == 0 && node->tag == JSON_NUMBER)
+      this->ignrval = node->number_;
+
+    if (strcmp(key, "crval1") == 0 && node->tag == JSON_NUMBER)
+      this->crval1 = node->number_;
+
+    if (strcmp(key, "cdelt1") == 0 && node->tag == JSON_NUMBER)
+      this->cdelt1 = node->number_;
+
+    if (strcmp(key, "crpix1") == 0 && node->tag == JSON_NUMBER)
+      this->crpix1 = node->number_;
+
+    if (strcmp(key, "cunit1") == 0 && node->tag == JSON_STRING)
+      this->cunit1 = std::string(node->string_);
+
+    if (strcmp(key, "ctype1") == 0 && node->tag == JSON_STRING)
+      this->ctype1 = std::string(node->string_);
+
+    if (strcmp(key, "crval2") == 0 && node->tag == JSON_NUMBER)
+      this->crval2 = node->number_;
+
+    if (strcmp(key, "cdelt2") == 0 && node->tag == JSON_NUMBER)
+      this->cdelt2 = node->number_;
+
+    if (strcmp(key, "crpix2") == 0 && node->tag == JSON_NUMBER)
+      this->crpix2 = node->number_;
+
+    if (strcmp(key, "cunit2") == 0 && node->tag == JSON_STRING)
+      this->cunit2 = std::string(node->string_);
+
+    if (strcmp(key, "ctype2") == 0 && node->tag == JSON_STRING)
+      this->ctype2 = std::string(node->string_);
+
+    if (strcmp(key, "crval3") == 0 && node->tag == JSON_NUMBER)
+      this->crval3 = node->number_;
+
+    if (strcmp(key, "cdelt3") == 0 && node->tag == JSON_NUMBER)
+      this->cdelt3 = node->number_;
+
+    if (strcmp(key, "crpix3") == 0 && node->tag == JSON_NUMBER)
+      this->crpix3 = node->number_;
+
+    if (strcmp(key, "cunit3") == 0 && node->tag == JSON_STRING)
+      this->cunit3 = std::string(node->string_);
+
+    if (strcmp(key, "ctype3") == 0 && node->tag == JSON_STRING)
+      this->ctype3 = std::string(node->string_);
   }
 
   // release memory
