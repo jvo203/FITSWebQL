@@ -964,13 +964,14 @@ void FITS::deserialise()
   {
     // restore the compressed FITS data cube
   }
+  else
+  {
+    // send a websocket progress notification
+    send_progress_notification(depth, depth);
 
-  /*processed_data = true;
-  data_cv.notify_all();
-
-  // send a websocket progress notification
-  // (...)
-  */
+    processed_data = true;
+    data_cv.notify_all();
+  }
 }
 
 void FITS::serialise()
@@ -2302,10 +2303,20 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     return;
   }
 
+  // exit the function if the FITS file has already been processed in the deserialiser
+  if (processed_header && processed_data)
+    return;
+
   printf("%s::reading FITS header...\n", dataset_id.c_str());
 
   int no_hu = 0;
   size_t offset = this->hdr_len; //0;
+
+  if (is_compressed && naxis > 0 && offset > 0)
+  {
+    // preload the initial <offset> number of bytes from the compressed stream
+    gzseek(this->compressed_fits_stream, offset, SEEK_SET);
+  }
 
   while (naxis == 0)
   {
@@ -2949,10 +2960,20 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
     }
   }
 
+  // exit the function if the FITS file has already been processed in the deserialiser
+  if (processed_header && processed_data)
+    return;
+
   printf("%s::reading FITS header...\n", dataset_id.c_str());
 
   int no_hu = 0;
   size_t offset = this->hdr_len; //0;
+
+  if (is_compressed && naxis > 0 && offset > 0)
+  {
+    // preload the initial <offset> number of bytes from the compressed stream
+    gzseek(this->compressed_fits_stream, offset, SEEK_SET);
+  }
 
   while (naxis == 0)
   {
