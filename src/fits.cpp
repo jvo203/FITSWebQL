@@ -960,9 +960,69 @@ void FITS::deserialise()
   processed_header = true;
   header_cv.notify_all();
 
+  // restore the compressed FITS data cube
   if (this->depth > 1)
   {
-    // restore the compressed FITS data cube
+    // reset the cube just in case
+    fits_cube.clear();
+
+    // resize/init the cube with default nullptr-filled std::shared_ptr
+    fits_cube.resize(depth);
+
+    // init the compressed regions (sizing: err on the side of caution)
+    // cannot resize a vector of atomics in C++ ...
+    cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
+
+    for (auto i = 0; i < cube_pixels.size(); i++)
+      cube_pixels[i].store(nullptr);
+
+    for (auto i = 0; i < cube_mask.size(); i++)
+      cube_mask[i].store(nullptr);
+
+    cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
+    cache = std::vector<decompressed_blocks>(depth);
+
+    std::cout << "cube_pixels::size = " << cube_pixels.size()
+              << ", cube_mask::size = " << cube_mask.size()
+              << ", cache::size = " << cache.size()
+              << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
+
+    // set up a cache purging thread
+    if (!purge_thread.joinable())
+      purge_thread = std::thread([this]() {
+        std::unique_lock<std::mutex> purge_lck(purge_mtx);
+
+        while (!terminate)
+        {
+          purge_cache();
+
+          purge_cv.wait_for(purge_lck, 10s);
+        }
+
+        printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
+      });
+
+      // lower its priority
+#if defined(__APPLE__) && defined(__MACH__)
+    struct sched_param param;
+    param.sched_priority = 0;
+    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
+                              &param) != 0)
+      perror("pthread_setschedparam");
+    else
+      printf("successfully lowered the cache purge thread priority to "
+             "SCHED_OTHER.\n");
+#else
+    struct sched_param param;
+    param.sched_priority = 0;
+    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
+                              &param) != 0)
+      perror("pthread_setschedparam");
+    else
+      printf("successfully lowered the cache purge thread priority to "
+             "SCHED_IDLE.\n");
+#endif
   }
   else
   {
@@ -3314,20 +3374,21 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
               << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
 
     // set up a cache purging thread
-    purge_thread = std::thread([this]() {
-      std::unique_lock<std::mutex> purge_lck(purge_mtx);
+    if (!purge_thread.joinable())
+      purge_thread = std::thread([this]() {
+        std::unique_lock<std::mutex> purge_lck(purge_mtx);
 
-      while (!terminate)
-      {
-        purge_cache();
+        while (!terminate)
+        {
+          purge_cache();
 
-        purge_cv.wait_for(purge_lck, 10s);
-      }
+          purge_cv.wait_for(purge_lck, 10s);
+        }
 
-      printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
-    });
+        printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
+      });
 
-    // lower its priority
+      // lower its priority
 #if defined(__APPLE__) && defined(__MACH__)
     struct sched_param param;
     param.sched_priority = 0;
