@@ -874,6 +874,101 @@ void FITS::deserialise()
 
   // release memory
   json_delete(json);
+
+  // try to load img_pixels and img_mask
+  const size_t plane_size = width * height;
+  const size_t frame_size = plane_size * abs(bitpix / 8);
+
+  // img_pixels
+  {
+    std::string filename = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".pixels");
+
+    struct stat64 st;
+    int stat = stat64(filename.c_str(), &st);
+
+    if (stat != -1 && st.st_size == frame_size)
+    {
+      // open the file descriptor
+      int fd = open(filename.c_str(), O_RDONLY);
+
+      if (fd != -1)
+      {
+        // mmap the file
+        img_pixels = std::shared_ptr<Ipp32f>(
+            (Ipp32f *)mmap(nullptr, frame_size, PROT_READ,
+                           MAP_PRIVATE, fd, 0),
+            [=](Ipp32f *ptr) {
+              if (ptr != MAP_FAILED)
+                munmap((void *)ptr, frame_size);
+            });
+
+        close(fd);
+      }
+      else
+        perror("error opening img_pixels.\n");
+    }
+
+    if (!img_pixels || img_pixels.get() == MAP_FAILED)
+    {
+      printf("%s::error mmaping img_pixels...\n", dataset_id.c_str());
+      has_data = false;
+    }
+  }
+
+  // img_mask
+  {
+    std::string filename = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".mask");
+
+    struct stat64 st;
+    int stat = stat64(filename.c_str(), &st);
+
+    if (stat != -1 && st.st_size == plane_size)
+    {
+      // open the file descriptor
+      int fd = open(filename.c_str(), O_RDONLY);
+
+      if (fd != -1)
+      {
+        // mmap the file
+        img_mask = std::shared_ptr<Ipp8u>(
+            (Ipp8u *)mmap(nullptr, plane_size, PROT_READ,
+                          MAP_PRIVATE, fd, 0),
+            [=](Ipp8u *ptr) {
+              if (ptr != MAP_FAILED)
+                munmap((void *)ptr, plane_size);
+            });
+
+        close(fd);
+      }
+      else
+        perror("error opening img_mask.\n");
+    }
+
+    if (!img_mask || img_mask.get() == MAP_FAILED)
+    {
+      printf("%s::error mmaping img_mask...\n", dataset_id.c_str());
+      has_data = false;
+    }
+  }
+
+  processed_header = true;
+  header_cv.notify_all();
+
+  if (this->depth > 1)
+  {
+    // restore the compressed FITS data cube
+  }
+
+  /*processed_data = true;
+  data_cv.notify_all();
+
+  // send a websocket progress notification
+  // (...)
+  */
 }
 
 void FITS::serialise()
