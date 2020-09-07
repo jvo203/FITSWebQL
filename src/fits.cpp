@@ -891,13 +891,14 @@ void FITS::deserialise()
     if (stat != -1 && st.st_size == frame_size)
     {
       // open the file descriptor
-      int fd = open(filename.c_str(), O_RDONLY);
+      //int fd = open(filename.c_str(), O_RDONLY);
+      int fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
       if (fd != -1)
       {
         // mmap the file
         img_pixels = std::shared_ptr<Ipp32f>(
-            (Ipp32f *)mmap(nullptr, frame_size, PROT_READ,
+            (Ipp32f *)mmap(nullptr, frame_size, PROT_READ | PROT_WRITE,
                            MAP_PRIVATE, fd, 0),
             [=](Ipp32f *ptr) {
               if (ptr != MAP_FAILED)
@@ -929,13 +930,14 @@ void FITS::deserialise()
     if (stat != -1 && st.st_size == plane_size)
     {
       // open the file descriptor
-      int fd = open(filename.c_str(), O_RDONLY);
+      //int fd = open(filename.c_str(), O_RDONLY);
+      int fd = open(filename.c_str(), O_RDWR | O_CREAT, (mode_t)0644);
 
       if (fd != -1)
       {
         // mmap the file
         img_mask = std::shared_ptr<Ipp8u>(
-            (Ipp8u *)mmap(nullptr, plane_size, PROT_READ,
+            (Ipp8u *)mmap(nullptr, plane_size, PROT_READ | PROT_WRITE,
                           MAP_PRIVATE, fd, 0),
             [=](Ipp8u *ptr) {
               if (ptr != MAP_FAILED)
