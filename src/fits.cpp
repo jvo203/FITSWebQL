@@ -988,6 +988,7 @@ void FITS::deserialise()
 
     // set up a cache purging thread
     if (!purge_thread.joinable())
+    {
       purge_thread = std::thread([this]() {
         std::unique_lock<std::mutex> purge_lck(purge_mtx);
 
@@ -1003,24 +1004,25 @@ void FITS::deserialise()
 
       // lower its priority
 #if defined(__APPLE__) && defined(__MACH__)
-    struct sched_param param;
-    param.sched_priority = 0;
-    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
-                              &param) != 0)
-      perror("pthread_setschedparam");
-    else
-      printf("successfully lowered the cache purge thread priority to "
-             "SCHED_OTHER.\n");
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_OTHER.\n");
 #else
-    struct sched_param param;
-    param.sched_priority = 0;
-    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
-                              &param) != 0)
-      perror("pthread_setschedparam");
-    else
-      printf("successfully lowered the cache purge thread priority to "
-             "SCHED_IDLE.\n");
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_IDLE.\n");
 #endif
+    }
   }
   else
   {
@@ -3373,6 +3375,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
     // set up a cache purging thread
     if (!purge_thread.joinable())
+    {
       purge_thread = std::thread([this]() {
         std::unique_lock<std::mutex> purge_lck(purge_mtx);
 
@@ -3388,24 +3391,25 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
       // lower its priority
 #if defined(__APPLE__) && defined(__MACH__)
-    struct sched_param param;
-    param.sched_priority = 0;
-    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
-                              &param) != 0)
-      perror("pthread_setschedparam");
-    else
-      printf("successfully lowered the cache purge thread priority to "
-             "SCHED_OTHER.\n");
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_OTHER.\n");
 #else
-    struct sched_param param;
-    param.sched_priority = 0;
-    if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
-                              &param) != 0)
-      perror("pthread_setschedparam");
-    else
-      printf("successfully lowered the cache purge thread priority to "
-             "SCHED_IDLE.\n");
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_IDLE.\n");
 #endif
+    }
 
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
