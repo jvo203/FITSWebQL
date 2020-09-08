@@ -866,8 +866,6 @@ void FITS::deserialise()
       {
         strncpy(this->header, node->string_, len);
         this->hdr_len = len;
-
-        std::cout << this->header << std::endl;
       }
     }
   }
