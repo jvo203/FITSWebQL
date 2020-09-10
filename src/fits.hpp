@@ -165,6 +165,7 @@ private:
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t start_k);
   void zfp_decompress_cube(size_t start_k);
+  void zfp_load_cube(size_t start_k);
   std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy,
                                                             int idx);
   void purge_cache();
