@@ -1024,9 +1024,12 @@ void FITS::deserialise()
 #endif
     }
 
+    std::atomic<bool> bSuccess = true;
+
 #pragma omp parallel for schedule(dynamic)
     for (size_t k = 0; k < depth; k += 4)
-      zfp_load_cube(k);
+      if (!zfp_load_cube(k))
+        bSuccess = false;
   }
   else
   {
@@ -5082,13 +5085,97 @@ bool FITS::zfp_load_cube(size_t start_k)
   // this is a save process going in reverse
   int zfp_idz = start_k / 4;
 
+  compressed_blocks *zfp_blocks = new compressed_blocks();
+
+  if (zfp_blocks == NULL)
+  {
+    printf("error allocating memory for pixels::compressed_blocks@%d\n",
+           zfp_idz);
+    return false;
+  }
+
   std::string zfp_file = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
                          std::string(".zfp/") + std::to_string(zfp_idz) +
                          ".bin";
 
+  int fd = open(zfp_file.c_str(), O_RDONLY);
+
+  if (fd == -1)
+    return false;
+
   // then load four LZ4 planes with the NaN masks
   // again, a reversed save process
+  int idx = 0;
+  int idy = 0;
+  int pComprLen = 0;
+  int pComprLen_plus = 0;
+  ssize_t bytes_read = 0;
+
+  do
+  {
+    // attempt to read a block
+    bytes_read = read(fd, &idy, sizeof(idy));
+    if (bytes_read != sizeof(idy))
+      break;
+
+    bytes_read = read(fd, &idx, sizeof(idx));
+    if (bytes_read != sizeof(idx))
+      break;
+
+    bytes_read = read(fd, &pComprLen, sizeof(pComprLen));
+    if (bytes_read != sizeof(pComprLen))
+      break;
+
+    // make sure there are no surprising (spurious) negative values that would corrupt memory
+    if (pComprLen > 0)
+    {
+      pComprLen_plus = pComprLen + sizeof(pComprLen);
+
+      std::shared_ptr<Ipp8u> block_pixels = std::shared_ptr<Ipp8u>(
+          ippsMalloc_8u(pComprLen_plus), [=](Ipp8u *ptr) {
+            if (ptr != NULL)
+              Ipp8uFree(ptr);
+          });
+
+      if (block_pixels)
+      {
+        Ipp8u *ptr = block_pixels.get();
+
+        // compressed size
+        memcpy(ptr, &pComprLen, sizeof(pComprLen));
+
+        // compressed data
+        bytes_read = read(fd, ptr + sizeof(pComprLen), pComprLen);
+        if (bytes_read != pComprLen)
+          break;
+
+        try
+        {
+          (*zfp_blocks)[idy][idx] = std::move(block_pixels);
+        }
+        catch (std::bad_alloc const &err)
+        {
+          std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << ","
+                    << idy << "," << idx << '\n';
+          exit(1);
+        }
+      }
+      else
+      {
+        close(fd);
+        return false;
+      }
+
+      // OK we have  read a valid block
+      printf("read a pixel block of size %d at [%d][%d] from %s\n", pComprLen, idy, idx, zfp_file.c_str());
+    }
+  } while (bytes_read > 0);
+
+  close(fd);
+
+  // add the blocks to cube_pixels
+  cube_pixels[zfp_idz].store(zfp_blocks);
 
   // finally send a progress notification
   size_t end_k = MIN(start_k + 4, depth);
