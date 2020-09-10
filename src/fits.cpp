@@ -1023,6 +1023,10 @@ void FITS::deserialise()
                "SCHED_IDLE.\n");
 #endif
     }
+
+#pragma omp parallel for schedule(dynamic)
+    for (size_t k = 0; k < depth; k += 4)
+      zfp_load_cube(k);
   }
   else
   {
