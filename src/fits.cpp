@@ -5076,11 +5076,25 @@ start_k, idy, idx); return;
 invalid_real, invalid_nan); else printf("frame %zu: OK.\n", start_k); #endif*/
 }
 
-void FITS::zfp_load_cube(size_t start_k)
+bool FITS::zfp_load_cube(size_t start_k)
 {
-  size_t end_k = MIN(start_k + 4, depth);
+  // first mmap the ZFP cube (containing four float32 planes)
+  // this is a save process going in reverse
+  int zfp_idz = start_k / 4;
 
+  std::string zfp_file = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".zfp/") + std::to_string(zfp_idz) +
+                         ".bin";
+
+  // then load four LZ4 planes with the NaN masks
+  // again, a reversed save process
+
+  // finally send a progress notification
+  size_t end_k = MIN(start_k + 4, depth);
   send_progress_notification(end_k, depth);
+
+  return true;
 }
 
 void FITS::zfp_compress_cube(size_t start_k)
