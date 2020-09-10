@@ -5076,6 +5076,13 @@ start_k, idy, idx); return;
 invalid_real, invalid_nan); else printf("frame %zu: OK.\n", start_k); #endif*/
 }
 
+void FITS::zfp_load_cube(size_t start_k)
+{
+  size_t end_k = MIN(start_k + 4, depth);
+
+  send_progress_notification(end_k, depth);
+}
+
 void FITS::zfp_compress_cube(size_t start_k)
 {
   size_t end_k = MIN(start_k + 4, depth);
