@@ -406,6 +406,9 @@ FITS::~FITS()
   cube_pixels.clear();
   cube_mask.clear();
 
+  cube_pixels_mmap.clear();
+  cube_mask_mmap.clear();
+
   if (fits_file_desc != -1)
     close(fits_file_desc);
 
@@ -977,6 +980,12 @@ void FITS::deserialise()
 
     for (auto i = 0; i < cube_mask.size(); i++)
       cube_mask[i].store(nullptr);
+
+    // prepare vectors to hold mmap arrays for pixels + mask
+    cube_pixels_mmap.clear();
+    cube_mask_mmap.clear();
+    cube_pixels_mmap.resize(depth / 4 + 4);
+    cube_pixels_mmap.resize(depth + 4);
 
     cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
     cache = std::vector<decompressed_blocks>(depth);
