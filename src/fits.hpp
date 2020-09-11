@@ -166,6 +166,7 @@ private:
   void zfp_compress_cube(size_t start_k);
   void zfp_decompress_cube(size_t start_k);
   bool zfp_load_cube(size_t start_k);
+  bool zfp_mmap_cube(size_t start_k);
   std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy,
                                                             int idx);
   void purge_cache();
@@ -287,6 +288,9 @@ private:
   // compressed FITS cube planes / block regions
   std::vector<std::atomic<compressed_blocks *>> cube_pixels;
   std::vector<std::atomic<compressed_blocks *>> cube_mask;
+
+  std::vector<std::shared_ptr<void>> cube_pixels_mmap;
+  std::vector<std::shared_ptr<void>> cube_mask_mmap;
 
   // decompressed cache
   std::vector<decompressed_blocks> cache;
