@@ -1030,6 +1030,17 @@ void FITS::deserialise()
     for (size_t k = 0; k < depth; k += 4)
       if (!zfp_load_cube(k))
         bSuccess = false;
+
+    printf("[zfp_load_cube]::bSuccess = %s.\n", bSuccess ? "true" : "false");
+
+    if (bSuccess)
+    {
+      // send a websocket progress notification
+      send_progress_notification(depth, depth);
+
+      processed_data = true;
+      data_cv.notify_all();
+    }
   }
   else
   {
@@ -5104,8 +5115,6 @@ bool FITS::zfp_load_cube(size_t start_k)
   if (fd == -1)
     return false;
 
-  // then load four LZ4 planes with the NaN masks
-  // again, a reversed save process
   int idx = 0;
   int idy = 0;
   int pComprLen = 0;
@@ -5167,8 +5176,8 @@ bool FITS::zfp_load_cube(size_t start_k)
         return false;
       }
 
-      // OK we have  read a valid block
-      printf("read a pixel block of size %d at [%d][%d] from %s\n", pComprLen, idy, idx, zfp_file.c_str());
+      // OK we have read a valid block
+      //printf("read a pixel block of size %d at [%d][%d] from %s\n", pComprLen, idy, idx, zfp_file.c_str());
     }
   } while (bytes_read > 0);
 
@@ -5176,6 +5185,106 @@ bool FITS::zfp_load_cube(size_t start_k)
 
   // add the blocks to cube_pixels
   cube_pixels[zfp_idz].store(zfp_blocks);
+
+  // then load four LZ4 planes with the NaN masks
+  // again, a reversed save process
+  for (int k = 0; k < 4; k++)
+  {
+    int lz4_idz = start_k + k;
+
+    compressed_blocks *lz4_blocks = new compressed_blocks();
+
+    if (lz4_blocks == NULL)
+    {
+      printf("error allocating memory for mask::compressed_blocks@%d\n",
+             lz4_idz);
+      return false;
+    }
+
+    std::string lz4_file = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".lz4/") + std::to_string(lz4_idz) +
+                           ".bin";
+
+    int fd = open(lz4_file.c_str(), O_RDONLY);
+
+    if (fd == -1)
+      return false;
+
+    int compressed_size = 0;
+    size_t compressed_size_plus = 0;
+    ssize_t bytes_read = 0;
+
+    do
+    {
+      // attempt to read a block
+      bytes_read = read(fd, &idy, sizeof(idy));
+      if (bytes_read != sizeof(idy))
+        break;
+
+      bytes_read = read(fd, &idx, sizeof(idx));
+      if (bytes_read != sizeof(idx))
+        break;
+
+      bytes_read = read(fd, &compressed_size, sizeof(compressed_size));
+      if (bytes_read != sizeof(compressed_size))
+        break;
+
+      // make sure there are no surprising (spurious) negative values that would corrupt memory
+      if (compressed_size > 0)
+      {
+        compressed_size_plus = compressed_size + sizeof(compressed_size);
+
+        std::shared_ptr<Ipp8u> block_mask = std::shared_ptr<Ipp8u>(
+            ippsMalloc_8u(compressed_size_plus), [=](Ipp8u *ptr) {
+              if (ptr != NULL)
+                Ipp8uFree(ptr);
+            });
+
+        if (block_mask)
+        {
+          Ipp8u *ptr = block_mask.get();
+
+          // compressed size
+          memcpy(ptr, &compressed_size, sizeof(compressed_size));
+
+          // compressed data
+          bytes_read = read(fd, ptr + sizeof(compressed_size), compressed_size);
+          if (bytes_read != compressed_size)
+            break;
+
+          try
+          {
+            (*lz4_blocks)[idy][idx] = std::move(block_mask);
+          }
+          catch (std::bad_alloc const &err)
+          {
+            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << ","
+                      << idy << "," << idx << '\n';
+            exit(1);
+          }
+        }
+        else
+        {
+          close(fd);
+          return false;
+        }
+
+        // OK we have read a valid block
+        //printf("read a mask block of size %d at [%d][%d] from %s\n", compressed_size, idy, idx, lz4_file.c_str());
+      }
+
+    } while (bytes_read > 0);
+
+    close(fd);
+
+    // add the blocks to cube_mask
+    cube_mask[lz4_idz].store(lz4_blocks);
+
+#ifdef PRELOAD
+    // preload the decompressed data cache
+#endif
+  }
 
   // finally send a progress notification
   size_t end_k = MIN(start_k + 4, depth);
