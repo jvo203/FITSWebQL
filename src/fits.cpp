@@ -5280,11 +5280,24 @@ bool FITS::zfp_load_cube(size_t start_k)
 
     // add the blocks to cube_mask
     cube_mask[lz4_idz].store(lz4_blocks);
+  }
 
 #ifdef PRELOAD
-    // preload the decompressed data cache
+  // preload the decompressed data cache
+  // no need to do it for each frame since
+  // calling request_cached_region_ptr() with start_k
+  // automatically fills-in four planes
+  for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+    for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
+    {
+      // block indexing
+      idx = src_x / ZFP_CACHE_REGION;
+      idy = src_y / ZFP_CACHE_REGION;
+
+      // pre-empt the cache, ignore the result (std::shared_ptr<unsigned short> )
+      request_cached_region_ptr(start_k, idy, idx);
+    }
 #endif
-  }
 
   // finally send a progress notification
   size_t end_k = MIN(start_k + 4, depth);
