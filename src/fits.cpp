@@ -1026,7 +1026,7 @@ void FITS::deserialise()
 
     std::atomic<bool> bSuccess = true;
 
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for shared(bSuccess) schedule(dynamic)
     for (size_t k = 0; k < depth; k += 4)
       if (!zfp_load_cube(k))
         bSuccess = false;
@@ -2718,9 +2718,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
           memset(omp_mask[i], 0, plane_size);
       }
 
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
-    reduction(min                                                      \
-              : _pmin) reduction(max                                   \
+#pragma omp parallel for shared(bSuccess) schedule(dynamic) num_threads(no_omp_threads) \
+    reduction(min                                                                       \
+              : _pmin) reduction(max                                                    \
                                  : _pmax)
 
       for (size_t frame = 0; frame < depth; frame++)
@@ -3484,9 +3484,9 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
           memset(omp_mask[i], 0, plane_size);
       }
 
-#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
-    reduction(min                                                      \
-              : _pmin) reduction(max                                   \
+#pragma omp parallel for shared(bSuccess) schedule(dynamic) num_threads(no_omp_threads) \
+    reduction(min                                                                       \
+              : _pmin) reduction(max                                                    \
                                  : _pmax)
       for (size_t k = 0; k < depth; k += 4)
       {
