@@ -985,7 +985,7 @@ void FITS::deserialise()
     cube_pixels_mmap.clear();
     cube_mask_mmap.clear();
     cube_pixels_mmap.resize(depth / 4 + 4);
-    cube_pixels_mmap.resize(depth + 4);
+    cube_mask_mmap.resize(depth + 4);
 
     cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
     cache = std::vector<decompressed_blocks>(depth);
@@ -1037,7 +1037,7 @@ void FITS::deserialise()
 
 #pragma omp parallel for shared(bSuccess) schedule(dynamic)
     for (size_t k = 0; k < depth; k += 4)
-      if (!zfp_load_cube(k))
+      if (!zfp_mmap_cube(k))
         bSuccess = false;
 
     printf("[zfp_load_cube]::bSuccess = %s.\n", bSuccess ? "true" : "false");
@@ -5097,6 +5097,251 @@ start_k, idy, idx); return;
   if (invalid_real || invalid_nan)
     printf("frame %zu: decompression mismatch: real(%d), NaN(%d).\n", start_k,
 invalid_real, invalid_nan); else printf("frame %zu: OK.\n", start_k); #endif*/
+}
+
+bool FITS::zfp_mmap_cube(size_t start_k)
+{
+  // first mmap the ZFP cube (containing four float32 planes)
+  // this is a save process going in reverse
+  int zfp_idz = start_k / 4;
+
+  compressed_blocks *zfp_blocks = new compressed_blocks();
+
+  if (zfp_blocks == NULL)
+  {
+    printf("error allocating memory for pixels::compressed_blocks@%d\n",
+           zfp_idz);
+    return false;
+  }
+
+  std::string zfp_file = FITSCACHE + std::string("/") +
+                         boost::replace_all_copy(dataset_id, "/", "_") +
+                         std::string(".zfp/") + std::to_string(zfp_idz) +
+                         ".bin";
+
+  // stat the file to get its size
+  struct stat64 st;
+  int stat = stat64(zfp_file.c_str(), &st);
+
+  if (stat == -1)
+    return false;
+
+  size_t zfp_size = st.st_size;
+
+  if (zfp_size == 0)
+    return false;
+
+  int fd = open(zfp_file.c_str(), O_RDONLY);
+
+  if (fd == -1)
+    return false;
+
+  // mmap the zfp file
+  std::shared_ptr<void> zfp_mmap = std::shared_ptr<void>(
+      mmap(nullptr, zfp_size, PROT_READ,
+           MAP_PRIVATE, fd, 0),
+      [=](void *ptr) {
+        if (ptr != MAP_FAILED)
+          munmap(ptr, zfp_size);
+      });
+
+  close(fd);
+
+  if (!zfp_mmap || zfp_mmap.get() == MAP_FAILED)
+    return false;
+
+  int idx = 0;
+  int idy = 0;
+  int pComprLen = 0;
+  int pComprLen_plus = 0;
+  size_t offset = 0;
+
+  char *src = (char *)zfp_mmap.get();
+
+  do
+  {
+    // copy the idy, idx and pComprLen
+    memcpy(&idy, src + offset, sizeof(idy));
+    offset += sizeof(idy);
+
+    memcpy(&idx, src + offset, sizeof(idx));
+    offset += sizeof(idx);
+
+    memcpy(&pComprLen, src + offset, sizeof(pComprLen));
+    offset += sizeof(pComprLen);
+
+    // make sure there are no surprising (spurious) negative values that would corrupt memory
+    if (pComprLen > 0)
+    {
+      pComprLen_plus = pComprLen + sizeof(pComprLen);
+
+      // point block_pixels to <src + offset - sizeof(pComprLen)>
+      std::shared_ptr<Ipp8u> block_pixels = std::shared_ptr<Ipp8u>(
+          (Ipp8u *)(src + offset - sizeof(pComprLen)), [=](Ipp8u *ptr) {
+            // do not release the memory, only advise the kernel that is is no longer needed
+            if (ptr != NULL)
+              madvise(ptr, pComprLen_plus, MADV_DONTNEED);
+          });
+
+      offset += pComprLen;
+
+      if (block_pixels)
+      {
+        try
+        {
+          (*zfp_blocks)[idy][idx] = std::move(block_pixels);
+        }
+        catch (std::bad_alloc const &err)
+        {
+          std::cout << "cube_pixels:" << err.what() << "\t" << zfp_idz << ","
+                    << idy << "," << idx << '\n';
+          exit(1);
+        }
+      }
+
+      // OK we have read a valid block
+      //printf("read a pixel block of size %d at [%d][%d] from %s (mmap)\n", pComprLen, idy, idx, zfp_file.c_str());
+    }
+  } while (offset != zfp_size);
+
+  // add the blocks to cube_pixels
+  cube_pixels[zfp_idz].store(zfp_blocks);
+
+  // add the ZFP mmap to cube_pixels_mmap
+  cube_pixels_mmap[zfp_idz] = zfp_mmap;
+
+  // then load four LZ4 planes with the NaN masks
+  // again, a reversed save process
+  for (int k = 0; k < 4; k++)
+  {
+    int lz4_idz = start_k + k;
+
+    compressed_blocks *lz4_blocks = new compressed_blocks();
+
+    if (lz4_blocks == NULL)
+    {
+      printf("error allocating memory for mask::compressed_blocks@%d\n",
+             lz4_idz);
+      return false;
+    }
+
+    std::string lz4_file = FITSCACHE + std::string("/") +
+                           boost::replace_all_copy(dataset_id, "/", "_") +
+                           std::string(".lz4/") + std::to_string(lz4_idz) +
+                           ".bin";
+
+    // stat the file to get its size
+    struct stat64 st;
+    int stat = stat64(lz4_file.c_str(), &st);
+
+    if (stat == -1)
+      return false;
+
+    size_t lz4_size = st.st_size;
+
+    if (lz4_size == 0)
+      return false;
+
+    int fd = open(lz4_file.c_str(), O_RDONLY);
+
+    if (fd == -1)
+      return false;
+
+    // mmap the lz4 file
+    std::shared_ptr<void> lz4_mmap = std::shared_ptr<void>(
+        mmap(nullptr, lz4_size, PROT_READ,
+             MAP_PRIVATE, fd, 0),
+        [=](void *ptr) {
+          if (ptr != MAP_FAILED)
+            munmap(ptr, lz4_size);
+        });
+
+    close(fd);
+
+    if (!lz4_mmap || lz4_mmap.get() == MAP_FAILED)
+      return false;
+
+    int compressed_size = 0;
+    size_t compressed_size_plus = 0;
+    size_t offset = 0;
+
+    char *src = (char *)lz4_mmap.get();
+
+    do
+    {
+      // copy the idy, idx and compressed_size
+      memcpy(&idy, src + offset, sizeof(idy));
+      offset += sizeof(idy);
+
+      memcpy(&idx, src + offset, sizeof(idx));
+      offset += sizeof(idx);
+
+      memcpy(&compressed_size, src + offset, sizeof(compressed_size));
+      offset += sizeof(compressed_size);
+
+      // make sure there are no surprising (spurious) negative values that would corrupt memory
+      if (compressed_size > 0)
+      {
+        compressed_size_plus = compressed_size + sizeof(compressed_size);
+
+        // point block_mask to <src + offset - sizeof(compressed_size)>
+        std::shared_ptr<Ipp8u> block_mask = std::shared_ptr<Ipp8u>(
+            (Ipp8u *)(src + offset - sizeof(compressed_size)), [=](Ipp8u *ptr) {
+              // do not release the memory, only advise the kernel that is is no longer needed
+              if (ptr != NULL)
+                madvise(ptr, compressed_size_plus, MADV_DONTNEED);
+            });
+
+        offset += compressed_size;
+
+        if (block_mask)
+        {
+          try
+          {
+            (*lz4_blocks)[idy][idx] = std::move(block_mask);
+          }
+          catch (std::bad_alloc const &err)
+          {
+            std::cout << "cube_mask:" << err.what() << "\t" << lz4_idz << ","
+                      << idy << "," << idx << '\n';
+            exit(1);
+          }
+        }
+
+        // OK we have read a valid block
+        //printf("read a mask block of size %d at [%d][%d] from %s\n", compressed_size, idy, idx, lz4_file.c_str());
+      }
+    } while (offset != lz4_size);
+
+    // add the blocks to cube_mask
+    cube_mask[lz4_idz].store(lz4_blocks);
+
+    // add the LZ4 mmap to cube_mask_mmap
+    cube_mask_mmap[lz4_idz] = lz4_mmap;
+  }
+
+#ifdef PRELOAD
+  // preload the decompressed data cache
+  // no need to do it for each frame since
+  // calling request_cached_region_ptr() with start_k
+  // automatically fills-in four planes
+  for (int src_y = 0; src_y < height; src_y += ZFP_CACHE_REGION)
+    for (int src_x = 0; src_x < width; src_x += ZFP_CACHE_REGION)
+    {
+      // block indexing
+      idx = src_x / ZFP_CACHE_REGION;
+      idy = src_y / ZFP_CACHE_REGION;
+
+      // pre-empt the cache, ignore the result (std::shared_ptr<unsigned short> )
+      request_cached_region_ptr(start_k, idy, idx);
+    }
+#endif
+
+  // finally send a progress notification
+  size_t end_k = MIN(start_k + 4, depth);
+  send_progress_notification(end_k, depth);
+
+  return true;
 }
 
 bool FITS::zfp_load_cube(size_t start_k)
