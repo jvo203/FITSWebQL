@@ -552,6 +552,9 @@ void FITS::defaults()
 
 void FITS::deserialise()
 {
+  std::unique_lock<std::mutex> header_lck(header_mtx);
+  std::unique_lock<std::mutex> data_lck(data_mtx);
+
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
                          std::string(".json.gz");
@@ -1038,7 +1041,7 @@ void FITS::deserialise()
       if (!zfp_mmap_cube(k))
         bSuccess = false;
 
-    printf("[zfp_load_cube]::bSuccess = %s.\n", bSuccess ? "true" : "false");
+    printf("[zfp_load/mmap_cube]::bSuccess = %s.\n", bSuccess ? "true" : "false");
 
     if (bSuccess)
     {
@@ -2316,10 +2319,10 @@ void FITS::from_url(
     int va_count /*, boost::shared_ptr<shared_state> const& state*/)
 {
   // state_ = state;
+  deserialise();
+
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
-
-  deserialise();
 
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
@@ -2329,10 +2332,10 @@ void FITS::from_url(
 void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                      int va_count)
 {
+  deserialise();
+
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
-
-  deserialise();
 
   auto start_t = steady_clock::now();
 
@@ -2966,10 +2969,10 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 void FITS::from_path_mmap(std::string path, bool is_compressed,
                           std::string flux, int va_count)
 {
+  deserialise();
+
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
-
-  deserialise();
 
   auto start_t = steady_clock::now();
 
