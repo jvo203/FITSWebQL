@@ -327,8 +327,6 @@ FITS::FITS(std::string id, std::string flux)
   this->header = NULL;
   this->hdr_len = 0;
   this->defaults();
-
-  deserialise();
 }
 
 FITS::~FITS()
@@ -2330,6 +2328,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
 
+  deserialise();
+
   auto start_t = steady_clock::now();
 
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
@@ -2964,6 +2964,8 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 {
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
+
+  deserialise();
 
   auto start_t = steady_clock::now();
 
