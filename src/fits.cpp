@@ -2316,6 +2316,10 @@ void FITS::from_url(
     int va_count /*, boost::shared_ptr<shared_state> const& state*/)
 {
   // state_ = state;
+  std::unique_lock<std::mutex> header_lck(header_mtx);
+  std::unique_lock<std::mutex> data_lck(data_mtx);
+
+  deserialise();
 
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
