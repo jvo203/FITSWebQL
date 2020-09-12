@@ -961,6 +961,8 @@ void FITS::deserialise()
 
   processed_header = true;
   header_cv.notify_all();
+  header_lck.unlock();
+  header_lck.release();
 
   // restore the compressed FITS data cube
   if (this->depth > 1)
