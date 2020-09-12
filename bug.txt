@@ -103,3 +103,38 @@ found 1097 null cube_mask entries.
 ALMA01195213::destructor.
 found 973 null cube_pixels entries.
 found 3880 null cube_mask entries.
+
+=====================================
+delt1   crpix1  cunit1  ctype1  crval2  cdelt2  crpix2  cunit2  ctype2  crval3  cdelt3  crpix3  cunit3  ctype3 frame_multiplier cd1_1   cd1_2   cd2_1   cd2_2   bmaj    bmin    bpa     restfrq obsra   obsdec  datamin datamaxline     filter  specsys timesys object  date_obs        beam_unit       beam_type       has_frequency   has_velocity    is_optical      is_xray dmin    dmax    frame_min       frame_min.size() = 265
+frame_max       frame_max.size() = 265
+mean_spectrum   mean_spectrum.size() = 265
+integrated_spectrum     integrated_spectrum.size() = 265
+hist    read 1024/1024 histogram elements
+min     max     median  mad     madP    madN    black   white   sensitivity     ratio_sensitivity       lmin   lmax     has_header      has_data        has_error       header  cube_pixels::size = 70, cube_mask::size = 269, cache::size = 265, cache_mtx::size = 70
+successfully lowered the cache purge thread priority to SCHED_IDLE.
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+progress(ALMA01018218)
+[µWS] upgrade /fitswebql/websocket/ALMA01018218
+datasetid: ALMA01018218
+[µWS] open for ALMA01018218
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate, br; compression support found.
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=ALMA01018218&width=1080&height=734&quality=45&fetch_data=true&JS2020-08-20.0)
+get_image_spectrum(ALMA01018218::1080::734::45::true)
+[zfp_load_cube]::bSuccess = true.
+loading ALMA01018218 from /mnt/c/Users/クリストファー/Downloads/ALMA01018218.fits without gzip compression, va_count = 1, no_omp_threads = 16
+progress(ALMA01018218)
+image bounding box:     x1 = 28, x2 = 1896, y1 = 3, y2 = 1911
+FITS image scaling by 0.346045; 1920 x 1920 --> 664 x 664
+tileResize32f_C1R::num_threads = 1
+tileResize8u_C1R::num_threads = 1
+ 0 : ippStsNoErr: No errors, 0 : ippStsNoErr: No errors
+[ALMA01018218]::downsize OpenEXR output: 335908 bytes.
+fitswebql: src/json.c:1170: void emit_string(SB*, const char*): Assertion `false' failed.
+Aborted
