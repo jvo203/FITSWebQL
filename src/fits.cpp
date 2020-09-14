@@ -5378,7 +5378,11 @@ bool FITS::zfp_load_cube(size_t start_k)
   int fd = open(zfp_file.c_str(), O_RDONLY);
 
   if (fd == -1)
+  {
+    delete zfp_blocks;
+
     return false;
+  }
 
   int idx = 0;
   int idy = 0;
@@ -5438,6 +5442,8 @@ bool FITS::zfp_load_cube(size_t start_k)
       else
       {
         close(fd);
+        delete zfp_blocks;
+
         return false;
       }
 
@@ -5463,6 +5469,7 @@ bool FITS::zfp_load_cube(size_t start_k)
     {
       printf("error allocating memory for mask::compressed_blocks@%d\n",
              lz4_idz);
+
       return false;
     }
 
@@ -5474,7 +5481,11 @@ bool FITS::zfp_load_cube(size_t start_k)
     int fd = open(lz4_file.c_str(), O_RDONLY);
 
     if (fd == -1)
+    {
+      delete lz4_blocks;
+
       return false;
+    }
 
     int compressed_size = 0;
     size_t compressed_size_plus = 0;
@@ -5532,6 +5543,8 @@ bool FITS::zfp_load_cube(size_t start_k)
         else
         {
           close(fd);
+          delete lz4_blocks;
+
           return false;
         }
 
