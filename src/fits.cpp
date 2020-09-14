@@ -869,6 +869,7 @@ void FITS::deserialise()
       if (this->header != NULL)
       {
         strncpy(this->header, node->string_, len);
+        this->header[len] = '\0';
         this->hdr_len = len;
       }
     }
