@@ -5135,17 +5135,29 @@ bool FITS::zfp_mmap_cube(size_t start_k)
   int stat = stat64(zfp_file.c_str(), &st);
 
   if (stat == -1)
+  {
+    delete zfp_blocks;
+
     return false;
+  }
 
   size_t zfp_size = st.st_size;
 
   if (zfp_size == 0)
+  {
+    delete zfp_blocks;
+
     return false;
+  }
 
   int fd = open(zfp_file.c_str(), O_RDONLY);
 
   if (fd == -1)
+  {
+    delete zfp_blocks;
+
     return false;
+  }
 
   // mmap the zfp file
   std::shared_ptr<void> zfp_mmap = std::shared_ptr<void>(
@@ -5159,7 +5171,11 @@ bool FITS::zfp_mmap_cube(size_t start_k)
   close(fd);
 
   if (!zfp_mmap || zfp_mmap.get() == MAP_FAILED)
+  {
+    delete zfp_blocks;
+
     return false;
+  }
 
   int idx = 0;
   int idy = 0;
@@ -5246,17 +5262,29 @@ bool FITS::zfp_mmap_cube(size_t start_k)
     int stat = stat64(lz4_file.c_str(), &st);
 
     if (stat == -1)
+    {
+      delete lz4_blocks;
+
       return false;
+    }
 
     size_t lz4_size = st.st_size;
 
     if (lz4_size == 0)
+    {
+      delete lz4_blocks;
+
       return false;
+    }
 
     int fd = open(lz4_file.c_str(), O_RDONLY);
 
     if (fd == -1)
+    {
+      delete lz4_blocks;
+
       return false;
+    }
 
     // mmap the lz4 file
     std::shared_ptr<void> lz4_mmap = std::shared_ptr<void>(
@@ -5270,7 +5298,11 @@ bool FITS::zfp_mmap_cube(size_t start_k)
     close(fd);
 
     if (!lz4_mmap || lz4_mmap.get() == MAP_FAILED)
+    {
+      delete lz4_blocks;
+
       return false;
+    }
 
     int compressed_size = 0;
     size_t compressed_size_plus = 0;
