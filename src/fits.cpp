@@ -4367,6 +4367,7 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx) {
     if (mask_blocks == nullptr)
       return res;
 
+    // we should be checking if the entry exists !!!
     Ipp8u *buffer = (*mask_blocks)[idy][idx].get();
     int compressed_size = *((int *)buffer);
     int decompressed_size = 0;
