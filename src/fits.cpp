@@ -1024,7 +1024,7 @@ void FITS::deserialise()
         perror("pthread_setschedparam");
       else
         printf("successfully lowered the cache purge thread priority to "
-               "SCHED_OTHER.\n");
+               "SCHED_OTHER.\n");               
 #else
       struct sched_param param;
       param.sched_priority = 0;
@@ -4221,7 +4221,7 @@ inline const char *FITS::check_null(const char *str)
 };
 
 void FITS::to_json(std::ostringstream &json)
-{
+{  
   if (header == NULL || hdr_len == 0)
     return;
 
@@ -5590,7 +5590,7 @@ bool FITS::zfp_load_cube(size_t start_k)
     close(fd);
 
     // add the blocks to cube_mask
-    cube_mask[lz4_idz].store(lz4_blocks);
+    cube_mask[lz4_idz].store(lz4_blocks);    
   }
 
 #ifdef PRELOAD
@@ -5611,8 +5611,8 @@ bool FITS::zfp_load_cube(size_t start_k)
 #endif
 
   // finally send a progress notification
-  size_t end_k = MIN(start_k + 4, depth);
-  send_progress_notification(end_k, depth);
+  //size_t end_k = MIN(start_k + 4, depth);
+  send_progress_notification(start_k, depth);
 
   return true;
 }
@@ -5889,7 +5889,7 @@ RAM\n";
                       memcpy(out + offset, ptr, pComprLen_plus);
 
                       // finally an atomic append write to the file
-                      ssize_t bytes_written = pwrite(_fd, out, size, 0);
+                      ssize_t bytes_written = write(_fd, out, size);// replaced pwrite with write
                       if (bytes_written != size)
                         printf(
                             "an error appending a pixel block [%d][%d] to %s\n",
@@ -6092,7 +6092,7 @@ RAM\n";
                     memcpy(out + offset, ptr, compressed_size_plus);
 
                     // finally an atomic append write to the file
-                    ssize_t bytes_written = pwrite(_fd, out, size, 0);
+                    ssize_t bytes_written = write(_fd, out, size);// replaced pwrite with write
                     if (bytes_written != size)
                       printf("an error appending a mask block [%d][%d] to %s\n",
                              idy, idx, lz4_file.c_str());
