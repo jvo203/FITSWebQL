@@ -1041,7 +1041,7 @@ void FITS::deserialise()
 
 #pragma omp parallel for shared(bSuccess) schedule(dynamic)
     for (size_t k = 0; k < depth; k += 4)
-      if (!zfp_load_cube(k))
+      if (!zfp_mmap_cube(k))
         bSuccess = false;
 
     printf("[zfp_load/mmap_cube]::bSuccess = %s.\n", bSuccess ? "true" : "false");
