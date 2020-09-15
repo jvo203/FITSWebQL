@@ -5382,8 +5382,8 @@ bool FITS::zfp_mmap_cube(size_t start_k)
 #endif
 
   // finally send a progress notification
-  size_t end_k = MIN(start_k + 4, depth);
-  send_progress_notification(end_k, depth);
+  //size_t end_k = MIN(start_k + 4, depth);
+  send_progress_notification(start_k, depth);
 
   return true;
 }
