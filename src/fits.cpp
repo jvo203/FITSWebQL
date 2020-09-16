@@ -2670,9 +2670,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       // load data into the buffer in parallel chunks
       // the data part starts at <offset>
 
-      auto _img_pixels = img_pixels.get();
-      auto _img_mask = img_mask.get();
-
 #pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
     reduction(min                                                      \
               : _pmin) reduction(max                                   \
