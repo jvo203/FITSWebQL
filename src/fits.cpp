@@ -2842,7 +2842,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     {
       // pre-allocated floating-point read buffers
       // to reduce RAM thrashing
-      std::vector<Ipp32f *> pixels_buf(max_threads);
       std::vector<Ipp8u *> mask_buf(max_threads);
 
       // OpenMP per-thread {pixels,mask}
@@ -2851,7 +2850,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
       for (int i = 0; i < max_threads; i++)
       {
-        pixels_buf[i] = ippsMalloc_32f_L(plane_size);
         mask_buf[i] = ippsMalloc_8u_L(plane_size);
 
         omp_pixels[i] = ippsMalloc_32f_L(plane_size);
@@ -2868,59 +2866,82 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     num_threads(no_omp_threads) reduction(min                    \
                                           : _pmin) reduction(max \
                                                              : _pmax)
-
-      for (size_t frame = 0; frame < depth; frame++)
+      for (size_t k = 0; k < depth; k += 4)
       {
-        int tid = omp_get_thread_num();
-        // printf("tid: %d, k: %zu\n", tid, k);
-        if (pixels_buf[tid] == NULL || mask_buf[tid] == NULL ||
-            omp_pixels[tid] == NULL || omp_mask[tid] == NULL)
+        size_t start_k = k;
+        size_t end_k = MIN(k + 4, depth);
+
+        for (size_t frame = start_k; frame < end_k; frame++)
         {
-          fprintf(stderr,
-                  "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
-                  "arrays.\n",
-                  dataset_id.c_str(), tid);
-          bSuccess = false;
-          continue;
+          int tid = omp_get_thread_num();
+          // printf("tid: %d, k: %zu\n", tid, k);
+          if (mask_buf[tid] == NULL ||
+              omp_pixels[tid] == NULL || omp_mask[tid] == NULL)
+          {
+            fprintf(stderr,
+                    "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
+                    "arrays.\n",
+                    dataset_id.c_str(), tid);
+            bSuccess = false;
+            continue;
+          }
+
+          Ipp32f *pixels_buf = nullptr;
+
+          {
+            fits_cube[frame] = std::shared_ptr<void>(ippsMalloc_32f_L(plane_size), [=](void *ptr) {
+              if (ptr != NULL)
+                Ipp32fFree((Ipp32f *)ptr);
+            });
+
+            if (fits_cube[frame])
+              pixels_buf = (Ipp32f *)fits_cube[frame].get();
+          }
+
+          // parallel read (pread) at a specified offset
+          ssize_t bytes_read = 0;
+
+          if (pixels_buf != nullptr)
+            bytes_read = pread(this->fits_file_desc, pixels_buf,
+                               frame_size, offset + frame_size * frame);
+
+          if (bytes_read != frame_size)
+          {
+            fprintf(stderr,
+                    "%s::<tid::%d>::CRITICAL: only read %zd out of requested "
+                    "%zd bytes.\n",
+                    dataset_id.c_str(), tid, bytes_read, frame_size);
+            bSuccess = false;
+          }
+          else
+          {
+            float fmin = FLT_MAX;
+            float fmax = -FLT_MAX;
+            float mean = 0.0f;
+            float integrated = 0.0f;
+
+            float _cdelt3 = this->has_velocity
+                                ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                                : 1.0f;
+
+            ispc::make_image_spectrumF32(
+                (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
+                datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
+                fmax, mean, integrated, plane_size);
+
+            _pmin = MIN(_pmin, fmin);
+            _pmax = MAX(_pmax, fmax);
+            frame_min[frame] = fmin;
+            frame_max[frame] = fmax;
+            mean_spectrum[frame] = mean;
+            integrated_spectrum[frame] = integrated;
+          }
+
+          send_progress_notification(frame, depth);
         }
 
-        // parallel read (pread) at a specified offset
-        ssize_t bytes_read = pread(this->fits_file_desc, pixels_buf[tid],
-                                   frame_size, offset + frame_size * frame);
-
-        if (bytes_read != frame_size)
-        {
-          fprintf(stderr,
-                  "%s::<tid::%d>::CRITICAL: only read %zd out of requested "
-                  "%zd bytes.\n",
-                  dataset_id.c_str(), tid, bytes_read, frame_size);
-          bSuccess = false;
-        }
-        else
-        {
-          float fmin = FLT_MAX;
-          float fmax = -FLT_MAX;
-          float mean = 0.0f;
-          float integrated = 0.0f;
-
-          float _cdelt3 = this->has_velocity
-                              ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                              : 1.0f;
-
-          ispc::make_image_spectrumF32(
-              (int32_t *)pixels_buf[tid], mask_buf[tid], bzero, bscale, ignrval,
-              datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
-              fmax, mean, integrated, plane_size);
-
-          _pmin = MIN(_pmin, fmin);
-          _pmax = MAX(_pmax, fmax);
-          frame_min[frame] = fmin;
-          frame_max[frame] = fmax;
-          mean_spectrum[frame] = mean;
-          integrated_spectrum[frame] = integrated;
-        }
-
-        send_progress_notification(frame, depth);
+        // append <start_k> to a ZFP compression queue
+        zfp_queue.push(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -2953,9 +2974,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       // release memory
       for (int i = 0; i < max_threads; i++)
       {
-        if (pixels_buf[i] != NULL)
-          ippsFree(pixels_buf[i]);
-
         if (mask_buf[i] != NULL)
           ippsFree(mask_buf[i]);
 
@@ -2975,61 +2993,85 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       {
 #pragma omp single
         {
-          for (size_t frame = 0; frame < depth; frame++)
+          // ZFP requires blocks-of-4 processing
+          for (size_t k = 0; k < depth; k += 4)
           {
-            // allocate {pixel_buf, mask_buf}
-            std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
-                                               Ipp32fFree);
-            std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size),
-                                            Ipp8uFree);
+            size_t start_k = k;
+            size_t end_k = MIN(k + 4, depth);
 
-            if (pixels_buf.get() == NULL || mask_buf.get() == NULL)
+            for (size_t frame = start_k; frame < end_k; frame++)
             {
-              printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
-                     "buffers.\n",
-                     dataset_id.c_str());
-              bSuccess = false;
-              break;
+              // allocate {pixel_buf, mask_buf}
+              /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                               Ipp32fFree);*/
+              std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size),
+                                              Ipp8uFree);
+
+              if (mask_buf.get() == NULL)
+              {
+                printf("%s::CRITICAL::cannot malloc memory for mask "
+                       "buffers.\n",
+                       dataset_id.c_str());
+                bSuccess = false;
+                break;
+              }
+
+              Ipp32f *pixels_buf = nullptr;
+
+              {
+                fits_cube[frame] = std::shared_ptr<void>(ippsMalloc_32f_L(plane_size), [=](void *ptr) {
+                  if (ptr != NULL)
+                    Ipp32fFree((Ipp32f *)ptr);
+                });
+
+                if (fits_cube[frame])
+                  pixels_buf = (Ipp32f *)fits_cube[frame].get();
+              }
+
+              // load data into the buffer sequentially
+              ssize_t bytes_read = 0;
+              if (pixels_buf != nullptr)
+                gzread(this->compressed_fits_stream,
+                       pixels_buf, frame_size);
+
+              if (bytes_read != frame_size)
+              {
+                fprintf(stderr,
+                        "%s::CRITICAL: read less than %zd bytes from the FITS "
+                        "data unit\n",
+                        dataset_id.c_str(), bytes_read);
+                bSuccess = false;
+                break;
+              }
+
+              // process the buffer
+              float fmin = FLT_MAX;
+              float fmax = -FLT_MAX;
+              float mean = 0.0f;
+              float integrated = 0.0f;
+
+              float _cdelt3 =
+                  this->has_velocity
+                      ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                      : 1.0f;
+
+              ispc::make_image_spectrumF32(
+                  (int32_t *)pixels_buf, mask_buf.get(), bzero, bscale,
+                  ignrval, datamin, datamax, _cdelt3, img_pixels.get(),
+                  img_mask.get(), fmin, fmax, mean, integrated, plane_size);
+
+              _pmin = MIN(_pmin, fmin);
+              _pmax = MAX(_pmax, fmax);
+              frame_min[frame] = fmin;
+              frame_max[frame] = fmax;
+              mean_spectrum[frame] = mean;
+              integrated_spectrum[frame] = integrated;
+
+              send_progress_notification(frame, depth);
             }
 
-            // load data into the buffer sequentially
-            ssize_t bytes_read = gzread(this->compressed_fits_stream,
-                                        pixels_buf.get(), frame_size);
-
-            if (bytes_read != frame_size)
-            {
-              fprintf(stderr,
-                      "%s::CRITICAL: read less than %zd bytes from the FITS "
-                      "data unit\n",
-                      dataset_id.c_str(), bytes_read);
-              bSuccess = false;
-              break;
-            }
-
-            // process the buffer
-            float fmin = FLT_MAX;
-            float fmax = -FLT_MAX;
-            float mean = 0.0f;
-            float integrated = 0.0f;
-
-            float _cdelt3 =
-                this->has_velocity
-                    ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                    : 1.0f;
-
-            ispc::make_image_spectrumF32(
-                (int32_t *)pixels_buf.get(), mask_buf.get(), bzero, bscale,
-                ignrval, datamin, datamax, _cdelt3, img_pixels.get(),
-                img_mask.get(), fmin, fmax, mean, integrated, plane_size);
-
-            _pmin = MIN(_pmin, fmin);
-            _pmax = MAX(_pmax, fmax);
-            frame_min[frame] = fmin;
-            frame_max[frame] = fmax;
-            mean_spectrum[frame] = mean;
-            integrated_spectrum[frame] = integrated;
-
-            send_progress_notification(frame, depth);
+            // append <start_k> to a ZFP compression queue
+            zfp_queue.push(start_k);
           }
         }
       }
@@ -3043,6 +3085,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i],
       mean_spectrum[i], integrated_spectrum[i]); printf("\n");*/
   }
+
+  // send a termination signal to the ZFP compression pool
+  terminate_compression = true;
 
   auto end_t = steady_clock::now();
 
@@ -3073,6 +3118,15 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
     /*make_image_luma();
     make_exr_image();*/
+
+    auto _img_pixels = img_pixels.get();
+    auto _img_mask = img_mask.get();
+
+// replace NaNs with 0.0
+#pragma omp parallel for simd
+    for (size_t i = 0; i < plane_size; i++)
+      if (_img_mask[i] == 0)
+        _img_pixels[i] = 0.0f;
   }
   else
   {
@@ -3776,7 +3830,7 @@ void FITS::from_path_mmap(std::string path, bool is_compressed,
 
       if (mask_buf.get() == NULL)
       {
-        printf("%s::CRITICAL::cannot malloc memory for {pixels,mask} "
+        printf("%s::CRITICAL::cannot malloc memory for mask "
                "buffers.\n",
                dataset_id.c_str());
         bSuccess = false;
