@@ -2714,6 +2714,88 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
 
+    // prepare the cache directory
+    {
+      std::string filename = FITSCACHE + std::string("/") +
+                             boost::replace_all_copy(dataset_id, "/", "_") +
+                             std::string(".zfp");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new pixels cache directory");
+
+      filename = FITSCACHE + std::string("/") +
+                 boost::replace_all_copy(dataset_id, "/", "_") +
+                 std::string(".lz4");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new mask cache directory");
+    }
+
+    // reset the cube just in case
+    fits_cube.clear();
+
+    // resize/init the cube with default nullptr-filled std::shared_ptr
+    fits_cube.resize(depth);
+
+    // init the compressed regions (sizing: err on the side of caution)
+    // cannot resize a vector of atomics in C++ ...
+    cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
+
+    for (auto i = 0; i < cube_pixels.size(); i++)
+      cube_pixels[i].store(nullptr);
+
+    for (auto i = 0; i < cube_mask.size(); i++)
+      cube_mask[i].store(nullptr);
+
+    cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
+    cache = std::vector<decompressed_blocks>(depth);
+
+    std::cout << "cube_pixels::size = " << cube_pixels.size()
+              << ", cube_mask::size = " << cube_mask.size()
+              << ", cache::size = " << cache.size()
+              << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
+
+    // set up a cache purging thread
+    if (!purge_thread.joinable())
+    {
+      purge_thread = std::thread([this]() {
+        std::unique_lock<std::mutex> purge_lck(purge_mtx);
+
+        while (!terminate)
+        {
+          purge_cache();
+
+          purge_cv.wait_for(purge_lck, 10s);
+        }
+
+        printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
+      });
+
+      // lower its priority
+#if defined(__APPLE__) && defined(__MACH__)
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_OTHER.\n");
+#else
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_IDLE.\n");
+#endif
+    }
+
     auto _img_pixels = img_pixels.get();
     auto _img_mask = img_mask.get();
 
@@ -2723,6 +2805,38 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       _img_pixels[i] = 0.0f;
 
     int max_threads = omp_get_max_threads();
+
+    terminate_compression = false;
+
+    for (int i = 0; i < max_threads; i++)
+    {
+      // std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
+
+      std::thread a_thread =
+          std::thread(&FITS::zfp_compression_thread, this, i);
+
+#if defined(__APPLE__) && defined(__MACH__)
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_OTHER.\n");
+#else
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
+          0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_IDLE.\n");
+#endif
+
+      zfp_pool.push_back(std::move(a_thread));
+    }
 
     if (!is_compressed)
     {
