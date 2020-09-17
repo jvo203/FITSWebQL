@@ -2606,3 +2606,826 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   this->data_cv.notify_all();
   this->timestamp = std::time(nullptr);
 }
+
+
+void FITS::from_path_mmap(std::string path, bool is_compressed,
+                          std::string flux, int va_count)
+{
+  deserialise();
+
+  std::unique_lock<std::mutex> header_lck(header_mtx);
+  std::unique_lock<std::mutex> data_lck(data_mtx);
+
+  auto start_t = steady_clock::now();
+
+  int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
+  printf("loading %s from %s %s gzip compression, va_count = %d, "
+         "no_omp_threads = %d\n",
+         this->dataset_id.c_str(), path.c_str(),
+         (is_compressed ? "with" : "without"), va_count, no_omp_threads);
+
+  this->gz_compressed = is_compressed;
+
+  // try to open the FITS file
+  int fd = -1;
+  gzFile file = NULL;
+
+  if (is_compressed)
+  {
+    file = gzopen(path.c_str(), "r");
+
+    if (!file)
+    {
+      printf("gzopen of '%s' failed: %s.\n", path.c_str(), strerror(errno));
+      processed_header = true;
+      header_cv.notify_all();
+      processed_data = true;
+      data_cv.notify_all();
+      return;
+    }
+  }
+  else
+  {
+    fd = open(path.c_str(), O_RDONLY);
+
+    if (fd == -1)
+    {
+      printf("error opening %s .", path.c_str());
+      processed_header = true;
+      header_cv.notify_all();
+      processed_data = true;
+      data_cv.notify_all();
+      return;
+    }
+  }
+
+  struct stat64 st;
+  stat64(path.c_str(), &st);
+
+  this->fits_file_desc = fd;
+  this->compressed_fits_stream = file;
+  this->fits_file_size = st.st_size;
+
+  if (this->fits_file_size < FITS_CHUNK_LENGTH)
+  {
+    printf("error: FITS file size smaller than %d bytes.", FITS_CHUNK_LENGTH);
+    processed_header = true;
+    header_cv.notify_all();
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }
+
+  // mmap the FITS file
+  if (this->fits_file_desc != -1)
+  {
+    this->fits_ptr = std::shared_ptr<void>(
+        mmap(nullptr, this->fits_file_size, PROT_READ,
+             MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0),
+        [=](void *ptr) {
+          if (ptr != MAP_FAILED)
+            munmap(ptr, fits_file_size);
+        });
+
+    if (this->fits_ptr.get() == MAP_FAILED)
+    {
+      printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
+      processed_header = true;
+      header_cv.notify_all();
+      processed_data = true;
+      data_cv.notify_all();
+      return;
+    }
+  }
+
+  // exit the function if the FITS file has already been processed in the
+  // deserialiser
+  if (processed_header && processed_data)
+    return;
+
+  printf("%s::reading FITS header...\n", dataset_id.c_str());
+
+  int no_hu = 0;
+  size_t offset = this->hdr_len; // 0;
+
+  if (is_compressed && naxis > 0 && offset > 0)
+  {
+    // preload the initial <offset> number of bytes from the compressed stream
+    gzseek(this->compressed_fits_stream, offset, SEEK_SET);
+  }
+
+  while (naxis == 0)
+  {
+    bool end = false;
+
+    while (!end)
+    {
+      // fread FITS_CHUNK_LENGTH from fd into header+offset
+      header =
+          (char *)realloc(header, offset + FITS_CHUNK_LENGTH +
+                                      1); // an extra space for the ending NULL
+
+      if (header == NULL)
+        fprintf(stderr, "CRITICAL: could not (re)allocate FITS header\n");
+
+      ssize_t bytes_read = 0;
+
+      if (is_compressed)
+        bytes_read = gzread(this->compressed_fits_stream, header + offset,
+                            FITS_CHUNK_LENGTH);
+      else
+        bytes_read =
+            read(this->fits_file_desc, header + offset, FITS_CHUNK_LENGTH);
+
+      if (bytes_read != FITS_CHUNK_LENGTH)
+      {
+        fprintf(stderr,
+                "CRITICAL: read less than %zd bytes from the FITS header\n",
+                bytes_read);
+        processed_header = true;
+        header_cv.notify_all();
+        processed_data = true;
+        data_cv.notify_all();
+        return;
+      }
+
+      end = this->process_fits_header_unit(header + offset);
+
+      offset += FITS_CHUNK_LENGTH;
+      no_hu++;
+    }
+
+    printf("%s::FITS HEADER END.\n", dataset_id.c_str());
+  }
+
+  header[offset] = '\0';
+  this->hdr_len = offset;
+
+  // test for frequency/velocity
+  frame_reference_unit();
+  frame_reference_type();
+
+  if (has_frequency || has_velocity)
+    is_optical = false;
+
+  if (restfrq > 0.0)
+    has_frequency = true;
+
+  this->has_header = true;
+  this->processed_header = true;
+  this->header_cv.notify_all();
+  header_lck.unlock();
+  header_lck.release();
+
+  // printf("%s\n", header);
+
+  if (bitpix != -32)
+  {
+    printf("%s::unsupported bitpix(%d), FITS data will not be read.\n",
+           dataset_id.c_str(), bitpix);
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }
+
+  if (width <= 0 || height <= 0 || depth <= 0)
+  {
+    printf("%s::incorrect dimensions (width:%ld, height:%ld, depth:%ld)\n",
+           dataset_id.c_str(), width, height, depth);
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }
+
+  const size_t plane_size = width * height;
+  const size_t frame_size = plane_size * abs(bitpix / 8);
+
+  if (frame_size != plane_size * sizeof(float))
+  {
+    printf("%s::plane_size != frame_size, is the bitpix correct?\n",
+           dataset_id.c_str());
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }
+
+  // do not use mmap
+  if (!img_pixels)
+    img_pixels =
+        std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+          const size_t frame_size = plane_size * sizeof(Ipp32f);
+          std::string filename = FITSCACHE + std::string("/") +
+                                 boost::replace_all_copy(dataset_id, "/", "_") +
+                                 std::string(".pixels");
+
+          struct stat64 st;
+          int stat = stat64(filename.c_str(), &st);
+
+          bool save = false;
+
+          if (stat == -1)
+            save = true;
+          else if (st.st_size != frame_size)
+            save = true;
+
+          if (save)
+          {
+            printf("[%s]::saving img_pixels.\n", dataset_id.c_str());
+
+            FILE *fp = fopen(filename.c_str(), "wb");
+
+            if (fp != NULL)
+            {
+              size_t no_written = fwrite(ptr, sizeof(Ipp32f), plane_size, fp);
+
+              if (no_written != plane_size)
+                perror("error writing img_pixels.\n");
+
+              fclose(fp);
+            }
+          }
+
+          Ipp32fFree(ptr);
+        });
+
+  if (!img_mask)
+    img_mask =
+        std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+          std::string filename = FITSCACHE + std::string("/") +
+                                 boost::replace_all_copy(dataset_id, "/", "_") +
+                                 std::string(".mask");
+
+          struct stat64 st;
+          int stat = stat64(filename.c_str(), &st);
+
+          bool save = false;
+
+          if (stat == -1)
+            save = true;
+          else if (st.st_size != plane_size)
+            save = true;
+
+          if (save)
+          {
+            printf("[%s]::saving img_mask.\n", dataset_id.c_str());
+
+            FILE *fp = fopen(filename.c_str(), "wb");
+
+            if (fp != NULL)
+            {
+              size_t no_written = fwrite(ptr, 1, plane_size, fp);
+
+              if (no_written != plane_size)
+                perror("error writing img_mask.\n");
+
+              fclose(fp);
+            }
+          }
+
+          Ipp8uFree(ptr);
+        });
+
+  if (!img_pixels || !img_mask)
+  {
+    printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask).\n",
+           dataset_id.c_str());
+    processed_data = true;
+    data_cv.notify_all();
+    return;
+  }
+
+  std::atomic<bool> bSuccess = true;
+
+  float _pmin = FLT_MAX;
+  float _pmax = -FLT_MAX;
+
+  if (depth == 1)
+  {
+    // read/process the FITS plane (image) in parallel
+    // unless this is a compressed file, in which case
+    // the data can only be read sequentially
+
+    // use ispc to process the plane
+    // 1. endianness
+    // 2. fill-in {pixels,mask}
+
+    auto _img_pixels = img_pixels.get();
+    auto _img_mask = img_mask.get();
+
+    // get pmin, pmax
+    int max_threads = omp_get_max_threads();
+
+    // keep the worksize within int32 limits
+    size_t max_work_size = 1024 * 1024 * 1024;
+    size_t work_size = MIN(plane_size / max_threads, max_work_size);
+    int num_threads = plane_size / work_size;
+
+    printf("%s::fits2float32:\tsize = %zu, work_size = %zu, num_threads = %d\n",
+           dataset_id.c_str(), plane_size, work_size, num_threads);
+
+    if (is_compressed)
+    {
+      // load data into the buffer sequentially
+      ssize_t bytes_read =
+          gzread(this->compressed_fits_stream, _img_pixels, frame_size);
+
+      if (bytes_read != frame_size)
+      {
+        fprintf(
+            stderr,
+            "%s::CRITICAL: read less than %zd bytes from the FITS data unit\n",
+            dataset_id.c_str(), bytes_read);
+        processed_data = true;
+        data_cv.notify_all();
+        return;
+      }
+      else
+        printf("%s::FITS data read OK.\n", dataset_id.c_str());
+
+#pragma omp parallel for schedule(static) num_threads(no_omp_threads) \
+    reduction(min                                                     \
+              : _pmin) reduction(max                                  \
+                                 : _pmax)
+      for (int tid = 0; tid < num_threads; tid++)
+      {
+        size_t work_size = plane_size / num_threads;
+        size_t start = tid * work_size;
+
+        if (tid == num_threads - 1)
+          work_size = plane_size - start;
+
+        ispc::fits2float32((int32_t *)&(_img_pixels[start]),
+                           (uint8_t *)&(_img_mask[start]), bzero, bscale,
+                           ignrval, datamin, datamax, _pmin, _pmax, work_size);
+      };
+    }
+    else
+    {
+      // load data into the buffer in parallel chunks
+      // the data part starts at <offset>
+
+#pragma omp parallel for schedule(dynamic) num_threads(no_omp_threads) \
+    reduction(min                                                      \
+              : _pmin) reduction(max                                   \
+                                 : _pmax)
+      for (int tid = 0; tid < num_threads; tid++)
+      {
+        size_t work_size = plane_size / num_threads;
+        size_t start = tid * work_size;
+
+        if (tid == num_threads - 1)
+          work_size = plane_size - start;
+
+        // parallel read (pread) at a specified offset
+        ssize_t bytes_read =
+            pread(this->fits_file_desc, &(_img_pixels[start]),
+                  work_size * sizeof(float), offset + start * sizeof(float));
+
+        if (bytes_read != work_size * sizeof(float))
+        {
+          fprintf(stderr,
+                  "%s::CRITICAL: only read %zd out of requested %zd bytes.\n",
+                  dataset_id.c_str(), bytes_read, (work_size * sizeof(float)));
+          bSuccess = false;
+        }
+        else
+          ispc::fits2float32((int32_t *)&(_img_pixels[start]),
+                             (uint8_t *)&(_img_mask[start]), bzero, bscale,
+                             ignrval, datamin, datamax, _pmin, _pmax,
+                             work_size);
+      };
+    }
+
+    dmin = _pmin;
+    dmax = _pmax;
+  }
+  else
+  {
+    printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+    // init the variables
+    frame_min.resize(depth, FLT_MAX);
+    frame_max.resize(depth, -FLT_MAX);
+    mean_spectrum.resize(depth, 0.0f);
+    integrated_spectrum.resize(depth, 0.0f);
+
+    // prepare the cache directory
+    {
+      std::string filename = FITSCACHE + std::string("/") +
+                             boost::replace_all_copy(dataset_id, "/", "_") +
+                             std::string(".zfp");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new pixels cache directory");
+
+      filename = FITSCACHE + std::string("/") +
+                 boost::replace_all_copy(dataset_id, "/", "_") +
+                 std::string(".lz4");
+
+      // create a directory on a best-effort basis, ignoring any errors
+      if (mkdir(filename.c_str(), 0777) != 0)
+        perror("(non-critical) cannot create a new mask cache directory");
+    }
+
+    // reset the cube just in case
+    fits_cube.clear();
+
+    // resize/init the cube with default nullptr-filled std::shared_ptr
+    fits_cube.resize(depth);
+
+    // init the compressed regions (sizing: err on the side of caution)
+    // cannot resize a vector of atomics in C++ ...
+    cube_pixels = std::vector<std::atomic<compressed_blocks *>>(depth / 4 + 4);
+    cube_mask = std::vector<std::atomic<compressed_blocks *>>(depth + 4);
+
+    for (auto i = 0; i < cube_pixels.size(); i++)
+      cube_pixels[i].store(nullptr);
+
+    for (auto i = 0; i < cube_mask.size(); i++)
+      cube_mask[i].store(nullptr);
+
+    cache_mtx = std::vector<std::shared_mutex>(depth / 4 + 4);
+    cache = std::vector<decompressed_blocks>(depth);
+
+    std::cout << "cube_pixels::size = " << cube_pixels.size()
+              << ", cube_mask::size = " << cube_mask.size()
+              << ", cache::size = " << cache.size()
+              << ", cache_mtx::size = " << cache_mtx.size() << std::endl;
+
+    // set up a cache purging thread
+    if (!purge_thread.joinable())
+    {
+      purge_thread = std::thread([this]() {
+        std::unique_lock<std::mutex> purge_lck(purge_mtx);
+
+        while (!terminate)
+        {
+          purge_cache();
+
+          purge_cv.wait_for(purge_lck, 10s);
+        }
+
+        printf("%s::purge_cache() thread terminated.\n", dataset_id.c_str());
+      });
+
+      // lower its priority
+#if defined(__APPLE__) && defined(__MACH__)
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_OTHER.\n");
+#else
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(purge_thread.native_handle(), SCHED_IDLE,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the cache purge thread priority to "
+               "SCHED_IDLE.\n");
+#endif
+    }
+
+    auto _img_pixels = img_pixels.get();
+    auto _img_mask = img_mask.get();
+
+    // prepare the main image/mask
+    memset(_img_mask, 0, plane_size);
+    for (size_t i = 0; i < plane_size; i++)
+      _img_pixels[i] = 0.0f;
+
+    int max_threads = omp_get_max_threads();
+
+    terminate_compression = false;
+
+    for (int i = 0; i < max_threads; i++)
+    {
+      // std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
+
+      std::thread a_thread =
+          std::thread(&FITS::zfp_compression_thread, this, i);
+
+#if defined(__APPLE__) && defined(__MACH__)
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_OTHER.\n");
+#else
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(a_thread.native_handle(), SCHED_IDLE, &param) !=
+          0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_IDLE.\n");
+#endif
+
+      zfp_pool.push_back(std::move(a_thread));
+    }
+
+    if (!is_compressed)
+    {
+      // pre-allocated floating-point read buffers
+      // to reduce RAM thrashing
+      std::vector<Ipp8u *> mask_buf(max_threads);
+
+      // OpenMP per-thread {pixels,mask}
+      std::vector<Ipp32f *> omp_pixels(max_threads);
+      std::vector<Ipp8u *> omp_mask(max_threads);
+
+      for (int i = 0; i < max_threads; i++)
+      {
+        mask_buf[i] = ippsMalloc_8u_L(plane_size);
+
+        omp_pixels[i] = ippsMalloc_32f_L(plane_size);
+        if (omp_pixels[i] != NULL)
+          for (size_t j = 0; j < plane_size; j++)
+            omp_pixels[i][j] = 0.0f;
+
+        omp_mask[i] = ippsMalloc_8u_L(plane_size);
+        if (omp_mask[i] != NULL)
+          memset(omp_mask[i], 0, plane_size);
+      }
+
+#pragma omp parallel for shared(bSuccess) schedule(dynamic)      \
+    num_threads(no_omp_threads) reduction(min                    \
+                                          : _pmin) reduction(max \
+                                                             : _pmax)
+      for (size_t k = 0; k < depth; k += 4)
+      {
+        size_t start_k = k;
+        size_t end_k = MIN(k + 4, depth);
+
+        for (size_t frame = start_k; frame < end_k; frame++)
+        {
+          // for (size_t frame = 0; frame < depth; frame++) {
+          int tid = omp_get_thread_num();
+          // printf("tid: %d, k: %zu\n", tid, k);
+          if (mask_buf[tid] == NULL || omp_pixels[tid] == NULL ||
+              omp_mask[tid] == NULL)
+          {
+            fprintf(
+                stderr,
+                "%s::<tid::%d>::problem allocating thread-local {pixels,buf} "
+                "arrays.\n",
+                dataset_id.c_str(), tid);
+            bSuccess = false;
+            continue;
+          }
+
+          Ipp32f *pixels_buf = nullptr;
+
+          // point the cube element to an mmaped region
+          if (this->fits_ptr && this->fits_ptr.get() != MAP_FAILED)
+          {
+            char *ptr = (char *)this->fits_ptr.get();
+            ptr += this->hdr_len + frame_size * frame;
+
+            fits_cube[frame] = std::shared_ptr<void>(ptr, [=](void *ptr) {
+              if (ptr != NULL)
+                madvise(ptr, frame_size, MADV_DONTNEED);
+            });
+
+            pixels_buf = (Ipp32f *)fits_cube[frame].get();
+          }
+
+          if (pixels_buf == nullptr)
+          {
+            fprintf(stderr, "%s::<tid::%d>::CRITICAL: pixels_buf is nullptr.\n",
+                    dataset_id.c_str(), tid);
+            bSuccess = false;
+          }
+          else
+          {
+            float fmin = FLT_MAX;
+            float fmax = -FLT_MAX;
+            float mean = 0.0f;
+            float integrated = 0.0f;
+
+            float _cdelt3 =
+                this->has_velocity
+                    ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                    : 1.0f;
+
+            ispc::make_image_spectrumF32_ro(
+                (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
+                datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
+                fmax, mean, integrated, plane_size);
+
+            _pmin = MIN(_pmin, fmin);
+            _pmax = MAX(_pmax, fmax);
+            frame_min[frame] = fmin;
+            frame_max[frame] = fmax;
+            mean_spectrum[frame] = mean;
+            integrated_spectrum[frame] = integrated;
+          }
+
+          send_progress_notification(frame, depth);
+        }
+
+        // append <start_k> to a ZFP compression queue
+        zfp_queue.push(start_k);
+      }
+
+      // join omp_{pixel,mask}
+
+      // keep the worksize within int32 limits
+      size_t max_work_size = 1024 * 1024 * 1024;
+      size_t work_size = MIN(plane_size / max_threads, max_work_size);
+      int num_threads = plane_size / work_size;
+
+      for (int i = 0; i < max_threads; i++)
+      {
+        float *pixels_tid = omp_pixels[i];
+        unsigned char *mask_tid = omp_mask[i];
+
+#pragma omp parallel for num_threads(no_omp_threads)
+        for (int tid = 0; tid < num_threads; tid++)
+        {
+          size_t work_size = plane_size / num_threads;
+          size_t start = tid * work_size;
+
+          if (tid == num_threads - 1)
+            work_size = plane_size - start;
+
+          ispc::join_pixels_masks(&(_img_pixels[start]), &(pixels_tid[start]),
+                                  &(_img_mask[start]), &(mask_tid[start]),
+                                  work_size);
+        }
+      }
+
+      // release memory
+      for (int i = 0; i < max_threads; i++)
+      {
+        if (mask_buf[i] != NULL)
+          ippsFree(mask_buf[i]);
+
+        if (omp_pixels[i] != NULL)
+          ippsFree(omp_pixels[i]);
+
+        if (omp_mask[i] != NULL)
+          ippsFree(omp_mask[i]);
+      }
+
+      /*compress_thread = std::thread(&FITS::zfp_compress, this);
+
+      struct sched_param param;
+      param.sched_priority = 0;
+      if (pthread_setschedparam(compress_thread.native_handle(), SCHED_IDLE,
+                                &param) != 0)
+        perror("pthread_setschedparam");
+      else
+        printf("successfully lowered the zfp_compress thread priority to "
+               "SCHED_IDLE.\n");*/
+    }
+    else
+    {
+      printf("%s::gz-compressed depth > 1: work-in-progress.\n",
+             dataset_id.c_str());
+
+      // allocate {pixel_buf, mask_buf}
+      /*std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size),
+                                         Ipp32fFree);*/
+      std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), Ipp8uFree);
+
+      if (mask_buf.get() == NULL)
+      {
+        printf("%s::CRITICAL::cannot malloc memory for mask "
+               "buffers.\n",
+               dataset_id.c_str());
+        bSuccess = false;
+      }
+      else
+        // ZFP requires blocks-of-4 processing
+        for (size_t k = 0; k < depth; k += 4)
+        {
+          size_t start_k = k;
+          size_t end_k = MIN(k + 4, depth);
+
+          for (size_t frame = start_k; frame < end_k; frame++)
+          {
+            fits_cube[frame] = std::shared_ptr<void>(
+                ippsMalloc_32f_L(plane_size), [=](void *ptr) {
+                  if (ptr != NULL)
+                    Ipp32fFree((Ipp32f *)ptr);
+                });
+
+            Ipp32f *pixels_buf = (Ipp32f *)fits_cube[frame].get();
+
+            // load data into the buffer sequentially
+            ssize_t bytes_read = 0;
+            if (pixels_buf != NULL)
+              bytes_read =
+                  gzread(this->compressed_fits_stream, pixels_buf, frame_size);
+
+            if (bytes_read != frame_size)
+            {
+              fprintf(stderr,
+                      "%s::CRITICAL: read less than %zd bytes from the FITS "
+                      "data unit\n",
+                      dataset_id.c_str(), bytes_read);
+              bSuccess = false;
+              break;
+            }
+
+            // process the buffer
+            float fmin = FLT_MAX;
+            float fmax = -FLT_MAX;
+            float mean = 0.0f;
+            float integrated = 0.0f;
+
+            float _cdelt3 =
+                this->has_velocity
+                    ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                    : 1.0f;
+
+            ispc::make_image_spectrumF32_ro(
+                (int32_t *)pixels_buf, mask_buf.get(), bzero, bscale, ignrval,
+                datamin, datamax, _cdelt3, img_pixels.get(), img_mask.get(),
+                fmin, fmax, mean, integrated, plane_size);
+
+            _pmin = MIN(_pmin, fmin);
+            _pmax = MAX(_pmax, fmax);
+            frame_min[frame] = fmin;
+            frame_max[frame] = fmax;
+            mean_spectrum[frame] = mean;
+            integrated_spectrum[frame] = integrated;
+
+            send_progress_notification(frame, depth);
+          }
+
+          // append <start_k> to a ZFP compression queue
+          zfp_queue.push(start_k);
+        }
+    }
+
+    dmin = _pmin;
+    dmax = _pmax;
+
+    /*printf("FMIN/FMAX\tSPECTRUM\n");
+      for (int i = 0; i < depth; i++)
+      printf("%d (%f):(%f)\t\t(%f):(%f)\n", i, frame_min[i], frame_max[i],
+      mean_spectrum[i], integrated_spectrum[i]); printf("\n");*/
+  }
+
+  // send a termination signal to the ZFP compression pool
+  terminate_compression = true;
+
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n",
+         dataset_id.c_str(), (bSuccess ? "true" : "false"), dmin, dmax,
+         elapsedMilliseconds);
+
+  if (bSuccess)
+  {
+    send_progress_notification(depth, depth);
+    /*for (int i = 0; i < depth; i++)
+      std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
+      << ", size: " << masks[i].getSizeInBytes() << " bytes"
+      << std::endl;*/
+
+    make_image_statistics();
+
+    printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f "
+           "madN: %f black: %f white: %f sensitivity: %f flux: %s\n",
+           dataset_id.c_str(), this->min, this->max, this->median, this->mad,
+           this->madP, this->madN, this->black, this->white, this->sensitivity,
+           this->flux.c_str());
+
+    /*make_image_luma();
+    make_exr_image();*/
+
+    auto _img_pixels = img_pixels.get();
+    auto _img_mask = img_mask.get();
+
+// replace NaNs with 0.0
+#pragma omp parallel for simd
+    for (size_t i = 0; i < plane_size; i++)
+      if (_img_mask[i] == 0)
+        _img_pixels[i] = 0.0f;
+  }
+  else
+  {
+    this->has_error = true;
+  }
+
+  this->has_data = bSuccess ? true : false;
+  this->processed_data = true;
+  this->data_cv.notify_all();
+  this->timestamp = std::time(nullptr);
+}
