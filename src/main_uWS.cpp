@@ -1663,7 +1663,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
           is_compressed = is_gzip(path.c_str());*/
 
         // load FITS data in a separate thread
-        std::thread(&FITS::from_path, fits, path, is_compressed, flux,
+        std::thread(&FITS::from_path_mmap, fits, path, is_compressed, flux,
                     va_count)
             .detach();
       }
