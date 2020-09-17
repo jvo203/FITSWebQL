@@ -1664,7 +1664,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
 
         // load FITS data in a separate thread
         std::thread(&FITS::from_path_mmap, fits, path, is_compressed, flux,
-                    va_count)
+                    va_count, true)
             .detach();
       }
       else
