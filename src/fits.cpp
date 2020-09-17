@@ -2707,7 +2707,7 @@ void FITS::from_path_io(std::string path, bool is_compressed, std::string flux,
   }
   else
   {
-    printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+    printf("%s::depth > 1: reading the data cube.\n", dataset_id.c_str());
     // init the variables
     frame_min.resize(depth, FLT_MAX);
     frame_max.resize(depth, -FLT_MAX);
@@ -2986,7 +2986,7 @@ void FITS::from_path_io(std::string path, bool is_compressed, std::string flux,
     }
     else
     {
-      printf("%s::gz-compressed depth > 1: work-in-progress.\n",
+      printf("%s::gz-compressed depth > 1: reading the data cube.\n",
              dataset_id.c_str());
 
       // allocate {pixel_buf, mask_buf}
@@ -3200,25 +3200,28 @@ void FITS::from_path(std::string path, bool is_compressed,
     return;
   }
 
-  // mmap the FITS file
-  if (this->fits_file_desc != -1)
+  if (use_mmap)
   {
-    this->fits_ptr = std::shared_ptr<void>(
-        mmap(nullptr, this->fits_file_size, PROT_READ,
-             MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0),
-        [=](void *ptr) {
-          if (ptr != MAP_FAILED)
-            munmap(ptr, fits_file_size);
-        });
-
-    if (this->fits_ptr.get() == MAP_FAILED)
+    // mmap the FITS file
+    if (this->fits_file_desc != -1)
     {
-      printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
-      processed_header = true;
-      header_cv.notify_all();
-      processed_data = true;
-      data_cv.notify_all();
-      return;
+      this->fits_ptr = std::shared_ptr<void>(
+          mmap(nullptr, this->fits_file_size, PROT_READ,
+               MAP_PRIVATE /*| MAP_HUGETLB*/, this->fits_file_desc, 0),
+          [=](void *ptr) {
+            if (ptr != MAP_FAILED)
+              munmap(ptr, fits_file_size);
+          });
+
+      if (this->fits_ptr.get() == MAP_FAILED)
+      {
+        printf("%s::error mmaping the FITS file...\n", dataset_id.c_str());
+        processed_header = true;
+        header_cv.notify_all();
+        processed_data = true;
+        data_cv.notify_all();
+        return;
+      }
     }
   }
 
@@ -3525,7 +3528,7 @@ void FITS::from_path(std::string path, bool is_compressed,
   }
   else
   {
-    printf("%s::depth > 1: work-in-progress.\n", dataset_id.c_str());
+    printf("%s::depth > 1: reading the data cube.\n", dataset_id.c_str());
     // init the variables
     frame_min.resize(depth, FLT_MAX);
     frame_max.resize(depth, -FLT_MAX);
@@ -3709,17 +3712,47 @@ void FITS::from_path(std::string path, bool is_compressed,
           Ipp32f *pixels_buf = nullptr;
 
           // point the cube element to an mmaped region
-          if (this->fits_ptr && this->fits_ptr.get() != MAP_FAILED)
+          if (use_mmap)
           {
-            char *ptr = (char *)this->fits_ptr.get();
-            ptr += this->hdr_len + frame_size * frame;
+            if (this->fits_ptr && this->fits_ptr.get() != MAP_FAILED)
+            {
+              char *ptr = (char *)this->fits_ptr.get();
+              ptr += this->hdr_len + frame_size * frame;
 
-            fits_cube[frame] = std::shared_ptr<void>(ptr, [=](void *ptr) {
+              fits_cube[frame] = std::shared_ptr<void>(ptr, [=](void *ptr) {
+                if (ptr != NULL)
+                  madvise(ptr, frame_size, MADV_DONTNEED);
+              });
+
+              pixels_buf = (Ipp32f *)fits_cube[frame].get();
+            }
+          }
+          else
+          {
+            // read data into RAM using File IO (pread)
+            fits_cube[frame] = std::shared_ptr<void>(ippsMalloc_32f_L(plane_size), [=](void *ptr) {
               if (ptr != NULL)
-                madvise(ptr, frame_size, MADV_DONTNEED);
+                Ipp32fFree((Ipp32f *)ptr);
             });
 
-            pixels_buf = (Ipp32f *)fits_cube[frame].get();
+            if (fits_cube[frame])
+              pixels_buf = (Ipp32f *)fits_cube[frame].get();
+
+            ssize_t bytes_read = 0;
+
+            if (pixels_buf != nullptr)
+              bytes_read = pread(this->fits_file_desc, pixels_buf,
+                                 frame_size, offset + frame_size * frame);
+
+            if (bytes_read != frame_size)
+            {
+              fprintf(stderr,
+                      "%s::<tid::%d>::CRITICAL: only read %zd out of requested "
+                      "%zd bytes.\n",
+                      dataset_id.c_str(), tid, bytes_read, frame_size);
+              bSuccess = false;
+              pixels_buf = nullptr;
+            }
           }
 
           if (pixels_buf == nullptr)
@@ -3813,7 +3846,7 @@ void FITS::from_path(std::string path, bool is_compressed,
     }
     else
     {
-      printf("%s::gz-compressed depth > 1: work-in-progress.\n",
+      printf("%s::gz-compressed depth > 1: reading the data cube.\n",
              dataset_id.c_str());
 
       // allocate {pixel_buf, mask_buf}
