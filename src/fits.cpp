@@ -2336,8 +2336,8 @@ void FITS::from_url(
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 }
 
-void FITS::from_path(std::string path, bool is_compressed, std::string flux,
-                     int va_count)
+void FITS::from_path_io(std::string path, bool is_compressed, std::string flux,
+                        int va_count)
 {
   deserialise();
 
@@ -3132,8 +3132,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   this->timestamp = std::time(nullptr);
 }
 
-void FITS::from_path_mmap(std::string path, bool is_compressed,
-                          std::string flux, int va_count)
+void FITS::from_path(std::string path, bool is_compressed,
+                     std::string flux, int va_count, bool use_mmap)
 {
   deserialise();
 
