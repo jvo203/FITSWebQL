@@ -564,7 +564,7 @@ void FITS::deserialise() {
 
   gzclose(fp);
 
-  std::cout << json_str << std::endl;
+  //std::cout << json_str << std::endl;
 
   // parse the JSON
   JsonNode *json = json_decode(json_str);
