@@ -809,6 +809,9 @@ void FITS::deserialise() {
     if (strcmp(key, "lmax") == 0 && node->tag == JSON_NUMBER)
       this->lmax = node->number_;
 
+    if (strcmp(key, "has_header") == 0 && node->tag == JSON_BOOL)
+      this->has_header = node->bool_;
+
     if (strcmp(key, "has_data") == 0 && node->tag == JSON_BOOL)
       this->has_data = node->bool_;
 
@@ -908,7 +911,6 @@ void FITS::deserialise() {
     }
   }
 
-  this->has_header = true;
   processed_header = true;
   header_cv.notify_all();
   header_lck.unlock();
