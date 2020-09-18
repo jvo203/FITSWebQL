@@ -513,36 +513,58 @@ void FITS::defaults() {
 }
 
 void FITS::deserialise() {
+  printf("calling deserialise\n");
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
+
+  printf("got here #0\n");
 
   std::string filename = FITSCACHE + std::string("/") +
                          boost::replace_all_copy(dataset_id, "/", "_") +
                          std::string(".json.gz");
 
+  printf("got here #1\n");
+
   struct stat64 st;
   int stat = stat64(filename.c_str(), &st);
+
+  printf("got here #2\n");
 
   if (stat == -1)
     return;
 
+  printf("got here #3\n");
+
   if (st.st_size == 0)
     return;
+
+  printf("got here #4\n");
 
   gzFile fp = gzopen(filename.c_str(), "r");
   if (!fp)
     return;
 
+  printf("got here #5\n");
+
   // read the <unsigned int len> first
   unsigned int len;
   gzread(fp, &len, sizeof(len));
 
+  printf("got here #6, len = %d\n", len);
+
   // read-in the JSON string
   char json_str[len + 1];
+  printf("got here #7\n");
   gzread(fp, json_str, len);
+  printf("got here #8\n");
   json_str[len] = '\0';
+  printf("got here #9\n");
+
+  printf("got here #7\n");
 
   gzclose(fp);
+
+  std::cout << json_str << std::endl;
 
   // parse the JSON
   JsonNode *json = json_decode(json_str);
