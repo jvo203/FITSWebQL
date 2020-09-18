@@ -578,7 +578,6 @@ void FITS::deserialise()
 
 // read-in the JSON string
 #if defined(__APPLE__) && defined(__MACH__)
-  //std::shared_ptr<char> json_str_ptr((char *)malloc(len + 1), free);
   std::shared_ptr<char> json_str_ptr((char *)operator new(len + 1));
 
   if (!json_str_ptr)
