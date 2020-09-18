@@ -581,7 +581,10 @@ void FITS::deserialise()
   std::shared_ptr<char> json_str_ptr((char *)operator new(len + 1));
 
   if (!json_str_ptr)
+  {
+    gzclose(fp);
     return;
+  }
 
   char *json_str = json_str_ptr.get();
 #else
