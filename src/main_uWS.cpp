@@ -2685,6 +2685,77 @@ int main(int argc, char *argv[])
                            }
                          }
 
+                         if (message.find("[image]") != std::string::npos)
+                         {
+                           auto now = system_clock::now();
+                           user->ptr->ts = now;
+
+                           float quality = 45;
+                           bool hist_update = false;
+                           int view_width = -1;
+                           int view_height = -1;
+                           double frame_start = 0;
+                           double frame_end = 0;
+                           double ref_freq = 0;
+                           float timestamp = 0;
+
+                           std::string_view query;
+                           size_t pos = message.find("?");
+
+                           if (pos != std::string::npos)
+                             query = message.substr(pos + 1, std::string::npos);
+
+                           std::vector<std::string> params;
+                           boost::split(params, query, [](char c) { return c == '&'; });
+
+                           for (auto const &s : params)
+                           {
+                             // find '='
+                             size_t pos = s.find("=");
+
+                             if (pos != std::string::npos)
+                             {
+                               std::string key = s.substr(0, pos);
+                               std::string value = s.substr(pos + 1, std::string::npos);
+
+                               if (key.find("quality") != std::string::npos)
+                                 quality = std::stof(value);
+
+                               if (key.find("hist") != std::string::npos)
+                               {
+                                 if (value == "true")
+                                   hist_update = true;
+                               }
+
+                               if (key.find("width") != std::string::npos)
+                                 view_width = std::stoi(value);
+
+                               if (key.find("height") != std::string::npos)
+                                 view_height = std::stoi(value);
+
+                               if (key.find("frame_start") != std::string::npos)
+                                 frame_start = std::stod(value);
+
+                               if (key.find("frame_end") != std::string::npos)
+                                 frame_end = std::stod(value);
+
+                               if (key.find("ref_freq") != std::string::npos)
+                                 ref_freq = std::stod(value);
+
+                               if (key.find("timestamp") != std::string::npos)
+                                 timestamp = std::stof(value);
+                             }
+                           }
+
+                           // process the response
+                           std::cout << "query(" << datasetid << "::" << quality
+                                     << "::" << (hist_update ? "true" : "false")
+                                     << "::" << frame_start << "::" << frame_end
+                                     << "::" << ref_freq
+                                     << "::view <" << view_width << " x " << view_height
+                                     << ">::" << timestamp << ")" << std::endl;
+                         }
+
                          if (message.find("realtime_image_spectrum") != std::string::npos)
                          {
                            // get deltat (no need to lock the mutex at this point)
