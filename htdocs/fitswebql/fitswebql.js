@@ -5208,7 +5208,7 @@ function image_refresh(index, refresh_histogram = true) {
 	var width = rect.width - 20;
 	var height = rect.height - 20;
 
-	var image =  '&width=' + width + '&height=' + height + '&quality=' + image_quality;
+	var image =  'width=' + width + '&height=' + height + '&quality=' + image_quality;
 	var freq = '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ;
 	var hist = '&hist=' + refresh_histogram;
 
@@ -5216,7 +5216,7 @@ function image_refresh(index, refresh_histogram = true) {
 	console.log(strRequest);
 
 	//send an [image] request to the server    
-	wsConn[index - 1].send('[image]' + strRequest + '&timestamp=' + performance.now());
+	wsConn[index - 1].send('[image]?' + strRequest + '&timestamp=' + performance.now());
 }
 
 function display_scale_range_ui(called_from_menu = false) {
