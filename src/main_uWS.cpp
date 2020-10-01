@@ -2646,7 +2646,7 @@ int main(int argc, char *argv[])
                            int seq = -1;
 
                            std::string_view query;
-                           size_t pos = message.find("?");
+                           size_t pos = message.find_first_of(" ");
 
                            if (pos != std::string::npos)
                              query = message.substr(pos + 1, std::string::npos);
@@ -2700,7 +2700,7 @@ int main(int argc, char *argv[])
                            float timestamp = 0;
 
                            std::string_view query;
-                           size_t pos = message.find("?");
+                           size_t pos = message.find_first_of(" ");
 
                            if (pos != std::string::npos)
                              query = message.substr(pos + 1, std::string::npos);
@@ -2756,7 +2756,7 @@ int main(int argc, char *argv[])
                                      << ">::" << timestamp << ")" << std::endl;
                          }
 
-                         if (message.find("realtime_image_spectrum") != std::string::npos)
+                         if (message.find("[realtime_image_spectrum]") != std::string::npos)
                          {
                            // get deltat (no need to lock the mutex at this point)
                            auto now = system_clock::now();
@@ -2781,7 +2781,7 @@ int main(int argc, char *argv[])
                            beam_shape beam = square;
 
                            std::string_view query;
-                           size_t pos = message.find("?");
+                           size_t pos = message.find_first_of(" ");
 
                            if (pos != std::string::npos)
                              query = message.substr(pos + 1, std::string::npos);
