@@ -2748,12 +2748,30 @@ int main(int argc, char *argv[])
                            }
 
                            // process the response
-                           std::cout << "query(" << datasetid << "::" << quality
+                           /*std::cout << "query(" << datasetid << "::" << quality
                                      << "::" << (hist_update ? "true" : "false")
                                      << "::" << frame_start << "::" << frame_end
                                      << "::" << ref_freq
                                      << "::view <" << view_width << " x " << view_height
-                                     << ">::" << timestamp << ")" << std::endl;
+                                     << ">::" << timestamp << ")" << std::endl;*/
+
+                           auto fits = get_dataset(datasetid);
+
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
+                               // launch a separate thread
+                               boost::thread *image_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, hist_update, quality, view_width, view_height, timestamp]() {
+                                 if (!user->ptr->active)
+                                   return;
+
+                                 fits->update_timestamp();
+                               });
+
+                               user->ptr->active_threads.add_thread(image_thread);
+                             }
+                           }
                          }
 
                          if (message.find("[realtime_image_spectrum]") != std::string::npos)
