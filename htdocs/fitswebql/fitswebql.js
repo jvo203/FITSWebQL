@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-08-20.0";
+	return "JS2020-10-01.0";
 }
 
 const wasm_supported = (() => {
