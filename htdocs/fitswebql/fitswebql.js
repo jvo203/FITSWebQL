@@ -5216,7 +5216,7 @@ function image_refresh(index, refresh_histogram = true) {
 	console.log(strRequest);
 
 	//send an [image] request to the server    
-	wsConn[index - 1].send('[image]?' + strRequest + '&timestamp=' + performance.now());
+	wsConn[index - 1].send('[image] ' + strRequest + '&timestamp=' + performance.now());
 }
 
 function display_scale_range_ui(called_from_menu = false) {
@@ -9291,7 +9291,7 @@ function setup_image_selection() {
 			init_webgl_zoom_buffers();
 
 			// send a "Kalman Filter reset" WebSocket message in order to reset the server-side Kalman Filter
-			var msg = 'kalman_reset?seq_id=' + (++sent_seq_id);
+			var msg = '[kalman_reset] seq_id=' + (++sent_seq_id);
 			for (let index = 0; index < va_count; index++) {
 				if (wsConn[index].readyState == 1)
 					wsConn[index].send(msg);
@@ -9301,7 +9301,7 @@ function setup_image_selection() {
 			clearTimeout(idleMouse);
 
 			// send a "Kalman Filter reset" WebSocket message in order to reset the server-side Kalman Filter
-			var msg = 'kalman_reset?seq_id=' + (++sent_seq_id);
+			var msg = '[kalman_reset] seq_id=' + (++sent_seq_id);
 			for (let index = 0; index < va_count; index++) {
 				if (wsConn[index].readyState == 1)
 					wsConn[index].send(msg);
@@ -9752,7 +9752,7 @@ function setup_image_selection() {
 						let _width = viewport_zoom_settings.zoomed_size;
 						let _height = viewport_zoom_settings.zoomed_size;
 
-						var request = 'realtime_image_spectrum?dx=' + dx + '&image=false&quality=' + image_quality;
+						var request = '[realtime_image_spectrum] dx=' + dx + '&image=false&quality=' + image_quality;
 						request += '&x1=' + x1 + '&y1=' + y1 + '&x2=' + x2 + '&y2=' + y2 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 						request += '&timestamp=' + performance.now();
 
@@ -10739,7 +10739,7 @@ function imageTimeout() {
 		let _width = viewport_zoom_settings.zoomed_size;
 		let _height = viewport_zoom_settings.zoomed_size;
 
-		var request = 'realtime_image_spectrum?dx=' + dx + '&image=' + image_update + '&quality=' + image_quality;
+		var request = '[realtime_image_spectrum] dx=' + dx + '&image=' + image_update + '&quality=' + image_quality;
 		request += '&x1=' + x1 + '&y1=' + y1 + '&x2=' + x2 + '&y2=' + y2 + '&width=' + _width + '&height=' + _height + '&beam=' + zoom_shape + '&intensity=' + intensity_mode + '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ + '&seq_id=' + sent_seq_id;
 		request += '&timestamp=' + performance.now();
 
