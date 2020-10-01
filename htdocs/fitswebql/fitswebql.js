@@ -5201,8 +5201,7 @@ function cube_refresh(index) {
 	}
 	catch (e) { };
 
-	if (refresh_histogram)
-		enable_autoscale();
+	enable_autoscale();
 
 	var rect = document.getElementById('mainDiv').getBoundingClientRect();
 	var width = rect.width - 20;
