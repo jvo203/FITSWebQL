@@ -2691,7 +2691,6 @@ int main(int argc, char *argv[])
                            user->ptr->ts = now;
 
                            float quality = 45;
-                           bool hist_update = false;
                            int view_width = -1;
                            int view_height = -1;
                            double frame_start = 0;
@@ -2721,12 +2720,6 @@ int main(int argc, char *argv[])
                                if (key.find("quality") != std::string::npos)
                                  quality = std::stof(value);
 
-                               if (key.find("hist") != std::string::npos)
-                               {
-                                 if (value == "true")
-                                   hist_update = true;
-                               }
-
                                if (key.find("width") != std::string::npos)
                                  view_width = std::stoi(value);
 
@@ -2748,8 +2741,7 @@ int main(int argc, char *argv[])
                            }
 
                            // process the response
-                           /*std::cout << "query(" << datasetid << "::" << quality
-                                     << "::" << (hist_update ? "true" : "false")
+                           /*std::cout << "query(" << datasetid << "::" << quality                                     
                                      << "::" << frame_start << "::" << frame_end
                                      << "::" << ref_freq
                                      << "::view <" << view_width << " x " << view_height
@@ -2762,7 +2754,7 @@ int main(int argc, char *argv[])
                              if (!fits->has_error && fits->has_data)
                              {
                                // launch a separate thread
-                               boost::thread *image_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, hist_update, quality, view_width, view_height, timestamp]() {
+                               boost::thread *image_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, quality, view_width, view_height, timestamp]() {
                                  if (!user->ptr->active)
                                    return;
 
@@ -2773,26 +2765,11 @@ int main(int argc, char *argv[])
 
                                  fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                                 // make image/spectrum first
+                                 // make image/spectrum/histogram
                                  {
                                    auto start_t = steady_clock::now();
 
-                                   // fits->make_image()...
-
-                                   auto end_t = steady_clock::now();
-
-                                   double elapsedSeconds = ((end_t - start_t).count()) *
-                                                           steady_clock::period::num /
-                                                           static_cast<double>(steady_clock::period::den);
-                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
-                                 }
-
-                                 // make a new histogram too
-                                 if (hist_update)
-                                 {
-                                   auto start_t = steady_clock::now();
-
-                                   // fits->make_histogram()...
+                                   // fits->make_image_statistics()...
 
                                    auto end_t = steady_clock::now();
 
