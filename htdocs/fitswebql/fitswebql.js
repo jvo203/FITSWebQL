@@ -5195,7 +5195,7 @@ function change_tone_mapping(index, recursive) {
 	}
 }
 
-function image_refresh(index, refresh_histogram = true) {
+function cube_refresh(index) {
 	try {
 		d3.selectAll('#contourPlot').remove();
 	}
@@ -5208,11 +5208,10 @@ function image_refresh(index, refresh_histogram = true) {
 	var width = rect.width - 20;
 	var height = rect.height - 20;
 
-	var image =  'width=' + width + '&height=' + height + '&quality=' + image_quality;
+	var image = 'width=' + width + '&height=' + height + '&quality=' + image_quality;
 	var freq = '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ;
-	var hist = '&hist=' + refresh_histogram;
 
-	var strRequest = image + freq + hist;
+	var strRequest = image + freq;
 	console.log(strRequest);
 
 	//send an [image] request to the server    
@@ -5548,19 +5547,6 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 	flux_elem.attr(info, pos);
 
 	function dropGroup(d) {
-		/*display_hourglass();
-
-		if (!composite_view) {
-			image_count = va_count - 1;
-
-			image_refresh(index, false);
-		}
-		else {
-			image_count = 0;
-
-			for (let i = 1; i <= va_count; i++)
-				image_refresh(i, false);
-		}*/
 	}
 
 	function dragGroup(d) {
@@ -6651,8 +6637,8 @@ function display_histogram(index) {
 		.attr("max", "100")
 		.attr("step", "1")
 		.attr("value", noise_sensitivity)
-		.attr("onmousemove", "javascript:change_noise_sensitivity(false," + index + ");")
-		.attr("onchange", "javascript:change_noise_sensitivity(false," + index + ");");// was true
+		.attr("onmousemove", "javascript:change_noise_sensitivity(" + index + ");")
+		.attr("onchange", "javascript:change_noise_sensitivity(" + index + ");");// was true
 
 	var mainRect = document.getElementById('mainDiv').getBoundingClientRect();
 	var width = 0.33 * mainRect.width;
@@ -6877,7 +6863,7 @@ function dragend() {
 		spectrum_count = 0;
 
 		for (let index = 1; index <= va_count; index++)
-			image_refresh(index);
+			cube_refresh(index);
 
 		display_molecules();
 	}
@@ -10937,7 +10923,7 @@ function updateKalman() {
 	mouse_position.y = predX.elements[1];*/
 }
 
-function change_noise_sensitivity(refresh, index) {
+function change_noise_sensitivity(index) {
 	noise_sensitivity = document.getElementById('sensitivity' + index).value;
 	var multiplier = get_noise_sensitivity(noise_sensitivity);
 	document.getElementById('sensitivityInput' + index).innerHTML = get_noise_sensitivity_string(noise_sensitivity, 2);
@@ -10991,22 +10977,6 @@ function change_noise_sensitivity(refresh, index) {
 	image.refresh = true;
 
 	update_legend();
-
-	if (refresh) {
-		display_hourglass();
-
-		if (!composite_view) {
-			image_count = va_count - 1;
-
-			image_refresh(index, false);
-		}
-		else {
-			image_count = 0;
-
-			for (let i = 1; i <= va_count; i++)
-				image_refresh(i, false);
-		}
-	}
 }
 
 function partial_fits_download(offsetx, offsety, width, height) {
