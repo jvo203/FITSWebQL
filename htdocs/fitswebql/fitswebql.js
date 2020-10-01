@@ -5201,45 +5201,18 @@ function image_refresh(index, refresh_histogram = true) {
 	}
 	catch (e) { };
 
-	//has_contours = false ;
-
 	if (refresh_histogram)
 		enable_autoscale();
 
-	/*displayContours = false ;
-	var htmlStr = displayContours ? '<span class="glyphicon glyphicon-check"></span> contour lines' : '<span class="glyphicon glyphicon-unchecked"></span> contour lines' ;
-	d3.select("#displayContours").html(htmlStr);*/
+	var rect = document.getElementById('mainDiv').getBoundingClientRect();
+	var width = rect.width - 20;
+	var height = rect.height - 20;
 
-	var flux_elem = d3.select("#flux_path" + index);
-
-	var black = '&black=';
-	var white = '&white=';
-	var median = '&median=';
-
-	try {
-		black += flux_elem.attr("black");
-	}
-	catch (e) {
-	};
-
-	try {
-		white += flux_elem.attr("white");
-	}
-	catch (e) {
-	};
-
-	try {
-		median += flux_elem.attr("median");
-	}
-	catch (e) {
-	};
-
-	var noise = '&noise=' + get_noise_sensitivity_string(noise_sensitivity, 3);
-	var flux = '&flux=' + document.getElementById('flux' + index).value;
+	var image =  '&width=' + width + '&height=' + height + '&quality=' + image_quality;
 	var freq = '&frame_start=' + data_band_lo + '&frame_end=' + data_band_hi + '&ref_freq=' + RESTFRQ;
 	var hist = '&hist=' + refresh_histogram;
 
-	var strRequest = black + white + median + noise + flux + freq + hist;
+	var strRequest = image + freq + hist;
 	console.log(strRequest);
 
 	//send an [image] request to the server    
