@@ -2767,6 +2767,40 @@ int main(int argc, char *argv[])
                                    return;
 
                                  fits->update_timestamp();
+
+                                 int start, end;
+                                 double elapsedMilliseconds = 0.0;
+
+                                 fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
+
+                                 // make image/spectrum first
+                                 {
+                                   auto start_t = steady_clock::now();
+
+                                   // fits->make_image()...
+
+                                   auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) *
+                                                           steady_clock::period::num /
+                                                           static_cast<double>(steady_clock::period::den);
+                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
+                                 }
+
+                                 // make a new histogram too
+                                 if (hist_update)
+                                 {
+                                   auto start_t = steady_clock::now();
+
+                                   // fits->make_histogram()...
+
+                                   auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) *
+                                                           steady_clock::period::num /
+                                                           static_cast<double>(steady_clock::period::den);
+                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
+                                 }
                                });
 
                                user->ptr->active_threads.add_thread(image_thread);
