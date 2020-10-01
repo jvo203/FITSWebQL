@@ -2741,7 +2741,7 @@ int main(int argc, char *argv[])
                            }
 
                            // process the response
-                           /*std::cout << "query(" << datasetid << "::" << quality                                     
+                           /*std::cout << "query(" << datasetid << "::" << quality
                                      << "::" << frame_start << "::" << frame_end
                                      << "::" << ref_freq
                                      << "::view <" << view_width << " x " << view_height
