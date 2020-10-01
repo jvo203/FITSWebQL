@@ -2641,7 +2641,7 @@ int main(int argc, char *argv[])
 
                          std::string datasetid = user->ptr->primary_id;
 
-                         if (message.find("kalman_reset") != std::string::npos)
+                         if (message.find("[kalman_reset]") != std::string::npos)
                          {
                            int seq = -1;
 
