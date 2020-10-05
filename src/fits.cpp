@@ -2994,7 +2994,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                     : 1.0f;
 
             ispc::make_image_spectrumF32_ro(
-                (int32_t *)pixels_buf, mask_buf[tid], bzero, bscale, ignrval,
+                (int32_t *)pixels_buf, /*mask_buf[tid],*/ bzero, bscale, ignrval,
                 datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
                 fmax, mean, integrated, plane_size);
 
@@ -3126,7 +3126,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
                     : 1.0f;
 
             ispc::make_image_spectrumF32_ro(
-                (int32_t *)pixels_buf, mask_buf.get(), bzero, bscale, ignrval,
+                (int32_t *)pixels_buf, /*mask_buf.get(),*/ bzero, bscale, ignrval,
                 datamin, datamax, _cdelt3, img_pixels.get(), img_mask.get(),
                 fmin, fmax, mean, integrated, plane_size);
 
