@@ -2765,9 +2765,12 @@ int main(int argc, char *argv[])
 
                                  fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                                 // make image/spectrum/histogram
+                                 // make image/spectrum/histogram (get a FITS sub-cube)
+                                 if (fits->depth > 1)
                                  {
                                    auto start_t = steady_clock::now();
+
+                                  fits->get_cube(start, end);
 
                                    // fits->make_image_statistics()...
 
