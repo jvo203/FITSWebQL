@@ -4261,7 +4261,44 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
 
 void FITS::get_cube(int start, int end)
 {
-  // TO-DO: just like get_spectrum() below ...
+  // TO-DO: just like get_spectrum()
+
+  // sanity checks
+  if (bitpix != -32)
+    return;
+
+  if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
+    return;
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  // allocate memory for local pixels and a mask
+  const size_t plane_size = width * height;
+  const size_t frame_size = plane_size * abs(bitpix / 8);
+
+  std::shared_ptr<Ipp32f> img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {                  
+          if(ptr != NULL)
+            Ipp32fFree(ptr);
+        });
+
+
+  std::shared_ptr<Ipp8u> img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {          
+          if(ptr != NULL)
+          Ipp8uFree(ptr);
+        });
+
+
+   if (!img_pixels || !img_mask)
+  {
+    printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask) used in a user session.\n",
+           dataset_id.c_str());    
+    return;
+  }
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
