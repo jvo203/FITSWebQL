@@ -4259,6 +4259,11 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
+void FITS::get_cube(int start, int end)
+{
+  // TO-DO: just like get_spectrum() below ...
+}
+
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
                                       int x2, int y2, intensity_mode intensity,
                                       beam_shape beam, double &elapsed)
