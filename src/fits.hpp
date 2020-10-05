@@ -127,14 +127,14 @@ public:
   from_url(std::string url, std::string flux,
            int va_count /*, boost::shared_ptr<shared_state> const& state*/);
   void from_path(std::string path, bool is_compressed, std::string flux,
-                      int va_count, bool use_mmap = true);
+                 int va_count, bool use_mmap = true);
   void get_frequency_range(double &freq_start, double &freq_end);
   void get_spectrum_range(double frame_start, double frame_end, double ref_freq,
                           int &start, int &end);
   std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2,
                                   int y2, intensity_mode intensity,
                                   beam_shape beam, double &elapsed);
-  void get_cube(int start, int end);                                  
+  void get_cube(int start, int end);
   void preempt_cache(int start, int end, int x1, int y1, int x2, int y2);
   void to_json(std::ostringstream &json);
 
