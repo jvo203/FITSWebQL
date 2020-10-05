@@ -11,7 +11,7 @@
   "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-05.0"
+#define VERSION_STRING "SV2020-10-05.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2770,7 +2770,7 @@ int main(int argc, char *argv[])
                                  {
                                    auto start_t = steady_clock::now();
 
-                                  fits->get_cube(start, end);
+                                   fits->get_cube(start, end);
 
                                    // fits->make_image_statistics()...
 
