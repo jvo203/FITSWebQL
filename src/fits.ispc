@@ -149,7 +149,6 @@ export void make_image_spectrumF32(uniform int32 src[], /*uniform unsigned int8 
       {
 	      src[i] = 0x7ff80000; // quiet NaN        
 	      //mask[i] = 0;
-        dst_mask[i] = 0 ;
       }
     } ;
 
@@ -200,7 +199,6 @@ export void make_image_spectrumF32_ro(uniform int32 src[], /*uniform unsigned in
       else
       {	      
 	      //mask[i] = 0;
-        dst_mask[i] = 0 ;
       }
     } ;
 
