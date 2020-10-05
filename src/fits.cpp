@@ -3010,7 +3010,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        zfp_queue.push(start_k);
+        //zfp_queue.push(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3141,7 +3141,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
           }
 
           // append <start_k> to a ZFP compression queue
-          zfp_queue.push(start_k);
+          //zfp_queue.push(start_k);
         }
     }
 
@@ -4277,28 +4277,150 @@ void FITS::get_cube(int start, int end)
     end = tmp;
   };
 
+  // passed the sanity checks
+  int length = end - start + 1;
+
+  auto [_start_x, _start_y] = make_indices(0, 0);
+  auto [_end_x, _end_y] = make_indices(width - 1, height - 1);
+
+  // a workaround for macOS
+  int start_x = _start_x;
+  int start_y = _start_y;
+  int end_x = _end_x;
+  int end_y = _end_y;
+
+  // resize the spectrum vectors
+  std::vector<float> mean_spectrum;
+  std::vector<float> integrated_spectrum;
+
+  mean_spectrum.resize(length, 0.0f);
+  integrated_spectrum.resize(length, 0.0f);
+
   // allocate memory for local pixels and a mask
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
 
-  std::shared_ptr<Ipp32f> img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+  std::shared_ptr<Ipp32f> pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
     if (ptr != NULL)
       Ipp32fFree(ptr);
   });
 
-  std::shared_ptr<Ipp8u> img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+  std::shared_ptr<Ipp8u> mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
     if (ptr != NULL)
       Ipp8uFree(ptr);
   });
 
-  if (!img_pixels || !img_mask)
+  if (!pixels || !mask)
   {
     printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask) used in a user session.\n",
            dataset_id.c_str());
     return;
   }
 
+  auto _img_pixels = pixels.get();
+  auto _img_mask = mask.get();
+
   // next allocate thread-local pixels/mask
+  int max_threads = omp_get_max_threads();
+
+  // OpenMP per-thread {mask_buf, pixels,mask}
+  std::vector<Ipp8u *> mask_buf(max_threads);
+  std::vector<Ipp32f *> omp_pixels(max_threads);
+  std::vector<Ipp8u *> omp_mask(max_threads);
+
+  for (int i = 0; i < max_threads; i++)
+  {
+    mask_buf[i] = ippsMalloc_8u_L(plane_size);
+
+    omp_pixels[i] = ippsMalloc_32f_L(plane_size);
+    if (omp_pixels[i] != NULL)
+      for (size_t j = 0; j < plane_size; j++)
+        omp_pixels[i][j] = 0.0f;
+
+    omp_mask[i] = ippsMalloc_8u_L(plane_size);
+    if (omp_mask[i] != NULL)
+      memset(omp_mask[i], 0, plane_size);
+  }
+
+#pragma omp parallel for schedule(dynamic, 4) \
+    shared(start_x, end_x, start_y, end_y)
+  for (size_t i = (start - (start % 4)); i <= end; i++)
+  {
+    // int tid = omp_get_thread_num();
+
+    // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a
+    // multiple of 4
+    if (i < start)
+      continue;
+
+    bool has_compressed_plane = false;
+    bool compressed_pixels = false;
+    bool compressed_mask = false;
+
+    int pixels_idz = i / 4;
+    int sub_frame = i % 4; // a sub-pixels frame count in [0,4)
+    int mask_idz = i;
+
+    {
+      auto pixel_blocks = cube_pixels[pixels_idz].load();
+      if (pixel_blocks != nullptr)
+        compressed_pixels = true;
+    }
+
+    {
+      auto mask_blocks = cube_mask[mask_idz].load();
+      if (mask_blocks != nullptr)
+        compressed_mask = true;
+    }
+
+  jmp:
+    if (!has_compressed_plane && fits_cube[i])
+    {
+      // make_image_spectrumF32_ro
+    }
+  }
+
+  // join omp_{pixel,mask}
+
+  // keep the worksize within int32 limits
+  size_t max_work_size = 1024 * 1024 * 1024;
+  size_t work_size = MIN(plane_size / max_threads, max_work_size);
+  int num_threads = plane_size / work_size;
+
+  for (int i = 0; i < max_threads; i++)
+  {
+    float *pixels_tid = omp_pixels[i];
+    unsigned char *mask_tid = omp_mask[i];
+
+#pragma omp parallel for
+    for (int tid = 0; tid < num_threads; tid++)
+    {
+      size_t work_size = plane_size / num_threads;
+      size_t start = tid * work_size;
+
+      if (tid == num_threads - 1)
+        work_size = plane_size - start;
+
+      ispc::join_pixels_masks(&(_img_pixels[start]), &(pixels_tid[start]),
+                              &(_img_mask[start]), &(mask_tid[start]),
+                              work_size);
+    }
+  }
+
+  // release memory
+  for (int i = 0; i < max_threads; i++)
+  {
+    if (mask_buf[i] != NULL)
+      ippsFree(mask_buf[i]);
+
+    if (omp_pixels[i] != NULL)
+      ippsFree(omp_pixels[i]);
+
+    if (omp_mask[i] != NULL)
+      ippsFree(omp_mask[i]);
+  }
+
+  // return std::tuple with pixels, mask, mean_spectrum, integrated_spectrum
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
