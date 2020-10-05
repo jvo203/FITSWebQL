@@ -119,7 +119,7 @@ export void f16tof32(uniform unsigned int16 src[], uniform float dst[], uniform 
     dst[i] = frame_min + (half_to_float_fast(src[i]) - min16) / (max16 - min16) * (frame_max - frame_min);
 }
 
-export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
+export void make_image_spectrumF32(uniform int32 src[], /*uniform unsigned int8 mask[], */uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
 {  
   varying float partial_sum = 0.0f ;
   varying unsigned int64 partial_count = 0 ;
@@ -137,7 +137,7 @@ export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 ma
       cif (!nan)
 	    {
 	      src[i] = intbits(tmp) ;
-	      mask[i] = 255;
+	      //mask[i] = 255;
 	      dst_pixels[i] += tmp ;
 	      dst_mask[i] = 255 ;
 	      partial_sum += tmp ;
@@ -148,7 +148,8 @@ export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 ma
       else
       {
 	      src[i] = 0x7ff80000; // quiet NaN        
-	      mask[i] = 0;
+	      //mask[i] = 0;
+        dst_mask[i] = 0 ;
       }
     } ;
 
@@ -171,7 +172,7 @@ export void make_image_spectrumF32(uniform int32 src[], uniform unsigned int8 ma
   frame_max = reduce_max(partial_max);  
 } ;
 
-export void make_image_spectrumF32_ro(uniform int32 src[], uniform unsigned int8 mask[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
+export void make_image_spectrumF32_ro(uniform int32 src[], /*uniform unsigned int8 mask[], */uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform float& frame_min, uniform float& frame_max, uniform float& mean, uniform float& integrated, uniform unsigned int total_size)
 {  
   varying float partial_sum = 0.0f ;
   varying unsigned int64 partial_count = 0 ;
@@ -188,7 +189,7 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform unsigned int8
       //alternative coherent if
       cif (!nan)
 	    {	      
-	      mask[i] = 255;
+	      //mask[i] = 255;
 	      dst_pixels[i] += tmp ;
 	      dst_mask[i] = 255 ;
 	      partial_sum += tmp ;
@@ -198,7 +199,8 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform unsigned int8
 	    }
       else
       {	      
-	      mask[i] = 0;
+	      //mask[i] = 0;
+        dst_mask[i] = 0 ;
       }
     } ;
 
