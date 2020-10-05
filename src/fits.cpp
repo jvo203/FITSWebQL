@@ -4281,24 +4281,24 @@ void FITS::get_cube(int start, int end)
   const size_t plane_size = width * height;
   const size_t frame_size = plane_size * abs(bitpix / 8);
 
-  std::shared_ptr<Ipp32f> img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {                  
-          if(ptr != NULL)
-            Ipp32fFree(ptr);
-        });
+  std::shared_ptr<Ipp32f> img_pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+    if (ptr != NULL)
+      Ipp32fFree(ptr);
+  });
 
+  std::shared_ptr<Ipp8u> img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+    if (ptr != NULL)
+      Ipp8uFree(ptr);
+  });
 
-  std::shared_ptr<Ipp8u> img_mask = std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {          
-          if(ptr != NULL)
-          Ipp8uFree(ptr);
-        });
-
-
-   if (!img_pixels || !img_mask)
+  if (!img_pixels || !img_mask)
   {
     printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask) used in a user session.\n",
-           dataset_id.c_str());    
+           dataset_id.c_str());
     return;
   }
+
+  // next allocate thread-local pixels/mask
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
