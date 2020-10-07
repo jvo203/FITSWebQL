@@ -87,11 +87,11 @@ sudo yum install zlib-devel
 
 Issue "cd" to return to your home directory
 
-wget https://github.com/AcademySoftwareFoundation/openexr/archive/v2.5.2.tar.gz
+wget https://github.com/AcademySoftwareFoundation/openexr/archive/v2.5.3.tar.gz
 
-tar zxvf v2.5.2.tar.gz
+tar zxvf v2.5.3.tar.gz
 
-cd openexr-2.5.2
+cd openexr-2.5.3
 
 mkdir build
 
