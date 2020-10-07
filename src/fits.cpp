@@ -4414,6 +4414,8 @@ void FITS::get_cube(int start, int end)
       ippsFree(omp_mask[i]);
   }
 
+  // re-do the histogram (make_image_statistics ...)
+
 // replace NaNs with 0.0
 #pragma omp parallel for simd
     for (size_t i = 0; i < plane_size; i++)
