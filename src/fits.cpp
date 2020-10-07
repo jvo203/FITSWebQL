@@ -4421,7 +4421,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> FITS::get_cube(int s
     if (_img_mask[i] == 0)
       _img_pixels[i] = 0.0f;
 
-  return std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>>(std::make_tuple(std::move(_img_pixels), std::move(_img_mask)));
+  return {std::move(pixels), std::move(mask)};
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
