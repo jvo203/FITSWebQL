@@ -4370,7 +4370,6 @@ void FITS::get_cube(int start, int end)
                 (int32_t *)pixels_buf, bzero, bscale, ignrval,
                 datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
                 fmax, mean, integrated, plane_size);
-
       
       mean_spectrum[i - start] = mean;
       integrated_spectrum[i - start] = integrated;
@@ -4414,7 +4413,7 @@ void FITS::get_cube(int start, int end)
       ippsFree(omp_mask[i]);
   }
 
-  // re-do the histogram (make_image_statistics ...)
+  // re-do the histogram (make_image_statistics() ...)
 
 // replace NaNs with 0.0
 #pragma omp parallel for simd
@@ -4422,7 +4421,7 @@ void FITS::get_cube(int start, int end)
       if (_img_mask[i] == 0)
         _img_pixels[i] = 0.0f;
 
-  // return std::tuple with pixels, mask, mean_spectrum, integrated_spectrum
+  // return std::tuple with pixels, mask, mean_spectrum, integrated_spectrum, histogram
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
