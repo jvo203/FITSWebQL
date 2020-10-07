@@ -4421,7 +4421,7 @@ void FITS::get_cube(int start, int end)
       if (_img_mask[i] == 0)
         _img_pixels[i] = 0.0f;
 
-  // return std::tuple with pixels, mask, mean_spectrum, integrated_spectrum, histogram
+  // return std::tuple with _img_pixels, _img_mask, mean_spectrum, integrated_spectrum, histogram
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
