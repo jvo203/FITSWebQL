@@ -4362,15 +4362,15 @@ void FITS::get_cube(int start, int end)
       auto pixels_buf = fits_cube[i].get();
 
       float _cdelt3 =
-        this->has_velocity
-        ? this->cdelt3 * this->frame_multiplier / 1000.0f
-        : 1.0f;
+          this->has_velocity
+              ? this->cdelt3 * this->frame_multiplier / 1000.0f
+              : 1.0f;
 
       ispc::make_image_spectrumF32_ro(
-                (int32_t *)pixels_buf, bzero, bscale, ignrval,
-                datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
-                fmax, mean, integrated, plane_size);
-      
+          (int32_t *)pixels_buf, bzero, bscale, ignrval,
+          datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], fmin,
+          fmax, mean, integrated, plane_size);
+
       mean_spectrum[i - start] = mean;
       integrated_spectrum[i - start] = integrated;
     }
@@ -4417,9 +4417,9 @@ void FITS::get_cube(int start, int end)
 
 // replace NaNs with 0.0
 #pragma omp parallel for simd
-    for (size_t i = 0; i < plane_size; i++)
-      if (_img_mask[i] == 0)
-        _img_pixels[i] = 0.0f;
+  for (size_t i = 0; i < plane_size; i++)
+    if (_img_mask[i] == 0)
+      _img_pixels[i] = 0.0f;
 
   // return std::tuple with _img_pixels, _img_mask, mean_spectrum, integrated_spectrum, histogram
 }
