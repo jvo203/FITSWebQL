@@ -4240,16 +4240,16 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-void FITS::get_cube(int start, int end)
+std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> FITS::get_cube(int start, int end)
 {
-  // TO-DO: just like get_spectrum()
+  std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> res;
 
   // sanity checks
   if (bitpix != -32)
-    return;
+    return res;
 
   if ((end < 0) || (start < 0) || (end > depth - 1) || (start > depth - 1))
-    return;
+    return res;
 
   if (end < start)
   {
@@ -4295,7 +4295,7 @@ void FITS::get_cube(int start, int end)
   {
     printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask) used in a user session.\n",
            dataset_id.c_str());
-    return;
+    return res;
   }
 
   auto _img_pixels = pixels.get();
@@ -4421,7 +4421,7 @@ void FITS::get_cube(int start, int end)
     if (_img_mask[i] == 0)
       _img_pixels[i] = 0.0f;
 
-  // return std::tuple with _img_pixels, _img_mask, mean_spectrum, integrated_spectrum, histogram
+  return std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>>(std::make_tuple(std::move(_img_pixels), std::move(_img_mask)));
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
