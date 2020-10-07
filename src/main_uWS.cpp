@@ -2099,7 +2099,7 @@ int main(int argc, char *argv[])
                             std::string(uri.substr(pos + 1, std::string::npos));
 
                         // process the response
-                        std::cout << "progress(" << datasetid << ")" << std::endl;
+                        //std::cout << "progress(" << datasetid << ")" << std::endl;
 
                         auto fits = get_dataset(datasetid);
 
