@@ -2770,11 +2770,11 @@ int main(int argc, char *argv[])
                                  {
                                    auto start_t = steady_clock::now();
 
-                                   auto res = fits->get_cube(start, end);
+                                   auto [_img_pixels, _img_mask] = fits->get_cube(start, end);
 
                                    // set the new user {pixels,mask}
-                                   user->ptr->img_pixels = std::get<0>(res);
-                                   user->ptr->img_mask = std::get<1>(res);
+                                   user->ptr->img_pixels = _img_pixels; //std::get<0>(res);
+                                   user->ptr->img_mask = _img_mask; //std::get<1>(res);
 
                                    // fits->make_image_statistics()...
 
