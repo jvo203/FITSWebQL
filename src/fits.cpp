@@ -3007,7 +3007,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        //zfp_queue.push(start_k);
+        zfp_queue.push(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3122,7 +3122,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        //zfp_queue.push(start_k);
+        zfp_queue.push(start_k);
       }
     }
 
