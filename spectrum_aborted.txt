@@ -1,0 +1,392 @@
+[chris@alma-sp-prod04 FITSWebQL]$ ./fitswebql 
+ippCore 2020.0.2 (r0xbb6c2c1d)
+Features supported by CPU	by IPP
+-----------------------------------------
+  ippCPUID_MMX        = Y	Y	Intel(R) Architecture MMX technology supported
+  ippCPUID_SSE        = Y	Y	Intel(R) Streaming SIMD Extensions
+  ippCPUID_SSE2       = Y	Y	Intel(R) Streaming SIMD Extensions 2
+  ippCPUID_SSE3       = Y	Y	Intel(R) Streaming SIMD Extensions 3
+  ippCPUID_SSSE3      = Y	Y	Intel(R) Supplemental Streaming SIMD Extensions 3
+  ippCPUID_MOVBE      = Y	Y	The processor supports MOVBE instruction
+  ippCPUID_SSE41      = Y	Y	Intel(R) Streaming SIMD Extensions 4.1
+  ippCPUID_SSE42      = Y	Y	Intel(R) Streaming SIMD Extensions 4.2
+  ippCPUID_AVX        = Y	Y	Intel(R) Advanced Vector Extensions instruction set
+  ippAVX_ENABLEDBYOS  = Y	Y	The operating system supports Intel(R) AVX
+  ippCPUID_AES        = Y	Y	Intel(R) AES instruction
+  ippCPUID_SHA        = N	N	Intel(R) SHA new instructions
+  ippCPUID_CLMUL      = Y	Y	PCLMULQDQ instruction
+  ippCPUID_RDRAND     = Y	Y	Read Random Number instructions
+  ippCPUID_F16C       = Y	Y	Float16 instructions
+  ippCPUID_AVX2       = Y	Y	Intel(R) Advanced Vector Extensions 2 instruction set
+  ippCPUID_AVX512F    = Y	Y	Intel(R) Advanced Vector Extensions 3.1 instruction set
+  ippCPUID_AVX512CD   = Y	Y	Intel(R) Advanced Vector Extensions CD (Conflict Detection) instruction set
+  ippCPUID_AVX512ER   = N	N	Intel(R) Advanced Vector Extensions ER instruction set
+  ippCPUID_ADCOX      = Y	Y	ADCX and ADOX instructions
+  ippCPUID_RDSEED     = Y	Y	The RDSEED instruction
+  ippCPUID_PREFETCHW  = Y	Y	The PREFETCHW instruction
+  ippCPUID_KNC        = N	N	Intel(R) Xeon Phi(TM) Coprocessor instruction set
+[OpenEXR] number of threads: 16
+FITSWebQL v5.0.0 (SV2020-10-07.0)
+Browser URL: http://localhost:8080
+Thread 140633355503360 listening on port 8080
+Thread 140633363896064 listening on port 8080
+Thread 140633347110656 listening on port 8080
+Thread 140633334527744 listening on port 8080
+I: 20-10-08 05:58:12 zbeacon: API command=CONFIGURE
+I: 20-10-08 05:58:12 zbeacon: interface=bond0 address=133.40.204.93 broadcast=133.40.204.255
+I: 20-10-08 05:58:12 zbeacon: configured, hostname=133.40.204.93
+I: 20-10-08 05:58:12 zbeacon: API command=PUBLISH
+I: 20-10-08 05:58:12 zbeacon: API command=CONFIGURE
+I: 20-10-08 05:58:12 zbeacon: interface=bond0 address=133.40.204.93 broadcast=133.40.204.255
+I: 20-10-08 05:58:12 zbeacon: configured, hostname=133.40.204.93
+I: 20-10-08 05:58:12 zbeacon: API command=SUBSCRIBE
+query: (dir=%2F)
+get_directory(/)
+query: (dir=%2Fngasdata)
+get_directory(/ngasdata)
+query: (dir=%2Fngasdata%2Falma-ngas01)
+get_directory(/ngasdata/alma-ngas01)
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1)
+get_directory(/ngasdata/alma-ngas01/NGAS1)
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9)
+get_directory(/ngasdata/alma-ngas01/NGAS1/volume9)
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa)
+get_directory(/ngasdata/alma-ngas01/NGAS1/volume9/afa)
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05)
+get_directory(/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05)
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1)
+get_directory(/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1)
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::constructor.
+has_fits: 0
+loading member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor from /ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor.fits without gzip compression, va_count = 1, no_omp_threads = 16
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::reading FITS header...
+VALUE(                 -32 /Floating point (32 bit)                         )
+VALUE(                   4                                                  )
+VALUE(                4000                                                  )
+VALUE(                4000                                                  )
+VALUE(                3838                                                  )
+VALUE(                   1                                                  )
+VALUE(  1.000000000000E+00 /PHYSICAL = PIXEL*BSCALE + BZERO                 )
+VALUE(  0.000000000000E+00                                                  )
+VALUE(  4.132041086753E-05                                                  )
+VALUE(  3.138580669959E-05                                                  )
+VALUE(  4.778596496582E+01                                                  )
+VALUE('Intensity'                                                           )
+VALUE('Intensity'                                                           )
+VALUE('600465  '                                                            )
+VALUE('Jy/beam '           /Brightness (pixel) unit                         )
+VALUE('Jy/beam '           /Brightness (pixel) unit                         )
+VALUE('RA---SIN'                                                            )
+VALUE(  1.500758800000E+02                                                  )
+VALUE( -6.111111111111E-06                                                  )
+VALUE(  2.001000000000E+03                                                  )
+VALUE('deg     '                                                            )
+VALUE('DEC--SIN'                                                            )
+VALUE(  2.211669444444E+00                                                  )
+VALUE(  6.111111111111E-06                                                  )
+VALUE(  2.001000000000E+03                                                  )
+VALUE('deg     '                                                            )
+VALUE('FREQ    '                                                            )
+VALUE(  1.105315736600E+11                                                  )
+VALUE(  4.883269892426E+05                                                  )
+VALUE(  1.000000000000E+00                                                  )
+VALUE('Hz      '                                                            )
+VALUE(  3.457959900000E+11 /Rest Frequency (Hz)                             )
+VALUE('LSRK    '           /Spectral reference frame                        )
+VALUE('ALMA    '                                                            )
+VALUE('2019-07-28T17:55:26.064000'                                          )
+VALUE('UTC     '                                                            )
+VALUE(  1.500758800000E+02                                                  )
+VALUE(  2.211669444444E+00                                                  )
+VALUE(  2.778150513768E-02                                                  )
+VALUE( -2.947379276156E-02                                                  )
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::FITS HEADER END.
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::depth > 1: reading the data cube.
+cube_pixels::size = 963, cube_mask::size = 3842, cache::size = 3838, cache_mtx::size = 963
+successfully lowered the cache purge thread priority to SCHED_IDLE.
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#0
+launched a ZFP compression thread#1
+launched a ZFP compression thread#2
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#3
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#4
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#5
+launched a ZFP compression thread#6
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#7
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#8
+launched a ZFP compression thread#9
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#10
+launched a ZFP compression thread#11
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#12
+launched a ZFP compression thread#13
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#14
+successfully lowered the zfp_compress thread priority to SCHED_IDLE.
+launched a ZFP compression thread#15
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1301.268798828125&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1301::864::45::true)
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+110.532GHz,112.405GHz)
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] closing a session 4bf25435-0011-4053-8d81-03148fb01e5c for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1372.283203125&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1372::864::45::true)
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] closing a session d38d6118-3d5f-4f9f-b5c3-654ab36c2f38 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1671.3441162109375&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1671::864::45::true)
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] closing a session ebea2380-58cb-439d-b484-e4698aa7ed35 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1556.3206787109375&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1556::864::45::true)
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] closing a session ada1015f-6101-4344-a573-b383c92e7851 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1493.307861328125&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1493::864::45::true)
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] closing a session 9b807549-ae79-4a34-bd3d-e4d333c4f7be for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1366.281982421875&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1366::864::45::true)
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] closing a session 43d19172-595e-4566-bb70-f220bc6a3533 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1068.221435546875&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1068::864::45::true)
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] closing a session a1c7f7f2-f28b-429c-846b-310fc7d0dd06 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=987.2048950195312&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::987::864::45::true)
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] closing a session e5461ca6-3455-4423-b24c-9f05d8e0bf12 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+HTTP root path(fitswebql), request for /fitswebql/FITSWebQL.html
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1&ext=fits&filename=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor)
+dir:/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1, ext:fits, db:, table:, composite:0, flux:, member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor 
+has_fits: 0
+get_spectrum aborted
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.js
+serving htdocs/fitswebql/fitswebql.js
+HTTP root path(fitswebql), request for /fitswebql/fitswebql.css
+serving htdocs/fitswebql/fitswebql.css
+HTTP root path(fitswebql), request for /fitswebql/surface2.js
+serving htdocs/fitswebql/surface2.js
+HTTP root path(fitswebql), request for /fitswebql/image_spectrum
+query: (datasetId=member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor&width=1687.347412109375&height=864.1798706054688&quality=45&fetch_data=true&JS2020-10-01.0)
+HTTP root path(fitswebql), request for /fitswebql/get_molecules
+Accept-Encoding:gzip, deflate; compression support found.
+get_image_spectrum(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::1687::864::45::true)
+get_molecules(member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor,110.532GHz,112.405GHz)
+SELECT * FROM lines WHERE frequency>=110.531574 AND frequency<=112.405284;
+[µWS] upgrade /fitswebql/websocket/member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+datasetid: member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+[µWS] open for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+ZFP compression thread#14 has terminated.
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::<data:true>	dmin = -0.029474	dmax = 0.027782	elapsed time: 812918.82 [ms]
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::pixel_range<-2.580294,2.539889>
+v: original length: 16000000, after NAN/INFINITE pruning: 10084579
+make_histogram::num_threads: 16
+make_histogram::elapsed time: 16.48 [ms]
+stl_median::<value = -0.000035, elapsed time: 72.20 [ms]>
+tone mapping function classifier (logistic regression)
+legacy: 2.57425	linear: 0.322913	logistic: 3.56283	ratio: -2.75354	square: 0
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::statistics
+pmin: -2.580294 pmax: 2.539889 median: -0.000035 mad: 0.214921 madP: 0.214923 madN: 0.214918 black: -1.611923 white: 1.611888 sensitivity: 0.310192 flux: logistic
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+[stream_image_spectrum] aborted http connection detected.
+image bounding box:	x1 = 209, x2 = 3791, y1 = 209, y2 = 3791
+FITS image scaling by 0.216857; 4000 x 4000 --> 867 x 867
+tileResize32f_C1R::num_threads = 4
+tileResize8u_C1R::num_threads = 4
+ 0 : ippStsNoErr: No errors, 0 : ippStsNoErr: No errors
+[member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor]::downsize OpenEXR output: 638283 bytes.
+FITS::JSON size 120104, LZ4-compressed: 54420 bytes.
+ZFP compression thread#3 has terminated.
+ZFP compression thread#4 has terminated.
+ZFP compression thread#9 has terminated.
+ZFP compression thread#2 has terminated.
+ZFP compression thread#10 has terminated.
+ZFP compression thread#11 has terminated.
+ZFP compression thread#6 has terminated.
+ZFP compression thread#1 has terminated.
+ZFP compression thread#7 has terminated.
+ZFP compression thread#8 has terminated.
+ZFP compression thread#13 has terminated.
+ZFP compression thread#5 has terminated.
+ZFP compression thread#0 has terminated.
+ZFP compression thread#15 has terminated.
+ZFP compression thread#12 has terminated.
+[µWS] closing a session 44aaab63-e1e9-458c-aee1-e3d4d84fb196 for member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor
+query: (dir=%2Fngasdata%2Falma-ngas01%2FNGAS1%2Fvolume9%2Fafa%2F2020-02-05%2F1)
+get_directory(/ngasdata/alma-ngas01/NGAS1/volume9/afa/2020-02-05/1)
+^CInterrupt signal (2) received.
+I: 20-10-08 06:17:25 zbeacon: API command=SILENCE
+I: 20-10-08 06:17:25 zbeacon: API command=PUBLISH
+I: 20-10-08 06:17:25 zbeacon: API command=SILENCE
+I: 20-10-08 06:17:25 zbeacon: API command=$TERM
+I: 20-10-08 06:17:25 zbeacon: API command=UNSUBSCRIBE
+I: 20-10-08 06:17:26 zbeacon: API command=$TERM
+memory tracking thread terminated.
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::purge_cache() thread terminated.
+member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor::destructor.
+found 3 null cube_pixels entries.
+found 2 null cube_mask entries.
+[member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor]::saving img_pixels.
+[member.uid___A001_X133d_X3960.s11_0._600465__sci.spw25.cube.I.iter1.image.pbcor]::saving img_mask.
+FITSWebQL shutdown completed.
