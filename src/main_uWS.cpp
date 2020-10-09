@@ -2800,7 +2800,6 @@ int main(int argc, char *argv[])
                                        float ts = timestamp;
                                        uint32_t id = 0;
                                        uint32_t msg_type = 3; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
-                                       float elapsed = elapsedMilliseconds;
                                        uint32_t len = mean_spectrum.size();
 
                                        size_t offset = 0;
@@ -2813,9 +2812,6 @@ int main(int argc, char *argv[])
 
                                        memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
-
-                                       memcpy(buffer + offset, &elapsed, sizeof(float));
-                                       offset += sizeof(float);
 
                                        memcpy(buffer + offset, &len, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
