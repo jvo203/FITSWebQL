@@ -3359,6 +3359,13 @@ void FITS::make_image_luma()
   ippsFree(img_luma);
 }
 
+std::tuple<float, float, float, float, float, float, float, float, float> FITS::make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask)
+{
+  std::tuple<float, float, float, float, float, float, float, float, float> res;
+
+  return res;
+}
+
 void FITS::make_image_statistics()
 {
   auto _img_pixels = img_pixels.get();
