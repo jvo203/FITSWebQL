@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-01.0";
+	return "JS2020-10-09.0";
 }
 
 const wasm_supported = (() => {
@@ -2695,9 +2695,9 @@ function open_websocket_connection(datasetId, index) {
 					//full spectrum refresh
 					if (type == 3) {
 						var length = dv.getUint32(12, endianness);
-						var offset = 20;
+						var offset = 16;
 						var mean_spectrum = new Float32Array(received_msg, offset, length);
-						offset += 4 * length + 8;
+						offset += 4 * length + 4;
 						var integrated_spectrum = new Float32Array(received_msg, offset, length);
 
 						/*self.postMessage;console.log({type: 'refresh', latency: latency, recv_seq_id: recv_seq_id, length: length, mean_spectrum: mean_spectrum, integrated_spectrum: integrated_spectrum});*/
