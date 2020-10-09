@@ -2770,7 +2770,7 @@ int main(int argc, char *argv[])
                                  {
                                    auto start_t = steady_clock::now();
 
-                                   auto [_img_pixels, _img_mask] = fits->get_cube(start, end);
+                                   auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
 
                                    // set the new user {pixels,mask}
                                    if (_img_pixels)
