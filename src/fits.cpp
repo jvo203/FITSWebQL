@@ -4227,9 +4227,9 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> FITS::get_cube(int start, int end)
+std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, std::vector<float>> FITS::get_cube(int start, int end)
 {
-  std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> res;
+  std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, std::vector<float>> res;
 
   // sanity checks
   if (bitpix != -32)
@@ -4408,7 +4408,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>> FITS::get_cube(int s
     if (_img_mask[i] == 0)
       _img_pixels[i] = 0.0f;
 
-  return {std::move(pixels), std::move(mask)};
+  return {std::move(pixels), std::move(mask), std::move(mean_spectrum), std::move(integrated_spectrum)};
 }
 
 std::vector<float> FITS::get_spectrum(int start, int end, int x1, int y1,
