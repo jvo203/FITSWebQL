@@ -16,6 +16,7 @@ using namespace std::chrono;
 
 #include "App.h"
 
+#include "fits.hpp"
 #include "kalman.hpp"
 
 typedef uWS::WebSocket<false, true> TWebSocket;
@@ -26,7 +27,7 @@ inline std::shared_mutex m_progress_mutex;
 inline progress_list m_progress;
 
 #define uWS_PROGRESS_TIMEOUT 0.25
-#define CACHE_TIMEOUT 60*60
+#define CACHE_TIMEOUT 60 * 60
 //# 60 is 1 minute
 //# 60*60 is 60 minutes = 1 hour
 
@@ -43,6 +44,7 @@ struct UserSession
 
   std::shared_ptr<Ipp32f> img_pixels;
   std::shared_ptr<Ipp8u> img_mask;
+  Ipp32u hist[NBINS];
 
   // used by the pre-emptive cache
   std::shared_ptr<KalmanFilter> kal_x;
@@ -61,6 +63,10 @@ struct UserSession
     ids = _ids;
     last_seq = -1;
     active = true;
+
+    // fill the histogram with zeroes
+    for (int i = 0; i < NBINS; i++)
+      hist[i] = 0;
   }
 };
 
