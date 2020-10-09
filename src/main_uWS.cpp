@@ -2788,15 +2788,50 @@ int main(int argc, char *argv[])
                                    if (_img_mask)
                                      user->ptr->img_mask = _img_mask; //std::get<1>(res);
 
-                                   if (mean_spectrum.size() > 0 && integrated_spectrum.size() > 0)
+                                   if ((mean_spectrum.size() > 0) && (integrated_spectrum.size() > 0) && (mean_spectrum.size() == integrated_spectrum.size()))
                                    {
                                      std::cout << "[uWS] sending the mean/integrated spectra" << std::endl;
 
-                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float);
+                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float) + integrated_spectrum.size() * sizeof(float);
                                      char *buffer = (char *)malloc(bufferSize);
 
                                      if (buffer != NULL)
                                      {
+                                       float ts = timestamp;
+                                       uint32_t id = 0;
+                                       uint32_t msg_type = 3; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                       float elapsed = elapsedMilliseconds;
+                                       uint32_t len = mean_spectrum.size();
+
+                                       size_t offset = 0;
+
+                                       memcpy(buffer + offset, &ts, sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &elapsed, sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &len, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, mean_spectrum.data(), mean_spectrum.size() * sizeof(float));
+                                       offset += mean_spectrum.size() * sizeof(float);
+
+                                       memcpy(buffer + offset, integrated_spectrum.data(), integrated_spectrum.size() * sizeof(float));
+                                       offset += integrated_spectrum.size() * sizeof(float);
+
+                                       if (user->ptr->active)
+                                       {
+                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                       }
+
                                        free(buffer);
                                      }
                                    }
