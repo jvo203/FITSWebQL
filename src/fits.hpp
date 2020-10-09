@@ -135,6 +135,7 @@ public:
                                   int y2, intensity_mode intensity,
                                   beam_shape beam, double &elapsed);
   std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, std::vector<float>> get_cube(int start, int end);
+  std::tuple<float, float, float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins);
   void preempt_cache(int start, int end, int x1, int y1, int x2, int y2);
   void to_json(std::ostringstream &json);
 
@@ -153,7 +154,6 @@ private:
                            int &end);
   bool process_fits_header_unit(const char *buf);
   void make_image_statistics();
-  std::tuple<float, float, float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins);
   void make_image_luma();
   void make_exr_image();
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
