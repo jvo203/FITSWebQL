@@ -2772,7 +2772,10 @@ int main(int argc, char *argv[])
 
                                    auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
 
-                                   // fits->make_image_statistics()...
+                                   if (_img_pixels && _imge_mask)
+                                   {
+                                     fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+                                   }
 
                                    auto end_t = steady_clock::now();
 
