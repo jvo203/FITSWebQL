@@ -2849,11 +2849,11 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     terminate_compression = false;
 
     for (int i = 0; i < max_threads; i++)
-    {      
+    {
       std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
-/*#if defined(__APPLE__) && defined(__MACH__)
+      /*#if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
