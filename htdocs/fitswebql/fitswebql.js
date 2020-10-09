@@ -2469,35 +2469,6 @@ function poll_progress(datasetId, index) {
 	xmlhttp.send();
 }
 
-function process_message(index, received_msg) {
-	if (received_msg.byteLength == 0)
-		return;
-
-	var dv = new DataView(received_msg);
-
-	latency = performance.now() - dv.getFloat32(0, endianness);
-	recv_seq_id = dv.getUint32(4, endianness);
-	var type = dv.getUint32(8, endianness);
-
-	console.log("recv_seq_id: " + recv_seq_id + " http/2 latency = " + latency.toFixed(1) + " [ms]");
-
-	//spectrum
-	if (type == 0) {
-		computed = dv.getFloat32(12, endianness);
-
-		var spectrum = new Float32Array(received_msg, 16);
-
-		//console.log("[ws] computed = " + computed.toFixed(1) + " [ms]" + " length: " + length + " spectrum length:" + spectrum.length + " spectrum: " + spectrum);
-
-		if (!windowLeft) {
-			spectrum_stack[index].push({ spectrum: spectrum, id: recv_seq_id });
-			console.log("index:", index, "spectrum_stack length:", spectrum_stack[index].length);
-		};
-
-		return;
-	}
-}
-
 function open_websocket_connection(datasetId, index) {
 	if ("WebSocket" in window) {
 		//alert("WebSocket is supported by your Browser!");
