@@ -2849,13 +2849,11 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     terminate_compression = false;
 
     for (int i = 0; i < max_threads; i++)
-    {
-      // std::shared_ptr<zfp_pool_thread> a_thread(new zfp_pool_thread());
-
+    {      
       std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
-#if defined(__APPLE__) && defined(__MACH__)
+/*#if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
@@ -2873,7 +2871,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
-#endif
+#endif*/
 
       zfp_pool.push_back(std::move(a_thread));
     }
@@ -3007,7 +3005,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        zfp_queue.push(start_k);
+        //zfp_queue.push(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3046,17 +3044,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         if (omp_mask[i] != NULL)
           ippsFree(omp_mask[i]);
       }
-
-      /*compress_thread = std::thread(&FITS::zfp_compress, this);
-
-      struct sched_param param;
-      param.sched_priority = 0;
-      if (pthread_setschedparam(compress_thread.native_handle(), SCHED_IDLE,
-                                &param) != 0)
-        perror("pthread_setschedparam");
-      else
-        printf("successfully lowered the zfp_compress thread priority to "
-               "SCHED_IDLE.\n");*/
     }
     else
     {
@@ -3122,7 +3109,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        zfp_queue.push(start_k);
+        //zfp_queue.ush(start_k);
       }
     }
 
