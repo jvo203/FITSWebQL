@@ -3862,7 +3862,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
   json << "\"message\" : \"loading FITS\",";
   json << "\"total\" : " << total << ",";
   json << "\"running\" : " << running << ",";
-  json << "\"elapsed\" : " << elapsed << "}";
+  json << "\"elapsed\" : " << (std::isnan(elapsed) ? "null" : std::to_string(elapsed)) << "}";
 
   std::shared_lock<std::shared_mutex> lock(m_progress_mutex);
   TWebSocketList connections = m_progress[this->dataset_id];
