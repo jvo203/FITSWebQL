@@ -2786,10 +2786,10 @@ int main(int argc, char *argv[])
 
                                    // set the new user {pixels,mask}
                                    if (_img_pixels)
-                                     user->ptr->img_pixels = _img_pixels; //std::get<0>(res);
+                                     user->ptr->img_pixels = _img_pixels;
 
                                    if (_img_mask)
-                                     user->ptr->img_mask = _img_mask; //std::get<1>(res);
+                                     user->ptr->img_mask = _img_mask;
 
                                    if ((mean_spectrum.size() > 0) && (integrated_spectrum.size() > 0) && (mean_spectrum.size() == integrated_spectrum.size()))
                                    {
