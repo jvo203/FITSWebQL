@@ -2323,12 +2323,14 @@ function process_progress_event(data, index) {
 
 				PROGRESS_INFO = "&nbsp;" + numeral(PROGRESS_VARIABLE).format('0.0%');
 
-				var speed = notifications_received[index - 1] / elapsed;
-				var remaining_time = (total - notifications_received[index - 1]) / speed;//[s]
+				if (!isNaN(elapsed)) {
+					var speed = notifications_received[index - 1] / elapsed;
+					var remaining_time = (total - notifications_received[index - 1]) / speed;//[s]
 
-				//console.log("speed:", speed, "remaining:", remaining_time);				
-				if (remaining_time > 1)
-					PROGRESS_INFO += ", " + numeral(remaining_time).format('00:00:00');
+					//console.log("speed:", speed, "remaining:", remaining_time);				
+					if (remaining_time > 1)
+						PROGRESS_INFO += ", " + numeral(remaining_time).format('00:00:00');
+				}
 
 				d3.select("#progress-bar" + index)
 					.attr("aria-valuenow", (100.0 * PROGRESS_VARIABLE))
@@ -2665,11 +2667,11 @@ function open_websocket_connection(datasetId, index) {
 
 					//full spectrum refresh
 					if (type == 3) {
-						var length = dv.getUint32(12, endianness);						
+						var length = dv.getUint32(12, endianness);
 						var offset = 16;
-						var mean_spectrum = new Float32Array(received_msg, offset, length);						
+						var mean_spectrum = new Float32Array(received_msg, offset, length);
 						offset += 4 * length;
-						var integrated_spectrum = new Float32Array(received_msg, offset, length);				
+						var integrated_spectrum = new Float32Array(received_msg, offset, length);
 
 						/*self.postMessage;console.log({type: 'refresh', latency: latency, recv_seq_id: recv_seq_id, length: length, mean_spectrum: mean_spectrum, integrated_spectrum: integrated_spectrum});*/
 
