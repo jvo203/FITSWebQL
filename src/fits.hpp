@@ -153,7 +153,7 @@ private:
                            int &end);
   bool process_fits_header_unit(const char *buf);
   void make_image_statistics();
-  std::tuple<float, float, float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask);
+  std::tuple<float, float, float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins);
   void make_image_luma();
   void make_exr_image();
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
