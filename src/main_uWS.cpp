@@ -2119,7 +2119,7 @@ int main(int argc, char *argv[])
 
                               json << "{\"total\" : " << fits->progress.total << ",";
                               json << "\"running\" : " << fits->progress.running << ",";
-                              json << "\"elapsed\" : " << fits->progress.elapsed << "}";
+                              json << "\"elapsed\" : " << (std::isnan(fits->progress.elapsed) ? "null" : std::to_string(fits->progress.elapsed)) << "}";
 
                               if (fits->progress.total > 0)
                                 valid = true;
