@@ -2694,14 +2694,11 @@ function open_websocket_connection(datasetId, index) {
 
 					//full spectrum refresh
 					if (type == 3) {
-						var length = dv.getUint32(12, endianness);
-						console.log("msg_type = 3: length = ", length);
+						var length = dv.getUint32(12, endianness);						
 						var offset = 16;
-						var mean_spectrum = new Float32Array(received_msg, offset, length);
-						console.log(mean_spectrum);
-						offset += 4 * length + 4;
-						var integrated_spectrum = new Float32Array(received_msg, offset, length);
-						console.log(integrated_spectrum);
+						var mean_spectrum = new Float32Array(received_msg, offset, length);						
+						offset += 4 * length;
+						var integrated_spectrum = new Float32Array(received_msg, offset, length);				
 
 						/*self.postMessage;console.log({type: 'refresh', latency: latency, recv_seq_id: recv_seq_id, length: length, mean_spectrum: mean_spectrum, integrated_spectrum: integrated_spectrum});*/
 
