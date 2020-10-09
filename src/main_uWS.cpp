@@ -2772,6 +2772,15 @@ int main(int argc, char *argv[])
 
                                    auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
 
+                                   // fits->make_image_statistics()...
+
+                                   auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) *
+                                                           steady_clock::period::num /
+                                                           static_cast<double>(steady_clock::period::den);
+                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
+
                                    // set the new user {pixels,mask}
                                    if (_img_pixels)
                                      user->ptr->img_pixels = _img_pixels; //std::get<0>(res);
@@ -2782,16 +2791,15 @@ int main(int argc, char *argv[])
                                    if (mean_spectrum.size() > 0 && integrated_spectrum.size() > 0)
                                    {
                                      std::cout << "[uWS] sending the mean/integrated spectra" << std::endl;
+
+                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float);
+                                     char *buffer = (char *)malloc(bufferSize);
+
+                                     if (buffer != NULL)
+                                     {
+                                       free(buffer);
+                                     }
                                    }
-
-                                   // fits->make_image_statistics()...
-
-                                   auto end_t = steady_clock::now();
-
-                                   double elapsedSeconds = ((end_t - start_t).count()) *
-                                                           steady_clock::period::num /
-                                                           static_cast<double>(steady_clock::period::den);
-                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
                                  }
                                });
 
