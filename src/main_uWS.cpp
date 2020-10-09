@@ -2779,6 +2779,11 @@ int main(int argc, char *argv[])
                                    if (_img_mask)
                                      user->ptr->img_mask = _img_mask; //std::get<1>(res);
 
+                                   if (mean_spectrum.size() > 0 && integrated_spectrum.size() > 0)
+                                   {
+                                     std::cout << "[uWS] sending the mean/integrated spectra" << std::endl;
+                                   }
+
                                    // fits->make_image_statistics()...
 
                                    auto end_t = steady_clock::now();
