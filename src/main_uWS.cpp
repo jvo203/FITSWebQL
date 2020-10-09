@@ -1824,7 +1824,7 @@ int main(int argc, char *argv[])
     while (!exiting)
     {
       // memory statistics using jemalloc
-      uint64_t epoch = 1;
+      /*uint64_t epoch = 1;
       size_t sz = sizeof(epoch);
       mallctl("thread.tcache.flush", NULL, NULL, NULL, 0);
       mallctl("epoch", &epoch, &sz, &epoch, sz);
@@ -1841,7 +1841,7 @@ int main(int argc, char *argv[])
       {
         duration<double, std::milli> elapsed = system_clock::now() - offset;
         fprintf(fp, "%f,%zu,%zu,%zu\n", elapsed.count(), allocated, active, mapped);
-      }
+      }*/
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
