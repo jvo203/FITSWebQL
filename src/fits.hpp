@@ -245,7 +245,6 @@ public:
   std::atomic<bool> processed_data;
 
   // ZFP compression
-  // std::thread compress_thread;
   std::vector<std::thread> zfp_pool;
   boost::lockfree::queue<size_t, boost::lockfree::capacity<1024>> zfp_queue;
   std::atomic<bool> terminate_compression;
