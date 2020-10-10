@@ -8,7 +8,7 @@
 #define BEACON_PORT 50000
 #define SERVER_PORT 8080
 #define SERVER_STRING \
-  "FITSWebQL v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
+  "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
 #define VERSION_STRING "SV2020-10-10.0"
@@ -1991,6 +1991,7 @@ int main(int argc, char *argv[])
 
   std::cout << SERVER_STRING << " (" << VERSION_STRING << ")" << std::endl;
   std::cout << "Browser URL: http://localhost:" << server_port << std::endl;
+  std::cout << "*** To quit FITSWebQL press Ctrl-C from the command-line terminal or send SIGINT. ***" << std::endl;
 
 #if defined(__APPLE__) && defined(__MACH__)
   int no_threads = 1;
