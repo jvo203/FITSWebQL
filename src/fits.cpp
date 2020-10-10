@@ -2853,7 +2853,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       std::thread a_thread =
           std::thread(&FITS::zfp_compression_thread, this, i);
 
-      /*#if defined(__APPLE__) && defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
       struct sched_param param;
       param.sched_priority = 0;
       if (pthread_setschedparam(a_thread.native_handle(), SCHED_OTHER,
@@ -2871,7 +2871,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       else
         printf("successfully lowered the zfp_compress thread priority to "
                "SCHED_IDLE.\n");
-#endif*/
+#endif
 
       zfp_pool.push_back(std::move(a_thread));
     }
@@ -3006,6 +3006,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         //zfp_queue.push(start_k);
+        zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3109,7 +3110,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
         }
 
         // append <start_k> to a ZFP compression queue
-        //zfp_queue.ush(start_k);
+        //zfp_queue.push(start_k);
+        zfp_compress_cube(start_k);
       }
     }
 
