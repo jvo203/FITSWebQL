@@ -6,7 +6,7 @@ Although Rust is extremely stable there are still some cases where C/C++ outperf
 # status
 work-in-progress
 
-An installation manual for [CentOS 7](CentOS7.txt) might need to be adjusted for other operating systems. [need for speed]: we recommend Intel Clear Linux (even, or especially on AMD CPUs).
+An installation manual for [CentOS 7](CentOS7.md) might need to be adjusted for other operating systems. [need for speed]: we recommend Intel Clear Linux (even, or especially on AMD CPUs).
 
 # requirements
 1. Intel Integrated Performance Primitives (IPP): https://software.intel.com/en-us/intel-ipp
