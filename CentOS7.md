@@ -198,7 +198,7 @@ sudo yum install sqlite-devel
 
 sudo yum install postgresql-devel
 
-# 22. Clone/set-up the FITSWebQL project
+# 22. Compile FITSWebQL
 
 git clone https://github.com/jvo203/FITSWebQL.git
 
