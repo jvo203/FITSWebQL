@@ -1,12 +1,12 @@
-0. Install the nano text editor
+# 0. Install the nano text editor
 
 sudo yum install nano
 
-1. Install EPEL
+# 1. Install EPEL
 
 sudo yum --enablerepo=extras install epel-release
 
-2. Install GCC 9
+# 2. Install GCC 9
 
 sudo yum install --enablerepo=extras centos-release-scl
 
@@ -34,7 +34,7 @@ Last login: Fri Oct  2 02:46:23 2020 from arct01.mtk.nao.ac.jp
 [chris@alma-sp-dev04 ~]$ gcc --version
 gcc (GCC) 9.3.1 20200408 (Red Hat 9.3.1-2)
 
-3. Install czmq
+# 3. Install czmq
 
 sudo yum install czmq-devel
 
@@ -47,19 +47,19 @@ Importing GPG key 0x352C64E5:
  From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
 上記の処理を行います。よろしいでしょうか？ [y/N]y
 
-4. Install git
+# 4. Install git
 
 sudo yum install git
 
-5. Install cmake3
+# 5. Install cmake3
 
 sudo yum install cmake3
 
-6. Install nasm
+# 6. Install nasm
 
 sudo yum install nasm
 
-7. Manually build/install FPZIP
+# 7. Manually build/install FPZIP
 
 git clone https://github.com/LLNL/fpzip.git
 
@@ -75,15 +75,15 @@ cmake3 --build . --config Release
 
 sudo make install
 
-8. Install wget
+# 8. Install wget
 
 sudo yum install wget
 
-9. Install zlib
+# 9. Install zlib
 
 sudo yum install zlib-devel
 
-10. Manually build/install OpenEXR (the version in CentOS 7 is too old)
+# 10. Manually build/install OpenEXR (the version in CentOS 7 is too old)
 
 Issue "cd" to return to your home directory
 
@@ -103,7 +103,7 @@ make
 
 sudo make install
 
-11. Manually build (no install is needed) uWebSockets
+# 11. Manually build (no install is needed) uWebSockets
 
 Issue "cd" to return to your home directory
 
@@ -117,7 +117,7 @@ cd ..
 
 make
 
-12. Download the free Intel SPMD Compiler (ispc)
+# 12. Download the free Intel SPMD Compiler (ispc)
 
 Issue "cd" to return to your home directory
 
@@ -134,7 +134,7 @@ Verify ispc:
 ispc --version
 Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.14.1 (build commit 88118b90d82b2670 @ 20200828, LLVM 10.0.1)
 
-13. Install the free Intel Integrated Performance Primitives (IPP)
+# 13. Install the free Intel Integrated Performance Primitives (IPP)
 
 Visit https://software.intel.com/en-us/intel-ipp , create a free account and download/install a stand-alone IPP
 
@@ -149,15 +149,15 @@ Log-out, log-in and verify IPP
 echo $IPPROOT
 /opt/intel/compilers_and_libraries_2020.2.254/linux/ipp
 
-14. Install Boost headers
+# 14. Install Boost headers
 
 sudo yum install boost-devel
 
-15. Install bzip
+# 15. Install bzip
 
 sudo yum install bzip2
 
-16. Build/install jemalloc
+# 16. Build/install jemalloc
 
 wget https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
 
@@ -173,7 +173,7 @@ make
 
 sudo make install
 
-17. Adjust the environment variables in the .bashrc
+# 17. Adjust the environment variables in the .bashrc
 
 Add
 
@@ -182,23 +182,23 @@ export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 
 to .bashrc and re-login
 
-18. Install OpenSSL
+# 18. Install OpenSSL
 
 sudo yum install openssl-devel
 
-19. Install cURL
+# 19. Install cURL
 
 sudo yum install curl-devel
 
-20. Install sqlite
+# 20. Install sqlite
 
 sudo yum install sqlite-devel
 
-21. Install PostgreSQL client library
+# 21. Install PostgreSQL client library
 
 sudo yum install postgresql-devel
 
-22. Clone/set-up the FITSWebQL project
+# 22. Clone/set-up the FITSWebQL project
 
 git clone https://github.com/jvo203/FITSWebQL.git
 
@@ -208,7 +208,7 @@ wget http://jvo.nao.ac.jp/~chris/splatalogue_v3.db
 
 make gcc
 
-23. Run FITSWebQL
+# 23. Run FITSWebQL
 
 ./fitswebql
 
@@ -220,4 +220,4 @@ or
 
 http://localhost:8080 if running locally.
 
-*** To quit FITSWebQL press Ctrl-C from the command-line terminal. ***
+## *** To quit FITSWebQL press Ctrl-C from the command-line terminal. ***
