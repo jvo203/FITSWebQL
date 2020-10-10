@@ -173,14 +173,14 @@ make
 
 sudo make install
 
-17. Adjust the .bashrc
+17. Adjust the environment variables in the .bashrc
 
 Add
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig
 export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 
-to .bashrc
+to .bashrc and re-login
 
 18. Install OpenSSL
 
