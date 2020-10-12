@@ -11,7 +11,7 @@
   "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-12.0"
+#define VERSION_STRING "SV2020-10-12.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2773,9 +2773,11 @@ int main(int argc, char *argv[])
 
                                    auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
 
+                                   float min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity;
+
                                    if (_img_pixels && _img_mask)
                                    {
-                                     fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+                                     [ min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity ] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
                                    }
 
                                    auto end_t = steady_clock::now();
@@ -2834,6 +2836,11 @@ int main(int argc, char *argv[])
 
                                        free(buffer);
                                      }
+                                   }
+
+                                   if (_img_pixels && _img_mask)
+                                   {
+                                     // send the updated image + statistics + histogram via WebSockets
                                    }
                                  }
                                });
