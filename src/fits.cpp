@@ -215,7 +215,7 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
   }
   }*/
 
-void remove_nan(std::vector<Ipp32f> &v)
+void deNaN(std::vector<Ipp32f> &v)
 {
   if (v.empty())
     return;
@@ -233,7 +233,7 @@ void remove_nan(std::vector<Ipp32f> &v)
   {
     if (!std::isfinite(v[i]))
     {
-      // replace it with a finite value from the end
+      // replace it with a finite (non-NaN) value from the end
       while (v_end > i && !std::isfinite(v[v_end]))
         v_end--;
 
@@ -249,23 +249,8 @@ void remove_nan(std::vector<Ipp32f> &v)
          v.size());
 }
 
-bool comparator(Ipp32f x, Ipp32f y)
-{
-  //printf("comparator(%f,%f)", x, y);
-
-  if (!std::isfinite(y))
-    return false; // Assume NaN is less than *any* non-NaN value.
-
-  if (!std::isfinite(x))
-    return true; // Assume *any* non-NaN value is greater than NaN.
-
-  return (x < y);
-}
-
 Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
-  //remove_nan(v);
-
   if (v.empty())
     return NAN;
 
@@ -278,9 +263,9 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
   size_t n = v.size() / 2;
 #if defined(__APPLE__) && defined(__MACH__)
-  std::nth_element(v.begin(), v.begin() + n, v.end(), comparator);
+  std::nth_element(v.begin(), v.begin() + n, v.end());
 #else
-  __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end(), comparator);
+  __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
 #endif
 
   if (v.size() % 2)
@@ -291,9 +276,9 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
   {
     // even sized vector -> average the two middle values
 #if defined(__APPLE__) && defined(__MACH__)
-    auto max_it = std::max_element(v.begin(), v.begin() + n, comparator);
+    auto max_it = std::max_element(v.begin(), v.begin() + n);
 #else
-    auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n, comparator);
+    auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
 #endif
     medVal = (*max_it + v[n]) / 2.0f;
   }
@@ -3439,6 +3424,8 @@ void FITS::make_image_statistics()
   roiSize.height = height;
   ippiCopy_32f_C1R(_img_pixels, width * sizeof(Ipp32f), v.data(),
                    width * sizeof(Ipp32f), roiSize);
+
+  deNaN(v);
 
   make_histogram(v, hist, NBINS, _pmin, _pmax);
 
