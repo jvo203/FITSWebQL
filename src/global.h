@@ -44,7 +44,17 @@ struct UserSession
 
   std::shared_ptr<Ipp32f> img_pixels;
   std::shared_ptr<Ipp8u> img_mask;
+
   Ipp32u hist[NBINS];
+  float min;
+  float max;
+  float mad;
+  float madN;
+  float madP;
+  float black;
+  float white;
+  float sensitivity;
+  float ratio_sensitivity;
 
   // used by the pre-emptive cache
   std::shared_ptr<KalmanFilter> kal_x;
