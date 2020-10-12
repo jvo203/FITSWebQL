@@ -3365,7 +3365,138 @@ std::tuple<float, float, float, float, float, float, float, float, float> FITS::
 {
   std::tuple<float, float, float, float, float, float, float, float, float> res;
 
-  return res;
+  auto _img_pixels = pixels.get();
+  auto _img_mask = mask.get();
+
+  int max_threads = omp_get_max_threads();
+
+  // keep the worksize within int32 limits
+  size_t total_size = width * height;
+  size_t max_work_size = 1024 * 1024 * 1024;
+  size_t work_size = MIN(total_size / max_threads, max_work_size);
+  int num_threads = total_size / work_size;
+
+  float _pmin = FLT_MAX;
+  float _pmax = -FLT_MAX;
+
+  if (this->depth == 1)
+  {
+    _pmin = dmin;
+    _pmax = dmax;
+  }
+  else
+  {
+    float _cdelt3 = this->has_velocity
+                        ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                        : 1.0f;
+
+    // use pixels/mask to get min/max
+#pragma omp parallel for reduction(min                    \
+                                   : _pmin) reduction(max \
+                                                      : _pmax)
+    for (int tid = 0; tid < num_threads; tid++)
+    {
+      size_t work_size = total_size / num_threads;
+      size_t start = tid * work_size;
+
+      if (tid == num_threads - 1)
+        work_size = total_size - start;
+
+      // it also restores NaNs in the pixels array based on the mask
+      ispc::image_min_max(&(_img_pixels[start]), &(_img_mask[start]), _cdelt3,
+                          work_size, _pmin, _pmax);
+    };
+  };
+
+  printf("%s::pixel_range<%f,%f>\n", dataset_id.c_str(), _pmin, _pmax);
+
+  size_t len = width * height;
+  std::vector<Ipp32f> v(len);
+  // memcpy(v.data(), pixels, len * sizeof(Ipp32f));
+
+  IppiSize roiSize;
+  roiSize.width = width;
+  roiSize.height = height;
+  ippiCopy_32f_C1R(_img_pixels, width * sizeof(Ipp32f), v.data(),
+                   width * sizeof(Ipp32f), roiSize);
+
+  deNaN(v);
+
+  make_histogram(v, bins, NBINS, _pmin, _pmax);
+
+  median = stl_median(v);
+
+  float _mad = 0.0f;
+  int64_t _count = 0;
+
+  float _madP = 0.0f;
+  float _madN = 0.0f;
+  int64_t _countP = 0;
+  int64_t _countN = 0;
+
+#pragma omp parallel for reduction(+                                                                                                  \
+                                   : _mad) reduction(+                                                                                \
+                                                     : _count) reduction(+                                                            \
+                                                                         : _madP) reduction(+                                         \
+                                                                                            : _countP) reduction(+                    \
+                                                                                                                 : _madN) reduction(+ \
+                                                                                                                                    : _countN)
+  for (int tid = 0; tid < num_threads; tid++)
+  {
+    size_t work_size = total_size / num_threads;
+    size_t start = tid * work_size;
+
+    if (tid == num_threads - 1)
+      work_size = total_size - start;
+
+    ispc::asymmetric_mad(&(_img_pixels[start]), &(_img_mask[start]), work_size,
+                         median, _count, _mad, _countP, _madP, _countN, _madN);
+  };
+
+  if (_count > 0)
+    _mad /= float(_count);
+
+  if (_countP > 0)
+    _madP /= float(_countP);
+  else
+    _madP = _mad;
+
+  if (_countN > 0)
+    _madN /= float(_countN);
+  else
+    _madN = _mad;
+
+  // ALMAWebQL-style
+  float u = 7.5f;
+  float _black = MAX(_pmin, median - u * _madN);
+  float _white = MIN(_pmax, median + u * _madP);
+  float _sensitivity = 1.0f / (_white - _black);
+  float _ratio_sensitivity = _sensitivity;
+
+  if (this->is_optical)
+  {
+    // SubaruWebQL-style
+    float u = 0.5f;
+    float v = 15.0f;
+    _black = MAX(_pmin, median - u * _madN);
+    _white = MIN(_pmax, median + u * _madP);
+    _sensitivity = 1.0f / (v * _mad);
+    _ratio_sensitivity = _sensitivity;
+    auto_brightness(_img_pixels, _img_mask, _black, _ratio_sensitivity);
+  }
+
+  /*float min = _pmin;
+  float max = _pmax;
+  float mad = _mad;
+  float madN = _madN;
+  float madP = _madP;
+  float black = _black;
+  float white = _white;
+  float sensitivity = _sensitivity;
+  float ratio_sensitivity = _ratio_sensitivity;
+  return {min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity};*/
+
+  return {_pmin, _pmax, _mad, _madN, _madP, _black, _white, _sensitivity, _ratio_sensitivity};
 }
 
 void FITS::make_image_statistics()
