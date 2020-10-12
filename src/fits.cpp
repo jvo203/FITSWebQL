@@ -249,8 +249,23 @@ void remove_nan(std::vector<Ipp32f> &v)
          v.size());
 }
 
+bool comparator(Ipp32f x, Ipp32f y)
+{
+  //printf("comparator(%f,%f)", x, y);
+
+  if (!std::isfinite(y))
+    return false; // Assume NaN is less than *any* non-NaN value.
+
+  if (!std::isfinite(x))
+    return true; // Assume *any* non-NaN value is greater than NaN.
+
+  return (x < y);
+}
+
 Ipp32f stl_median(std::vector<Ipp32f> &v)
 {
+  //remove_nan(v);
+
   if (v.empty())
     return NAN;
 
@@ -263,9 +278,9 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 
   size_t n = v.size() / 2;
 #if defined(__APPLE__) && defined(__MACH__)
-  std::nth_element(v.begin(), v.begin() + n, v.end());
+  std::nth_element(v.begin(), v.begin() + n, v.end(), comparator);
 #else
-  __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
+  __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end(), comparator);
 #endif
 
   if (v.size() % 2)
@@ -276,9 +291,9 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
   {
     // even sized vector -> average the two middle values
 #if defined(__APPLE__) && defined(__MACH__)
-    auto max_it = std::max_element(v.begin(), v.begin() + n);
+    auto max_it = std::max_element(v.begin(), v.begin() + n, comparator);
 #else
-    auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
+    auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n, comparator);
 #endif
     medVal = (*max_it + v[n]) / 2.0f;
   }
@@ -3006,7 +3021,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         //zfp_queue.push(start_k);
-        zfp_compress_cube(start_k);
+        //zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3111,7 +3126,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         //zfp_queue.push(start_k);
-        zfp_compress_cube(start_k);
+        //zfp_compress_cube(start_k);
       }
     }
 
@@ -3424,8 +3439,6 @@ void FITS::make_image_statistics()
   roiSize.height = height;
   ippiCopy_32f_C1R(_img_pixels, width * sizeof(Ipp32f), v.data(),
                    width * sizeof(Ipp32f), roiSize);
-
-  remove_nan(v);
 
   make_histogram(v, hist, NBINS, _pmin, _pmax);
 
