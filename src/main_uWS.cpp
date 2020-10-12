@@ -2773,11 +2773,19 @@ int main(int argc, char *argv[])
 
                                    auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
 
-                                   float min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity;
-
                                    if (_img_pixels && _img_mask)
                                    {
-                                     [ min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity ] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+                                     auto [min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+
+                                     user->ptr->min = min;
+                                     user->ptr->max = max;
+                                     user->ptr->mad = mad;
+                                     user->ptr->madN = madN;
+                                     user->ptr->madP = madP;
+                                     user->ptr->black = black;
+                                     user->ptr->white = white;
+                                     user->ptr->sensitivity = sensitivity;
+                                     user->ptr->ratio_sensitivity = ratio_sensitivity;
                                    }
 
                                    auto end_t = steady_clock::now();
