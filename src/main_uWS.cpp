@@ -2996,13 +2996,26 @@ int main(int argc, char *argv[])
                                    user->ptr->last_seq = seq;
                                  }
 
-                                 // copy over the default {pixels,mask}
+                                 // copy over the default {pixels,mask} plus statistics
                                  {
                                    if (!user->ptr->img_pixels)
                                      user->ptr->img_pixels = fits->img_pixels;
 
                                    if (!user->ptr->img_mask)
                                      user->ptr->img_mask = fits->img_mask;
+
+                                   user->ptr->min = fits->min;
+                                   user->ptr->max = fits->max;
+                                   user->ptr->mad = fits->mad;
+                                   user->ptr->madN = fits->madN;
+                                   user->ptr->madP = fits->madP;
+                                   user->ptr->black = fits->black;
+                                   user->ptr->white = fits->white;
+                                   user->ptr->sensitivity = fits->sensitivity;
+                                   user->ptr->ratio_sensitivity = fits->ratio_sensitivity;
+
+                                   for (auto i = 0; i < NBINS; i++)
+                                     user->ptr->hist[i] = fits->hist[i];
                                  }
 
                                  int start, end;
