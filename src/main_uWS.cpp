@@ -2802,6 +2802,7 @@ int main(int argc, char *argv[])
                                    if (_img_mask)
                                      user->ptr->img_mask = _img_mask;
 
+                                   // send the updated mean_spectrum and integrated_spectrum via WebSockets
                                    if ((mean_spectrum.size() > 0) && (integrated_spectrum.size() > 0) && (mean_spectrum.size() == integrated_spectrum.size()))
                                    {
                                      std::cout << "[uWS] sending the mean/integrated spectra" << std::endl;
@@ -2813,7 +2814,7 @@ int main(int argc, char *argv[])
                                      {
                                        float ts = timestamp;
                                        uint32_t id = 0;
-                                       uint32_t msg_type = 3; //0 - spectrum, 1 - viewport, 2 - image, 3 - full spectrum refresh, 4 - histogram
+                                       uint32_t msg_type = 3; //0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
                                        uint32_t len = mean_spectrum.size();
 
                                        size_t offset = 0;
@@ -2836,6 +2837,7 @@ int main(int argc, char *argv[])
                                        memcpy(buffer + offset, integrated_spectrum.data(), integrated_spectrum.size() * sizeof(float));
                                        offset += integrated_spectrum.size() * sizeof(float);
 
+                                       // send the buffer
                                        if (user->ptr->active)
                                        {
                                          std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
@@ -2846,9 +2848,81 @@ int main(int argc, char *argv[])
                                      }
                                    }
 
+                                   // send the updated image + statistics + histogram via WebSockets
                                    if (_img_pixels && _img_mask)
                                    {
-                                     // send the updated image + statistics + histogram via WebSockets
+                                     std::cout << "[uWS] sending the cube image + statistics" << std::endl;
+
+                                     size_t bufferSize = sizeof(float) + 2 * sizeof(uint32_t);
+                                     bufferSize += 9 * sizeof(float) + sizeof(uint32_t) + NBINS * sizeof(uint32_t); // no image frame for now
+
+                                     char *buffer = (char *)malloc(bufferSize);
+
+                                     if (buffer != NULL)
+                                     {
+                                       float ts = timestamp;
+                                       uint32_t id = 0;
+                                       uint32_t msg_type = 2; //0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
+                                       uint32_t len = NBINS;
+
+                                       size_t offset = 0;
+
+                                       memcpy(buffer + offset, &ts, sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       // tone mapping (9 floats)
+                                       memcpy(buffer + offset, &(user->ptr->min), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->max), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->mad), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->madN), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->madP), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->black), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->white), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->sensitivity), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &(user->ptr->ratio_sensitivity), sizeof(float));
+                                       offset += sizeof(float);
+
+                                       // the histogram length
+                                       memcpy(buffer + offset, &len, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       // the histogram bins
+                                       memcpy(buffer + offset, user->ptr->hist, NBINS * sizeof(uint32_t));
+                                       offset += NBINS * sizeof(uint32_t);
+
+                                       // TO-DO: append the (potentially downsized) image frame
+
+                                       // send the buffer
+                                       if (user->ptr->active)
+                                       {
+                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                       }
+
+                                       free(buffer);
+                                     }
                                    }
                                  }
                                });
