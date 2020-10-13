@@ -48,9 +48,7 @@ struct UserSession
   Ipp32u hist[NBINS];
   float min;
   float max;
-  float mad;
-  float madN;
-  float madP;
+  float median;  
   float black;
   float white;
   float sensitivity;

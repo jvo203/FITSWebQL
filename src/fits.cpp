@@ -3361,9 +3361,9 @@ void FITS::make_image_luma()
   ippsFree(img_luma);
 }
 
-std::tuple<float, float, float, float, float, float, float, float, float> FITS::make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins)
+std::tuple<float, float, float, float, float, float, float> FITS::make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins)
 {
-  std::tuple<float, float, float, float, float, float, float, float, float> res;
+  std::tuple<float, float, float, float, float, float, float> res;
 
   auto _img_pixels = pixels.get();
   auto _img_mask = mask.get();
@@ -3424,7 +3424,7 @@ std::tuple<float, float, float, float, float, float, float, float, float> FITS::
 
   make_histogram(v, bins, NBINS, _pmin, _pmax);
 
-  median = stl_median(v);
+  float _median = stl_median(v);
 
   float _mad = 0.0f;
   int64_t _count = 0;
@@ -3450,7 +3450,7 @@ std::tuple<float, float, float, float, float, float, float, float, float> FITS::
       work_size = total_size - start;
 
     ispc::asymmetric_mad(&(_img_pixels[start]), &(_img_mask[start]), work_size,
-                         median, _count, _mad, _countP, _madP, _countN, _madN);
+                         _median, _count, _mad, _countP, _madP, _countN, _madN);
   };
 
   if (_count > 0)
@@ -3485,18 +3485,7 @@ std::tuple<float, float, float, float, float, float, float, float, float> FITS::
     auto_brightness(_img_pixels, _img_mask, _black, _ratio_sensitivity);
   }
 
-  /*float min = _pmin;
-  float max = _pmax;
-  float mad = _mad;
-  float madN = _madN;
-  float madP = _madP;
-  float black = _black;
-  float white = _white;
-  float sensitivity = _sensitivity;
-  float ratio_sensitivity = _ratio_sensitivity;
-  return {min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity};*/
-
-  return {_pmin, _pmax, _mad, _madN, _madP, _black, _white, _sensitivity, _ratio_sensitivity};
+  return {_pmin, _pmax, _median, _black, _white, _sensitivity, _ratio_sensitivity};
 }
 
 void FITS::make_image_statistics()
@@ -3560,7 +3549,7 @@ void FITS::make_image_statistics()
 
   make_histogram(v, hist, NBINS, _pmin, _pmax);
 
-  median = stl_median(v);
+  this->median = stl_median(v);
 
   float _mad = 0.0f;
   int64_t _count = 0;
@@ -3586,7 +3575,7 @@ void FITS::make_image_statistics()
       work_size = total_size - start;
 
     ispc::asymmetric_mad(&(_img_pixels[start]), &(_img_mask[start]), work_size,
-                         median, _count, _mad, _countP, _madP, _countN, _madN);
+                         this->median, _count, _mad, _countP, _madP, _countN, _madN);
   };
 
   if (_count > 0)

@@ -2775,13 +2775,11 @@ int main(int argc, char *argv[])
 
                                    if (_img_pixels && _img_mask)
                                    {
-                                     auto [min, max, mad, madN, madP, black, white, sensitivity, ratio_sensitivity] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+                                     auto [min, max, median, black, white, sensitivity, ratio_sensitivity] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
 
                                      user->ptr->min = min;
                                      user->ptr->max = max;
-                                     user->ptr->mad = mad;
-                                     user->ptr->madN = madN;
-                                     user->ptr->madP = madP;
+                                     user->ptr->median = median;                                     
                                      user->ptr->black = black;
                                      user->ptr->white = white;
                                      user->ptr->sensitivity = sensitivity;
@@ -2854,7 +2852,7 @@ int main(int argc, char *argv[])
                                      std::cout << "[uWS] sending the cube image + statistics" << std::endl;
 
                                      size_t bufferSize = sizeof(float) + 2 * sizeof(uint32_t);
-                                     bufferSize += 9 * sizeof(float) + sizeof(uint32_t) + NBINS * sizeof(uint32_t); // no image frame for now
+                                     bufferSize += 7 * sizeof(float) + sizeof(uint32_t) + NBINS * sizeof(uint32_t); // no image frame for now
 
                                      char *buffer = (char *)malloc(bufferSize);
 
@@ -2876,21 +2874,15 @@ int main(int argc, char *argv[])
                                        memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
 
-                                       // tone mapping (9 floats)
+                                       // tone mapping (7 floats)
                                        memcpy(buffer + offset, &(user->ptr->min), sizeof(float));
                                        offset += sizeof(float);
 
                                        memcpy(buffer + offset, &(user->ptr->max), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset, &(user->ptr->mad), sizeof(float));
-                                       offset += sizeof(float);
-
-                                       memcpy(buffer + offset, &(user->ptr->madN), sizeof(float));
-                                       offset += sizeof(float);
-
-                                       memcpy(buffer + offset, &(user->ptr->madP), sizeof(float));
-                                       offset += sizeof(float);
+                                       memcpy(buffer + offset, &(user->ptr->median), sizeof(float));
+                                       offset += sizeof(float);                                       
 
                                        memcpy(buffer + offset, &(user->ptr->black), sizeof(float));
                                        offset += sizeof(float);
@@ -3080,9 +3072,7 @@ int main(int argc, char *argv[])
 
                                    user->ptr->min = fits->min;
                                    user->ptr->max = fits->max;
-                                   user->ptr->mad = fits->mad;
-                                   user->ptr->madN = fits->madN;
-                                   user->ptr->madP = fits->madP;
+                                   user->ptr->median = fits->median;                                   
                                    user->ptr->black = fits->black;
                                    user->ptr->white = fits->white;
                                    user->ptr->sensitivity = fits->sensitivity;
