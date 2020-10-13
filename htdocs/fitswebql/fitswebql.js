@@ -2638,49 +2638,25 @@ function open_websocket_connection(datasetId, index) {
 						console.log(tone_mapping);
 
 						// next the histogram length + bins
+						fitsContainer[index - 1].min = min;
+						fitsContainer[index - 1].max = max;
+						fitsContainer[index - 1].median = median;
+						fitsContainer[index - 1].sensitivity = sensitivity;
+						fitsContainer[index - 1].ratio_sensitivity = ratio_sensitivity;
+						fitsContainer[index - 1].black = black;
+						fitsContainer[index - 1].white = white;
 
-						var identifier = new Uint8Array(received_msg, offset, id_length);
-						identifier = new TextDecoder("utf-8").decode(identifier);
-						offset += id_length;
-
-						var width = dv.getUint32(offset, endianness);
+						var nbins = dv.getUint32(offset, endianness);
 						offset += 4;
 
-						var height = dv.getUint32(offset, endianness);
-						offset += 4;
+						var histogram = new Int32Array(received_msg, offset, nbins);
+						fitsContainer[index - 1].histogram = histogram;
 
-						var image_length = dv.getUint32(offset, endianness);
-						offset += 8;
+						//refresh the histogram
+						redraw_histogram(index);
 
-						var frame = new Uint8Array(received_msg, offset, image_length);//offset by 8 bytes
-						offset += image_length;
-
-						var alpha_length = dv.getUint32(offset, endianness);
-						offset += 8;
-
-						var alpha = new Uint8Array(received_msg, offset);
-						console.log("image frame identifier (WS): ", identifier, "width:", width, "height:", height, "compressed alpha length:", alpha.length);
-
-						var Buffer = require('buffer').Buffer;
-						var LZ4 = require('lz4');
-
-						var uncompressed = new Buffer(width * height);
-						uncompressedSize = LZ4.decodeBlock(new Buffer(alpha), uncompressed);
-						alpha = uncompressed.slice(0, uncompressedSize);
-
-						if (identifier == 'VP9') {
-							var decoder = new OGVDecoderVideoVP9();
-
-							decoder.init(function () { console.log("init callback done"); });
-							decoder.processFrame(frame, function () {
-								process_image(width, height, decoder.frameBuffer.format.displayWidth,
-									decoder.frameBuffer.format.displayHeight,
-									decoder.frameBuffer.y.bytes,
-									decoder.frameBuffer.y.stride,
-									alpha,
-									index);
-							});
-						}
+						// and finally the 32-bit floating-point image frame
+						// TO-DO
 
 						return;
 
