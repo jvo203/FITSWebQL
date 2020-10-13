@@ -2655,7 +2655,7 @@ function open_websocket_connection(datasetId, index) {
 						//refresh the histogram
 						redraw_histogram(index);
 
-						// and finally the 32-bit floating-point image frame
+						// and finally receive/process the 32-bit floating-point image frame
 						// TO-DO
 
 						return;
