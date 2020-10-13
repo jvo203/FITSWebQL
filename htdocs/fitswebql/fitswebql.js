@@ -2606,9 +2606,38 @@ function open_websocket_connection(datasetId, index) {
 
 					//image
 					if (type == 2) {
+						var tone_mapping = new Object();
+						let p = 0.5;
+						tone_mapping.lmin = Math.log(p);
+						tone_mapping.lmax = Math.log(p + 1.0);
+
 						var offset = 12;
-						var id_length = dv.getUint32(offset, endianness);
-						offset += 8;
+						tone_mapping.flux = document.getElementById('flux' + index).value;
+
+						tone_mapping.min = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.max = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.median = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.white = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.black = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.sensitivity = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						tone_mapping.ratio_sensitivity = dv.getFloat32(offset, endianness);
+						offset += 4;
+
+						console.log(tone_mapping);
+
+						// next the histogram length + bins
 
 						var identifier = new Uint8Array(received_msg, offset, id_length);
 						identifier = new TextDecoder("utf-8").decode(identifier);
