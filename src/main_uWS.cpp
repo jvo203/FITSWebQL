@@ -586,6 +586,10 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
     return;
   }
 
+  // in-memory output
+  StdOSStream oss;
+  std::string output;
+
   // calculate a new image size
   long true_width = fits->width;
   long true_height = fits->height;
@@ -654,9 +658,6 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
             boost::replace_all_copy(fits->dataset_id, "/", "_") +
             std::string("_resize.exr");
 
-        // in-memory output
-        StdOSStream oss;
-
         try
         {
           Header header(img_width, img_height);
@@ -685,103 +686,10 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
           std::cerr << exc.what() << std::endl;
         }
 
-        std::string output = oss.str();
+        output = oss.str();
         std::cout << "[" << fits->dataset_id
                   << "]::downsize OpenEXR output: " << output.length()
                   << " bytes." << std::endl;
-
-        // send the data to the web client
-        {
-          const char *ptr;
-
-          // send image tone mapping statistics
-          float tmp = 0.0f;
-          uint32_t str_len = fits->flux.length();
-          uint64_t img_len = output.length();
-
-          ptr = (const char *)&str_len;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(str_len)));
-
-          ptr = fits->flux.c_str();
-          if (*aborted.get() != true)
-            res->write(fits->flux);
-
-          ptr = (const char *)&tmp;
-
-          tmp = fits->min;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->max;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->median;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->sensitivity;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->ratio_sensitivity;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->white;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          tmp = fits->black;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(tmp)));
-
-          ptr = (const char *)&img_len;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(img_len)));
-
-          if (*aborted.get() != true)
-            res->write(output);
-        }
-
-        // add compressed FITS data, a spectrum and a histogram
-        if (fetch_data)
-        {
-          std::ostringstream json;
-          fits->to_json(json);
-
-          // LZ4-compress json
-          Ipp8u *json_lz4 = NULL;
-          uint32_t json_size = json.tellp();
-          uint32_t compressed_size = 0;
-
-          // LZ4-compress json data
-          int worst_size = LZ4_compressBound(json_size);
-          json_lz4 = ippsMalloc_8u_L(worst_size);
-
-          if (json_lz4 != NULL)
-          {
-            // compress the header with LZ4
-            compressed_size = LZ4_compress_HC(
-                (const char *)json.str().c_str(), (char *)json_lz4, json_size,
-                worst_size, LZ4HC_CLEVEL_MAX);
-
-            printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n",
-                   json_size, compressed_size);
-
-            // append json to the trasmission queue
-
-            const char *ptr = (const char *)&json_size;
-            if (*aborted.get() != true)
-              res->write(std::string_view(ptr, sizeof(json_size)));
-
-            if (*aborted.get() != true)
-              res->write(std::string_view((const char *)json_lz4, compressed_size));
-
-            ippsFree(json_lz4);
-          }
-        }
       }
     }
   }
@@ -824,9 +732,6 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
           boost::replace_all_copy(fits->dataset_id, "/", "_") +
           std::string("_mirror.exr");
 
-      // in-memory output
-      StdOSStream oss;
-
       try
       {
         Header header(img_width, img_height);
@@ -854,102 +759,105 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> 
         std::cerr << exc.what() << std::endl;
       }
 
-      std::string output = oss.str();
+      output = oss.str();
       std::cout << "[" << fits->dataset_id
                 << "]::mirror OpenEXR output: " << output.length()
                 << " bytes." << std::endl;
+    }
+  }
 
-      // send the data to the web client
+  if (output.length() > 0)
+  {
+    // send the image data/statistics to the web client
+    {
+      const char *ptr;
+
+      // send image tone mapping statistics
+      float tmp = 0.0f;
+      uint32_t str_len = fits->flux.length();
+      uint64_t img_len = output.length();
+
+      ptr = (const char *)&str_len;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(str_len)));
+
+      ptr = fits->flux.c_str();
+      if (*aborted.get() != true)
+        res->write(fits->flux);
+
+      ptr = (const char *)&tmp;
+
+      tmp = fits->min;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->max;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->median;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->sensitivity;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->ratio_sensitivity;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->white;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      tmp = fits->black;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(tmp)));
+
+      ptr = (const char *)&img_len;
+      if (*aborted.get() != true)
+        res->write(std::string_view(ptr, sizeof(img_len)));
+
+      if (*aborted.get() != true)
+        res->write(output);
+    }
+
+    // add compressed FITS data, a spectrum and a histogram
+    if (fetch_data)
+    {
+      std::ostringstream json;
+      fits->to_json(json);
+
+      // LZ4-compress json
+      Ipp8u *json_lz4 = NULL;
+      uint32_t json_size = json.tellp();
+      uint32_t compressed_size = 0;
+
+      // LZ4-compress json data
+      int worst_size = LZ4_compressBound(json_size);
+      json_lz4 = ippsMalloc_8u_L(worst_size);
+
+      if (json_lz4 != NULL)
       {
-        const char *ptr;
+        // compress the header with LZ4
+        compressed_size = LZ4_compress_HC(
+            (const char *)json.str().c_str(), (char *)json_lz4, json_size,
+            worst_size, LZ4HC_CLEVEL_MAX);
 
-        // send image tone mapping statistics
-        float tmp = 0.0f;
-        uint32_t str_len = fits->flux.length();
-        uint64_t img_len = output.length();
+        printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n",
+               json_size, compressed_size);
 
-        ptr = (const char *)&str_len;
+        // append json to the trasmission queue
+
+        const char *ptr = (const char *)&json_size;
         if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(str_len)));
-
-        ptr = fits->flux.c_str();
-        if (*aborted.get() != true)
-          res->write(fits->flux);
-
-        ptr = (const char *)&tmp;
-
-        tmp = fits->min;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->max;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->median;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->sensitivity;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->ratio_sensitivity;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->white;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        tmp = fits->black;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(tmp)));
-
-        ptr = (const char *)&img_len;
-        if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(img_len)));
+          res->write(std::string_view(ptr, sizeof(json_size)));
 
         if (*aborted.get() != true)
-          res->write(output);
-      }
+          res->write(std::string_view((const char *)json_lz4, compressed_size));
 
-      // add compressed FITS data, a spectrum and a histogram
-      if (fetch_data)
-      {
-        std::ostringstream json;
-        fits->to_json(json);
-
-        // LZ4-compress json
-        Ipp8u *json_lz4 = NULL;
-        uint32_t json_size = json.tellp();
-        uint32_t compressed_size = 0;
-
-        // LZ4-compress json data
-        int worst_size = LZ4_compressBound(json_size);
-        json_lz4 = ippsMalloc_8u_L(worst_size);
-
-        if (json_lz4 != NULL)
-        {
-          // compress the header with LZ4
-          compressed_size = LZ4_compress_HC((const char *)json.str().c_str(),
-                                            (char *)json_lz4, json_size,
-                                            worst_size, LZ4HC_CLEVEL_MAX);
-
-          printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n", json_size,
-                 compressed_size);
-
-          // append json to the trasmission queue
-
-          const char *ptr = (const char *)&json_size;
-          if (*aborted.get() != true)
-            res->write(std::string_view(ptr, sizeof(json_size)));
-
-          if (*aborted.get() != true)
-            res->write(std::string_view((const char *)json_lz4, compressed_size));
-
-          ippsFree(json_lz4);
-        }
+        ippsFree(json_lz4);
       }
     }
   }
@@ -2779,7 +2687,7 @@ int main(int argc, char *argv[])
 
                                      user->ptr->min = min;
                                      user->ptr->max = max;
-                                     user->ptr->median = median;                                     
+                                     user->ptr->median = median;
                                      user->ptr->black = black;
                                      user->ptr->white = white;
                                      user->ptr->sensitivity = sensitivity;
@@ -2882,7 +2790,7 @@ int main(int argc, char *argv[])
                                        offset += sizeof(float);
 
                                        memcpy(buffer + offset, &(user->ptr->median), sizeof(float));
-                                       offset += sizeof(float);                                       
+                                       offset += sizeof(float);
 
                                        memcpy(buffer + offset, &(user->ptr->black), sizeof(float));
                                        offset += sizeof(float);
@@ -3072,7 +2980,7 @@ int main(int argc, char *argv[])
 
                                    user->ptr->min = fits->min;
                                    user->ptr->max = fits->max;
-                                   user->ptr->median = fits->median;                                   
+                                   user->ptr->median = fits->median;
                                    user->ptr->black = fits->black;
                                    user->ptr->white = fits->white;
                                    user->ptr->sensitivity = fits->sensitivity;
