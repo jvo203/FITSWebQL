@@ -2400,8 +2400,8 @@ int main(int argc, char *argv[]) {
                                          << std::endl;
                          }
 
-                         // ignore messages if there is no primary datasetid
-                         // available
+                         // ignore messages if there is no primary
+                         // datasetid available
                          struct UserData *user =
                              (struct UserData *)ws->getUserData();
 
@@ -2512,9 +2512,10 @@ int main(int argc, char *argv[]) {
                            }
 
                            // process the response
-                           /*std::cout << "query(" << datasetid << "::" <<
-                             quality
-                             << "::" << frame_start << "::" << frame_end
+                           /*std::cout << "query(" << datasetid <<
+                             "::" << quality
+                             << "::" << frame_start << "::" <<
+                             frame_end
                              << "::" << ref_freq
                              << "::view <" << view_width << " x " <<
                              view_height
@@ -2542,8 +2543,11 @@ int main(int argc, char *argv[]) {
                                          frame_start, frame_end, ref_freq,
                                          start, end);
 
-                                     // make image/spectrum/histogram (get a
-                                     // FITS sub-cube)
+                                     // make
+                                     // image/spectrum/histogram
+                                     // (get a
+                                     // FITS
+                                     // sub-cube)
                                      if (fits->depth > 1) {
                                        auto start_t = steady_clock::now();
 
@@ -2579,21 +2583,32 @@ int main(int argc, char *argv[]) {
                                        elapsedMilliseconds +=
                                            1000.0 * elapsedSeconds;
 
-                                       // set the new user {pixels,mask}
+                                       // set the
+                                       // new user
+                                       // {pixels,mask}
                                        if (_img_pixels)
                                          user->ptr->img_pixels = _img_pixels;
 
                                        if (_img_mask)
                                          user->ptr->img_mask = _img_mask;
 
-                                       // send the updated mean_spectrum and
-                                       // integrated_spectrum via WebSockets
+                                       // send the
+                                       // updated
+                                       // mean_spectrum
+                                       // and
+                                       // integrated_spectrum
+                                       // via
+                                       // WebSockets
                                        if ((mean_spectrum.size() > 0) &&
                                            (integrated_spectrum.size() > 0) &&
                                            (mean_spectrum.size() ==
                                             integrated_spectrum.size())) {
-                                         std::cout << "[uWS] sending the "
-                                                      "mean/integrated spectra"
+                                         std::cout << "[uWS] "
+                                                      "sending "
+                                                      "the "
+                                                      "mean/"
+                                                      "integrated"
+                                                      " spectra"
                                                    << std::endl;
 
                                          size_t bufferSize =
@@ -2610,11 +2625,19 @@ int main(int argc, char *argv[]) {
                                          if (buffer != NULL) {
                                            float ts = timestamp;
                                            uint32_t id = 0;
-                                           uint32_t msg_type =
-                                               3; // 0 - spectrum, 1 - viewport,
-                                           // 2 - cube image +
-                                           // statistics, 3 - full
-                                           // spectrum refresh
+                                           uint32_t msg_type = 3; // 0 -
+                                                                  // spectrum,
+                                                                  // 1 -
+                                                                  // viewport,
+                                           // 2 -
+                                           // cube
+                                           // image
+                                           // +
+                                           // statistics,
+                                           // 3 -
+                                           // full
+                                           // spectrum
+                                           // refresh
                                            uint32_t len = mean_spectrum.size();
 
                                            size_t offset = 0;
@@ -2650,7 +2673,9 @@ int main(int argc, char *argv[]) {
                                                integrated_spectrum.size() *
                                                sizeof(float);
 
-                                           // send the buffer
+                                           // send
+                                           // the
+                                           // buffer
                                            if (user->ptr->active) {
                                              std::lock_guard<std::shared_mutex>
                                                  unique_access(user->ptr->mtx);
@@ -2664,39 +2689,443 @@ int main(int argc, char *argv[]) {
                                          }
                                        }
 
-                                       // send the updated image + statistics +
-                                       // histogram via WebSockets
+                                       // send the
+                                       // updated
+                                       // image +
+                                       // statistics
+                                       // +
+                                       // histogram
+                                       // via
+                                       // WebSockets
                                        if (_img_pixels && _img_mask) {
-                                         // export the image pixels/mask to
+                                         // export
+                                         // the
+                                         // image
+                                         // pixels/mask
+                                         // to
                                          // OpenEXR
 
-                                         // in-memory output
+                                         // in-memory
+                                         // output
                                          StdOSStream oss;
                                          std::string output;
 
-                                         // calculate a new image size
+                                         // calculate
+                                         // a new
+                                         // image
+                                         // size
                                          long true_width = fits->width;
                                          long true_height = fits->height;
-                                         true_image_dimensions(
-                                             _img_mask.get(), true_width,
-                                             true_height);
+                                         true_image_dimensions(_img_mask.get(),
+                                                               true_width,
+                                                               true_height);
                                          float scale = get_image_scale(
-                                             view_width, view_height, true_width,
-                                             true_height);
+                                             view_width, view_height,
+                                             true_width, true_height);
 
-                                         std::cout << "[uWS] sending the cube "
-                                                      "image + statistics"
+                                         if (scale < 1.0) {
+                                           int img_width =
+                                               floorf(scale * fits->width);
+                                           int img_height =
+                                               floorf(scale * fits->height);
+
+                                           printf("F"
+                                                  "I"
+                                                  "T"
+                                                  "S"
+                                                  " "
+                                                  "i"
+                                                  "m"
+                                                  "a"
+                                                  "g"
+                                                  "e"
+                                                  " "
+                                                  "s"
+                                                  "c"
+                                                  "a"
+                                                  "l"
+                                                  "i"
+                                                  "n"
+                                                  "g"
+                                                  " "
+                                                  "b"
+                                                  "y"
+                                                  " "
+                                                  "%"
+                                                  "f"
+                                                  ";"
+                                                  " "
+                                                  "%"
+                                                  "l"
+                                                  "d"
+                                                  " "
+                                                  "x"
+                                                  " "
+                                                  "%"
+                                                  "l"
+                                                  "d"
+                                                  " "
+                                                  "-"
+                                                  "-"
+                                                  ">"
+                                                  " "
+                                                  "%"
+                                                  "d"
+                                                  " "
+                                                  "x"
+                                                  " "
+                                                  "%"
+                                                  "d"
+                                                  "\n",
+                                                  scale, fits->width,
+                                                  fits->height, img_width,
+                                                  img_height);
+
+                                           size_t plane_size =
+                                               size_t(img_width) *
+                                               size_t(img_height);
+
+                                           // allocate
+                                           // {pixel_buf,
+                                           // mask_buf}
+                                           std::shared_ptr<Ipp32f> pixels_buf(
+                                               ippsMalloc_32f_L(plane_size),
+                                               ippsFree);
+                                           std::shared_ptr<Ipp8u> mask_buf(
+                                               ippsMalloc_8u_L(plane_size),
+                                               ippsFree);
+                                           std::shared_ptr<Ipp32f> mask_buf_32f(
+                                               ippsMalloc_32f_L(plane_size),
+                                               ippsFree);
+
+                                           if (pixels_buf.get() != NULL &&
+                                               mask_buf.get() != NULL &&
+                                               mask_buf_32f.get() != NULL) {
+                                             // downsize
+                                             // float32
+                                             // pixels
+                                             // and
+                                             // a
+                                             // mask
+                                             IppiSize srcSize;
+                                             srcSize.width = fits->width;
+                                             srcSize.height = fits->height;
+                                             Ipp32s srcStep = srcSize.width;
+
+                                             IppiSize dstSize;
+                                             dstSize.width = img_width;
+                                             dstSize.height = img_height;
+                                             Ipp32s dstStep = dstSize.width;
+
+                                             IppStatus pixels_stat =
+                                                 tileResize32f_C1R(
+                                                     _img_pixels.get(), srcSize,
+                                                     srcStep, pixels_buf.get(),
+                                                     dstSize, dstStep);
+
+                                             IppStatus mask_stat =
+                                                 tileResize8u_C1R(
+                                                     _img_mask.get(), srcSize,
+                                                     srcStep, mask_buf.get(),
+                                                     dstSize, dstStep);
+
+                                             printf(
+                                                 " %d : "
+                                                 "%s, %d : "
+                                                 "%s\n",
+                                                 pixels_stat,
+                                                 ippGetStatusString(
+                                                     pixels_stat),
+                                                 mask_stat,
+                                                 ippGetStatusString(mask_stat));
+
+                                             // compress
+                                             // the
+                                             // pixels
+                                             // +
+                                             // mask
+                                             // with
+                                             // OpenEXR
+                                             if (pixels_stat == ippStsNoErr &&
+                                                 mask_stat == ippStsNoErr) {
+                                               // the mask
+                                               // should be
+                                               // filled-in
+                                               // manually
+                                               // based on
+                                               // NaN pixels
+                                               // not
+                                               // anymore,
+                                               // NaN will
+                                               // be
+                                               // replaced
+                                               // by 0.0 due
+                                               // to
+                                               // unwanted
+                                               // cropping
+                                               // by OpenEXR
+                                               Ipp32f *pixels =
+                                                   pixels_buf.get();
+                                               Ipp8u *src_mask = mask_buf.get();
+                                               Ipp32f *mask =
+                                                   mask_buf_32f.get();
+
+#pragma omp parallel for simd
+                                               for (size_t i = 0;
+                                                    i < plane_size; i++)
+                                                 mask[i] =
+                                                     (src_mask[i] == 255)
+                                                         ? 1.0f
+                                                         : 0.0f; // std::isnan(pixels[i])
+                                                                 // ? 0.0f
+                                                                 // : 1.0f;
+
+                                               // export EXR
+                                               // in a YA
+                                               // format
+                                               std::string filename =
+                                                   FITSCACHE +
+                                                   std::string("/") +
+                                                   boost::replace_all_copy(
+                                                       fits->dataset_id, "/",
+                                                       "_") +
+                                                   std::string("_re"
+                                                               "siz"
+                                                               "e."
+                                                               "ex"
+                                                               "r");
+
+                                               try {
+                                                 Header header(img_width,
+                                                               img_height);
+                                                 header.compression() =
+                                                     DWAB_COMPRESSION;
+                                                 addDwaCompressionLevel(
+                                                     header, quality);
+                                                 header.channels().insert(
+                                                     "Y", Channel(FLOAT));
+                                                 header.channels().insert(
+                                                     "A", Channel(FLOAT));
+
+                                                 // OutputFile
+                                                 // file(filename.c_str(),
+                                                 // header);
+                                                 OutputFile file(oss, header);
+                                                 FrameBuffer frameBuffer;
+
+                                                 frameBuffer.insert(
+                                                     "Y",
+                                                     Slice(FLOAT,
+                                                           (char *)pixels,
+                                                           sizeof(Ipp32f) * 1,
+                                                           sizeof(Ipp32f) *
+                                                               img_width));
+
+                                                 frameBuffer.insert(
+                                                     "A",
+                                                     Slice(FLOAT, (char *)mask,
+                                                           sizeof(Ipp32f) * 1,
+                                                           sizeof(Ipp32f) *
+                                                               img_width));
+
+                                                 file.setFrameBuffer(
+                                                     frameBuffer);
+                                                 file.writePixels(img_height);
+                                               } catch (
+                                                   const std::exception &exc) {
+                                                 std::cerr << exc.what()
+                                                           << std::endl;
+                                               }
+
+                                               output = oss.str();
+                                               std::cout << "["
+                                                         << fits->dataset_id
+                                                         << "]::"
+                                                            "down"
+                                                            "size"
+                                                            " Ope"
+                                                            "nEXR"
+                                                            " out"
+                                                            "put:"
+                                                            " "
+                                                         << output.length()
+                                                         << " byt"
+                                                            "es."
+                                                         << std::endl;
+                                             }
+                                           }
+                                         } else {
+                                           // mirror-flip
+                                           // the
+                                           // pixels_buf,
+                                           // compress
+                                           // with
+                                           // OpenEXR
+                                           // and
+                                           // transmit
+                                           // at
+                                           // its
+                                           // original
+                                           // scale
+                                           int img_width = fits->width;
+                                           int img_height = fits->height;
+
+                                           size_t plane_size =
+                                               size_t(img_width) *
+                                               size_t(img_height);
+
+                                           // an
+                                           // array
+                                           // to
+                                           // hold
+                                           // a
+                                           // flipped
+                                           // image
+                                           // (its
+                                           // mirror
+                                           // image)
+                                           /*std::shared_ptr<Ipp32f>
+                                             pixels_buf(ippsMalloc_32f_L(plane_size),
+                                             ippsFree);*/
+
+                                           // an
+                                           // alpha
+                                           // channel
+                                           std::shared_ptr<Ipp32f> mask_buf(
+                                               ippsMalloc_32f_L(plane_size),
+                                               ippsFree);
+
+                                           // copy
+                                           // and
+                                           // flip
+                                           // the
+                                           // image,
+                                           // fill-in
+                                           // the
+                                           // mask
+                                           if (/*pixels_buf.get()
+                                                  != NULL
+                                                  &&*/
+                                               mask_buf.get() != NULL) {
+                                             /*tileMirror32f_C1R(fits->img_pixels,
+                                               pixels_buf.get(),
+                                               img_width,
+                                               img_height);*/
+
+                                             // the
+                                             // mask
+                                             // should
+                                             // be
+                                             // filled-in
+                                             // manually
+                                             // based
+                                             // on
+                                             // NaN
+                                             // pixels
+                                             Ipp32f *pixels =
+                                                 _img_pixels
+                                                     .get(); // pixels_buf.get();
+                                             Ipp8u *_mask = _img_mask.get();
+                                             Ipp32f *mask = mask_buf.get();
+
+#pragma omp parallel for simd
+                                             for (size_t i = 0; i < plane_size;
+                                                  i++)
+                                               mask[i] =
+                                                   (_mask[i] == 255)
+                                                       ? 1.0f
+                                                       : 0.0f; // std::isnan(pixels[i])
+                                                               // ? 0.0f : 1.0f;
+
+                                             // export
+                                             // the
+                                             // luma+mask
+                                             // to
+                                             // OpenEXR
+                                             std::string filename =
+                                                 FITSCACHE + std::string("/") +
+                                                 boost::replace_all_copy(
+                                                     fits->dataset_id, "/",
+                                                     "_") +
+                                                 std::string("_mirr"
+                                                             "or."
+                                                             "exr");
+
+                                             try {
+                                               Header header(img_width,
+                                                             img_height);
+                                               header.compression() =
+                                                   DWAB_COMPRESSION;
+                                               addDwaCompressionLevel(header,
+                                                                      quality);
+                                               header.channels().insert(
+                                                   "Y", Channel(FLOAT));
+                                               header.channels().insert(
+                                                   "A", Channel(FLOAT));
+
+                                               // OutputFile
+                                               // file(filename.c_str(),
+                                               // header);
+                                               OutputFile file(oss, header);
+                                               FrameBuffer frameBuffer;
+
+                                               frameBuffer.insert(
+                                                   "Y",
+                                                   Slice(FLOAT, (char *)pixels,
+                                                         sizeof(Ipp32f) * 1,
+                                                         sizeof(Ipp32f) *
+                                                             img_width));
+
+                                               frameBuffer.insert(
+                                                   "A",
+                                                   Slice(FLOAT, (char *)mask,
+                                                         sizeof(Ipp32f) * 1,
+                                                         sizeof(Ipp32f) *
+                                                             img_width));
+
+                                               file.setFrameBuffer(frameBuffer);
+                                               file.writePixels(img_height);
+                                             } catch (
+                                                 const std::exception &exc) {
+                                               std::cerr << exc.what()
+                                                         << std::endl;
+                                             }
+
+                                             output = oss.str();
+                                             std::cout << "["
+                                                       << fits->dataset_id
+                                                       << "]::"
+                                                          "mirror"
+                                                          " OpenE"
+                                                          "XR "
+                                                          "output"
+                                                          ": "
+                                                       << output.length()
+                                                       << " bytes"
+                                                          "."
+                                                       << std::endl;
+                                           }
+                                         }
+
+                                         std::cout << "[uWS] "
+                                                      "sending "
+                                                      "the cube "
+                                                      "image + "
+                                                      "statistics"
                                                    << std::endl;
 
                                          size_t bufferSize =
                                              sizeof(float) +
                                              2 * sizeof(uint32_t);
-                                         bufferSize +=
-                                             7 * sizeof(float) +
-                                             sizeof(uint32_t) +
-                                             NBINS *
-                                                 sizeof(uint32_t); // no image
-                                         // frame for now
+                                         bufferSize += 7 * sizeof(float) +
+                                                       sizeof(uint32_t) +
+                                                       NBINS * sizeof(uint32_t);
+                                         // append
+                                         // the
+                                         // image
+                                         // frame
+                                         // too
+                                         bufferSize += output.length();
 
                                          char *buffer =
                                              (char *)malloc(bufferSize);
@@ -2704,12 +3133,21 @@ int main(int argc, char *argv[]) {
                                          if (buffer != NULL) {
                                            float ts = timestamp;
                                            uint32_t id = 0;
-                                           uint32_t msg_type =
-                                               2; // 0 - spectrum, 1 - viewport,
-                                           // 2 - cube image +
-                                           // statistics, 3 - full
-                                           // spectrum refresh
+                                           uint32_t msg_type = 2; // 0 -
+                                                                  // spectrum,
+                                                                  // 1 -
+                                                                  // viewport,
+                                           // 2 -
+                                           // cube
+                                           // image
+                                           // +
+                                           // statistics,
+                                           // 3 -
+                                           // full
+                                           // spectrum
+                                           // refresh
                                            uint32_t len = NBINS;
+                                           uint64_t img_len = output.length();
 
                                            size_t offset = 0;
 
@@ -2725,7 +3163,10 @@ int main(int argc, char *argv[]) {
                                                   sizeof(uint32_t));
                                            offset += sizeof(uint32_t);
 
-                                           // tone mapping (7 floats)
+                                           // tone
+                                           // mapping
+                                           // (7
+                                           // floats)
                                            memcpy(buffer + offset,
                                                   &(user->ptr->min),
                                                   sizeof(float));
@@ -2762,19 +3203,30 @@ int main(int argc, char *argv[]) {
                                                sizeof(float));
                                            offset += sizeof(float);
 
-                                           // the histogram length
+                                           // the
+                                           // histogram
+                                           // length
                                            memcpy(buffer + offset, &len,
                                                   sizeof(uint32_t));
                                            offset += sizeof(uint32_t);
 
-                                           // the histogram bins
+                                           // the
+                                           // histogram
+                                           // bins
                                            memcpy(buffer + offset,
                                                   user->ptr->hist,
                                                   NBINS * sizeof(uint32_t));
                                            offset += NBINS * sizeof(uint32_t);
 
-                                           // TO-DO: append the (potentially
-                                           // downsized) image frame
+                                           // the
+                                           // OpenEXR
+                                           // image
+                                           // frame
+                                           if (output.length() > 0)
+                                             memcpy(buffer + offset,
+                                                    output.c_str(),
+                                                    output.length());
+                                           offset += output.length();
 
                                            // send the buffer
                                            if (user->ptr->active) {
@@ -2800,8 +3252,8 @@ int main(int argc, char *argv[]) {
 
                          if (message.find("[realtime_image_spectrum]") !=
                              std::string::npos) {
-                           // get deltat (no need to lock the mutex at this
-                           // point)
+                           // get deltat (no need to lock the mutex at
+                           // this point)
                            auto now = system_clock::now();
                            duration<double, std::milli> deltat =
                                now - user->ptr->ts;
@@ -2902,7 +3354,8 @@ int main(int argc, char *argv[]) {
                            }
 
                            // process the response
-                           /*std::cout << "query(" << datasetid << "::" << dx <<
+                           /*std::cout << "query(" << datasetid <<
+                             "::" << dx <<
                              "::" << quality
                              << "::" << (image_update ? "true" :
                              "false") << "::<X:> "
@@ -2917,7 +3370,8 @@ int main(int argc, char *argv[]) {
                              "square")
                              << "::" << (intensity == integrated ?
                              "integrated" : "mean")
-                             << "::" << seq << "::" << timestamp << ")"
+                             << "::" << seq << "::" << timestamp <<
+                             ")"
                              << std::endl;*/
 
                            auto fits = get_dataset(datasetid);
@@ -2940,14 +3394,19 @@ int main(int argc, char *argv[]) {
                                      fits->update_timestamp();
 
                                      {
-                                       // gain unique access
+                                       // gain unique
+                                       // access
                                        std::lock_guard<std::shared_mutex>
                                            unique_access(user->ptr->mtx);
 
                                        int last_seq = user->ptr->last_seq;
 
                                        if (last_seq > seq) {
-                                         printf("skipping an old frame (%d < "
+                                         printf("skippin"
+                                                "g an "
+                                                "old "
+                                                "frame "
+                                                "(%d < "
                                                 "%d)\n",
                                                 seq, last_seq);
                                          return;
@@ -2956,7 +3415,10 @@ int main(int argc, char *argv[]) {
                                        user->ptr->last_seq = seq;
                                      }
 
-                                     // copy over the default {pixels,mask} plus
+                                     // copy over the
+                                     // default
+                                     // {pixels,mask}
+                                     // plus
                                      // statistics
                                      {
                                        if (!user->ptr->img_pixels)
@@ -2987,7 +3449,9 @@ int main(int argc, char *argv[]) {
                                          frame_start, frame_end, ref_freq,
                                          start, end);
 
-                                     // send the compressed viewport
+                                     // send the
+                                     // compressed
+                                     // viewport
                                      if (image_update && view_width > 0 &&
                                          view_height > 0) {
                                        auto start_t = steady_clock::now();
@@ -3013,12 +3477,17 @@ int main(int argc, char *argv[]) {
                                        Ipp32f *_pixels = view_pixels.get();
                                        Ipp32f *_mask = view_mask.get();
 
-                                       // the loop could be parallelised
+                                       // the loop
+                                       // could be
+                                       // parallelised
                                        for (int j = y1; j <= y2; j++) {
                                          size_t src_offset = j * fits->width;
 
                                          for (int i = x1; i <= x2; i++) {
-                                           // a dark (inactive) pixel by default
+                                           // a dark
+                                           // (inactive)
+                                           // pixel by
+                                           // default
                                            Ipp32f pixel = 0.0f;
                                            Ipp32f mask = 0.0f;
 
@@ -3039,15 +3508,24 @@ int main(int argc, char *argv[]) {
 
                                        assert(dst_offset == native_size);
 
-                                       // downsize when necessary to view_width
-                                       // x view_height
+                                       // downsize
+                                       // when
+                                       // necessary to
+                                       // view_width
+                                       // x
+                                       // view_height
                                        size_t viewport_size =
                                            size_t(view_width) *
                                            size_t(view_height);
 
                                        if (native_size > viewport_size) {
-                                         printf("downsizing viewport %d x %d "
-                                                "--> %d x %d\n",
+                                         printf("downsiz"
+                                                "ing "
+                                                "viewpor"
+                                                "t %d x "
+                                                "%d "
+                                                "--> %d "
+                                                "x %d\n",
                                                 dimx, dimy, view_width,
                                                 view_height);
 
@@ -3060,7 +3538,11 @@ int main(int argc, char *argv[]) {
 
                                          if (pixels_buf.get() != NULL &&
                                              mask_buf.get() != NULL) {
-                                           // downsize float32 pixels and a mask
+                                           // downsize
+                                           // float32
+                                           // pixels
+                                           // and a
+                                           // mask
                                            IppiSize srcSize;
                                            srcSize.width = dimx;
                                            srcSize.height = dimy;
@@ -3084,16 +3566,24 @@ int main(int argc, char *argv[]) {
                                                    dstStep);
 
                                            printf(
-                                               " %d : %s, %d : %s\n",
+                                               " %d "
+                                               ": "
+                                               "%s, "
+                                               "%d : "
+                                               "%s\n",
                                                pixels_stat,
                                                ippGetStatusString(pixels_stat),
                                                mask_stat,
                                                ippGetStatusString(mask_stat));
 
-                                           // export EXR in a YA format
+                                           // export
+                                           // EXR in a
+                                           // YA
+                                           // format
                                            if (pixels_stat == ippStsNoErr &&
                                                mask_stat == ippStsNoErr) {
-                                             // in-memory output
+                                             // in-memory
+                                             // output
                                              StdOSStream oss;
 
                                              try {
@@ -3164,7 +3654,9 @@ int main(int argc, char *argv[]) {
                                                  << elapsedMs << " [ms]"
                                                  << std::endl;
 
-                                             // send the viewport
+                                             // send
+                                             // the
+                                             // viewport
                                              if (output.length() > 0) {
                                                size_t bufferSize =
                                                    sizeof(float) +
@@ -3179,10 +3671,17 @@ int main(int argc, char *argv[]) {
                                                  uint32_t id = seq;
                                                  uint32_t msg_type =
                                                      1; // 0 - spectrum, 1 -
-                                                 // viewport, 2 - image,
+                                                 // viewport,
+                                                 // 2
+                                                 // -
+                                                 // image,
                                                  // 3
-                                                 // - full spectrum
-                                                 // refresh, 4 -
+                                                 // -
+                                                 // full
+                                                 // spectrum
+                                                 // refresh,
+                                                 // 4
+                                                 // -
                                                  // histogram
                                                  size_t offset = 0;
 
@@ -3223,11 +3722,16 @@ int main(int argc, char *argv[]) {
                                            }
                                          }
                                        } else
-                                       // no re-scaling needed
+                                       // no
+                                       // re-scaling
+                                       // needed
                                        {
-                                         // export the luma+mask to OpenEXR
+                                         // export the
+                                         // luma+mask
+                                         // to OpenEXR
 
-                                         // in-memory output
+                                         // in-memory
+                                         // output
                                          StdOSStream oss;
 
                                          try {
@@ -3263,11 +3767,19 @@ int main(int argc, char *argv[]) {
                                          }
 
                                          std::string output = oss.str();
-                                         std::cout
-                                             << "[" << fits->dataset_id
-                                             << "]::viewport OpenEXR output: "
-                                             << output.length() << " bytes."
-                                             << std::endl;
+                                         std::cout << "[" << fits->dataset_id
+                                                   << "]::"
+                                                      "view"
+                                                      "port"
+                                                      " Ope"
+                                                      "nEXR"
+                                                      " out"
+                                                      "put:"
+                                                      " "
+                                                   << output.length()
+                                                   << " byt"
+                                                      "es."
+                                                   << std::endl;
 
                                          auto end_t = steady_clock::now();
 
@@ -3279,12 +3791,23 @@ int main(int argc, char *argv[]) {
                                          double elapsedMs =
                                              1000.0 * elapsedSeconds;
 
-                                         std::cout << "compressing the "
-                                                      "viewport elapsed time: "
-                                                   << elapsedMs << " [ms]"
+                                         std::cout << "comp"
+                                                      "ress"
+                                                      "ing "
+                                                      "the "
+                                                      "view"
+                                                      "port"
+                                                      " ela"
+                                                      "psed"
+                                                      " tim"
+                                                      "e: "
+                                                   << elapsedMs
+                                                   << " ["
+                                                      "ms]"
                                                    << std::endl;
 
-                                         // send the viewport
+                                         // send the
+                                         // viewport
                                          if (output.length() > 0) {
                                            size_t bufferSize =
                                                sizeof(float) +
@@ -3299,9 +3822,16 @@ int main(int argc, char *argv[]) {
                                              uint32_t id = seq;
                                              uint32_t msg_type =
                                                  1; // 0 - spectrum, 1 -
-                                             // viewport, 2 - image, 3 -
-                                             // full spectrum refresh, 4
-                                             // - histogram
+                                             // viewport,
+                                             // 2 -
+                                             // image,
+                                             // 3 -
+                                             // full
+                                             // spectrum
+                                             // refresh,
+                                             // 4
+                                             // -
+                                             // histogram
                                              size_t offset = 0;
 
                                              memcpy(buffer + offset, &ts,
@@ -3339,7 +3869,9 @@ int main(int argc, char *argv[]) {
                                        }
                                      }
 
-                                     // calculate a viewport spectrum
+                                     // calculate a
+                                     // viewport
+                                     // spectrum
                                      if (fits->depth > 1) {
                                        auto start_watch = steady_clock::now();
 
@@ -3349,9 +3881,14 @@ int main(int argc, char *argv[]) {
                                                intensity, beam,
                                                elapsedMilliseconds);
 
-                                       std::cout << "spectrum length = "
+                                       std::cout << "spectr"
+                                                    "um "
+                                                    "length"
+                                                    " = "
                                                  << spectrum.size()
-                                                 << " elapsed time: "
+                                                 << " elaps"
+                                                    "ed "
+                                                    "time: "
                                                  << elapsedMilliseconds
                                                  << " [ms]" << std::endl;
 
@@ -3389,19 +3926,41 @@ int main(int argc, char *argv[]) {
                                          double elapsedMs =
                                              1000.0 * elapsedSeconds;
 
-                                         std::cout << "downsampling the "
-                                                      "spectrum with "
-                                                      "'largestTriangleThreeBuc"
-                                                      "kets', elapsed time: "
-                                                   << elapsedMs << " [ms]"
+                                         std::cout << "down"
+                                                      "samp"
+                                                      "ling"
+                                                      " the"
+                                                      " "
+                                                      "spec"
+                                                      "trum"
+                                                      " wit"
+                                                      "h "
+                                                      "'lar"
+                                                      "gest"
+                                                      "Tria"
+                                                      "ngle"
+                                                      "Thre"
+                                                      "eBuc"
+                                                      "kets"
+                                                      "', "
+                                                      "elap"
+                                                      "sed "
+                                                      "time"
+                                                      ": "
+                                                   << elapsedMs
+                                                   << " ["
+                                                      "ms]"
                                                    << std::endl;
 
                                          elapsedMilliseconds += elapsedMs;
                                        }
 
-                                       // send the spectrum
+                                       // send the
+                                       // spectrum
                                        if (spectrum.size() > 0) {
-                                         // compress spectrum with fpzip
+                                         // compress
+                                         // spectrum
+                                         // with fpzip
                                          uint32_t spec_len = spectrum.size();
                                          size_t bufbytes =
                                              1024 + spec_len * sizeof(float);
@@ -3414,12 +3973,21 @@ int main(int argc, char *argv[]) {
                                            int prec = image_update
                                                           ? 24
                                                           : 16; // use a higher
-                                           // precision for still
-                                           // updates, and fewer
-                                           // bytes for dynamic
+                                           // precision
+                                           // for
+                                           // still
+                                           // updates,
+                                           // and
+                                           // fewer
+                                           // bytes
+                                           // for
+                                           // dynamic
                                            // spectra
 
-                                           /* compress to memory */
+                                           /* compress
+                                            * to
+                                            * memory
+                                            */
                                            FPZ *fpz = fpzip_write_to_buffer(
                                                compressed, bufbytes);
                                            fpz->type = FPZIP_TYPE_FLOAT;
@@ -3429,12 +3997,21 @@ int main(int argc, char *argv[]) {
                                            fpz->nz = 1;
                                            fpz->nf = 1;
 
-                                           /* write header */
+                                           /* write
+                                            * header
+                                            */
                                            if (!fpzip_write_header(fpz))
-                                             fprintf(
-                                                 stderr,
-                                                 "cannot write header: %s\n",
-                                                 fpzip_errstr[fpzip_errno]);
+                                             fprintf(stderr,
+                                                     "can"
+                                                     "not"
+                                                     " wr"
+                                                     "ite"
+                                                     " he"
+                                                     "ade"
+                                                     "r: "
+                                                     "%s"
+                                                     "\n",
+                                                     fpzip_errstr[fpzip_errno]);
                                            else {
                                              outbytes = fpzip_write(
                                                  fpz, spectrum.data());
@@ -3442,7 +4019,29 @@ int main(int argc, char *argv[]) {
                                              if (!outbytes)
                                                fprintf(
                                                    stderr,
-                                                   "compression failed: %s\n",
+                                                   "c"
+                                                   "o"
+                                                   "m"
+                                                   "p"
+                                                   "r"
+                                                   "e"
+                                                   "s"
+                                                   "s"
+                                                   "i"
+                                                   "o"
+                                                   "n"
+                                                   " "
+                                                   "f"
+                                                   "a"
+                                                   "i"
+                                                   "l"
+                                                   "e"
+                                                   "d"
+                                                   ":"
+                                                   " "
+                                                   "%"
+                                                   "s"
+                                                   "\n",
                                                    fpzip_errstr[fpzip_errno]);
                                              else
                                                success = true;
@@ -3452,12 +4051,38 @@ int main(int argc, char *argv[]) {
                                          }
 
                                          if (success)
-                                           std::cout
-                                               << "FPZIP-compressed spectrum: "
-                                               << outbytes
-                                               << " bytes, original size "
-                                               << spec_len * sizeof(float)
-                                               << " bytes." << std::endl;
+                                           std::cout << "FP"
+                                                        "ZI"
+                                                        "P-"
+                                                        "co"
+                                                        "mp"
+                                                        "re"
+                                                        "ss"
+                                                        "ed"
+                                                        " s"
+                                                        "pe"
+                                                        "ct"
+                                                        "ru"
+                                                        "m:"
+                                                        " "
+                                                     << outbytes
+                                                     << " b"
+                                                        "yt"
+                                                        "es"
+                                                        ", "
+                                                        "or"
+                                                        "ig"
+                                                        "in"
+                                                        "al"
+                                                        " s"
+                                                        "iz"
+                                                        "e "
+                                                     << spec_len * sizeof(float)
+                                                     << " b"
+                                                        "yt"
+                                                        "es"
+                                                        "."
+                                                     << std::endl;
                                          // end-of-compression
 
                                          size_t bufferSize =
@@ -3465,11 +4090,12 @@ int main(int argc, char *argv[]) {
                                              sizeof(uint32_t) +
                                              sizeof(uint32_t) +
                                              outbytes; //+ spectrum.size() *
-                                                       // sizeof(float);
+                                         // sizeof(float);
                                          char *buffer =
                                              (char *)malloc(bufferSize);
 
-                                         // construct a message
+                                         // construct
+                                         // a message
                                          if (buffer != NULL && success) {
                                            auto end_watch = steady_clock::now();
 
@@ -3486,8 +4112,12 @@ int main(int argc, char *argv[]) {
                                            uint32_t id = seq;
                                            uint32_t msg_type =
                                                0; // 0 - spectrum, 1 - viewport,
-                                           // 2 - image, 3 - full
-                                           // spectrum refresh, 4 -
+                                           // 2 -
+                                           // image, 3
+                                           // - full
+                                           // spectrum
+                                           // refresh,
+                                           // 4 -
                                            // histogram
                                            float elapsed = elapsedMs;
 
@@ -3509,10 +4139,15 @@ int main(int argc, char *argv[]) {
                                                   sizeof(float));
                                            offset += sizeof(float);
 
-                                           /*memcpy(buffer + offset,
-                                             spectrum.data(), spectrum.size() *
-                                             sizeof(float)); offset +=
-                                             spectrum.size() * sizeof(float);*/
+                                           /*memcpy(buffer
+                                             + offset,
+                                             spectrum.data(),
+                                             spectrum.size()
+                                             *
+                                             sizeof(float));
+                                             offset +=
+                                             spectrum.size()
+                                             * sizeof(float);*/
                                            memcpy(buffer + offset, compressed,
                                                   outbytes);
                                            offset += outbytes;
@@ -3535,7 +4170,10 @@ int main(int argc, char *argv[]) {
                                            free(compressed);
                                        }
 
-                                       // track the mouse with the Kalman Filter
+                                       // track the
+                                       // mouse with
+                                       // the Kalman
+                                       // Filter
                                        double pos_x = 0.5 * double(x1 + x2);
                                        double pos_y = 0.5 * double(y1 + y2);
 
@@ -3546,11 +4184,17 @@ int main(int argc, char *argv[]) {
                                          KalmanFilter *kal_y =
                                              user->ptr->kal_y.get();
 
-                                         /* update the x and y positions */
+                                         /* update the
+                                          * x and y
+                                          * positions
+                                          */
                                          kal_x->update(pos_x, deltat.count());
                                          kal_y->update(pos_y, deltat.count());
 
-                                         // predict the positions one second
+                                         // predict
+                                         // the
+                                         // positions
+                                         // one second
                                          // ahead
                                          double look_ahead = 1000.0; // [ms]
                                          double pred_x =
@@ -3562,15 +4206,28 @@ int main(int argc, char *argv[]) {
                                          double dy = pred_y - pos_y;
 
 #ifdef DEBUG
-                                         printf(
-                                             "[%s]::KalmanFilter: X: %f, Y: "
-                                             "%f,\tpredicted after 1s X*: %f, "
-                                             "Y*: %f, dx : %f, dy : %f\n",
-                                             fits->dataset_id.c_str(), pos_x,
-                                             pos_y, pred_x, pred_y, dx, dy);
+                                         printf("[%s]::"
+                                                "KalmanF"
+                                                "ilter: "
+                                                "X: %f, "
+                                                "Y: "
+                                                "%f,"
+                                                "\tpredi"
+                                                "cted "
+                                                "after "
+                                                "1s X*: "
+                                                "%f, "
+                                                "Y*: "
+                                                "%f, dx "
+                                                ": %f, "
+                                                "dy : "
+                                                "%f\n",
+                                                fits->dataset_id.c_str(), pos_x,
+                                                pos_y, pred_x, pred_y, dx, dy);
 #endif
 
-                                         // pre-empt cache
+                                         // pre-empt
+                                         // cache
                                          int _x1 = x1 + dx;
                                          int _y1 = y1 + dy;
                                          int _x2 = x2 + dx;
@@ -3591,7 +4248,9 @@ int main(int argc, char *argv[]) {
                                        }
                                      }
 
-                                     // remove itself from the list of active
+                                     // remove itself
+                                     // from the list
+                                     // of active
                                      // threads
                                      /*std::lock_guard<std::shared_mutex>
                                        unique_session(user->ptr->mtx);
@@ -3604,14 +4263,15 @@ int main(int argc, char *argv[]) {
                            }
                          }
 
-                         /*if (message.find("image/") != std::string::npos) {
-                           int width, height;
+                         /*if (message.find("image/") !=
+                           std::string::npos) { int width, height;
 
-                           sscanf(std::string(message).c_str(), "image/%d/%d",
-                           &width, &height);
+                           sscanf(std::string(message).c_str(),
+                           "image/%d/%d", &width, &height);
 
-                           PrintThread{}  << datasetid << "::get_image::<" <<
-                           width << "x" << height << ">" << std::endl;
+                           PrintThread{}  << datasetid <<
+                           "::get_image::<" << width << "x" << height
+                           << ">" << std::endl;
 
                            if(width != 0 && height != 0) {
                            std::shared_lock<std::shared_mutex>
@@ -3619,14 +4279,18 @@ int main(int argc, char *argv[]) {
                            DATASETS.find(datasetid); lock.unlock();
 
                            if (item == DATASETS.end()) {
-                           std::string error = "[error] " + datasetid +
-                           "::not found"; ws->send(error, opCode); return;
+                           std::string error = "[error] " + datasetid
+                           +
+                           "::not found"; ws->send(error, opCode);
+                           return;
                            }
                            else {
                            auto fits = item->second;
                            if (fits->has_error) {
-                           std::string error = "[error] " + datasetid +
-                           "::cannot be read"; ws->send(error, opCode); return;
+                           std::string error = "[error] " + datasetid
+                           +
+                           "::cannot be read"; ws->send(error,
+                           opCode); return;
                            }
                            else {
                            std::unique_lock<std::mutex>
@@ -3636,13 +4300,17 @@ int main(int argc, char *argv[]) {
                            data_lock.unlock();
 
                            if (!fits->has_data) {
-                           std::string error = "[error] " + datasetid +
-                           "::image not found"; ws->send(error, opCode); return;
+                           std::string error = "[error] " + datasetid
+                           +
+                           "::image not found"; ws->send(error,
+                           opCode); return;
                            }
                            else {
-                           //make an image based on the pixels and mask
-                           std::string msg = "[ok] " + datasetid +
-                           "::image OK"; ws->send(msg, opCode); return ;
+                           //make an image based on the pixels and
+                           mask std::string msg = "[ok] " + datasetid
+                           +
+                           "::image OK"; ws->send(msg, opCode); return
+                           ;
                            }
                            }
                            }
@@ -3674,8 +4342,8 @@ int main(int argc, char *argv[]) {
                                connections.erase(ws);
                                m_progress[primary_id] = connections;
 
-                               // check if it is the last connection for this
-                               // dataset
+                               // check if it is the last connection
+                               // for this dataset
                                if (connections.size() == 0)
                                  m_progress.erase(primary_id);
                              }).detach();
