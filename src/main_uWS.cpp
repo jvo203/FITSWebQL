@@ -7,8 +7,8 @@
 
 #define BEACON_PORT 50000
 #define SERVER_PORT 8080
-#define SERVER_STRING                                                          \
-  "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(          \
+#define SERVER_STRING                                                 \
+  "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR( \
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
@@ -42,15 +42,16 @@ using namespace OPENEXR_IMF_NAMESPACE;
    message and exits the program. Zlib's error statuses are all less
    than zero. */
 
-#define CALL_ZLIB(x)                                                           \
-  {                                                                            \
-    int status;                                                                \
-    status = x;                                                                \
-    if (status < 0) {                                                          \
-      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__,    \
-              __LINE__, #x, status);                                           \
-      /*exit(EXIT_FAILURE);*/                                                  \
-    }                                                                          \
+#define CALL_ZLIB(x)                                                        \
+  {                                                                         \
+    int status;                                                             \
+    status = x;                                                             \
+    if (status < 0)                                                         \
+    {                                                                       \
+      fprintf(stderr, "%s:%d: %s returned a bad status of %d.\n", __FILE__, \
+              __LINE__, #x, status);                                        \
+      /*exit(EXIT_FAILURE);*/                                               \
+    }                                                                       \
   }
 
 #include <pwd.h>
@@ -82,11 +83,13 @@ using namespace OPENEXR_IMF_NAMESPACE;
  * Exemple of use:
  *    PrintThread{} << "Hello world!" << std::endl;
  */
-class PrintThread : public std::ostringstream {
+class PrintThread : public std::ostringstream
+{
 public:
   PrintThread() = default;
 
-  ~PrintThread() {
+  ~PrintThread()
+  {
     std::lock_guard<std::mutex> guard(_mutexPrint);
     std::cout << this->str();
   }
@@ -132,7 +135,8 @@ std::thread beacon_thread;
 #include "lttb.hpp"
 #include <fpzip.h>
 
-struct SpectrumPoint {
+struct SpectrumPoint
+{
   float x = 0;
   float y = 0;
 };
@@ -148,7 +152,8 @@ std::string docs_root = "htdocs";
 int server_port = SERVER_PORT;
 sqlite3 *splat_db = NULL;
 
-std::shared_ptr<FITS> get_dataset(std::string id) {
+std::shared_ptr<FITS> get_dataset(std::string id)
+{
   std::shared_lock<std::shared_mutex> lock(fits_mutex);
 
   auto item = DATASETS.find(id);
@@ -159,27 +164,31 @@ std::shared_ptr<FITS> get_dataset(std::string id) {
     return item->second;
 }
 
-void insert_dataset(std::string id, std::shared_ptr<FITS> fits) {
+void insert_dataset(std::string id, std::shared_ptr<FITS> fits)
+{
   std::lock_guard<std::shared_mutex> guard(fits_mutex);
 
   DATASETS.insert(std::pair(id, fits));
 }
 
-inline const char *check_null(const char *str) {
+inline const char *check_null(const char *str)
+{
   if (str != nullptr)
     return str;
   else
     return "\"\"";
 };
 
-void signalHandler(int signum) {
+void signalHandler(int signum)
+{
   std::cout << "Interrupt signal (" << signum << ") received.\n";
 
   exiting = true;
 
   // stop any inter-node cluster communication
 #ifdef CLUSTER
-  if (speaker != NULL) {
+  if (speaker != NULL)
+  {
     zstr_sendx(speaker, "SILENCE", NULL);
 
     const char *message = "JVO:>FITSWEBQL::LEAVE";
@@ -190,7 +199,8 @@ void signalHandler(int signum) {
     zactor_destroy(&speaker);
   }
 
-  if (listener != NULL) {
+  if (listener != NULL)
+  {
     zstr_sendx(listener, "UNSUBSCRIBE", NULL);
     beacon_thread.join();
     zactor_destroy(&listener);
@@ -209,7 +219,8 @@ void signalHandler(int signum) {
 
   curl_global_cleanup();
 
-  if (splat_db != NULL) {
+  if (splat_db != NULL)
+  {
     sqlite3_close(splat_db);
     splat_db = NULL;
   }
@@ -223,7 +234,8 @@ void signalHandler(int signum) {
   // raise(signum);
 }
 
-bool is_gzip(const char *filename) {
+bool is_gzip(const char *filename)
+{
   int fd = open(filename, O_RDONLY);
 
   if (fd == -1)
@@ -236,10 +248,12 @@ bool is_gzip(const char *filename) {
   ssize_t bytes_read = read(fd, header, 10);
 
   // test for magick numbers and the deflate compression type
-  if (bytes_read == 10) {
+  if (bytes_read == 10)
+  {
     if (header[0] != 0x1f || header[1] != 0x8b || header[2] != 0x08)
       ok = false;
-  } else
+  }
+  else
     ok = false;
 
   close(fd);
@@ -248,14 +262,16 @@ bool is_gzip(const char *filename) {
 }
 
 // resource not found
-void http_not_found(uWS::HttpResponse<false> *res) {
+void http_not_found(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("404 Not Found");
   res->end();
   // res->end("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
 }
 
 // server error
-void http_internal_server_error(uWS::HttpResponse<false> *res) {
+void http_internal_server_error(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("500 Internal Server Error");
   res->end();
   // res->end("HTTP/1.1 500 Internal Server Error\r\nContent-Length:
@@ -263,42 +279,50 @@ void http_internal_server_error(uWS::HttpResponse<false> *res) {
 }
 
 // request accepted but not ready yet
-void http_accepted(uWS::HttpResponse<false> *res) {
+void http_accepted(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("202 Accepted");
   res->end();
   // res->end("HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n");
 }
 
 // functionality not implemented/not available
-void http_not_implemented(uWS::HttpResponse<false> *res) {
+void http_not_implemented(uWS::HttpResponse<false> *res)
+{
   res->writeStatus("501 Not Implemented");
   res->end();
   // res->end("HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
 }
 
 void get_spectrum(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits,
-                  std::shared_ptr<std::atomic<bool>> aborted) {
+                  std::shared_ptr<std::atomic<bool>> aborted)
+{
   std::ostringstream json;
 
   fits->to_json(json);
 
-  if (*aborted.get() == true) {
+  if (*aborted.get() == true)
+  {
     printf("[get_spectrum] aborted http connection detected.\n");
     return;
   }
 
-  if (json.tellp() > 0) {
+  if (json.tellp() > 0)
+  {
     res->writeHeader("Content-Type", "application/json");
     res->writeHeader("Cache-Control", "no-cache");
     res->writeHeader("Cache-Control", "no-store");
     res->writeHeader("Pragma", "no-cache");
     res->end(json.str());
-  } else {
+  }
+  else
+  {
     return http_not_implemented(res);
   }
 }
 
-struct MolecularStream {
+struct MolecularStream
+{
   bool first;
   bool compress;
   uWS::HttpResponse<false> *res;
@@ -308,12 +332,14 @@ struct MolecularStream {
 };
 
 static int sqlite_callback(void *userp, int argc, char **argv,
-                           char **azColName) {
+                           char **azColName)
+{
   MolecularStream *stream = (MolecularStream *)userp;
   // static long counter = 0;
   // printf("sqlite_callback: %ld, argc: %d\n", counter++, argc);
 
-  if (argc == 8) {
+  if (argc == 8)
+  {
     /*printf("sqlite_callback::molecule:\t");
       for (int i = 0; i < argc; i++)
       printf("%s:%s\t", azColName[i], argv[i]);
@@ -321,7 +347,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 
     std::string json;
 
-    if (stream->first) {
+    if (stream->first)
+    {
       stream->first = false;
       stream->res->writeHeader("Content-Type", "application/json");
 
@@ -333,7 +360,8 @@ static int sqlite_callback(void *userp, int argc, char **argv,
       stream->res->writeHeader("Pragma", "no-cache");
 
       json = "{\"molecules\" : [";
-    } else
+    }
+    else
       json = ",";
 
     // json-encode a spectral line
@@ -386,17 +414,20 @@ static int sqlite_callback(void *userp, int argc, char **argv,
 
     // printf("%s\n", json.c_str());
 
-    if (stream->compress) {
+    if (stream->compress)
+    {
       stream->z.avail_in = json.length();                // size of input
       stream->z.next_in = (unsigned char *)json.c_str(); // input char array
 
-      do {
+      do
+      {
         stream->z.avail_out = CHUNK;      // size of output
         stream->z.next_out = stream->out; // output char array
         CALL_ZLIB(deflate(&stream->z, Z_NO_FLUSH));
         size_t have = CHUNK - stream->z.avail_out;
 
-        if (have > 0) {
+        if (have > 0)
+        {
           // printf("ZLIB avail_out: %zu\n", have);
           if (stream->fp != NULL)
             fwrite((const char *)stream->out, sizeof(char), have, stream->fp);
@@ -404,20 +435,23 @@ static int sqlite_callback(void *userp, int argc, char **argv,
           stream->res->write(std::string_view((const char *)stream->out, have));
         }
       } while (stream->z.avail_out == 0);
-    } else
+    }
+    else
       stream->res->write(json);
   }
 
   return 0;
 }
 
-inline float get_screen_scale(int x) {
+inline float get_screen_scale(int x)
+{
   // return Math.floor(0.925*x) ;
   return floorf(0.9f * float(x));
 }
 
 inline float get_image_scale_square(int width, int height, int img_width,
-                                    int img_height) {
+                                    int img_height)
+{
   float screen_dimension = get_screen_scale(MIN(width, height));
   float image_dimension = MAX(img_width, img_height);
 
@@ -425,11 +459,13 @@ inline float get_image_scale_square(int width, int height, int img_width,
 }
 
 inline float get_image_scale(int width, int height, int img_width,
-                             int img_height) {
+                             int img_height)
+{
   if (img_width == img_height)
     return get_image_scale_square(width, height, img_width, img_height);
 
-  if (img_height < img_width) {
+  if (img_height < img_width)
+  {
     float screen_dimension = 0.9f * float(height);
     float image_dimension = img_height;
 
@@ -437,7 +473,8 @@ inline float get_image_scale(int width, int height, int img_width,
 
     float new_image_width = scale * img_width;
 
-    if (new_image_width > 0.8f * float(width)) {
+    if (new_image_width > 0.8f * float(width))
+    {
       screen_dimension = 0.8f * float(width);
       image_dimension = img_width;
       scale = screen_dimension / image_dimension;
@@ -446,7 +483,8 @@ inline float get_image_scale(int width, int height, int img_width,
     return scale;
   }
 
-  if (img_width < img_height) {
+  if (img_width < img_height)
+  {
     float screen_dimension = 0.8f * float(width);
     float image_dimension = img_width;
 
@@ -454,7 +492,8 @@ inline float get_image_scale(int width, int height, int img_width,
 
     float new_image_height = scale * img_height;
 
-    if (new_image_height > 0.9f * float(height)) {
+    if (new_image_height > 0.9f * float(height))
+    {
       screen_dimension = 0.9f * float(height);
       image_dimension = img_height;
       scale = screen_dimension / image_dimension;
@@ -466,7 +505,8 @@ inline float get_image_scale(int width, int height, int img_width,
   return 1.0f;
 }
 
-void true_image_dimensions(Ipp8u *alpha, long &width, long &height) {
+void true_image_dimensions(Ipp8u *alpha, long &width, long &height)
+{
   long x1 = 0;
   long x2 = 0;
   long y1 = 0;
@@ -479,16 +519,20 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height) {
   size_t length = width * height;
 
   // find y1
-  for (size_t i = 0; i < length; i++) {
-    if (alpha[i] > 0) {
+  for (size_t i = 0; i < length; i++)
+  {
+    if (alpha[i] > 0)
+    {
       y1 = (i / linesize);
       break;
     }
   }
 
   // find y2
-  for (size_t i = length - 1; i >= 0; i--) {
-    if (alpha[i] > 0) {
+  for (size_t i = length - 1; i >= 0; i--)
+  {
+    if (alpha[i] > 0)
+    {
       y2 = (i / linesize);
       break;
     }
@@ -496,9 +540,12 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height) {
 
   // find x1
   found_data = false;
-  for (x = 0; x < width; x++) {
-    for (y = y1; y <= y2; y++) {
-      if (alpha[y * linesize + x] > 0) {
+  for (x = 0; x < width; x++)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
         x1 = x;
         found_data = true;
         break;
@@ -511,9 +558,12 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height) {
 
   // find x2
   found_data = false;
-  for (x = (width - 1); x >= 0; x--) {
-    for (y = y1; y <= y2; y++) {
-      if (alpha[y * linesize + x] > 0) {
+  for (x = (width - 1); x >= 0; x--)
+  {
+    for (y = y1; y <= y2; y++)
+    {
+      if (alpha[y * linesize + x] > 0)
+      {
         x2 = x;
         found_data = true;
         break;
@@ -534,8 +584,10 @@ void true_image_dimensions(Ipp8u *alpha, long &width, long &height) {
 void stream_image_spectrum(uWS::HttpResponse<false> *res,
                            std::shared_ptr<FITS> fits, int _width, int _height,
                            float compression_level, bool fetch_data,
-                           std::shared_ptr<std::atomic<bool>> aborted) {
-  if (*aborted.get() == true) {
+                           std::shared_ptr<std::atomic<bool>> aborted)
+{
+  if (*aborted.get() == true)
+  {
     printf("[stream_image_spectrum] aborted http connection detected.\n");
     return;
   }
@@ -550,7 +602,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
   true_image_dimensions(fits->img_mask.get(), true_width, true_height);
   float scale = get_image_scale(_width, _height, true_width, true_height);
 
-  if (scale < 1.0) {
+  if (scale < 1.0)
+  {
     int img_width = floorf(scale * fits->width);
     int img_height = floorf(scale * fits->height);
 
@@ -566,7 +619,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
                                          ippsFree);
 
     if (pixels_buf.get() != NULL && mask_buf.get() != NULL &&
-        mask_buf_32f.get() != NULL) {
+        mask_buf_32f.get() != NULL)
+    {
       // downsize float32 pixels and a mask
       IppiSize srcSize;
       srcSize.width = fits->width;
@@ -591,7 +645,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
              ippGetStatusString(mask_stat));
 
       // compress the pixels + mask with OpenEXR
-      if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr) {
+      if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
+      {
         // the mask should be filled-in manually based on NaN pixels
         // not anymore, NaN will be replaced by 0.0 due to unwanted cropping
         // by OpenEXR
@@ -611,7 +666,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
             boost::replace_all_copy(fits->dataset_id, "/", "_") +
             std::string("_resize.exr");
 
-        try {
+        try
+        {
           Header header(img_width, img_height);
           header.compression() = DWAB_COMPRESSION;
           addDwaCompressionLevel(header, compression_level);
@@ -631,7 +687,9 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
           file.setFrameBuffer(frameBuffer);
           file.writePixels(img_height);
-        } catch (const std::exception &exc) {
+        }
+        catch (const std::exception &exc)
+        {
           std::cerr << exc.what() << std::endl;
         }
 
@@ -641,7 +699,9 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
                   << " bytes." << std::endl;
       }
     }
-  } else {
+  }
+  else
+  {
     // mirror-flip the pixels_buf, compress with OpenEXR and transmit at
     // its original scale
     int img_width = fits->width;
@@ -657,7 +717,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
     std::shared_ptr<Ipp32f> mask_buf(ippsMalloc_32f_L(plane_size), ippsFree);
 
     // copy and flip the image, fill-in the mask
-    if (/*pixels_buf.get() != NULL &&*/ mask_buf.get() != NULL) {
+    if (/*pixels_buf.get() != NULL &&*/ mask_buf.get() != NULL)
+    {
       /*tileMirror32f_C1R(fits->img_pixels, pixels_buf.get(), img_width,
         img_height);*/
 
@@ -678,7 +739,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
           boost::replace_all_copy(fits->dataset_id, "/", "_") +
           std::string("_mirror.exr");
 
-      try {
+      try
+      {
         Header header(img_width, img_height);
         header.compression() = DWAB_COMPRESSION;
         addDwaCompressionLevel(header, compression_level);
@@ -697,7 +759,9 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
         file.setFrameBuffer(frameBuffer);
         file.writePixels(img_height);
-      } catch (const std::exception &exc) {
+      }
+      catch (const std::exception &exc)
+      {
         std::cerr << exc.what() << std::endl;
       }
 
@@ -708,7 +772,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
     }
   }
 
-  if (output.length() > 0) {
+  if (output.length() > 0)
+  {
     // send the image data/statistics to the web client
     {
       const char *ptr;
@@ -765,7 +830,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
     }
 
     // add compressed FITS data, a spectrum and a histogram
-    if (fetch_data) {
+    if (fetch_data)
+    {
       std::ostringstream json;
       fits->to_json(json);
 
@@ -778,7 +844,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
       int worst_size = LZ4_compressBound(json_size);
       json_lz4 = ippsMalloc_8u_L(worst_size);
 
-      if (json_lz4 != NULL) {
+      if (json_lz4 != NULL)
+      {
         // compress the header with LZ4
         compressed_size =
             LZ4_compress_HC((const char *)json.str().c_str(), (char *)json_lz4,
@@ -808,8 +875,10 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
 void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
                       double freq_end, bool compress,
-                      std::shared_ptr<std::atomic<bool>> aborted) {
-  if (*aborted.get() == true) {
+                      std::shared_ptr<std::atomic<bool>> aborted)
+{
+  if (*aborted.get() == true)
+  {
     printf("[stream_molecules] aborted http connection detected.\n");
     return;
   }
@@ -832,7 +901,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
   stream.res = res;
   stream.fp = NULL; // fopen("molecules.txt.gz", "w");
 
-  if (compress) {
+  if (compress)
+  {
     stream.z.zalloc = Z_NULL;
     stream.z.zfree = Z_NULL;
     stream.z.opaque = Z_NULL;
@@ -845,7 +915,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
 
   rc = sqlite3_exec(splat_db, strSQL, sqlite_callback, &stream, &zErrMsg);
 
-  if (rc != SQLITE_OK) {
+  if (rc != SQLITE_OK)
+  {
     fprintf(stderr, "SQL error: %s\n", zErrMsg);
     sqlite3_free(zErrMsg);
     return http_internal_server_error(res);
@@ -858,17 +929,20 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
   else
     chunk_data = "]}";
 
-  if (compress) {
+  if (compress)
+  {
     stream.z.avail_in = chunk_data.length();
     stream.z.next_in = (unsigned char *)chunk_data.c_str();
 
-    do {
+    do
+    {
       stream.z.avail_out = CHUNK;     // size of output
       stream.z.next_out = stream.out; // output char array
       CALL_ZLIB(deflate(&stream.z, Z_FINISH));
       size_t have = CHUNK - stream.z.avail_out;
 
-      if (have > 0) {
+      if (have > 0)
+      {
         // printf("Z_FINISH avail_out: %zu\n", have);
         if (stream.fp != NULL)
           fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
@@ -882,7 +956,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
 
     if (stream.fp != NULL)
       fclose(stream.fp);
-  } else if (*aborted.get() != true)
+  }
+  else if (*aborted.get() != true)
     res->write(chunk_data);
 
   // end of chunked encoding
@@ -890,7 +965,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
     res->end();
 }
 
-void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
+void get_directory(uWS::HttpResponse<false> *res, std::string dir)
+{
   printf("get_directory(%s)\n", dir.c_str());
 
   struct dirent **namelist = NULL;
@@ -909,12 +985,16 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
 
   bool has_contents = false;
 
-  if (n < 0) {
+  if (n < 0)
+  {
     perror("scandir");
 
     json << "]}";
-  } else {
-    for (i = 0; i < n; i++) {
+  }
+  else
+  {
+    for (i = 0; i < n; i++)
+    {
       // printf("%s\n", namelist[i]->d_name);
 
       char pathname[1024];
@@ -925,7 +1005,8 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
 
       int err = stat64(pathname, &sbuf);
 
-      if (err == 0) {
+      if (err == 0)
+      {
         char last_modified[255];
 
         struct tm lm;
@@ -935,7 +1016,8 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
 
         size_t filesize = sbuf.st_size;
 
-        if (S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.') {
+        if (S_ISDIR(sbuf.st_mode) && namelist[i]->d_name[0] != '.')
+        {
           char *encoded = json_encode_string(check_null(namelist[i]->d_name));
 
           json << "{\"type\" : \"dir\", \"name\" : " << check_null(encoded)
@@ -946,7 +1028,8 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
             free(encoded);
         }
 
-        if (S_ISREG(sbuf.st_mode)) {
+        if (S_ISREG(sbuf.st_mode))
+        {
           const std::string filename = std::string(namelist[i]->d_name);
           const std::string lower_filename =
               boost::algorithm::to_lower_copy(filename);
@@ -954,7 +1037,8 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
           // if(!strcasecmp(get_filename_ext(check_null(namelist[i]->d_name)),
           // "fits"))
           if (boost::algorithm::ends_with(lower_filename, ".fits") ||
-              boost::algorithm::ends_with(lower_filename, ".fits.gz")) {
+              boost::algorithm::ends_with(lower_filename, ".fits.gz"))
+          {
             char *encoded = json_encode_string(check_null(namelist[i]->d_name));
 
             json << "{\"type\" : \"file\", \"name\" : " << check_null(encoded)
@@ -966,7 +1050,8 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
               free(encoded);
           }
         }
-      } else
+      }
+      else
         perror("stat64");
 
       free(namelist[i]);
@@ -989,14 +1074,16 @@ void get_directory(uWS::HttpResponse<false> *res, std::string dir) {
   res->end(json.str());
 }
 
-void get_home_directory(uWS::HttpResponse<false> *res) {
+void get_home_directory(uWS::HttpResponse<false> *res)
+{
   if (home_dir != "")
     return get_directory(res, home_dir);
   else
     return http_not_found(res);
 }
 
-void include_file(std::string &html, std::string filename) {
+void include_file(std::string &html, std::string filename)
+{
   int fd = -1;
   void *buffer = NULL;
 
@@ -1005,22 +1092,26 @@ void include_file(std::string &html, std::string filename) {
   long size = st.st_size;
 
   fd = open(filename.c_str(), O_RDONLY);
-  if (fd != -1) {
+  if (fd != -1)
+  {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-    if (buffer != MAP_FAILED) {
+    if (buffer != MAP_FAILED)
+    {
       html.append((const char *)buffer, size);
 
       if (munmap(buffer, size) == -1)
         perror("un-mapping error");
-    } else
+    }
+    else
       perror("error mapping a file");
 
     close(fd);
   };
 }
 
-void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
+void serve_file(uWS::HttpResponse<false> *res, std::string uri)
+{
   std::string resource;
 
   // strip the leading '/'
@@ -1047,14 +1138,17 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
 
   fd = open(resource.c_str(), O_RDONLY);
 
-  if (fd != -1) {
+  if (fd != -1)
+  {
     buffer = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-    if (buffer != MAP_FAILED) {
+    if (buffer != MAP_FAILED)
+    {
       // detect mime-types
       size_t pos = resource.find_last_of(".");
 
-      if (pos != std::string::npos) {
+      if (pos != std::string::npos)
+      {
         std::string ext = resource.substr(pos + 1, std::string::npos);
 
         if (ext == "htm" || ext == "html")
@@ -1107,19 +1201,23 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri) {
 
       if (munmap(buffer, size) == -1)
         perror("un-mapping error");
-    } else {
+    }
+    else
+    {
       perror("error mapping a file");
       http_not_found(res);
     }
 
     close(fd);
-  } else
+  }
+  else
     http_not_found(res);
 }
 
 void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
                         std::vector<std::string> datasets, bool composite,
-                        bool has_fits) {
+                        bool has_fits)
+{
   std::string html =
       "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
   html.append(
@@ -1317,7 +1415,8 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
 
   if (datasets.size() == 1)
     html.append("data-datasetId='" + datasets[0] + "' ");
-  else {
+  else
+  {
     for (unsigned int i = 0; i < datasets.size(); i++)
       html.append("data-datasetId" + std::to_string(i + 1) + "='" +
                   datasets[i] + "' ");
@@ -1380,7 +1479,8 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
 }
 
 #ifndef LOCAL
-PGconn *jvo_db_connect(std::string db) {
+PGconn *jvo_db_connect(std::string db)
+{
   PGconn *jvo_db = NULL;
 
   std::string conn_str =
@@ -1388,19 +1488,22 @@ PGconn *jvo_db_connect(std::string db) {
 
   jvo_db = PQconnectdb(conn_str.c_str());
 
-  if (PQstatus(jvo_db) != CONNECTION_OK) {
+  if (PQstatus(jvo_db) != CONNECTION_OK)
+  {
     fprintf(stderr, "PostgreSQL connection failed: %s\n",
             PQerrorMessage(jvo_db));
     PQfinish(jvo_db);
     jvo_db = NULL;
-  } else
+  }
+  else
     printf("PostgreSQL connection successful.\n");
 
   return jvo_db;
 }
 
 std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
-                         std::string data_id) {
+                         std::string data_id)
+{
   std::string path;
 
   std::string sql_str =
@@ -1409,7 +1512,8 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
   PGresult *res = PQexec(jvo_db, sql_str.c_str());
   int status = PQresultStatus(res);
 
-  if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+  if (PQresultStatus(res) == PGRES_TUPLES_OK)
+  {
     path = std::string(FITSHOME) + "/" + db + "/";
 
     size_t pos = table.find(".");
@@ -1430,7 +1534,8 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
 void execute_fits(uWS::HttpResponse<false> *res, std::string root,
                   std::string dir, std::string ext, std::string db,
                   std::string table, std::vector<std::string> datasets,
-                  bool composite, std::string flux) {
+                  bool composite, std::string flux)
+{
   bool has_fits = true;
 
 #ifndef LOCAL
@@ -1442,10 +1547,12 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
 
   int va_count = datasets.size();
 
-  for (auto const &data_id : datasets) {
+  for (auto const &data_id : datasets)
+  {
     auto item = get_dataset(data_id);
 
-    if (item == nullptr) {
+    if (item == nullptr)
+    {
       // set has_fits to false and load the FITS dataset
       has_fits = false;
       std::shared_ptr<FITS> fits(new FITS(data_id, flux));
@@ -1462,7 +1569,8 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
         path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
-      if (path != "") {
+      if (path != "")
+      {
         bool is_compressed = is_gzip(path.c_str());
         /*bool is_compressed = false;
           std::string lower_path = boost::algorithm::to_lower_copy(path);
@@ -1473,7 +1581,9 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
         std::thread(&FITS::from_path, fits, path, is_compressed, flux, va_count,
                     true)
             .detach();
-      } else {
+      }
+      else
+      {
         // the last resort
         std::string url = std::string("http://") + JVO_FITS_SERVER +
                           ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
@@ -1482,7 +1592,9 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
         // download FITS data from a URL in a separate thread
         std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
       }
-    } else {
+    }
+    else
+    {
       has_fits = has_fits && item->has_data;
       item->update_timestamp();
     }
@@ -1498,7 +1610,8 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
   return http_fits_response(res, root, datasets, composite, has_fits);
 }
 
-void ipp_init() {
+void ipp_init()
+{
   const IppLibraryVersion *lib;
   IppStatus status;
   Ipp64u mask, emask;
@@ -1511,7 +1624,8 @@ void ipp_init() {
 
   /* Get CPU features and features enabled with selected library level */
   status = ippGetCpuFeatures(&mask, 0);
-  if (ippStsNoErr == status) {
+  if (ippStsNoErr == status)
+  {
     emask = ippGetEnabledCpuFeatures();
     printf("Features supported by CPU\tby IPP\n");
     printf("-----------------------------------------\n");
@@ -1611,7 +1725,8 @@ void ipp_init() {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 #ifdef DEBUG
   system_clock::time_point offset = system_clock::now();
   FILE *fp = fopen("memory_usage.csv", "w");
@@ -1623,7 +1738,8 @@ int main(int argc, char *argv[]) {
 
   // track/log memory usage
   memory_thread = std::thread([offset, fp]() {
-    while (!exiting) {
+    while (!exiting)
+    {
       // memory statistics using jemalloc
       uint64_t epoch = 1;
       size_t sz = sizeof(epoch);
@@ -1639,7 +1755,8 @@ int main(int argc, char *argv[]) {
       // printf("allocated/active/mapped: %zu/%zu/%zu [MB]\n", allocated / (1024
       // * 1024), active / (1024 * 1024), mapped / (1024 * 1024));
 
-      if (fp != NULL) {
+      if (fp != NULL)
+      {
         duration<double, std::milli> elapsed = system_clock::now() - offset;
         fprintf(fp, "%f,%zu,%zu,%zu\n", elapsed.count(), allocated, active,
                 mapped);
@@ -1666,7 +1783,8 @@ int main(int argc, char *argv[]) {
     zstr_send(speaker, "VERBOSE");
     zsock_send(speaker, "si", "CONFIGURE", BEACON_PORT);
     char *my_hostname = zstr_recv(speaker);
-    if (my_hostname != NULL) {
+    if (my_hostname != NULL)
+    {
       const char *message = "JVO:>FITSWEBQL::ENTER";
       const int interval = 1000; //[ms]
       zsock_send(speaker, "sbi", "PUBLISH", message, strlen(message), interval);
@@ -1687,19 +1805,24 @@ int main(int argc, char *argv[]) {
     zsock_send(listener, "sb", "SUBSCRIBE", "", 0);
     zsock_set_rcvtimeo(listener, 500);
 
-    while (!exiting) {
+    while (!exiting)
+    {
       char *ipaddress = zstr_recv(listener);
-      if (ipaddress != NULL) {
+      if (ipaddress != NULL)
+      {
         zframe_t *content = zframe_recv(listener);
         std::string_view message = std::string_view(
             (const char *)zframe_data(content), zframe_size(content));
 
         // ENTER
-        if (message.find("ENTER") != std::string::npos) {
-          if (strcmp(my_hostname, ipaddress) != 0) {
+        if (message.find("ENTER") != std::string::npos)
+        {
+          if (strcmp(my_hostname, ipaddress) != 0)
+          {
             std::string node = std::string(ipaddress);
 
-            if (!cluster_contains_node(node)) {
+            if (!cluster_contains_node(node))
+            {
               PrintThread{} << "found a new peer @ " << ipaddress << ": "
                             << message << std::endl;
               cluster_insert_node(node);
@@ -1708,11 +1831,14 @@ int main(int argc, char *argv[]) {
         }
 
         // LEAVE
-        if (message.find("LEAVE") != std::string::npos) {
-          if (strcmp(my_hostname, ipaddress) != 0) {
+        if (message.find("LEAVE") != std::string::npos)
+        {
+          if (strcmp(my_hostname, ipaddress) != 0)
+          {
             std::string node = std::string(ipaddress);
 
-            if (cluster_contains_node(node)) {
+            if (cluster_contains_node(node))
+            {
               PrintThread{} << ipaddress << " is leaving: " << message
                             << std::endl;
               cluster_erase_node(node);
@@ -1733,7 +1859,8 @@ int main(int argc, char *argv[]) {
   ipp_init();
   curl_global_init(CURL_GLOBAL_ALL);
 
-  if (ILMTHREAD_NAMESPACE::supportsThreads()) {
+  if (ILMTHREAD_NAMESPACE::supportsThreads())
+  {
     int omp_threads = omp_get_max_threads();
     OPENEXR_IMF_NAMESPACE::setGlobalThreadCount(omp_threads);
     std::cout << "[OpenEXR] number of threads: "
@@ -1743,7 +1870,8 @@ int main(int argc, char *argv[]) {
   int rc = sqlite3_open_v2("splatalogue_v3.db", &splat_db,
                            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
 
-  if (rc) {
+  if (rc)
+  {
     fprintf(stderr, "Can't open local splatalogue database: %s\n",
             sqlite3_errmsg(splat_db));
     sqlite3_close(splat_db);
@@ -1765,8 +1893,10 @@ int main(int argc, char *argv[]) {
     perror("Failed to install signal handler for SIGINT");*/
 
   // parse local command-line options
-  if (argc > 2) {
-    for (int i = 1; i < argc - 1; i++) {
+  if (argc > 2)
+  {
+    for (int i = 1; i < argc - 1; i++)
+    {
       const char *key = argv[i];
       const char *value = argv[i + 1];
 
@@ -1805,7 +1935,7 @@ int main(int argc, char *argv[]) {
 #ifdef LOCAL
                      return serve_file(res, "htdocs/local.html");
 #else
-			      return serve_file(res, "htdocs/test.html");
+                                                                                        return serve_file(res, "htdocs/test.html");
 #endif
                    })
               .get("/favicon.ico",
@@ -1831,16 +1961,19 @@ int main(int argc, char *argv[]) {
                      boost::split(params, query,
                                   [](char c) { return c == '&'; });
 
-                     for (auto const &s : params) {
+                     for (auto const &s : params)
+                     {
                        // find '='
                        size_t pos = s.find("=");
 
-                       if (pos != std::string::npos) {
+                       if (pos != std::string::npos)
+                       {
                          std::string key = s.substr(0, pos);
                          std::string value =
                              s.substr(pos + 1, std::string::npos);
 
-                         if (key == "dir") {
+                         if (key == "dir")
+                         {
                            CURL *curl = curl_easy_init();
 
                            char *str = curl_easy_unescape(curl, value.c_str(),
@@ -1864,7 +1997,8 @@ int main(int argc, char *argv[]) {
 
                       size_t pos = uri.find_last_of("/");
 
-                      if (pos != std::string::npos) {
+                      if (pos != std::string::npos)
+                      {
                         std::string_view timestamp =
                             uri.substr(pos + 1, std::string::npos);
                         res->end(timestamp);
@@ -1881,7 +2015,8 @@ int main(int argc, char *argv[]) {
 
                       size_t pos = uri.find_last_of("/");
 
-                      if (pos != std::string::npos) {
+                      if (pos != std::string::npos)
+                      {
                         std::string datasetid =
                             std::string(uri.substr(pos + 1, std::string::npos));
 
@@ -1893,10 +2028,12 @@ int main(int argc, char *argv[]) {
 
                         if (fits == nullptr)
                           return http_not_found(res);
-                        else {
+                        else
+                        {
                           if (fits->has_error)
                             return http_not_found(res);
-                          else {
+                          else
+                          {
                             // make json
                             std::ostringstream json;
                             bool valid = false;
@@ -1919,8 +2056,10 @@ int main(int argc, char *argv[]) {
                                 valid = true;
                             }
 
-                            if (valid) {
-                              if (json.tellp() > 0) {
+                            if (valid)
+                            {
+                              if (json.tellp() > 0)
+                              {
                                 res->writeHeader("Content-Type",
                                                  "application/json");
                                 res->writeHeader("Cache-Control", "no-cache");
@@ -1928,9 +2067,11 @@ int main(int argc, char *argv[]) {
                                 res->writeHeader("Pragma", "no-cache");
                                 res->end(json.str());
                                 return;
-                              } else
+                              }
+                              else
                                 return http_not_implemented(res);
-                            } else
+                            }
+                            else
                               return http_accepted(res);
                           }
                         }
@@ -1947,7 +2088,8 @@ int main(int argc, char *argv[]) {
                      std::cout << "HTTP root path(" << root << "), request for "
                                << uri << std::endl;
 
-                     if (uri.find("/image_spectrum") != std::string::npos) {
+                     if (uri.find("/image_spectrum") != std::string::npos)
+                     {
                        std::string_view query = req->getQuery();
                        std::cout << "query: (" << query << ")" << std::endl;
 
@@ -1963,35 +2105,42 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasetid = std::string(str);
                              curl_free(str);
                            }
 
-                           if (key.find("width") != std::string::npos) {
+                           if (key.find("width") != std::string::npos)
+                           {
                              width = std::stoi(value);
                            }
 
-                           if (key.find("height") != std::string::npos) {
+                           if (key.find("height") != std::string::npos)
+                           {
                              height = std::stoi(value);
                            }
 
-                           if (key.find("quality") != std::string::npos) {
+                           if (key.find("quality") != std::string::npos)
+                           {
                              quality = std::stof(value);
                            }
 
-                           if (key.find("fetch_data") != std::string::npos) {
+                           if (key.find("fetch_data") != std::string::npos)
+                           {
                              if (value == "true")
                                fetch_data = true;
                            }
@@ -2011,10 +2160,12 @@ int main(int argc, char *argv[]) {
 
                        if (fits == nullptr)
                          return http_not_found(res);
-                       else {
+                       else
+                       {
                          if (fits->has_error)
                            return http_not_found(res);
-                         else {
+                         else
+                         {
                            std::shared_ptr<std::atomic<bool>> aborted =
                                std::make_shared<std::atomic<bool>>(false);
 
@@ -2033,10 +2184,12 @@ int main(int argc, char *argv[]) {
                              while (!fits->processed_data)
                                fits->data_cv.wait(data_lock);
 
-                             if (!fits->has_data) {
+                             if (!fits->has_data)
+                             {
                                if (*aborted.get() != true)
                                  http_not_found(res);
-                             } else
+                             }
+                             else
                                stream_image_spectrum(res, fits, width, height,
                                                      quality, fetch_data,
                                                      aborted);
@@ -2046,12 +2199,14 @@ int main(int argc, char *argv[]) {
                        }
                      }
 
-                     if (uri.find("/get_molecules") != std::string::npos) {
+                     if (uri.find("/get_molecules") != std::string::npos)
+                     {
                        // handle the accepted keywords
                        bool compress = false;
                        auto encoding = req->getHeader("accept-encoding");
 
-                       if (encoding != "") {
+                       if (encoding != "")
+                       {
                          std::string_view value = encoding;
                          size_t pos = value.find("gzip"); // gzip or deflate
 
@@ -2077,16 +2232,19 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasetid = std::string(str);
@@ -2104,13 +2262,15 @@ int main(int argc, char *argv[]) {
 
                        curl_easy_cleanup(curl);
 
-                       if (FPzero(freq_start) || FPzero(freq_end)) {
+                       if (FPzero(freq_start) || FPzero(freq_end))
+                       {
                          // get the frequency range from the FITS header
                          auto fits = get_dataset(datasetid);
 
                          if (fits == nullptr)
                            return http_not_found(res);
-                         else {
+                         else
+                         {
                            if (fits->has_error)
                              return http_not_found(res);
 
@@ -2136,7 +2296,8 @@ int main(int argc, char *argv[]) {
                                  << freq_start << "GHz," << freq_end << "GHz)"
                                  << std::endl;
 
-                       if (!FPzero(freq_start) && !FPzero(freq_end)) {
+                       if (!FPzero(freq_start) && !FPzero(freq_end))
+                       {
                          std::shared_ptr<std::atomic<bool>> aborted =
                              std::make_shared<std::atomic<bool>>(
                                  false /*or true*/);
@@ -2155,7 +2316,8 @@ int main(int argc, char *argv[]) {
                                             aborted);
                          }).detach();
                          return;
-                       } else
+                       }
+                       else
                          return http_not_implemented(res);
                      }
 
@@ -2208,7 +2370,8 @@ int main(int argc, char *argv[]) {
                        }*/
 
                      // FITSWebQL entry
-                     if (uri.find("FITSWebQL.html") != std::string::npos) {
+                     if (uri.find("FITSWebQL.html") != std::string::npos)
+                     {
                        std::string_view query = req->getQuery();
                        std::cout << "query: (" << query << ")" << std::endl;
 
@@ -2222,37 +2385,43 @@ int main(int argc, char *argv[]) {
 
                        CURL *curl = curl_easy_init();
 
-                       for (auto const &s : params) {
+                       for (auto const &s : params)
+                       {
                          // find '='
                          size_t pos = s.find("=");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string key = s.substr(0, pos);
                            std::string value =
                                s.substr(pos + 1, std::string::npos);
 
-                           if (key.find("dataset") != std::string::npos) {
+                           if (key.find("dataset") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasets.push_back(std::string(str));
                              curl_free(str);
                            }
 
-                           if (key.find("filename") != std::string::npos) {
+                           if (key.find("filename") != std::string::npos)
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              datasets.push_back(std::string(str));
                              curl_free(str);
                            }
 
-                           if (key == "dir") {
+                           if (key == "dir")
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              dir = std::string(str);
                              curl_free(str);
                            }
 
-                           if (key == "ext") {
+                           if (key == "ext")
+                           {
                              char *str = curl_easy_unescape(
                                  curl, value.c_str(), value.length(), NULL);
                              ext = std::string(str);
@@ -2265,7 +2434,8 @@ int main(int argc, char *argv[]) {
                            if (key == "table")
                              table = value;
 
-                           if (key == "flux") {
+                           if (key == "flux")
+                           {
                              // validate the flux value
                              std::set<std::string> valid_values;
                              valid_values.insert("linear");
@@ -2278,7 +2448,8 @@ int main(int argc, char *argv[]) {
                                flux = value;
                            }
 
-                           if (key == "view") {
+                           if (key == "view")
+                           {
                              if (value.find("composite") != std::string::npos)
                                composite = true;
                            }
@@ -2289,7 +2460,8 @@ int main(int argc, char *argv[]) {
 
                        // sane defaults
                        {
-                         if (db.find("hsc") != std::string::npos) {
+                         if (db.find("hsc") != std::string::npos)
+                         {
                            flux = "ratio";
                          }
 
@@ -2305,12 +2477,14 @@ int main(int argc, char *argv[]) {
                          std::cout << dataset << " ";
                        std::cout << std::endl;
 
-                       if (datasets.size() == 0) {
+                       if (datasets.size() == 0)
+                       {
                          const std::string not_found =
                              "ERROR: please specify at least one dataset in "
                              "the URL parameters list.";
                          return res->end(not_found);
-                       } else
+                       }
+                       else
                          return execute_fits(res, std::string(root), dir, ext,
                                              db, table, datasets, composite,
                                              flux);
@@ -2333,7 +2507,8 @@ int main(int argc, char *argv[]) {
 
                          size_t pos = url.find_last_of("/");
 
-                         if (pos != std::string::npos) {
+                         if (pos != std::string::npos)
+                         {
                            std::string_view tmp = url.substr(pos + 1);
                            CURL *curl = curl_easy_init();
                            char *str = curl_easy_unescape(curl, tmp.data(),
@@ -2344,7 +2519,8 @@ int main(int argc, char *argv[]) {
                            boost::split(datasetid, plain,
                                         [](char c) { return c == ';'; });
 
-                           for (auto const &s : datasetid) {
+                           for (auto const &s : datasetid)
+                           {
                              PrintThread{} << "datasetid: " << s << std::endl;
                            }
                          }
@@ -2392,10 +2568,13 @@ int main(int argc, char *argv[]) {
                    .message =
                        [](auto *ws, std::string_view message,
                           uWS::OpCode opCode) {
-                         if (message.find("[heartbeat]") != std::string::npos) {
+                         if (message.find("[heartbeat]") != std::string::npos)
+                         {
                            ws->send(message, opCode);
                            return;
-                         } else {
+                         }
+                         else
+                         {
                            PrintThread{} << "[µWS::message] " << message
                                          << std::endl;
                          }
@@ -2414,7 +2593,8 @@ int main(int argc, char *argv[]) {
                          std::string datasetid = user->ptr->primary_id;
 
                          if (message.find("[kalman_reset]") !=
-                             std::string::npos) {
+                             std::string::npos)
+                         {
                            int seq = -1;
 
                            std::string_view query;
@@ -2427,11 +2607,13 @@ int main(int argc, char *argv[]) {
                            boost::split(params, query,
                                         [](char c) { return c == '&'; });
 
-                           for (auto const &s : params) {
+                           for (auto const &s : params)
+                           {
                              // find '='
                              size_t pos = s.find("=");
 
-                             if (pos != std::string::npos) {
+                             if (pos != std::string::npos)
+                             {
                                std::string key = s.substr(0, pos);
                                std::string value =
                                    s.substr(pos + 1, std::string::npos);
@@ -2441,7 +2623,8 @@ int main(int argc, char *argv[]) {
                              }
                            }
 
-                           if (seq > -1) {
+                           if (seq > -1)
+                           {
                              // gain unique access
                              std::lock_guard<std::shared_mutex> unique_access(
                                  user->ptr->mtx);
@@ -2457,7 +2640,8 @@ int main(int argc, char *argv[]) {
                            }
                          }
 
-                         if (message.find("[image]") != std::string::npos) {
+                         if (message.find("[image]") != std::string::npos)
+                         {
                            auto now = system_clock::now();
                            user->ptr->ts = now;
 
@@ -2479,11 +2663,13 @@ int main(int argc, char *argv[]) {
                            boost::split(params, query,
                                         [](char c) { return c == '&'; });
 
-                           for (auto const &s : params) {
+                           for (auto const &s : params)
+                           {
                              // find '='
                              size_t pos = s.find("=");
 
-                             if (pos != std::string::npos) {
+                             if (pos != std::string::npos)
+                             {
                                std::string key = s.substr(0, pos);
                                std::string value =
                                    s.substr(pos + 1, std::string::npos);
@@ -2524,8 +2710,10 @@ int main(int argc, char *argv[]) {
 
                            auto fits = get_dataset(datasetid);
 
-                           if (fits != nullptr) {
-                             if (!fits->has_error && fits->has_data) {
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
                                // launch a separate thread
                                boost::thread *image_thread = new boost::thread(
                                    [fits, ws, user, frame_start, frame_end,
@@ -2548,7 +2736,8 @@ int main(int argc, char *argv[]) {
                                      // (get a
                                      // FITS
                                      // sub-cube)
-                                     if (fits->depth > 1) {
+                                     if (fits->depth > 1)
+                                     {
                                        auto start_t = steady_clock::now();
 
                                        auto [_img_pixels, _img_mask,
@@ -2556,7 +2745,8 @@ int main(int argc, char *argv[]) {
                                              integrated_spectrum] =
                                            fits->get_cube(start, end);
 
-                                       if (_img_pixels && _img_mask) {
+                                       if (_img_pixels && _img_mask)
+                                       {
                                          auto [min, max, median, black, white,
                                                sensitivity, ratio_sensitivity] =
                                              fits->make_cube_statistics(
@@ -2602,7 +2792,8 @@ int main(int argc, char *argv[]) {
                                        if ((mean_spectrum.size() > 0) &&
                                            (integrated_spectrum.size() > 0) &&
                                            (mean_spectrum.size() ==
-                                            integrated_spectrum.size())) {
+                                            integrated_spectrum.size()))
+                                       {
                                          std::cout << "[uWS] "
                                                       "sending "
                                                       "the "
@@ -2622,7 +2813,8 @@ int main(int argc, char *argv[]) {
                                          char *buffer =
                                              (char *)malloc(bufferSize);
 
-                                         if (buffer != NULL) {
+                                         if (buffer != NULL)
+                                         {
                                            float ts = timestamp;
                                            uint32_t id = 0;
                                            uint32_t msg_type = 3; // 0 -
@@ -2676,7 +2868,8 @@ int main(int argc, char *argv[]) {
                                            // send
                                            // the
                                            // buffer
-                                           if (user->ptr->active) {
+                                           if (user->ptr->active)
+                                           {
                                              std::lock_guard<std::shared_mutex>
                                                  unique_access(user->ptr->mtx);
                                              ws->send(std::string_view(
@@ -2697,7 +2890,8 @@ int main(int argc, char *argv[]) {
                                        // histogram
                                        // via
                                        // WebSockets
-                                       if (_img_pixels && _img_mask) {
+                                       if (_img_pixels && _img_mask)
+                                       {
                                          // export
                                          // the
                                          // image
@@ -2723,7 +2917,8 @@ int main(int argc, char *argv[]) {
                                              view_width, view_height,
                                              true_width, true_height);
 
-                                         if (scale < 1.0) {
+                                         if (scale < 1.0)
+                                         {
                                            int img_width =
                                                floorf(scale * fits->width);
                                            int img_height =
@@ -2800,7 +2995,8 @@ int main(int argc, char *argv[]) {
 
                                            if (pixels_buf.get() != NULL &&
                                                mask_buf.get() != NULL &&
-                                               mask_buf_32f.get() != NULL) {
+                                               mask_buf_32f.get() != NULL)
+                                           {
                                              // downsize
                                              // float32
                                              // pixels
@@ -2847,7 +3043,8 @@ int main(int argc, char *argv[]) {
                                              // with
                                              // OpenEXR
                                              if (pixels_stat == ippStsNoErr &&
-                                                 mask_stat == ippStsNoErr) {
+                                                 mask_stat == ippStsNoErr)
+                                             {
                                                // the mask
                                                // should be
                                                // filled-in
@@ -2883,19 +3080,9 @@ int main(int argc, char *argv[]) {
                                                // export EXR
                                                // in a YA
                                                // format
-                                               std::string filename =
-                                                   FITSCACHE +
-                                                   std::string("/") +
-                                                   boost::replace_all_copy(
-                                                       fits->dataset_id, "/",
-                                                       "_") +
-                                                   std::string("_re"
-                                                               "siz"
-                                                               "e."
-                                                               "ex"
-                                                               "r");
 
-                                               try {
+                                               try
+                                               {
                                                  Header header(img_width,
                                                                img_height);
                                                  header.compression() =
@@ -2907,9 +3094,6 @@ int main(int argc, char *argv[]) {
                                                  header.channels().insert(
                                                      "A", Channel(FLOAT));
 
-                                                 // OutputFile
-                                                 // file(filename.c_str(),
-                                                 // header);
                                                  OutputFile file(oss, header);
                                                  FrameBuffer frameBuffer;
 
@@ -2931,8 +3115,10 @@ int main(int argc, char *argv[]) {
                                                  file.setFrameBuffer(
                                                      frameBuffer);
                                                  file.writePixels(img_height);
-                                               } catch (
-                                                   const std::exception &exc) {
+                                               }
+                                               catch (
+                                                   const std::exception &exc)
+                                               {
                                                  std::cerr << exc.what()
                                                            << std::endl;
                                                }
@@ -2954,7 +3140,9 @@ int main(int argc, char *argv[]) {
                                                          << std::endl;
                                              }
                                            }
-                                         } else {
+                                         }
+                                         else
+                                         {
                                            // mirror-flip
                                            // the
                                            // pixels_buf,
@@ -3006,7 +3194,8 @@ int main(int argc, char *argv[]) {
                                            if (/*pixels_buf.get()
                                                   != NULL
                                                   &&*/
-                                               mask_buf.get() != NULL) {
+                                               mask_buf.get() != NULL)
+                                           {
                                              /*tileMirror32f_C1R(fits->img_pixels,
                                                pixels_buf.get(),
                                                img_width,
@@ -3042,16 +3231,9 @@ int main(int argc, char *argv[]) {
                                              // luma+mask
                                              // to
                                              // OpenEXR
-                                             std::string filename =
-                                                 FITSCACHE + std::string("/") +
-                                                 boost::replace_all_copy(
-                                                     fits->dataset_id, "/",
-                                                     "_") +
-                                                 std::string("_mirr"
-                                                             "or."
-                                                             "exr");
 
-                                             try {
+                                             try
+                                             {
                                                Header header(img_width,
                                                              img_height);
                                                header.compression() =
@@ -3063,9 +3245,6 @@ int main(int argc, char *argv[]) {
                                                header.channels().insert(
                                                    "A", Channel(FLOAT));
 
-                                               // OutputFile
-                                               // file(filename.c_str(),
-                                               // header);
                                                OutputFile file(oss, header);
                                                FrameBuffer frameBuffer;
 
@@ -3085,8 +3264,10 @@ int main(int argc, char *argv[]) {
 
                                                file.setFrameBuffer(frameBuffer);
                                                file.writePixels(img_height);
-                                             } catch (
-                                                 const std::exception &exc) {
+                                             }
+                                             catch (
+                                                 const std::exception &exc)
+                                             {
                                                std::cerr << exc.what()
                                                          << std::endl;
                                              }
@@ -3130,7 +3311,8 @@ int main(int argc, char *argv[]) {
                                          char *buffer =
                                              (char *)malloc(bufferSize);
 
-                                         if (buffer != NULL) {
+                                         if (buffer != NULL)
+                                         {
                                            float ts = timestamp;
                                            uint32_t id = 0;
                                            uint32_t msg_type = 2; // 0 -
@@ -3229,7 +3411,8 @@ int main(int argc, char *argv[]) {
                                            offset += output.length();
 
                                            // send the buffer
-                                           if (user->ptr->active) {
+                                           if (user->ptr->active)
+                                           {
                                              std::lock_guard<std::shared_mutex>
                                                  unique_access(user->ptr->mtx);
                                              ws->send(std::string_view(
@@ -3251,7 +3434,8 @@ int main(int argc, char *argv[]) {
                          }
 
                          if (message.find("[realtime_image_spectrum]") !=
-                             std::string::npos) {
+                             std::string::npos)
+                         {
                            // get deltat (no need to lock the mutex at
                            // this point)
                            auto now = system_clock::now();
@@ -3286,11 +3470,13 @@ int main(int argc, char *argv[]) {
                            boost::split(params, query,
                                         [](char c) { return c == '&'; });
 
-                           for (auto const &s : params) {
+                           for (auto const &s : params)
+                           {
                              // find '='
                              size_t pos = s.find("=");
 
-                             if (pos != std::string::npos) {
+                             if (pos != std::string::npos)
+                             {
                                std::string key = s.substr(0, pos);
                                std::string value =
                                    s.substr(pos + 1, std::string::npos);
@@ -3304,7 +3490,8 @@ int main(int argc, char *argv[]) {
                                if (key.find("quality") != std::string::npos)
                                  quality = std::stof(value);
 
-                               if (key.find("image") != std::string::npos) {
+                               if (key.find("image") != std::string::npos)
+                               {
                                  if (value == "true")
                                    image_update = true;
                                }
@@ -3376,8 +3563,10 @@ int main(int argc, char *argv[]) {
 
                            auto fits = get_dataset(datasetid);
 
-                           if (fits != nullptr) {
-                             if (!fits->has_error && fits->has_data) {
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
                                // launch a separate thread
                                boost::thread *spectrum_thread =
                                    new boost::thread([fits, ws, user,
@@ -3401,7 +3590,8 @@ int main(int argc, char *argv[]) {
 
                                        int last_seq = user->ptr->last_seq;
 
-                                       if (last_seq > seq) {
+                                       if (last_seq > seq)
+                                       {
                                          printf("skippin"
                                                 "g an "
                                                 "old "
@@ -3453,7 +3643,8 @@ int main(int argc, char *argv[]) {
                                      // compressed
                                      // viewport
                                      if (image_update && view_width > 0 &&
-                                         view_height > 0) {
+                                         view_height > 0)
+                                     {
                                        auto start_t = steady_clock::now();
 
                                        Ipp32f *img_pixels =
@@ -3480,10 +3671,12 @@ int main(int argc, char *argv[]) {
                                        // the loop
                                        // could be
                                        // parallelised
-                                       for (int j = y1; j <= y2; j++) {
+                                       for (int j = y1; j <= y2; j++)
+                                       {
                                          size_t src_offset = j * fits->width;
 
-                                         for (int i = x1; i <= x2; i++) {
+                                         for (int i = x1; i <= x2; i++)
+                                         {
                                            // a dark
                                            // (inactive)
                                            // pixel by
@@ -3492,7 +3685,8 @@ int main(int argc, char *argv[]) {
                                            Ipp32f mask = 0.0f;
 
                                            if ((i >= 0) && (i < fits->width) &&
-                                               (j >= 0) && (j < fits->height)) {
+                                               (j >= 0) && (j < fits->height))
+                                           {
                                              pixel = img_pixels[src_offset + i];
                                              mask = (img_mask[src_offset + i] ==
                                                      255)
@@ -3518,7 +3712,8 @@ int main(int argc, char *argv[]) {
                                            size_t(view_width) *
                                            size_t(view_height);
 
-                                       if (native_size > viewport_size) {
+                                       if (native_size > viewport_size)
+                                       {
                                          printf("downsiz"
                                                 "ing "
                                                 "viewpor"
@@ -3537,7 +3732,8 @@ int main(int argc, char *argv[]) {
                                              ippsFree);
 
                                          if (pixels_buf.get() != NULL &&
-                                             mask_buf.get() != NULL) {
+                                             mask_buf.get() != NULL)
+                                         {
                                            // downsize
                                            // float32
                                            // pixels
@@ -3581,12 +3777,14 @@ int main(int argc, char *argv[]) {
                                            // YA
                                            // format
                                            if (pixels_stat == ippStsNoErr &&
-                                               mask_stat == ippStsNoErr) {
+                                               mask_stat == ippStsNoErr)
+                                           {
                                              // in-memory
                                              // output
                                              StdOSStream oss;
 
-                                             try {
+                                             try
+                                             {
                                                Header header(view_width,
                                                              view_height);
                                                header.compression() =
@@ -3623,8 +3821,10 @@ int main(int argc, char *argv[]) {
 
                                                file.setFrameBuffer(frameBuffer);
                                                file.writePixels(view_height);
-                                             } catch (
-                                                 const std::exception &exc) {
+                                             }
+                                             catch (
+                                                 const std::exception &exc)
+                                             {
                                                std::cerr << exc.what()
                                                          << std::endl;
                                              }
@@ -3657,7 +3857,8 @@ int main(int argc, char *argv[]) {
                                              // send
                                              // the
                                              // viewport
-                                             if (output.length() > 0) {
+                                             if (output.length() > 0)
+                                             {
                                                size_t bufferSize =
                                                    sizeof(float) +
                                                    sizeof(uint32_t) +
@@ -3666,7 +3867,8 @@ int main(int argc, char *argv[]) {
                                                char *buffer =
                                                    (char *)malloc(bufferSize);
 
-                                               if (buffer != NULL) {
+                                               if (buffer != NULL)
+                                               {
                                                  float ts = timestamp;
                                                  uint32_t id = seq;
                                                  uint32_t msg_type =
@@ -3703,7 +3905,8 @@ int main(int argc, char *argv[]) {
                                                         output.length());
                                                  offset += output.length();
 
-                                                 if (user->ptr->active) {
+                                                 if (user->ptr->active)
+                                                 {
                                                    std::lock_guard<
                                                        std::shared_mutex>
                                                        unique_access(
@@ -3721,7 +3924,8 @@ int main(int argc, char *argv[]) {
                                              }
                                            }
                                          }
-                                       } else
+                                       }
+                                       else
                                        // no
                                        // re-scaling
                                        // needed
@@ -3734,7 +3938,8 @@ int main(int argc, char *argv[]) {
                                          // output
                                          StdOSStream oss;
 
-                                         try {
+                                         try
+                                         {
                                            Header header(dimx, dimy);
                                            header.compression() =
                                                DWAB_COMPRESSION;
@@ -3762,7 +3967,9 @@ int main(int argc, char *argv[]) {
 
                                            file.setFrameBuffer(frameBuffer);
                                            file.writePixels(dimy);
-                                         } catch (const std::exception &exc) {
+                                         }
+                                         catch (const std::exception &exc)
+                                         {
                                            std::cerr << exc.what() << std::endl;
                                          }
 
@@ -3808,7 +4015,8 @@ int main(int argc, char *argv[]) {
 
                                          // send the
                                          // viewport
-                                         if (output.length() > 0) {
+                                         if (output.length() > 0)
+                                         {
                                            size_t bufferSize =
                                                sizeof(float) +
                                                sizeof(uint32_t) +
@@ -3817,7 +4025,8 @@ int main(int argc, char *argv[]) {
                                            char *buffer =
                                                (char *)malloc(bufferSize);
 
-                                           if (buffer != NULL) {
+                                           if (buffer != NULL)
+                                           {
                                              float ts = timestamp;
                                              uint32_t id = seq;
                                              uint32_t msg_type =
@@ -3851,7 +4060,8 @@ int main(int argc, char *argv[]) {
                                                     output.length());
                                              offset += output.length();
 
-                                             if (user->ptr->active) {
+                                             if (user->ptr->active)
+                                             {
                                                std::lock_guard<
                                                    std::shared_mutex>
                                                    unique_access(
@@ -3872,7 +4082,8 @@ int main(int argc, char *argv[]) {
                                      // calculate a
                                      // viewport
                                      // spectrum
-                                     if (fits->depth > 1) {
+                                     if (fits->depth > 1)
+                                     {
                                        auto start_watch = steady_clock::now();
 
                                        std::vector<float> spectrum =
@@ -3894,13 +4105,15 @@ int main(int argc, char *argv[]) {
 
                                        unsigned int dst_len = dx / 2;
 
-                                       if (spectrum.size() > dst_len) {
+                                       if (spectrum.size() > dst_len)
+                                       {
                                          auto start_t = steady_clock::now();
 
                                          SpectrumPoint in[spectrum.size()];
 
                                          for (unsigned int i = 0;
-                                              i < spectrum.size(); i++) {
+                                              i < spectrum.size(); i++)
+                                         {
                                            in[i].x = i;
                                            in[i].y = spectrum[i];
                                          }
@@ -3957,7 +4170,8 @@ int main(int argc, char *argv[]) {
 
                                        // send the
                                        // spectrum
-                                       if (spectrum.size() > 0) {
+                                       if (spectrum.size() > 0)
+                                       {
                                          // compress
                                          // spectrum
                                          // with fpzip
@@ -3969,7 +4183,8 @@ int main(int argc, char *argv[]) {
 
                                          void *compressed = malloc(bufbytes);
 
-                                         if (compressed != NULL) {
+                                         if (compressed != NULL)
+                                         {
                                            int prec = image_update
                                                           ? 24
                                                           : 16; // use a higher
@@ -4012,7 +4227,8 @@ int main(int argc, char *argv[]) {
                                                      "%s"
                                                      "\n",
                                                      fpzip_errstr[fpzip_errno]);
-                                           else {
+                                           else
+                                           {
                                              outbytes = fpzip_write(
                                                  fpz, spectrum.data());
 
@@ -4096,7 +4312,8 @@ int main(int argc, char *argv[]) {
 
                                          // construct
                                          // a message
-                                         if (buffer != NULL && success) {
+                                         if (buffer != NULL && success)
+                                         {
                                            auto end_watch = steady_clock::now();
 
                                            double elapsedSeconds =
@@ -4152,7 +4369,8 @@ int main(int argc, char *argv[]) {
                                                   outbytes);
                                            offset += outbytes;
 
-                                           if (user->ptr->active) {
+                                           if (user->ptr->active)
+                                           {
                                              std::lock_guard<std::shared_mutex>
                                                  unique_access(user->ptr->mtx);
                                              if (seq == user->ptr->last_seq)
@@ -4178,7 +4396,8 @@ int main(int argc, char *argv[]) {
                                        double pos_y = 0.5 * double(y1 + y2);
 
                                        if (user->ptr->kal_x &&
-                                           user->ptr->kal_y) {
+                                           user->ptr->kal_y)
+                                       {
                                          KalmanFilter *kal_x =
                                              user->ptr->kal_x.get();
                                          KalmanFilter *kal_y =
@@ -4235,7 +4454,9 @@ int main(int argc, char *argv[]) {
 
                                          fits->preempt_cache(start, end, _x1,
                                                              _y1, _x2, _y2);
-                                       } else {
+                                       }
+                                       else
+                                       {
                                          if (!user->ptr->kal_x)
                                            user->ptr->kal_x =
                                                std::shared_ptr<KalmanFilter>(
@@ -4322,8 +4543,10 @@ int main(int argc, char *argv[]) {
                          struct UserData *user =
                              (struct UserData *)ws->getUserData();
 
-                         if (user != NULL) {
-                           if (user->ptr != NULL) {
+                         if (user != NULL)
+                         {
+                           if (user->ptr != NULL)
+                           {
                              user->ptr->active = false;
 
                              PrintThread{} << "[µWS] closing a session "
@@ -4352,21 +4575,26 @@ int main(int argc, char *argv[]) {
                              user->ptr->active_threads.join_all();
 
                              delete user->ptr;
-                           } else
+                           }
+                           else
                              PrintThread{} << "[µWS] close " << message
                                            << std::endl;
-                         } else
+                         }
+                         else
                            PrintThread{} << "[µWS] close " << message
                                          << std::endl;
                        }})
               .listen(server_port,
                       [](auto *token) {
-                        if (token) {
+                        if (token)
+                        {
                           PrintThread{} << "Thread "
                                         << std::this_thread::get_id()
                                         << " listening on port " << server_port
                                         << std::endl;
-                        } else {
+                        }
+                        else
+                        {
                           PrintThread{}
                               << "Thread " << std::this_thread::get_id()
                               << " failed to listen on port " << server_port
