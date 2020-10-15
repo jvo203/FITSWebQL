@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-14.0"
+#define VERSION_STRING "SV2020-10-15.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2660,8 +2660,7 @@ int main(int argc, char *argv[])
                              query = message.substr(pos + 1, std::string::npos);
 
                            std::vector<std::string> params;
-                           boost::split(params, query,
-                                        [](char c) { return c == '&'; });
+                           boost::split(params, query, [](char c) { return c == '&'; });
 
                            for (auto const &s : params)
                            {
@@ -2715,717 +2714,552 @@ int main(int argc, char *argv[])
                              if (!fits->has_error && fits->has_data)
                              {
                                // launch a separate thread
-                               boost::thread *image_thread = new boost::thread(
-                                   [fits, ws, user, frame_start, frame_end,
-                                    ref_freq, quality, view_width, view_height,
-                                    timestamp]() {
-                                     if (!user->ptr->active)
-                                       return;
+                               boost::thread *image_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, quality, view_width, view_height, timestamp]() {
+                                 if (!user->ptr->active)
+                                   return;
 
-                                     fits->update_timestamp();
+                                 fits->update_timestamp();
 
-                                     int start, end;
-                                     double elapsedMilliseconds = 0.0;
+                                 int start, end;
+                                 double elapsedMilliseconds = 0.0;
 
-                                     fits->get_spectrum_range(
-                                         frame_start, frame_end, ref_freq,
-                                         start, end);
+                                 fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
 
-                                     // make
-                                     // image/spectrum/histogram
-                                     // (get a
-                                     // FITS
-                                     // sub-cube)
-                                     if (fits->depth > 1)
+                                 // make image/spectrum/histogram (get a FITS sub-cube)
+                                 if (fits->depth > 1)
+                                 {
+                                   auto start_t = steady_clock::now();
+
+                                   auto [_img_pixels, _img_mask, mean_spectrum, integrated_spectrum] = fits->get_cube(start, end);
+
+                                   if (_img_pixels && _img_mask)
+                                   {
+                                     auto [min, max, median, black, white, sensitivity, ratio_sensitivity] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
+
+                                     user->ptr->min = min;
+                                     user->ptr->max = max;
+                                     user->ptr->median = median;
+                                     user->ptr->black = black;
+                                     user->ptr->white = white;
+                                     user->ptr->sensitivity = sensitivity;
+                                     user->ptr->ratio_sensitivity =
+                                         ratio_sensitivity;
+                                   }
+
+                                   auto end_t = steady_clock::now();
+
+                                   double elapsedSeconds = ((end_t - start_t).count()) * steady_clock::period::num / static_cast<double>(steady_clock::period::den);
+                                   elapsedMilliseconds += 1000.0 * elapsedSeconds;
+
+                                   // set the new user {pixels,mask}
+                                   if (_img_pixels)
+                                     user->ptr->img_pixels = _img_pixels;
+
+                                   if (_img_mask)
+                                     user->ptr->img_mask = _img_mask;
+
+                                   // send the updated mean_spectrum and integrated_spectrum via WebSockets
+                                   if ((mean_spectrum.size() > 0) && (integrated_spectrum.size() > 0) && (mean_spectrum.size() == integrated_spectrum.size()))
+                                   {
+                                     std::cout << "[uWS] sending the mean/integrated spectra" << std::endl;
+
+                                     size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float) + sizeof(uint32_t) + mean_spectrum.size() * sizeof(float) + integrated_spectrum.size() * sizeof(float);
+
+                                     char *buffer = (char *)malloc(bufferSize);
+
+                                     if (buffer != NULL)
                                      {
-                                       auto start_t = steady_clock::now();
+                                       float ts = timestamp;
+                                       uint32_t id = 0;
+                                       uint32_t msg_type = 3; // 0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
+                                       uint32_t len = mean_spectrum.size();
 
-                                       auto [_img_pixels, _img_mask,
-                                             mean_spectrum,
-                                             integrated_spectrum] =
-                                           fits->get_cube(start, end);
+                                       size_t offset = 0;
 
-                                       if (_img_pixels && _img_mask)
+                                       memcpy(buffer + offset, &ts, sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &len, sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, mean_spectrum.data(), mean_spectrum.size() * sizeof(float));
+                                       offset += mean_spectrum.size() * sizeof(float);
+
+                                       memcpy(buffer + offset, integrated_spectrum.data(), integrated_spectrum.size() * sizeof(float));
+                                       offset += integrated_spectrum.size() * sizeof(float);
+
+                                       // send the buffer
+                                       if (user->ptr->active)
                                        {
-                                         auto [min, max, median, black, white,
-                                               sensitivity, ratio_sensitivity] =
-                                             fits->make_cube_statistics(
-                                                 _img_pixels, _img_mask,
-                                                 user->ptr->hist);
-
-                                         user->ptr->min = min;
-                                         user->ptr->max = max;
-                                         user->ptr->median = median;
-                                         user->ptr->black = black;
-                                         user->ptr->white = white;
-                                         user->ptr->sensitivity = sensitivity;
-                                         user->ptr->ratio_sensitivity =
-                                             ratio_sensitivity;
+                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
                                        }
 
-                                       auto end_t = steady_clock::now();
+                                       free(buffer);
+                                     }
+                                   }
 
-                                       double elapsedSeconds =
-                                           ((end_t - start_t).count()) *
-                                           steady_clock::period::num /
-                                           static_cast<double>(
-                                               steady_clock::period::den);
-                                       elapsedMilliseconds +=
-                                           1000.0 * elapsedSeconds;
+                                   // send the updated image + statistics + histogram via WebSockets
+                                   if (_img_pixels && _img_mask)
+                                   {
+                                     // export the image pixels/mask to OpenEXR
 
-                                       // set the
-                                       // new user
-                                       // {pixels,mask}
-                                       if (_img_pixels)
-                                         user->ptr->img_pixels = _img_pixels;
+                                     // in-memory output
+                                     StdOSStream oss;
+                                     std::string output;
 
-                                       if (_img_mask)
-                                         user->ptr->img_mask = _img_mask;
+                                     // calculate a new image size
+                                     long true_width = fits->width;
+                                     long true_height = fits->height;
+                                     true_image_dimensions(_img_mask.get(), true_width, true_height);
+                                     float scale = get_image_scale(view_width, view_height, true_width, true_height);
 
-                                       // send the
-                                       // updated
-                                       // mean_spectrum
-                                       // and
-                                       // integrated_spectrum
-                                       // via
-                                       // WebSockets
-                                       if ((mean_spectrum.size() > 0) &&
-                                           (integrated_spectrum.size() > 0) &&
-                                           (mean_spectrum.size() ==
-                                            integrated_spectrum.size()))
+                                     if (scale < 1.0)
+                                     {
+                                       int img_width = floorf(scale * fits->width);
+                                       int img_height = floorf(scale * fits->height);
+
+                                       printf("FITS image scaling by %f; %ld x %ld --> %d x %d\n", scale, fits->width, fits->height, img_width, img_height);
+
+                                       size_t plane_size = size_t(img_width) * size_t(img_height);
+
+                                       // allocate {pixel_buf, mask_buf}
+                                       std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
+                                       std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+                                       std::shared_ptr<Ipp32f> mask_buf_32f(ippsMalloc_32f_L(plane_size), ippsFree);
+
+                                       if (pixels_buf.get() != NULL && mask_buf.get() != NULL && mask_buf_32f.get() != NULL)
                                        {
-                                         std::cout << "[uWS] "
-                                                      "sending "
-                                                      "the "
-                                                      "mean/"
-                                                      "integrated"
-                                                      " spectra"
-                                                   << std::endl;
+                                         // downsize float32 pixels and a mask
+                                         IppiSize srcSize;
+                                         srcSize.width = fits->width;
+                                         srcSize.height = fits->height;
+                                         Ipp32s srcStep = srcSize.width;
 
-                                         size_t bufferSize =
-                                             sizeof(float) + sizeof(uint32_t) +
-                                             sizeof(uint32_t) + sizeof(float) +
-                                             sizeof(uint32_t) +
-                                             mean_spectrum.size() *
-                                                 sizeof(float) +
-                                             integrated_spectrum.size() *
-                                                 sizeof(float);
-                                         char *buffer =
-                                             (char *)malloc(bufferSize);
+                                         IppiSize dstSize;
+                                         dstSize.width = img_width;
+                                         dstSize.height = img_height;
+                                         Ipp32s dstStep = dstSize.width;
 
-                                         if (buffer != NULL)
-                                         {
-                                           float ts = timestamp;
-                                           uint32_t id = 0;
-                                           uint32_t msg_type = 3; // 0 -
-                                                                  // spectrum,
-                                                                  // 1 -
-                                                                  // viewport,
-                                           // 2 -
-                                           // cube
-                                           // image
-                                           // +
-                                           // statistics,
-                                           // 3 -
-                                           // full
-                                           // spectrum
-                                           // refresh
-                                           uint32_t len = mean_spectrum.size();
+                                         IppStatus pixels_stat =
+                                             tileResize32f_C1R(
+                                                 _img_pixels.get(), srcSize,
+                                                 srcStep, pixels_buf.get(),
+                                                 dstSize, dstStep);
 
-                                           size_t offset = 0;
+                                         IppStatus mask_stat =
+                                             tileResize8u_C1R(
+                                                 _img_mask.get(), srcSize,
+                                                 srcStep, mask_buf.get(),
+                                                 dstSize, dstStep);
 
-                                           memcpy(buffer + offset, &ts,
-                                                  sizeof(float));
-                                           offset += sizeof(float);
+                                         printf(
+                                             " %d : "
+                                             "%s, %d : "
+                                             "%s\n",
+                                             pixels_stat,
+                                             ippGetStatusString(
+                                                 pixels_stat),
+                                             mask_stat,
+                                             ippGetStatusString(mask_stat));
 
-                                           memcpy(buffer + offset, &id,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
-
-                                           memcpy(buffer + offset, &msg_type,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
-
-                                           memcpy(buffer + offset, &len,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
-
-                                           memcpy(buffer + offset,
-                                                  mean_spectrum.data(),
-                                                  mean_spectrum.size() *
-                                                      sizeof(float));
-                                           offset += mean_spectrum.size() *
-                                                     sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  integrated_spectrum.data(),
-                                                  integrated_spectrum.size() *
-                                                      sizeof(float));
-                                           offset +=
-                                               integrated_spectrum.size() *
-                                               sizeof(float);
-
-                                           // send
-                                           // the
-                                           // buffer
-                                           if (user->ptr->active)
-                                           {
-                                             std::lock_guard<std::shared_mutex>
-                                                 unique_access(user->ptr->mtx);
-                                             ws->send(std::string_view(
-                                                 buffer,
-                                                 offset)); // by default
-                                             // uWS::OpCode::BINARY
-                                           }
-
-                                           free(buffer);
-                                         }
-                                       }
-
-                                       // send the
-                                       // updated
-                                       // image +
-                                       // statistics
-                                       // +
-                                       // histogram
-                                       // via
-                                       // WebSockets
-                                       if (_img_pixels && _img_mask)
-                                       {
-                                         // export
+                                         // compress
                                          // the
-                                         // image
-                                         // pixels/mask
-                                         // to
+                                         // pixels
+                                         // +
+                                         // mask
+                                         // with
                                          // OpenEXR
-
-                                         // in-memory
-                                         // output
-                                         StdOSStream oss;
-                                         std::string output;
-
-                                         // calculate
-                                         // a new
-                                         // image
-                                         // size
-                                         long true_width = fits->width;
-                                         long true_height = fits->height;
-                                         true_image_dimensions(_img_mask.get(),
-                                                               true_width,
-                                                               true_height);
-                                         float scale = get_image_scale(
-                                             view_width, view_height,
-                                             true_width, true_height);
-
-                                         if (scale < 1.0)
+                                         if (pixels_stat == ippStsNoErr &&
+                                             mask_stat == ippStsNoErr)
                                          {
-                                           int img_width =
-                                               floorf(scale * fits->width);
-                                           int img_height =
-                                               floorf(scale * fits->height);
-
-                                           printf("F"
-                                                  "I"
-                                                  "T"
-                                                  "S"
-                                                  " "
-                                                  "i"
-                                                  "m"
-                                                  "a"
-                                                  "g"
-                                                  "e"
-                                                  " "
-                                                  "s"
-                                                  "c"
-                                                  "a"
-                                                  "l"
-                                                  "i"
-                                                  "n"
-                                                  "g"
-                                                  " "
-                                                  "b"
-                                                  "y"
-                                                  " "
-                                                  "%"
-                                                  "f"
-                                                  ";"
-                                                  " "
-                                                  "%"
-                                                  "l"
-                                                  "d"
-                                                  " "
-                                                  "x"
-                                                  " "
-                                                  "%"
-                                                  "l"
-                                                  "d"
-                                                  " "
-                                                  "-"
-                                                  "-"
-                                                  ">"
-                                                  " "
-                                                  "%"
-                                                  "d"
-                                                  " "
-                                                  "x"
-                                                  " "
-                                                  "%"
-                                                  "d"
-                                                  "\n",
-                                                  scale, fits->width,
-                                                  fits->height, img_width,
-                                                  img_height);
-
-                                           size_t plane_size =
-                                               size_t(img_width) *
-                                               size_t(img_height);
-
-                                           // allocate
-                                           // {pixel_buf,
-                                           // mask_buf}
-                                           std::shared_ptr<Ipp32f> pixels_buf(
-                                               ippsMalloc_32f_L(plane_size),
-                                               ippsFree);
-                                           std::shared_ptr<Ipp8u> mask_buf(
-                                               ippsMalloc_8u_L(plane_size),
-                                               ippsFree);
-                                           std::shared_ptr<Ipp32f> mask_buf_32f(
-                                               ippsMalloc_32f_L(plane_size),
-                                               ippsFree);
-
-                                           if (pixels_buf.get() != NULL &&
-                                               mask_buf.get() != NULL &&
-                                               mask_buf_32f.get() != NULL)
-                                           {
-                                             // downsize
-                                             // float32
-                                             // pixels
-                                             // and
-                                             // a
-                                             // mask
-                                             IppiSize srcSize;
-                                             srcSize.width = fits->width;
-                                             srcSize.height = fits->height;
-                                             Ipp32s srcStep = srcSize.width;
-
-                                             IppiSize dstSize;
-                                             dstSize.width = img_width;
-                                             dstSize.height = img_height;
-                                             Ipp32s dstStep = dstSize.width;
-
-                                             IppStatus pixels_stat =
-                                                 tileResize32f_C1R(
-                                                     _img_pixels.get(), srcSize,
-                                                     srcStep, pixels_buf.get(),
-                                                     dstSize, dstStep);
-
-                                             IppStatus mask_stat =
-                                                 tileResize8u_C1R(
-                                                     _img_mask.get(), srcSize,
-                                                     srcStep, mask_buf.get(),
-                                                     dstSize, dstStep);
-
-                                             printf(
-                                                 " %d : "
-                                                 "%s, %d : "
-                                                 "%s\n",
-                                                 pixels_stat,
-                                                 ippGetStatusString(
-                                                     pixels_stat),
-                                                 mask_stat,
-                                                 ippGetStatusString(mask_stat));
-
-                                             // compress
-                                             // the
-                                             // pixels
-                                             // +
-                                             // mask
-                                             // with
-                                             // OpenEXR
-                                             if (pixels_stat == ippStsNoErr &&
-                                                 mask_stat == ippStsNoErr)
-                                             {
-                                               // the mask
-                                               // should be
-                                               // filled-in
-                                               // manually
-                                               // based on
-                                               // NaN pixels
-                                               // not
-                                               // anymore,
-                                               // NaN will
-                                               // be
-                                               // replaced
-                                               // by 0.0 due
-                                               // to
-                                               // unwanted
-                                               // cropping
-                                               // by OpenEXR
-                                               Ipp32f *pixels =
-                                                   pixels_buf.get();
-                                               Ipp8u *src_mask = mask_buf.get();
-                                               Ipp32f *mask =
-                                                   mask_buf_32f.get();
+                                           // the mask
+                                           // should be
+                                           // filled-in
+                                           // manually
+                                           // based on
+                                           // NaN pixels
+                                           // not
+                                           // anymore,
+                                           // NaN will
+                                           // be
+                                           // replaced
+                                           // by 0.0 due
+                                           // to
+                                           // unwanted
+                                           // cropping
+                                           // by OpenEXR
+                                           Ipp32f *pixels =
+                                               pixels_buf.get();
+                                           Ipp8u *src_mask = mask_buf.get();
+                                           Ipp32f *mask =
+                                               mask_buf_32f.get();
 
 #pragma omp parallel for simd
-                                               for (size_t i = 0;
-                                                    i < plane_size; i++)
-                                                 mask[i] =
-                                                     (src_mask[i] == 255)
-                                                         ? 1.0f
-                                                         : 0.0f; // std::isnan(pixels[i])
-                                                                 // ? 0.0f
-                                                                 // : 1.0f;
+                                           for (size_t i = 0;
+                                                i < plane_size; i++)
+                                             mask[i] =
+                                                 (src_mask[i] == 255)
+                                                     ? 1.0f
+                                                     : 0.0f; // std::isnan(pixels[i])
+                                                             // ? 0.0f
+                                                             // : 1.0f;
 
-                                               // export EXR
-                                               // in a YA
-                                               // format
+                                           // export EXR
+                                           // in a YA
+                                           // format
 
-                                               try
-                                               {
-                                                 Header header(img_width,
-                                                               img_height);
-                                                 header.compression() =
-                                                     DWAB_COMPRESSION;
-                                                 addDwaCompressionLevel(
-                                                     header, quality);
-                                                 header.channels().insert(
-                                                     "Y", Channel(FLOAT));
-                                                 header.channels().insert(
-                                                     "A", Channel(FLOAT));
+                                           try
+                                           {
+                                             Header header(img_width,
+                                                           img_height);
+                                             header.compression() =
+                                                 DWAB_COMPRESSION;
+                                             addDwaCompressionLevel(
+                                                 header, quality);
+                                             header.channels().insert(
+                                                 "Y", Channel(FLOAT));
+                                             header.channels().insert(
+                                                 "A", Channel(FLOAT));
 
-                                                 OutputFile file(oss, header);
-                                                 FrameBuffer frameBuffer;
+                                             OutputFile file(oss, header);
+                                             FrameBuffer frameBuffer;
 
-                                                 frameBuffer.insert(
-                                                     "Y",
-                                                     Slice(FLOAT,
-                                                           (char *)pixels,
-                                                           sizeof(Ipp32f) * 1,
-                                                           sizeof(Ipp32f) *
-                                                               img_width));
+                                             frameBuffer.insert(
+                                                 "Y",
+                                                 Slice(FLOAT,
+                                                       (char *)pixels,
+                                                       sizeof(Ipp32f) * 1,
+                                                       sizeof(Ipp32f) *
+                                                           img_width));
 
-                                                 frameBuffer.insert(
-                                                     "A",
-                                                     Slice(FLOAT, (char *)mask,
-                                                           sizeof(Ipp32f) * 1,
-                                                           sizeof(Ipp32f) *
-                                                               img_width));
+                                             frameBuffer.insert(
+                                                 "A",
+                                                 Slice(FLOAT, (char *)mask,
+                                                       sizeof(Ipp32f) * 1,
+                                                       sizeof(Ipp32f) *
+                                                           img_width));
 
-                                                 file.setFrameBuffer(
-                                                     frameBuffer);
-                                                 file.writePixels(img_height);
-                                               }
-                                               catch (
-                                                   const std::exception &exc)
-                                               {
-                                                 std::cerr << exc.what()
-                                                           << std::endl;
-                                               }
-
-                                               output = oss.str();
-                                               std::cout << "["
-                                                         << fits->dataset_id
-                                                         << "]::"
-                                                            "down"
-                                                            "size"
-                                                            " Ope"
-                                                            "nEXR"
-                                                            " out"
-                                                            "put:"
-                                                            " "
-                                                         << output.length()
-                                                         << " byt"
-                                                            "es."
-                                                         << std::endl;
-                                             }
+                                             file.setFrameBuffer(
+                                                 frameBuffer);
+                                             file.writePixels(img_height);
                                            }
+                                           catch (
+                                               const std::exception &exc)
+                                           {
+                                             std::cerr << exc.what()
+                                                       << std::endl;
+                                           }
+
+                                           output = oss.str();
+                                           std::cout << "["
+                                                     << fits->dataset_id
+                                                     << "]::"
+                                                        "down"
+                                                        "size"
+                                                        " Ope"
+                                                        "nEXR"
+                                                        " out"
+                                                        "put:"
+                                                        " "
+                                                     << output.length()
+                                                     << " byt"
+                                                        "es."
+                                                     << std::endl;
                                          }
-                                         else
-                                         {
-                                           // mirror-flip
-                                           // the
-                                           // pixels_buf,
-                                           // compress
-                                           // with
-                                           // OpenEXR
-                                           // and
-                                           // transmit
-                                           // at
-                                           // its
-                                           // original
-                                           // scale
-                                           int img_width = fits->width;
-                                           int img_height = fits->height;
+                                       }
+                                     }
+                                     else
+                                     {
+                                       // mirror-flip
+                                       // the
+                                       // pixels_buf,
+                                       // compress
+                                       // with
+                                       // OpenEXR
+                                       // and
+                                       // transmit
+                                       // at
+                                       // its
+                                       // original
+                                       // scale
+                                       int img_width = fits->width;
+                                       int img_height = fits->height;
 
-                                           size_t plane_size =
-                                               size_t(img_width) *
-                                               size_t(img_height);
+                                       size_t plane_size =
+                                           size_t(img_width) *
+                                           size_t(img_height);
 
-                                           // an
-                                           // array
-                                           // to
-                                           // hold
-                                           // a
-                                           // flipped
-                                           // image
-                                           // (its
-                                           // mirror
-                                           // image)
-                                           /*std::shared_ptr<Ipp32f>
+                                       // an
+                                       // array
+                                       // to
+                                       // hold
+                                       // a
+                                       // flipped
+                                       // image
+                                       // (its
+                                       // mirror
+                                       // image)
+                                       /*std::shared_ptr<Ipp32f>
                                              pixels_buf(ippsMalloc_32f_L(plane_size),
                                              ippsFree);*/
 
-                                           // an
-                                           // alpha
-                                           // channel
-                                           std::shared_ptr<Ipp32f> mask_buf(
-                                               ippsMalloc_32f_L(plane_size),
-                                               ippsFree);
+                                       // an
+                                       // alpha
+                                       // channel
+                                       std::shared_ptr<Ipp32f> mask_buf(
+                                           ippsMalloc_32f_L(plane_size),
+                                           ippsFree);
 
-                                           // copy
-                                           // and
-                                           // flip
-                                           // the
-                                           // image,
-                                           // fill-in
-                                           // the
-                                           // mask
-                                           if (/*pixels_buf.get()
+                                       // copy
+                                       // and
+                                       // flip
+                                       // the
+                                       // image,
+                                       // fill-in
+                                       // the
+                                       // mask
+                                       if (/*pixels_buf.get()
                                                   != NULL
                                                   &&*/
-                                               mask_buf.get() != NULL)
-                                           {
-                                             /*tileMirror32f_C1R(fits->img_pixels,
+                                           mask_buf.get() != NULL)
+                                       {
+                                         /*tileMirror32f_C1R(fits->img_pixels,
                                                pixels_buf.get(),
                                                img_width,
                                                img_height);*/
 
-                                             // the
-                                             // mask
-                                             // should
-                                             // be
-                                             // filled-in
-                                             // manually
-                                             // based
-                                             // on
-                                             // NaN
-                                             // pixels
-                                             Ipp32f *pixels =
-                                                 _img_pixels
-                                                     .get(); // pixels_buf.get();
-                                             Ipp8u *_mask = _img_mask.get();
-                                             Ipp32f *mask = mask_buf.get();
+                                         // the
+                                         // mask
+                                         // should
+                                         // be
+                                         // filled-in
+                                         // manually
+                                         // based
+                                         // on
+                                         // NaN
+                                         // pixels
+                                         Ipp32f *pixels =
+                                             _img_pixels
+                                                 .get(); // pixels_buf.get();
+                                         Ipp8u *_mask = _img_mask.get();
+                                         Ipp32f *mask = mask_buf.get();
 
 #pragma omp parallel for simd
-                                             for (size_t i = 0; i < plane_size;
-                                                  i++)
-                                               mask[i] =
-                                                   (_mask[i] == 255)
-                                                       ? 1.0f
-                                                       : 0.0f; // std::isnan(pixels[i])
-                                                               // ? 0.0f : 1.0f;
+                                         for (size_t i = 0; i < plane_size;
+                                              i++)
+                                           mask[i] =
+                                               (_mask[i] == 255)
+                                                   ? 1.0f
+                                                   : 0.0f; // std::isnan(pixels[i])
+                                                           // ? 0.0f : 1.0f;
 
-                                             // export
-                                             // the
-                                             // luma+mask
-                                             // to
-                                             // OpenEXR
-
-                                             try
-                                             {
-                                               Header header(img_width,
-                                                             img_height);
-                                               header.compression() =
-                                                   DWAB_COMPRESSION;
-                                               addDwaCompressionLevel(header,
-                                                                      quality);
-                                               header.channels().insert(
-                                                   "Y", Channel(FLOAT));
-                                               header.channels().insert(
-                                                   "A", Channel(FLOAT));
-
-                                               OutputFile file(oss, header);
-                                               FrameBuffer frameBuffer;
-
-                                               frameBuffer.insert(
-                                                   "Y",
-                                                   Slice(FLOAT, (char *)pixels,
-                                                         sizeof(Ipp32f) * 1,
-                                                         sizeof(Ipp32f) *
-                                                             img_width));
-
-                                               frameBuffer.insert(
-                                                   "A",
-                                                   Slice(FLOAT, (char *)mask,
-                                                         sizeof(Ipp32f) * 1,
-                                                         sizeof(Ipp32f) *
-                                                             img_width));
-
-                                               file.setFrameBuffer(frameBuffer);
-                                               file.writePixels(img_height);
-                                             }
-                                             catch (
-                                                 const std::exception &exc)
-                                             {
-                                               std::cerr << exc.what()
-                                                         << std::endl;
-                                             }
-
-                                             output = oss.str();
-                                             std::cout << "["
-                                                       << fits->dataset_id
-                                                       << "]::"
-                                                          "mirror"
-                                                          " OpenE"
-                                                          "XR "
-                                                          "output"
-                                                          ": "
-                                                       << output.length()
-                                                       << " bytes"
-                                                          "."
-                                                       << std::endl;
-                                           }
-                                         }
-
-                                         std::cout << "[uWS] "
-                                                      "sending "
-                                                      "the cube "
-                                                      "image + "
-                                                      "statistics"
-                                                   << std::endl;
-
-                                         size_t bufferSize =
-                                             sizeof(float) +
-                                             2 * sizeof(uint32_t);
-                                         bufferSize += 7 * sizeof(float) +
-                                                       sizeof(uint32_t) +
-                                                       NBINS * sizeof(uint32_t);
-                                         // append
+                                         // export
                                          // the
-                                         // image
-                                         // frame
-                                         // too
-                                         bufferSize += output.length();
+                                         // luma+mask
+                                         // to
+                                         // OpenEXR
 
-                                         char *buffer =
-                                             (char *)malloc(bufferSize);
-
-                                         if (buffer != NULL)
+                                         try
                                          {
-                                           float ts = timestamp;
-                                           uint32_t id = 0;
-                                           uint32_t msg_type = 2; // 0 -
-                                                                  // spectrum,
-                                                                  // 1 -
-                                                                  // viewport,
-                                           // 2 -
-                                           // cube
-                                           // image
-                                           // +
-                                           // statistics,
-                                           // 3 -
-                                           // full
-                                           // spectrum
-                                           // refresh
-                                           uint32_t len = NBINS;
-                                           uint64_t img_len = output.length();
+                                           Header header(img_width,
+                                                         img_height);
+                                           header.compression() =
+                                               DWAB_COMPRESSION;
+                                           addDwaCompressionLevel(header,
+                                                                  quality);
+                                           header.channels().insert(
+                                               "Y", Channel(FLOAT));
+                                           header.channels().insert(
+                                               "A", Channel(FLOAT));
 
-                                           size_t offset = 0;
+                                           OutputFile file(oss, header);
+                                           FrameBuffer frameBuffer;
 
-                                           memcpy(buffer + offset, &ts,
-                                                  sizeof(float));
-                                           offset += sizeof(float);
+                                           frameBuffer.insert(
+                                               "Y",
+                                               Slice(FLOAT, (char *)pixels,
+                                                     sizeof(Ipp32f) * 1,
+                                                     sizeof(Ipp32f) *
+                                                         img_width));
 
-                                           memcpy(buffer + offset, &id,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
+                                           frameBuffer.insert(
+                                               "A",
+                                               Slice(FLOAT, (char *)mask,
+                                                     sizeof(Ipp32f) * 1,
+                                                     sizeof(Ipp32f) *
+                                                         img_width));
 
-                                           memcpy(buffer + offset, &msg_type,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
-
-                                           // tone
-                                           // mapping
-                                           // (7
-                                           // floats)
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->min),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->max),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->median),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->black),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->white),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(buffer + offset,
-                                                  &(user->ptr->sensitivity),
-                                                  sizeof(float));
-                                           offset += sizeof(float);
-
-                                           memcpy(
-                                               buffer + offset,
-                                               &(user->ptr->ratio_sensitivity),
-                                               sizeof(float));
-                                           offset += sizeof(float);
-
-                                           // the
-                                           // histogram
-                                           // length
-                                           memcpy(buffer + offset, &len,
-                                                  sizeof(uint32_t));
-                                           offset += sizeof(uint32_t);
-
-                                           // the
-                                           // histogram
-                                           // bins
-                                           memcpy(buffer + offset,
-                                                  user->ptr->hist,
-                                                  NBINS * sizeof(uint32_t));
-                                           offset += NBINS * sizeof(uint32_t);
-
-                                           // the
-                                           // OpenEXR
-                                           // image
-                                           // frame
-                                           if (output.length() > 0)
-                                             memcpy(buffer + offset,
-                                                    output.c_str(),
-                                                    output.length());
-                                           offset += output.length();
-
-                                           // send the buffer
-                                           if (user->ptr->active)
-                                           {
-                                             std::lock_guard<std::shared_mutex>
-                                                 unique_access(user->ptr->mtx);
-                                             ws->send(std::string_view(
-                                                 buffer,
-                                                 offset)); // by default
-                                             // uWS::OpCode::BINARY
-                                           }
-
-                                           free(buffer);
+                                           file.setFrameBuffer(frameBuffer);
+                                           file.writePixels(img_height);
                                          }
+                                         catch (
+                                             const std::exception &exc)
+                                         {
+                                           std::cerr << exc.what()
+                                                     << std::endl;
+                                         }
+
+                                         output = oss.str();
+                                         std::cout << "["
+                                                   << fits->dataset_id
+                                                   << "]::"
+                                                      "mirror"
+                                                      " OpenE"
+                                                      "XR "
+                                                      "output"
+                                                      ": "
+                                                   << output.length()
+                                                   << " bytes"
+                                                      "."
+                                                   << std::endl;
                                        }
                                      }
-                                   });
+
+                                     std::cout << "[uWS] "
+                                                  "sending "
+                                                  "the cube "
+                                                  "image + "
+                                                  "statistics"
+                                               << std::endl;
+
+                                     size_t bufferSize =
+                                         sizeof(float) +
+                                         2 * sizeof(uint32_t);
+                                     bufferSize += 7 * sizeof(float) +
+                                                   sizeof(uint32_t) +
+                                                   NBINS * sizeof(uint32_t);
+                                     // append
+                                     // the
+                                     // image
+                                     // frame
+                                     // too
+                                     bufferSize += output.length();
+
+                                     char *buffer =
+                                         (char *)malloc(bufferSize);
+
+                                     if (buffer != NULL)
+                                     {
+                                       float ts = timestamp;
+                                       uint32_t id = 0;
+                                       uint32_t msg_type = 2; // 0 -
+                                                              // spectrum,
+                                                              // 1 -
+                                                              // viewport,
+                                       // 2 -
+                                       // cube
+                                       // image
+                                       // +
+                                       // statistics,
+                                       // 3 -
+                                       // full
+                                       // spectrum
+                                       // refresh
+                                       uint32_t len = NBINS;
+                                       uint64_t img_len = output.length();
+
+                                       size_t offset = 0;
+
+                                       memcpy(buffer + offset, &ts,
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset, &id,
+                                              sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       memcpy(buffer + offset, &msg_type,
+                                              sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       // tone
+                                       // mapping
+                                       // (7
+                                       // floats)
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->min),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->max),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->median),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->black),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->white),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(buffer + offset,
+                                              &(user->ptr->sensitivity),
+                                              sizeof(float));
+                                       offset += sizeof(float);
+
+                                       memcpy(
+                                           buffer + offset,
+                                           &(user->ptr->ratio_sensitivity),
+                                           sizeof(float));
+                                       offset += sizeof(float);
+
+                                       // the
+                                       // histogram
+                                       // length
+                                       memcpy(buffer + offset, &len,
+                                              sizeof(uint32_t));
+                                       offset += sizeof(uint32_t);
+
+                                       // the
+                                       // histogram
+                                       // bins
+                                       memcpy(buffer + offset,
+                                              user->ptr->hist,
+                                              NBINS * sizeof(uint32_t));
+                                       offset += NBINS * sizeof(uint32_t);
+
+                                       // the
+                                       // OpenEXR
+                                       // image
+                                       // frame
+                                       if (output.length() > 0)
+                                         memcpy(buffer + offset,
+                                                output.c_str(),
+                                                output.length());
+                                       offset += output.length();
+
+                                       // send the buffer
+                                       if (user->ptr->active)
+                                       {
+                                         std::lock_guard<std::shared_mutex>
+                                             unique_access(user->ptr->mtx);
+                                         ws->send(std::string_view(
+                                             buffer,
+                                             offset)); // by default
+                                         // uWS::OpCode::BINARY
+                                       }
+
+                                       free(buffer);
+                                     }
+                                   }
+                                 }
+                               });
 
                                user->ptr->active_threads.add_thread(
                                    image_thread);
