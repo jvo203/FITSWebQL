@@ -2847,73 +2847,25 @@ int main(int argc, char *argv[])
                                          dstSize.height = img_height;
                                          Ipp32s dstStep = dstSize.width;
 
-                                         IppStatus pixels_stat =
-                                             tileResize32f_C1R(
-                                                 _img_pixels.get(), srcSize,
-                                                 srcStep, pixels_buf.get(),
-                                                 dstSize, dstStep);
+                                         IppStatus pixels_stat = tileResize32f_C1R(_img_pixels.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 
-                                         IppStatus mask_stat =
-                                             tileResize8u_C1R(
-                                                 _img_mask.get(), srcSize,
-                                                 srcStep, mask_buf.get(),
-                                                 dstSize, dstStep);
+                                         IppStatus mask_stat = tileResize8u_C1R(_img_mask.get(), srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
-                                         printf(
-                                             " %d : "
-                                             "%s, %d : "
-                                             "%s\n",
-                                             pixels_stat,
-                                             ippGetStatusString(
-                                                 pixels_stat),
-                                             mask_stat,
-                                             ippGetStatusString(mask_stat));
+                                         printf(" %d : %s, %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat), mask_stat, ippGetStatusString(mask_stat));
 
-                                         // compress
-                                         // the
-                                         // pixels
-                                         // +
-                                         // mask
-                                         // with
-                                         // OpenEXR
-                                         if (pixels_stat == ippStsNoErr &&
-                                             mask_stat == ippStsNoErr)
+                                         // compress the pixels + mask with OpenEXR
+                                         if (pixels_stat == ippStsNoErr && mask_stat == ippStsNoErr)
                                          {
-                                           // the mask
-                                           // should be
-                                           // filled-in
-                                           // manually
-                                           // based on
-                                           // NaN pixels
-                                           // not
-                                           // anymore,
-                                           // NaN will
-                                           // be
-                                           // replaced
-                                           // by 0.0 due
-                                           // to
-                                           // unwanted
-                                           // cropping
-                                           // by OpenEXR
-                                           Ipp32f *pixels =
-                                               pixels_buf.get();
+                                           // the mask should be filled-in manually based on NaN pixels not anymore, NaN will be replaced by 0.0 due to unwanted cropping by OpenEXR
+                                           Ipp32f *pixels = pixels_buf.get();
                                            Ipp8u *src_mask = mask_buf.get();
-                                           Ipp32f *mask =
-                                               mask_buf_32f.get();
+                                           Ipp32f *mask = mask_buf_32f.get();
 
 #pragma omp parallel for simd
-                                           for (size_t i = 0;
-                                                i < plane_size; i++)
-                                             mask[i] =
-                                                 (src_mask[i] == 255)
-                                                     ? 1.0f
-                                                     : 0.0f; // std::isnan(pixels[i])
-                                                             // ? 0.0f
-                                                             // : 1.0f;
+                                           for (size_t i = 0; i < plane_size; i++)
+                                             mask[i] = (src_mask[i] == 255) ? 1.0f : 0.0f; // std::isnan(pixels[i]) ? 0.0f : 1.0f;
 
-                                           // export EXR
-                                           // in a YA
-                                           // format
+                                           // export EXR in a YA format
 
                                            try
                                            {
@@ -3107,152 +3059,80 @@ int main(int argc, char *argv[])
                                          }
 
                                          output = oss.str();
-                                         std::cout << "["
-                                                   << fits->dataset_id
-                                                   << "]::"
-                                                      "mirror"
-                                                      " OpenE"
-                                                      "XR "
-                                                      "output"
-                                                      ": "
-                                                   << output.length()
-                                                   << " bytes"
-                                                      "."
-                                                   << std::endl;
+                                         std::cout << "[" << fits->dataset_id << "]::mirror OpenEXR output: " << output.length() << " bytes." << std::endl;
                                        }
                                      }
 
-                                     std::cout << "[uWS] "
-                                                  "sending "
-                                                  "the cube "
-                                                  "image + "
-                                                  "statistics"
-                                               << std::endl;
+                                     std::cout << "[uWS] sending the cube image + statistics" << std::endl;
 
-                                     size_t bufferSize =
-                                         sizeof(float) +
-                                         2 * sizeof(uint32_t);
-                                     bufferSize += 7 * sizeof(float) +
-                                                   sizeof(uint32_t) +
-                                                   NBINS * sizeof(uint32_t);
-                                     // append
-                                     // the
-                                     // image
-                                     // frame
-                                     // too
+                                     size_t bufferSize = sizeof(float) + 2 * sizeof(uint32_t);
+                                     bufferSize += 7 * sizeof(float) + sizeof(uint32_t) + NBINS * sizeof(uint32_t);
+                                     // append the image frame too
                                      bufferSize += output.length();
 
-                                     char *buffer =
-                                         (char *)malloc(bufferSize);
+                                     char *buffer = (char *)malloc(bufferSize);
 
                                      if (buffer != NULL)
                                      {
                                        float ts = timestamp;
                                        uint32_t id = 0;
-                                       uint32_t msg_type = 2; // 0 -
-                                                              // spectrum,
-                                                              // 1 -
-                                                              // viewport,
-                                       // 2 -
-                                       // cube
-                                       // image
-                                       // +
-                                       // statistics,
-                                       // 3 -
-                                       // full
-                                       // spectrum
-                                       // refresh
+                                       uint32_t msg_type = 2; // 0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
                                        uint32_t len = NBINS;
                                        uint64_t img_len = output.length();
 
                                        size_t offset = 0;
 
-                                       memcpy(buffer + offset, &ts,
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &ts, sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset, &id,
-                                              sizeof(uint32_t));
+                                       memcpy(buffer + offset, &id, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
 
-                                       memcpy(buffer + offset, &msg_type,
-                                              sizeof(uint32_t));
+                                       memcpy(buffer + offset, &msg_type, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
 
-                                       // tone
-                                       // mapping
-                                       // (7
-                                       // floats)
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->min),
-                                              sizeof(float));
+                                       // tone mapping (7 floats)
+                                       memcpy(buffer + offset, &(user->ptr->min), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->max),
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->max), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->median),
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->median), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->black),
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->black), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->white),
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->white), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(buffer + offset,
-                                              &(user->ptr->sensitivity),
-                                              sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->sensitivity), sizeof(float));
                                        offset += sizeof(float);
 
-                                       memcpy(
-                                           buffer + offset,
-                                           &(user->ptr->ratio_sensitivity),
-                                           sizeof(float));
+                                       memcpy(buffer + offset, &(user->ptr->ratio_sensitivity), sizeof(float));
                                        offset += sizeof(float);
 
-                                       // the
-                                       // histogram
-                                       // length
-                                       memcpy(buffer + offset, &len,
-                                              sizeof(uint32_t));
+                                       // the histogram length
+                                       memcpy(buffer + offset, &len, sizeof(uint32_t));
                                        offset += sizeof(uint32_t);
 
-                                       // the
-                                       // histogram
-                                       // bins
-                                       memcpy(buffer + offset,
-                                              user->ptr->hist,
-                                              NBINS * sizeof(uint32_t));
+                                       // the histogram bins
+                                       memcpy(buffer + offset, user->ptr->hist, NBINS * sizeof(uint32_t));
                                        offset += NBINS * sizeof(uint32_t);
 
-                                       // the
-                                       // OpenEXR
-                                       // image
-                                       // frame
+                                       // the OpenEXR image frame
                                        if (output.length() > 0)
-                                         memcpy(buffer + offset,
-                                                output.c_str(),
-                                                output.length());
-                                       offset += output.length();
+                                       {
+                                         memcpy(buffer + offset, output.c_str(), output.length());
+                                         offset += output.length();
+                                       }
 
                                        // send the buffer
                                        if (user->ptr->active)
                                        {
-                                         std::lock_guard<std::shared_mutex>
-                                             unique_access(user->ptr->mtx);
-                                         ws->send(std::string_view(
-                                             buffer,
-                                             offset)); // by default
-                                         // uWS::OpCode::BINARY
+                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
                                        }
 
                                        free(buffer);
@@ -3261,14 +3141,12 @@ int main(int argc, char *argv[])
                                  }
                                });
 
-                               user->ptr->active_threads.add_thread(
-                                   image_thread);
+                               user->ptr->active_threads.add_thread(image_thread);
                              }
                            }
                          }
 
-                         if (message.find("[realtime_image_spectrum]") !=
-                             std::string::npos)
+                         if (message.find("[realtime_image_spectrum]") != std::string::npos)
                          {
                            // get deltat (no need to lock the mutex at
                            // this point)
