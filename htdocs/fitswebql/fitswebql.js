@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-13.0";
+	return "JS2020-10-15.0";
 }
 
 const wasm_supported = (() => {
@@ -2635,6 +2635,11 @@ function open_websocket_connection(datasetId, index) {
 						tone_mapping.ratio_sensitivity = dv.getFloat32(offset, endianness);
 						offset += 4;
 
+						if (tone_mapping.flux == "legacy") {
+							tone_mapping.black = tone_mapping.min;
+							tone_mapping.white = tone_mapping.max;
+						}
+
 						console.log(tone_mapping);
 
 						// next the histogram length + bins
@@ -2656,7 +2661,9 @@ function open_websocket_connection(datasetId, index) {
 						redraw_histogram(index);
 
 						// and finally receive/process the 32-bit floating-point image frame
-						// TO-DO
+						var frame = new Uint8Array(received_msg, offset);						
+
+						console.log("received image frame", frame);
 
 						return;
 
