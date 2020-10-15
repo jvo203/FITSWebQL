@@ -4529,14 +4529,6 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, 
       ippsFree(omp_mask[i]);
   }
 
-  // re-do the histogram (make_image_statistics() ...)
-
-// replace NaNs with 0.0
-#pragma omp parallel for simd
-  for (size_t i = 0; i < plane_size; i++)
-    if (_img_mask[i] == 0)
-      _img_pixels[i] = 0.0f;
-
   return {std::move(pixels), std::move(mask), std::move(mean_spectrum), std::move(integrated_spectrum)};
 }
 

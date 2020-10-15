@@ -2736,14 +2736,23 @@ int main(int argc, char *argv[])
                                    {
                                      auto [min, max, median, black, white, sensitivity, ratio_sensitivity] = fits->make_cube_statistics(_img_pixels, _img_mask, user->ptr->hist);
 
+                                     // replace NaNs with 0.0
+                                     auto _pixels = _img_pixels.get();
+                                     auto _mask = _img_mask.get();
+                                     const size_t plane_size = fits->width * fits->height;
+
+#pragma omp parallel for simd
+                                     for (size_t i = 0; i < plane_size; i++)
+                                       if (_mask[i] == 0)
+                                         _pixels[i] = 0.0f;
+
                                      user->ptr->min = min;
                                      user->ptr->max = max;
                                      user->ptr->median = median;
                                      user->ptr->black = black;
                                      user->ptr->white = white;
                                      user->ptr->sensitivity = sensitivity;
-                                     user->ptr->ratio_sensitivity =
-                                         ratio_sensitivity;
+                                     user->ptr->ratio_sensitivity = ratio_sensitivity;
                                    }
 
                                    auto end_t = steady_clock::now();
