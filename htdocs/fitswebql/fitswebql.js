@@ -2655,13 +2655,15 @@ function open_websocket_connection(datasetId, index) {
 						offset += 4;
 
 						var histogram = new Int32Array(received_msg, offset, nbins);
+						offset += nbins * 4;
+
 						fitsContainer[index - 1].histogram = histogram;
 
 						//refresh the histogram
 						redraw_histogram(index);
 
 						// and finally receive/process the 32-bit floating-point image frame
-						var frame = new Uint8Array(received_msg, offset);						
+						var frame = new Uint8Array(received_msg, offset);
 
 						console.log("received image frame", frame);
 
