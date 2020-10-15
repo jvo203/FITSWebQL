@@ -2642,14 +2642,19 @@ function open_websocket_connection(datasetId, index) {
 
 						console.log(tone_mapping);
 
+						if (imageContainer[index - 1] != null) {
+							// re-set the existing tone mapping settings
+							imageContainer[index - 1].tone_mapping = tone_mapping;
+						}
+
 						// next the histogram length + bins
-						fitsContainer[index - 1].min = min;
-						fitsContainer[index - 1].max = max;
-						fitsContainer[index - 1].median = median;
-						fitsContainer[index - 1].sensitivity = sensitivity;
-						fitsContainer[index - 1].ratio_sensitivity = ratio_sensitivity;
-						fitsContainer[index - 1].black = black;
-						fitsContainer[index - 1].white = white;
+						fitsContainer[index - 1].min = tone_mapping.min;
+						fitsContainer[index - 1].max = tone_mapping.max;
+						fitsContainer[index - 1].median = tone_mapping.median;
+						fitsContainer[index - 1].sensitivity = tone_mapping.sensitivity;
+						fitsContainer[index - 1].ratio_sensitivity = tone_mapping.ratio_sensitivity;
+						fitsContainer[index - 1].black = tone_mapping.black;
+						fitsContainer[index - 1].white = tone_mapping.white;
 
 						var nbins = dv.getUint32(offset, endianness);
 						offset += 4;
@@ -2665,7 +2670,30 @@ function open_websocket_connection(datasetId, index) {
 						// and finally receive/process the 32-bit floating-point image frame
 						var frame = new Uint8Array(received_msg, offset);
 
-						console.log("received image frame", frame);
+						if (frame.length > 0) {
+							// OpenEXR decoder part				
+							Module.ready
+								.then(_ => {
+									console.log("processing an OpenEXR HDR image");
+									let start = performance.now();
+									var image = Module.loadEXRStr(frame);
+									let elapsed = Math.round(performance.now() - start);
+
+									console.log("image width: ", image.width, "height: ", image.height, "channels: ", image.channels(), "elapsed: ", elapsed, "[ms]");
+
+									var img_width = image.width;
+									var img_height = image.height;
+									var pixels = new Float32Array(image.plane("Y"));
+									var alpha = new Float32Array(image.plane("A"));
+
+									image.delete();
+
+									process_hdr_image(img_width, img_height, pixels, alpha, tone_mapping, index);
+
+									display_legend();
+								})
+								.catch(e => console.error(e));
+						}
 
 						return;
 
