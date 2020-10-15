@@ -2693,6 +2693,8 @@ function open_websocket_connection(datasetId, index) {
 									display_legend();
 								})
 								.catch(e => console.error(e));
+						} else {
+							hide_hourglass();
 						}
 
 						return;
