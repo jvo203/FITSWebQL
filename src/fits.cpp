@@ -4467,6 +4467,44 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, 
         compressed_mask = true;
     }
 
+    // use the cache holding decompressed pixel data
+    if (compressed_pixels && compressed_mask)
+    {
+      float mean = 0.0f;
+      float integrated = 0.0f;
+
+      for (auto idy = start_y; idy <= end_y; idy++)
+      {
+        for (auto idx = start_x; idx <= end_x; idx++)
+        {
+          std::shared_ptr<unsigned short> region =
+              request_cached_region_ptr(i, idy, idx);
+
+          if (!region)
+            goto jmp;
+
+          float _mean = 0.0f;
+          float _integrated = 0.0f;
+
+          float _cdelt3 =
+              this->has_velocity
+                  ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                  : 1.0f;
+
+          /*ispc::make_image_spectrumF16(region.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT,
+                                       _cdelt3,
+                                       omp_pixels[tid], omp_mask[tid], ZFP_CACHE_REGION,
+                                       _mean, _integrated);*/
+          mean += _mean;
+          integrated += _integrated;
+        }
+      }
+
+      mean_spectrum[i - start] = mean;
+      integrated_spectrum[i - start] = integrated;
+      //has_compressed_plane = true;
+    }
+
   jmp:
     if (!has_compressed_plane && fits_cube[i])
     {
@@ -4767,7 +4805,7 @@ void FITS::zfp_decompress_cube(size_t start_k)
     if (!fits_cube[i])
       return;
 
-  // decompress the frame
+  // decompress the whole frame
   int _x1 = 0;
   int _y1 = 0;
   int _x2 = width - 1;
