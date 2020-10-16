@@ -214,6 +214,48 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform float bzero, 
   frame_max = reduce_max(partial_max);  
 } ;
 
+export void make_image_spectrumF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform unsigned int src_width, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int offset_x, uniform unsigned int offset_y, uniform unsigned int dst_width, uniform float& mean, uniform float& integrated)
+{  
+  varying float partial_sum = 0.0f ;
+  varying unsigned int64 partial_count = 0 ;
+
+  uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bzero_new = bzero + bscale * bzero16 ;
+  uniform float bscale_new = bscale * bscale16;
+
+  foreach (y=0 ... dy, x=0 ... dx)
+    {
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_width+x]) ;
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
+
+      unsigned int dst_idx = y*src_width+x; // to be re-worked using destination offsets
+
+      //alternative coherent if
+      cif (!nan)
+	    {
+	      dst_pixels[dst_idx] += tmp ;
+	      dst_mask[dst_idx] = 255 ;
+	      partial_sum += tmp ;
+	      partial_count += 1 ;
+	    }
+    } ;
+
+  uniform float sum = reduce_add(partial_sum) ;
+  uniform int64 count = reduce_add(partial_count) ;
+
+  if(count > 0)
+    {
+      mean = sum / (float) count ;
+      integrated = sum * cdelt3 ;
+    }
+  else
+    {
+      mean = 0.0f ;
+      integrated = 0.0f ;
+    }  
+} ;
+
 export void make_planeF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
 {    
   foreach(i=0 ... total_size)
