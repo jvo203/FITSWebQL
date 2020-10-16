@@ -4491,7 +4491,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, 
                   ? this->cdelt3 * this->frame_multiplier / 1000.0f
                   : 1.0f;
 
-          // how many source region pixels in the X and Y dimensions we should take into account
+          // how many source region pixels in the X and Y dimensions should be taken into account
           int dx = MIN((idx + 1) * ZFP_CACHE_REGION, width) - idx * ZFP_CACHE_REGION;
           int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) - idy * ZFP_CACHE_REGION;
 
