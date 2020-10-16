@@ -3006,7 +3006,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         //zfp_queue.push(start_k);
-        //zfp_compress_cube(start_k);
+        zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3111,7 +3111,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         //zfp_queue.push(start_k);
-        //zfp_compress_cube(start_k);
+        zfp_compress_cube(start_k);
       }
     }
 
@@ -4508,7 +4508,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, 
 
       mean_spectrum[i - start] = mean;
       integrated_spectrum[i - start] = integrated;
-      //has_compressed_plane = true;
+      has_compressed_plane = true;
     }
 
   jmp:
