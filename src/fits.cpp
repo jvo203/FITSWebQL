@@ -4491,18 +4491,16 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, 
                   ? this->cdelt3 * this->frame_multiplier / 1000.0f
                   : 1.0f;
 
-        // the destination position offsets
-        int dst_x = idx * ZFP_CACHE_REGION;
-        int dst_y = idy * ZFP_CACHE_REGION;
-        
+          // the destination position offsets
+          int offset_x = idx * ZFP_CACHE_REGION;
+          int offset_y = idy * ZFP_CACHE_REGION;
+
           // how many source region pixels in the X and Y dimensions should be taken into account
           int dx = MIN((idx + 1) * ZFP_CACHE_REGION, width) - idx * ZFP_CACHE_REGION;
           int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) - idy * ZFP_CACHE_REGION;
 
-          /*ispc::make_image_spectrumF16(region.get(), frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT,
-                                       _cdelt3,
-                                       omp_pixels[tid], omp_mask[tid], ZFP_CACHE_REGION,
-                                       _mean, _integrated);*/
+          ispc::make_image_spectrumF16(region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[i], frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale, ignrval, datamin, datamax, _cdelt3, omp_pixels[tid], omp_mask[tid], offset_x, offset_y, ZFP_CACHE_REGION, _mean, _integrated);
+
           mean += _mean;
           integrated += _integrated;
         }
