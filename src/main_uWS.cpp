@@ -3086,8 +3086,7 @@ int main(int argc, char *argv[])
                                        float ts = timestamp;
                                        uint32_t id = 0;
                                        uint32_t msg_type = 2; // 0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
-                                       uint32_t len = NBINS;
-                                       uint64_t img_len = output.length();
+                                       uint32_t len = NBINS;                                       
 
                                        size_t offset = 0;
 
