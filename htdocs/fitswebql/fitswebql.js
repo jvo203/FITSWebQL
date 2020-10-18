@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-15.0";
+	return "JS2020-10-18.0";
 }
 
 const wasm_supported = (() => {
@@ -7382,8 +7382,9 @@ function setup_axes() {
 		.attr("y", 0)
 		.attr("width", (range.xMax - range.xMin))
 		.attr("height", height - 1)
-		.attr("fill", "gray")
+		.attr("fill", "gray")//"gray"
 		.style("stroke-dasharray", ("1, 5, 1, 1"))
+		.style("mix-blend-mode", "difference")
 		.attr("opacity", 0.0)
 		.moveToBack();
 
