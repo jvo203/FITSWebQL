@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-19.1";
+	return "JS2020-10-19.2";
 }
 
 const wasm_supported = (() => {
@@ -586,7 +586,7 @@ function plot_spectrum(dataArray) {
 			ctx.setLineDash(linedash[index % linedash.length]);
 		}
 
-		ctx.lineWidth = 0;
+		ctx.lineWidth = 1;// 0
 		ctx.strokeWidth = emStrokeWidth;
 
 		ctx.stroke();
