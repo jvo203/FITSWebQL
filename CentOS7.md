@@ -198,7 +198,27 @@ sudo yum install sqlite-devel
 
 sudo yum install postgresql-devel
 
-# 22. Compile FITSWebQL
+# 22. Build/install x265
+
+wget http://anduin.linuxfromscratch.org/BLFS/x265/x265_3.4.tar.gz
+
+tar zxvf x265_3.4.tar.gz
+
+cd x265_3.4
+
+mkdir -p build
+
+cd build
+
+cmake ../source
+
+make
+
+sudo make install
+
+# 23. Compile FITSWebQL
+
+Issue "cd" to return to your home directory
 
 git clone https://github.com/jvo203/FITSWebQL.git
 
@@ -208,7 +228,7 @@ wget http://jvo.nao.ac.jp/~chris/splatalogue_v3.db
 
 make gcc
 
-# 23. Run FITSWebQL
+# 24. Run FITSWebQL
 
 ./fitswebql
 
