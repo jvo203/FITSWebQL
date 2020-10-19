@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-19.3";
+	return "JS2020-10-19.4";
 }
 
 const wasm_supported = (() => {
@@ -5441,7 +5441,7 @@ function change_ui_theme() {
 
 	localStorage.setItem("colourmap", colourmap);
 
-	location.reload(false);
+	location.reload(); // was reload(false)
 	//resizeMe() ;
 }
 
@@ -13002,7 +13002,7 @@ function resizeMe() {
 	clearTimeout(idleResize);
 
 	idleResize = setTimeout(function () {
-		location.reload(false);
+		location.reload(); // was reload(false)
 	}, 250);
 }
 
