@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-19.5";
+	return "JS2020-10-19.6";
 }
 
 const wasm_supported = (() => {
@@ -445,7 +445,7 @@ function getStrokeStyle() {
 			//style = "rgba(204,204,204,0.9)";//grey
 			//style = "rgba(255,204,0,1.0)";//yellowish ALMAWebQL v2	    
 			style = "rgba(204,204,204,1.0)";//grey
-			//style = "rgba(0,0,0,1.0)";//grey
+		//style = "rgba(0,0,0,1.0)";//grey
 
 		if (colourmap == "red")
 			style = "rgba(0,191,255,1.0)";//deepskyblue
@@ -13861,11 +13861,16 @@ async*/ function mainRenderer() {
 			.attr('style', 'position: fixed; left: 10px; top: 10px; z-index: 55; cursor: default; mix-blend-mode: none');//difference or lighten or screen //other than none causes problems with an older Firefox v45
 
 		//spectrum
+		var blend = '';
+
+		if (theme == 'bright')
+			blend = 'mix-blend-mode: difference; ';
+
 		d3.select("#mainDiv").append("canvas")
 			.attr("id", "SpectrumCanvas")
 			.attr("width", width)
 			.attr("height", height)
-			.attr('style', 'mix-blend-mode: difference; position: fixed; left: 10px; top: 10px; z-index: 55');// mix-blend-mode: difference;
+			.attr('style', blend + 'position: fixed; left: 10px; top: 10px; z-index: 55');// mix-blend-mode: difference;
 
 		d3.select("#mainDiv").append("svg")
 			.attr("id", "FrontSVG")
