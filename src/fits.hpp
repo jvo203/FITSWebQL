@@ -156,6 +156,7 @@ private:
   void make_image_statistics();
   void make_image_luma();
   void make_exr_image();
+  double make_median(Ipp32f *_pixels, Ipp8u *_mask);
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
