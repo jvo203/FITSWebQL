@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-19.0";
+	return "JS2020-10-19.1";
 }
 
 const wasm_supported = (() => {
@@ -412,7 +412,7 @@ function largestTriangleThreeBuckets(data, threshold) {
 function getShadowStyle() {
 	if (!composite_view) {
 		if (theme == 'bright')
-			return "purple";
+			return "black";// purple
 		else
 			return "yellow";//was red
 	}
@@ -428,8 +428,14 @@ function getStrokeStyle() {
 	style = "rgba(255,255,255,1.0)";//white
 	//style = "rgba(153, 102, 153, 0.9)" ;//violet
 
-	if (theme == 'bright')
-		style = "rgba(0,0,0,1.0)";//black
+	if (theme == 'bright') {
+		//style = "rgba(0,0,0,1.0)";//black
+		style = "rgba(127,127,127,1.0)";// grey
+
+		if (colourmap == "greyscale")
+			style = "rgba(255,204,0,1.0)";//yellowish ALMAWebQL v2	    
+	}
+
 
 	if (theme == 'dark') {
 		if (colourmap == "green")
@@ -13858,8 +13864,8 @@ async*/ function mainRenderer() {
 			blend = 'mix-blend-mode: difference; ';
 
 		if (theme == 'bright')
-			blend = 'mix-blend-mode: hard-light; ';
-		//blend = 'mix-blend-mode: difference; ';
+			//blend = 'mix-blend-mode: hard-light; ';
+			blend = 'mix-blend-mode: difference; ';
 
 		d3.select("#mainDiv").append("canvas")
 			.attr("id", "SpectrumCanvas")
