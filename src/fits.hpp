@@ -228,7 +228,6 @@ public:
   bool is_xray;
 
   // values derived from the FITS data
-  float dmin, dmax; // global data range
   std::vector<float> frame_min, frame_max;
   std::vector<float> mean_spectrum, integrated_spectrum;
 
@@ -237,6 +236,11 @@ public:
       ratio_sensitivity;
   float lmin, lmax;
   Ipp32u hist[NBINS];
+
+  // approximate global statistics
+  float dmin, dmax; // global data range
+  float data_median, data_madP, data_madN;
+  std::vector<float> frame_median; // to be used in the approximate <median-of-medians>
 
   // extras
   std::atomic<bool> has_header;
