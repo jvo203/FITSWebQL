@@ -3202,6 +3202,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
 void FITS::make_data_statistics()
 {
+  deNaN(frame_median);
+
   data_median = stl_median(frame_median);
 
   std::cout << "global median = " << data_median << std::endl;
@@ -3771,7 +3773,7 @@ double FITS::make_median(Ipp32f *_pixels, Ipp8u *_mask)
   std::vector<Ipp32f> v(plane_size);
 
   size_t len = 0;
-  for (size_t i = 0; i < len; i++)
+  for (size_t i = 0; i < plane_size; i++)
     if (_mask[i] != 0)
       v[len++] = _pixels[i];
 
