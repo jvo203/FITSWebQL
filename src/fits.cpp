@@ -2754,6 +2754,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     // init the variables
     frame_min.resize(depth, FLT_MAX);
     frame_max.resize(depth, -FLT_MAX);
+    frame_median.resize(depth, NAN);
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
 
@@ -5500,7 +5501,8 @@ void FITS::zfp_compress_cube(size_t start_k)
                         ignrval, datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
-    frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
+    if (frame < depth)
+      frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
 
 #ifdef PRELOAD
     int pixels_idz = frame / 4;
