@@ -154,6 +154,7 @@ private:
                            int &end);
   bool process_fits_header_unit(const char *buf);
   void make_image_statistics();
+  void make_data_statistics();
   void make_image_luma();
   void make_exr_image();
   double make_median(Ipp32f *_pixels, Ipp8u *_mask);
