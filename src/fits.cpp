@@ -3734,6 +3734,22 @@ inline const char *FITS::check_null(const char *str)
     return "\"\"";
 };
 
+double FITS::make_median(Ipp32f *_pixels, Ipp8u *_mask)
+{
+  const size_t plane_size = width * height;
+
+  std::vector<Ipp32f> v(plane_size);
+
+  size_t len = 0;
+  for (size_t i = 0; i < len; i++)
+    if (_mask[i] != 0)
+      v[len++] = _pixels[i];
+
+  v.resize(len);
+
+  return stl_median(v);
+}
+
 void FITS::to_json(std::ostringstream &json)
 {
   if (header == NULL || hdr_len == 0)
@@ -5480,6 +5496,8 @@ void FITS::zfp_compress_cube(size_t start_k)
     ispc::make_planeF32((int32_t *)fits_cube[frame].get(), bzero, bscale,
                         ignrval, datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
+
+    frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
 
 #ifdef PRELOAD
     int pixels_idz = frame / 4;
