@@ -5501,8 +5501,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                         ignrval, datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
-    if (frame < depth)
-      frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
+    frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
 
 #ifdef PRELOAD
     int pixels_idz = frame / 4;
