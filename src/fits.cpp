@@ -249,7 +249,7 @@ void deNaN(std::vector<Ipp32f> &v)
          v.size());
 }
 
-Ipp32f stl_median(std::vector<Ipp32f> &v)
+Ipp32f stl_median(std::vector<Ipp32f> &v, bool parallel = true)
 {
   if (v.empty())
     return NAN;
@@ -265,7 +265,10 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 #if defined(__APPLE__) && defined(__MACH__)
   std::nth_element(v.begin(), v.begin() + n, v.end());
 #else
-  __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
+  if (parallel)
+    __gnu_parallel::nth_element(v.begin(), v.begin() + n, v.end());
+  else
+    std::nth_element(v.begin(), v.begin() + n, v.end());
 #endif
 
   if (v.size() % 2)
@@ -278,7 +281,7 @@ Ipp32f stl_median(std::vector<Ipp32f> &v)
 #if defined(__APPLE__) && defined(__MACH__)
     auto max_it = std::max_element(v.begin(), v.begin() + n);
 #else
-    auto max_it = __gnu_parallel::max_element(v.begin(), v.begin() + n);
+    auto max_it = parallel ? __gnu_parallel::max_element(v.begin(), v.begin() + n) : std::max_element(v.begin(), v.begin() + n);
 #endif
     medVal = (*max_it + v[n]) / 2.0f;
   }
@@ -3747,7 +3750,7 @@ double FITS::make_median(Ipp32f *_pixels, Ipp8u *_mask)
 
   v.resize(len);
 
-  return stl_median(v);
+  return stl_median(v, false);
 }
 
 void FITS::to_json(std::ostringstream &json)
