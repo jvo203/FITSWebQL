@@ -24,7 +24,7 @@
 
 using namespace boost::histogram;
 
-using histogram_t = decltype(bh::make_histogram(bh::axis::regular<>()));
+using histogram_t = decltype(make_histogram(axis::regular<>()));
 
 using namespace std::chrono;
 
