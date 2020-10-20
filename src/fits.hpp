@@ -24,6 +24,8 @@
 
 using namespace boost::histogram;
 
+using histogram_t = decltype(bh::make_histogram(bh::axis::regular<>()));
+
 using namespace std::chrono;
 
 #include <ipp.h>
@@ -246,6 +248,7 @@ public:
   float dmin, dmax; // global data range
   float data_median, data_madP, data_madN;
   std::vector<float> frame_median; // to be used in the approximate <median-of-medians>
+  histogram_t data_hist;
 
   // extras
   std::atomic<bool> has_header;
