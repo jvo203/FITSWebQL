@@ -293,8 +293,8 @@ Ipp32f stl_median(std::vector<Ipp32f> &v, bool parallel = true)
                           static_cast<double>(steady_clock::period::den);
   double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-  printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n],
-         elapsedMilliseconds);
+  if (parallel)
+    printf("stl_median::<value = %f, elapsed time: %5.2f [ms]>\n", v[n], elapsedMilliseconds);
 
   return medVal;
 }
