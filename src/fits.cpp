@@ -551,6 +551,10 @@ void FITS::defaults()
 
   for (int i = 0; i < NBINS; i++)
     hist[i] = 0;
+
+  data_median = NAN;
+  data_madN = NAN;
+  data_madP = NAN;
 }
 
 void FITS::deserialise()
@@ -3179,6 +3183,28 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   this->processed_data = true;
   this->data_cv.notify_all();
   this->timestamp = std::time(nullptr);
+
+  // wait until all compression threads have finished
+  // in order to make global statistics
+  for (auto &thread : zfp_pool)
+  {
+    static int tid = 0;
+
+    if (thread.joinable())
+      thread.join();
+    else
+      printf("thread %d is not joinable\n", tid++);
+  }
+
+  if (bSuccess)
+    make_data_statistics();
+}
+
+void FITS::make_data_statistics()
+{
+  data_median = stl_median(frame_median);
+
+  std::cout << "global median = " << data_median << std::endl;
 }
 
 void FITS::make_exr_image()
