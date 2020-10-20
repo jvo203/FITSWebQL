@@ -20,6 +20,9 @@
 
 //#include "fifo.hpp"
 #include <boost/lockfree/queue.hpp>
+#include <boost/histogram.hpp>
+
+using namespace boost::histogram;
 
 using namespace std::chrono;
 
