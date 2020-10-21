@@ -248,7 +248,8 @@ public:
   float dmin, dmax; // global data range
   float data_median, data_madP, data_madN;
   std::vector<float> frame_median; // to be used in the approximate <median-of-medians>
-  histogram_t data_hist;
+  std::mutex hist_mtx;
+  std::shared_ptr<histogram_t> data_hist;
 
   // extras
   std::atomic<bool> has_header;
