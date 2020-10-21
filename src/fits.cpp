@@ -3779,6 +3779,9 @@ inline const char *FITS::check_null(const char *str)
 
 void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _max)
 {
+  if (FPzero(_min) && FPzero(_max))
+    return;
+
   const size_t plane_size = width * height;
 
   std::vector<Ipp32f> v(plane_size);
@@ -3788,19 +3791,27 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
     if (_mask[i] != 0)
       v[len++] = _pixels[i];
 
+  if (len == 0)
+    return;
+
   v.resize(len);
 
   std::lock_guard<std::mutex> guard(hist_mtx);
 
   if (!data_hist.has_value())
   {
+    if (FPzero(_max - _min))
+    {
+      _min *= 0.9f;
+      _max *= 1.1f;
+    }
+
     histogram_t _hist = make_histogram(axis::regular<Ipp32f,
                                                      use_default,
                                                      use_default,
                                                      axis::option::growth_t>(NBINS, _min, _max));
 
-    if (len > 0)
-      _hist.fill(v);
+    _hist.fill(v);
 
     data_hist = std::move(_hist);
   }
@@ -3808,8 +3819,7 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
   {
     histogram_t &_hist = data_hist.value();
 
-    if (len > 0)
-      _hist.fill(v);
+    _hist.fill(v);
   }
 }
 
