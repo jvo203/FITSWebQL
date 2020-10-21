@@ -149,13 +149,33 @@ Log-out, log-in and verify IPP
 echo $IPPROOT
 /opt/intel/compilers_and_libraries_2020.2.254/linux/ipp
 
-# 14. Install Boost headers
+# 14. Install bzip
+
+sudo yum install bzip2
+
+# 15. Install Boost headers
+
+The usual command would be
 
 sudo yum install boost-devel
 
-# 15. Install bzip
+Unfortunately the installed Boost version 1.66 would be too old (it does not contains Boost Histogram). So a newer Boost version needs to be installed manually:
 
-sudo yum install bzip2
+wget https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.bz2
+
+bunzip2 boost_1_74_0.tar.bz2
+
+tar xvf boost_1_74_0.tar
+
+cd boost_1_74_0
+
+./bootstrap.sh
+
+./b2 threading=multi link=shared
+
+./b2 headers threading=multi link=shared
+
+sudo ./b2 install threading=multi link=shared
 
 # 16. Build/install jemalloc
 
@@ -178,7 +198,7 @@ sudo make install
 Add
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig
-export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH
 
 to .bashrc and re-login
 
