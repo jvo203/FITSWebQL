@@ -8,6 +8,8 @@
 
 #include "json.h"
 
+#include <boost/format.hpp> // used here for printing
+
 // Intel IPP ZFP functions
 #include <ippdc.h>
 #include <limits>
@@ -3207,6 +3209,15 @@ void FITS::make_data_statistics()
   data_median = stl_median(frame_median);
 
   std::cout << "global median = " << data_median << std::endl;
+
+  if (data_hist.has_value())
+  {
+    auto _hist = data_hist.value();
+
+    // iterate over bins
+    for (auto &&x : boost::histogram::indexed(_hist))
+      std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;
+  }
 }
 
 void FITS::make_exr_image()
@@ -3784,10 +3795,13 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
   histogram_t _hist;
 
   if (!data_hist.has_value())
+  {
+    std::cout << "make_histogram([" << _min << "," << _max << "])" << std::endl;
     _hist = make_histogram(axis::regular<Ipp32f,
                                          use_default,
                                          use_default,
-                                         axis::option::growth_t>(10 * NBINS, _min, _max));
+                                         axis::option::growth_t>(NBINS, _min, _max));
+  }
   else
     _hist = data_hist.value();
 
@@ -6043,12 +6057,17 @@ void FITS::zfp_compression_thread(int tid)
   printf("launched a ZFP compression thread#%d\n", tid);
 
   // await compression requests
-  while (!terminate_compression)
+  //while (!terminate_compression || !zfp_queue.empty()) // should also be checking whether or not zfp_queue is empty
+  // empty() is not reliable in a multithreaded environment
+  while (true)
   {
     size_t frame;
 
     while (zfp_queue.pop(frame))
       zfp_compress_cube(frame);
+
+    if (terminate_compression)
+      break;
   }
 
   printf("ZFP compression thread#%d has terminated.\n", tid);
