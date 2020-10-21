@@ -5546,6 +5546,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                         mask[plane_count], plane_size);
 
     frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
+    update_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame]);
 
 #ifdef PRELOAD
     int pixels_idz = frame / 4;
