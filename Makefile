@@ -93,6 +93,9 @@ resize:
 home:
 	g++ -march=native -g -O3 testIPPResize.cpp $(IPP)
 
+hist:
+	g++ -march=native -g -O3 testHistogram.cpp
+
 mac:
 	/usr/local/opt/llvm/bin/clang++ -march=native -g -O3 testIPPResize.cpp $(IPP)
 
