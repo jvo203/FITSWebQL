@@ -85,7 +85,7 @@ sudo yum install zlib-devel
 
 # 10. Manually build/install OpenEXR (the version in CentOS 7 is too old)
 
-Issue "cd" to return to your home directory
+Issue "cd" to return to the home directory
 
 wget https://github.com/AcademySoftwareFoundation/openexr/archive/v2.5.3.tar.gz
 
@@ -179,6 +179,8 @@ sudo ./b2 install threading=multi link=shared
 
 # 16. Build/install jemalloc
 
+Issue "cd" to return to the home directory
+
 wget https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
 
 bunzip2 jemalloc-5.2.1.tar.bz2
@@ -238,7 +240,7 @@ sudo make install
 
 # 23. Compile FITSWebQL
 
-Issue "cd" to return to your home directory
+Issue "cd" to return to the home directory
 
 git clone https://github.com/jvo203/FITSWebQL.git
 
