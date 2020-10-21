@@ -3781,15 +3781,21 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
 
   std::lock_guard<std::mutex> guard(hist_mtx);
 
-  histogram_t hist = NULL;
+  histogram_t _hist;
 
-  if (!data_hist)
-    hist = make_histogram(axis::regular<>(10000, _min, max));
+  if (!data_hist.has_value())
+    _hist = make_histogram(axis::regular<Ipp32f,
+                                         use_default,
+                                         use_default,
+                                         axis::option::growth_t>(10 * NBINS, _min, _max));
   else
-    hist = data_hist.get();
+    _hist = data_hist.value();
 
-  if (!data_hist)
-    data_hist = std::move(hist);
+  for (auto &x : v)
+    _hist(v);
+
+  if (!data_hist.has_value())
+    data_hist = std::move(_hist);
 }
 
 double FITS::make_median(Ipp32f *_pixels, Ipp8u *_mask)
