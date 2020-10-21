@@ -3779,9 +3779,6 @@ inline const char *FITS::check_null(const char *str)
 
 void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _max)
 {
-  if (FPzero(_min) && FPzero(_max))
-    return;
-
   const size_t plane_size = width * height;
 
   std::vector<Ipp32f> v(plane_size);
@@ -3800,7 +3797,10 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
 
   if (!data_hist.has_value())
   {
-    if (FPzero(_max - _min))
+    if (FPzero(_min) && FPzero(_max))
+      return;
+
+    if (FPzero(fabs(_max - _min)))
     {
       _min *= 0.9f;
       _max *= 1.1f;
