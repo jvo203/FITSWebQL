@@ -250,7 +250,7 @@ public:
   float data_median, data_madP, data_madN;
   std::vector<float> frame_median; // to be used in the approximate <median-of-medians>
   std::mutex hist_mtx;
-  std::shared_ptr<histogram_t> data_hist;
+  std::optional<histogram_t> data_hist;
 
   // extras
   std::atomic<bool> has_header;
