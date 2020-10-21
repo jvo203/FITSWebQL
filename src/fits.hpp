@@ -163,7 +163,7 @@ private:
   void make_image_luma();
   void make_exr_image();
   double make_median(Ipp32f *_pixels, Ipp8u *_mask);
-  void update_histogram(Ipp32f *_pixels, Ipp8u *_mask);
+  void update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _max);
   void auto_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
