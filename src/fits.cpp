@@ -3791,8 +3791,8 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
   else
     _hist = data_hist.value();
 
-  for (auto &x : v)
-    _hist(v);
+  if (len > 0)
+    _hist.fill(v);
 
   if (!data_hist.has_value())
     data_hist = std::move(_hist);

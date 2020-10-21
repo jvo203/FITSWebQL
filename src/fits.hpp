@@ -15,6 +15,8 @@
 #include <vector>
 #include <zlib.h>
 
+#include <ipp.h>
+
 #include "lz4.h"
 #include "lz4hc.h"
 
@@ -24,11 +26,12 @@
 
 using namespace boost::histogram;
 
-using histogram_t = decltype(make_histogram(axis::regular<>()));
+using histogram_t = decltype(make_histogram(axis::regular<Ipp32f,
+                                                          use_default,
+                                                          use_default,
+                                                          axis::option::growth_t>()));
 
 using namespace std::chrono;
-
-#include <ipp.h>
 
 #define JVO_FITS_SERVER "jvox.vo.nao.ac.jp"
 #define JVO_FITS_DB "alma"
