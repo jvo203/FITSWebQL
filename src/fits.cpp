@@ -6070,7 +6070,7 @@ void FITS::zfp_compression_thread(int tid)
   // await compression requests
   //while (!terminate_compression || !zfp_queue.empty()) // should also be checking whether or not zfp_queue is empty
   // empty() is not reliable in a multithreaded environment
-  while (true)
+  /*while (true)
   {
     size_t frame;
 
@@ -6079,7 +6079,7 @@ void FITS::zfp_compression_thread(int tid)
 
     if (terminate_compression)
       break;
-  }
+  }*/
 
   printf("ZFP compression thread#%d has terminated.\n", tid);
 }
