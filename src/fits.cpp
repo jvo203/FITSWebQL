@@ -3210,8 +3210,8 @@ void FITS::make_data_statistics()
     auto _hist = data_hist.value();
 
     // iterate over bins
-    for (auto &&x : boost::histogram::indexed(_hist))
-      std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;
+    /*for (auto &&x : boost::histogram::indexed(_hist))
+      std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;*/
 
     std::ostringstream os;
     os << _hist;
