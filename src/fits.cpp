@@ -4193,12 +4193,15 @@ void FITS::send_progress_notification(size_t running, size_t total)
 
     if (user != NULL)
     {
-      if (check_progress_timeout(user->ptr, system_clock::now()) ||
-          (running == total))
+      if (user->ptr != NULL)
       {
-        // std::cout << json.str() << std::endl;
-        ws->send(json.str(), uWS::OpCode::TEXT);
-        update_session_timestamp(user->ptr);
+        if (check_progress_timeout(user->ptr, system_clock::now()) ||
+            (running == total))
+        {
+          // std::cout << json.str() << std::endl;
+          ws->send(json.str(), uWS::OpCode::TEXT);
+          update_session_timestamp(user->ptr);
+        }
       }
     }
   };
