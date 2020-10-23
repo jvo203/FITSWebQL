@@ -2760,7 +2760,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
     // init the variables
     frame_min.resize(depth, FLT_MAX);
     frame_max.resize(depth, -FLT_MAX);
-    frame_median.resize(depth, NAN);
     mean_spectrum.resize(depth, 0.0f);
     integrated_spectrum.resize(depth, 0.0f);
 
