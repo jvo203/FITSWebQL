@@ -262,8 +262,11 @@ public:
 
   // ZFP compression
   std::vector<std::thread> zfp_pool;
+
+  // deprecated, unused anymore
   boost::lockfree::queue<size_t, boost::lockfree::capacity<1024>> zfp_queue;
   std::atomic<bool> terminate_compression;
+  // end of deprecated
 
   std::mutex header_mtx;
   std::mutex data_mtx;
