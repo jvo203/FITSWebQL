@@ -1738,7 +1738,7 @@ int main(int argc, char *argv[])
 
   // track/log memory usage
   memory_thread = std::thread([offset, fp]() {
-    while (!exiting)
+    /*while (!exiting)
     {
       // memory statistics using jemalloc
       uint64_t epoch = 1;
@@ -1762,8 +1762,8 @@ int main(int argc, char *argv[])
                 mapped);
       }
 
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    }*/
 
     if (fp != NULL)
       fclose(fp);
