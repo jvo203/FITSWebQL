@@ -3229,10 +3229,9 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
 void FITS::make_data_statistics()
 {
-
   if (data_hist.has_value())
   {
-    auto _hist = data_hist.value();
+    auto &_hist = data_hist.value();
 
     // iterate over bins
     /*for (auto &&x : boost::histogram::indexed(_hist))
@@ -3241,6 +3240,21 @@ void FITS::make_data_statistics()
     std::ostringstream os;
     os << _hist;
     std::cout << os.str() << std::endl;
+  }
+
+  auto data_hist = make_histogram(axis::regular<>(10 * NBINS, dmin, dmax));
+
+  // merge the thread-local histograms
+  for (auto &entry : hist_pool)
+  {
+    if (entry.has_value())
+    {
+      auto &_hist = entry.value();
+
+      std::ostringstream os;
+      os << _hist;
+      std::cout << os.str() << std::endl;
+    }
   }
 }
 
