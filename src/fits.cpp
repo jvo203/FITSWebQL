@@ -782,6 +782,15 @@ void FITS::deserialise()
     if (strcmp(key, "dmax") == 0 && node->tag == JSON_NUMBER)
       this->dmax = node->number_;
 
+    if (strcmp(key, "data_median") == 0 && node->tag == JSON_NUMBER)
+      this->data_median = node->number_;
+
+    if (strcmp(key, "data_madN") == 0 && node->tag == JSON_NUMBER)
+      this->data_madN = node->number_;
+
+    if (strcmp(key, "data_madP") == 0 && node->tag == JSON_NUMBER)
+      this->data_madP = node->number_;
+
     if (strcmp(key, "frame_min") == 0 && node->tag == JSON_ARRAY)
     {
       frame_min.clear();
@@ -1335,6 +1344,19 @@ void FITS::serialise()
   if (dmax_json != NULL)
     json_append_member(json, "dmax", dmax_json);
 
+  // data_median, data_madN, data_madP
+  JsonNode *data_median_json = json_mknumber(data_median);
+  if (data_median_json != NULL)
+    json_append_member(json, "data_median", data_median_json);
+
+  JsonNode *data_madN_json = json_mknumber(data_madN);
+  if (data_madN_json != NULL)
+    json_append_member(json, "data_madN", data_madN_json);
+
+  JsonNode *data_madP_json = json_mknumber(data_madP);
+  if (data_madP_json != NULL)
+    json_append_member(json, "data_madP", data_madP_json);
+
   // build up an array <std::vector<float> frame_min>
   std::vector<JsonNode *> _frame_min(frame_min.size());
   JsonNode *frame_min_json = json_mkarray();
@@ -1651,6 +1673,15 @@ void FITS::serialise()
 
   if (dmax_json != NULL)
     json_delete(dmax_json);
+
+  if (data_median_json != NULL)
+    json_delete(data_median_json);
+
+  if (data_madN_json != NULL)
+    json_delete(data_madN_json);
+
+  if (data_madP_json != NULL)
+    json_delete(data_madP_json);
 
   if (frame_min_json != NULL)
   {
