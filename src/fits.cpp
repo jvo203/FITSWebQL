@@ -345,8 +345,6 @@ FITS::~FITS()
 
   for (auto &thread : zfp_pool)
   {
-    static int tid = 0;
-
     if (thread.joinable())
       thread.join();
   }
@@ -3221,8 +3219,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   // in order to make global statistics
   for (auto &thread : zfp_pool)
   {
-    static int tid = 0;
-
     if (thread.joinable())
       thread.join();
   }
@@ -3804,6 +3800,50 @@ inline const char *FITS::check_null(const char *str)
   else
     return "\"\"";
 };
+
+void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _max, int tid)
+{
+  const size_t plane_size = width * height;
+
+  std::vector<Ipp32f> v(plane_size);
+
+  size_t len = 0;
+  for (size_t i = 0; i < plane_size; i++)
+    if (_mask[i] != 0)
+      v[len++] = _pixels[i];
+
+  if (len == 0)
+    return;
+
+  v.resize(len);
+
+  if (!hist_pool[tid].has_value())
+  {
+    if (FPzero(_min) && FPzero(_max))
+      return;
+
+    if (FPzero(fabs(_max - _min)))
+    {
+      _min *= 0.9f;
+      _max *= 1.1f;
+    }
+
+    histogram_t _hist = make_histogram(axis::regular<Ipp32f,
+                                                     use_default,
+                                                     use_default,
+                                                     axis::option::growth_t>(NBINS, _min, _max));
+
+    _hist.fill(v);
+
+    hist_pool[tid] = std::move(_hist);
+  }
+  else
+  {
+    histogram_t &_hist = hist_pool[tid].value();
+
+    _hist.fill(v);
+  }
+}
 
 void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _max)
 {
@@ -5530,6 +5570,8 @@ bool FITS::zfp_load_cube(size_t start_k)
 
 void FITS::zfp_compress_cube(size_t start_k)
 {
+  int tid = omp_get_thread_num();
+
   size_t end_k = MIN(start_k + 4, depth);
 
   for (size_t i = start_k; i < end_k; i++)
@@ -5599,6 +5641,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                         mask[plane_count], plane_size);
 
     update_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame]);
+    update_thread_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame], tid);
 
 #ifdef PRELOAD
     int pixels_idz = frame / 4;
