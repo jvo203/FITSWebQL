@@ -252,6 +252,7 @@ public:
   float data_median, data_madP, data_madN;
   std::mutex hist_mtx;
   std::optional<histogram_t> data_hist;
+  std::vector<std::optional<histogram_t>> hist_pool;
 
   // extras
   std::atomic<bool> has_header;
