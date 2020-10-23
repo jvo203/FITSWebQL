@@ -2887,6 +2887,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
     terminate_compression = false;
 
+    hist_pool.resize(max_threads);
+
     for (int i = 0; i < max_threads; i++)
     {
       std::thread a_thread =
