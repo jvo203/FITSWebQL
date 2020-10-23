@@ -9,6 +9,7 @@
 #include "json.h"
 
 #include <boost/format.hpp> // used here for printing
+#include <boost/histogram/ostream.hpp>
 
 // Intel IPP ZFP functions
 #include <ippdc.h>
