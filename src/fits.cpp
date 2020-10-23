@@ -3242,14 +3242,15 @@ void FITS::make_data_statistics()
     std::cout << os.str() << std::endl;
   }*/
 
-  auto _data_hist = make_histogram(axis::regular<>(NBINS, dmin, dmax)); // use 10 * NBINS for increased granularity/median accurace
-/*auto data_hist = make_histogram(axis::regular<Ipp32f,
-                                                use_default,
-                                                use_default,
-                                                axis::option::growth_t>(NBINS, dmin, dmax));*/
+  // this version is not thread-safe
+  //auto _data_hist = make_histogram(axis::regular<>(NBINS, dmin, dmax)); // use 10 * NBINS for increased granularity/median accurace
+
+  // this should be thread-safe
+  auto _data_hist = make_histogram_with(dense_storage<accumulators::thread_safe<long>>(),
+                                        axis::regular<>(NBINS, dmin, dmax));
 
 // merge the thread-local histograms in parallel
-#pragma omp parallel for shared(data_hist)
+#pragma omp parallel for shared(_data_hist)
   for (auto &entry : hist_pool)
   {
     if (entry.has_value())
