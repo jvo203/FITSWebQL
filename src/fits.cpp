@@ -349,8 +349,6 @@ FITS::~FITS()
 
     if (thread.joinable())
       thread.join();
-    else
-      printf("thread %d is not joinable\n", tid++);
   }
 
   // trust but verify
@@ -3225,8 +3223,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
     if (thread.joinable())
       thread.join();
-    else
-      printf("thread %d is not joinable\n", tid++);
   }
 
   if (bSuccess)
