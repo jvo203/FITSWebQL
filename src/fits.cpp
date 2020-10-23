@@ -3229,33 +3229,51 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
 void FITS::make_data_statistics()
 {
-  if (data_hist.has_value())
+  /*if (data_hist.has_value())
   {
     auto &_hist = data_hist.value();
 
     // iterate over bins
-    /*for (auto &&x : boost::histogram::indexed(_hist))
-      std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;*/
+    //for (auto &&x : boost::histogram::indexed(_hist))
+      //std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;
 
     std::ostringstream os;
     os << _hist;
     std::cout << os.str() << std::endl;
-  }
+  }*/
 
-  auto data_hist = make_histogram(axis::regular<>(10 * NBINS, dmin, dmax));
+  auto _data_hist = make_histogram(axis::regular<>(NBINS, dmin, dmax)); // use 10 * NBINS for increased granularity/median accurace
+/*auto data_hist = make_histogram(axis::regular<Ipp32f,
+                                                use_default,
+                                                use_default,
+                                                axis::option::growth_t>(NBINS, dmin, dmax));*/
 
-  // merge the thread-local histograms
+// merge the thread-local histograms in parallel
+#pragma omp parallel for shared(data_hist)
   for (auto &entry : hist_pool)
   {
     if (entry.has_value())
     {
       auto &_hist = entry.value();
 
-      std::ostringstream os;
-      os << _hist;
-      std::cout << os.str() << std::endl;
+      for (auto &&x : boost::histogram::indexed(_hist))
+      {
+        auto bin = x.bin();
+        auto centre = 0.5 * (bin.lower() + bin.upper());
+        auto count = *x;
+        _data_hist(centre, weight(count));
+      }
     }
   }
+
+  std::cout << "MERGED ALL-DATA HISTOGRAM" << std::endl;
+
+  std::ostringstream os;
+  os << _data_hist;
+  std::cout << os.str() << std::endl;
+
+  // there is no need to keep the histograms in memory anymore
+  hist_pool.clear();
 }
 
 void FITS::make_exr_image()
@@ -5654,7 +5672,7 @@ void FITS::zfp_compress_cube(size_t start_k)
                         ignrval, datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
-    update_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame]);
+    //update_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame]);
     update_thread_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame], tid);
 
 #ifdef PRELOAD
