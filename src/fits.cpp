@@ -3204,11 +3204,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
 void FITS::make_data_statistics()
 {
-  deNaN(frame_median);
-
-  data_median = stl_median(frame_median);
-
-  std::cout << "global median = " << data_median << std::endl;
 
   if (data_hist.has_value())
   {
@@ -3217,6 +3212,10 @@ void FITS::make_data_statistics()
     // iterate over bins
     for (auto &&x : boost::histogram::indexed(_hist))
       std::cout << boost::format("bin %i [ %f, %f ): %i\n") % x.index() % x.bin().lower() % x.bin().upper() % *x;
+
+    std::ostringstream os;
+    os << _hist;
+    std::cout << os.str() << std::endl;
   }
 }
 
@@ -3821,22 +3820,6 @@ void FITS::update_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min, Ipp32f _
 
     _hist.fill(v);
   }
-}
-
-double FITS::make_median(Ipp32f *_pixels, Ipp8u *_mask)
-{
-  const size_t plane_size = width * height;
-
-  std::vector<Ipp32f> v(plane_size);
-
-  size_t len = 0;
-  for (size_t i = 0; i < plane_size; i++)
-    if (_mask[i] != 0)
-      v[len++] = _pixels[i];
-
-  v.resize(len);
-
-  return stl_median(v, false);
 }
 
 void FITS::to_json(std::ostringstream &json)
@@ -5586,7 +5569,6 @@ void FITS::zfp_compress_cube(size_t start_k)
                         ignrval, datamin, datamax, pixels[plane_count],
                         mask[plane_count], plane_size);
 
-    frame_median[frame] = make_median(pixels[plane_count], mask[plane_count]);
     update_histogram(pixels[plane_count], mask[plane_count], frame_min[frame], frame_max[frame]);
 
 #ifdef PRELOAD
