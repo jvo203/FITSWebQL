@@ -3243,7 +3243,7 @@ void FITS::make_data_statistics()
   }*/
 
   // this version is not thread-safe
-  //auto _data_hist = make_histogram(axis::regular<>(NBINS, dmin, dmax)); // use 10 * NBINS for increased granularity/median accurace
+  //auto _data_hist = make_histogram(axis::regular<>(NBINS, dmin, dmax)); // use 10 * NBINS for increased granularity/median accuracy
 
   // this should be thread-safe
   auto _data_hist = make_histogram_with(dense_storage<accumulators::thread_safe<long>>(),
