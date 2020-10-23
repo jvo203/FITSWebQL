@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-21.0"
+#define VERSION_STRING "SV2020-10-23.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -3086,7 +3086,7 @@ int main(int argc, char *argv[])
                                        float ts = timestamp;
                                        uint32_t id = 0;
                                        uint32_t msg_type = 2; // 0 - spectrum, 1 - viewport, 2 - cube image + statistics, 3 - full spectrum refresh
-                                       uint32_t len = NBINS;                                       
+                                       uint32_t len = NBINS;
 
                                        size_t offset = 0;
 
