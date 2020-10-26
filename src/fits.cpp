@@ -3223,7 +3223,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
       thread.join();
   }
 
-  if (bSuccess)
+  if (bSuccess && depth > 1)
     make_data_statistics();
 }
 
