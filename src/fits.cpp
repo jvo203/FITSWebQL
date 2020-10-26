@@ -3083,6 +3083,10 @@ void FITS::make_data_statistics() {
   os << _data_hist;
   std::cout << os.str() << std::endl;
 
+  // get the total cell count
+  auto sum_all = std::accumulate(_data_hist.begin(), _data_hist.end(), 0.0);
+  std::cout << "sum_all = " << sum_all << std::endl;
+
   // there is no need to keep the histograms in memory anymore
   hist_pool.clear();
 }
