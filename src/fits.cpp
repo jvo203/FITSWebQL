@@ -3079,13 +3079,64 @@ void FITS::make_data_statistics() {
 
   std::cout << "MERGED ALL-DATA HISTOGRAM" << std::endl;
 
-  std::ostringstream os;
+  /*std::ostringstream os;
   os << _data_hist;
-  std::cout << os.str() << std::endl;
+  std::cout << os.str() << std::endl;*/
 
   // get the total cell count
   auto sum_all = std::accumulate(_data_hist.begin(), _data_hist.end(), 0.0);
-  std::cout << "sum_all = " << sum_all << std::endl;
+
+  // find the approximate position of the median
+  int pos = 0;
+  double cumulative = 0.0;
+
+  for (auto &&x : boost::histogram::indexed(_data_hist)) {
+    auto count = *x;
+
+    if ((cumulative + count) >= 0.5 * sum_all)
+      break;
+
+    cumulative += count;
+    pos++;
+  }
+
+  double dx = (dmax - dmin) / double(NBINS2 << 1);
+  data_median = dmin + double((pos << 1) + 1) * dx;
+
+  double countP = 0.0;
+  double countN = 0.0;
+
+  data_madP = 0.0;
+  data_madN = 0.0;
+
+  for (auto &&x : boost::histogram::indexed(_data_hist)) {
+    auto bin = x.bin();
+    auto centre = 0.5 * (bin.lower() + bin.upper());
+    auto count = *x;
+
+    double dispersion = fabs(centre - data_median) * double(count);
+
+    if (centre < data_median) {
+      data_madN += dispersion;
+      countN += count;
+    }
+
+    if (centre > data_median) {
+      data_madP += dispersion;
+      countP += count;
+    }
+  }
+
+  if (countP > 0.0)
+    data_madP /= countP;
+
+  if (countN > 0.0)
+    data_madN /= countN;
+
+  std::cout << "sum_all = " << sum_all << "\tpos = " << pos
+            << "\tdata_median = " << data_median
+            << "\tdata_madP = " << data_madP << "\tdata_madN = " << data_madN
+            << std::endl;
 
   // there is no need to keep the histograms in memory anymore
   hist_pool.clear();
