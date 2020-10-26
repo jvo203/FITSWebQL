@@ -3060,7 +3060,7 @@ void FITS::make_data_statistics() {
   // this should be thread-safe
   auto _data_hist =
       make_histogram_with(dense_storage<accumulators::thread_safe<long>>(),
-                          axis::regular<>(NBINS, dmin, dmax));
+                          axis::regular<>(NBINS2, dmin, dmax));
 
 // merge the thread-local histograms in parallel
 #pragma omp parallel for shared(_data_hist)
@@ -3645,7 +3645,7 @@ void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min,
 
     histogram_t _hist = make_histogram(
         axis::regular<Ipp32f, use_default, use_default, axis::option::growth_t>(
-            NBINS, _min, _max));
+            NBINS2, _min, _max));
 
     _hist.fill(v);
 
