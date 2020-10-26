@@ -54,6 +54,7 @@ using namespace std::chrono;
 #define FPzero(A) (fabs(A) <= EPSILON)
 
 #define NBINS 1024
+#define NBINS2 16384
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 11
