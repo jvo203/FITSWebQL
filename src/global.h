@@ -73,6 +73,7 @@ struct UserSession
   std::atomic<bool> active;
 
   // streaming video
+  std::shared_ptr<KalmanFilter> kal_z;
   std::shared_ptr<x265_param> params;
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
