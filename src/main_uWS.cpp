@@ -2757,7 +2757,7 @@ int main(int argc, char *argv[])
 
                                fits->get_spectrum_range(frame, frame, ref_freq, frame_idx, frame_idx);
 
-                               std::cout << "[uWS::init_video]::" << datasetid << "¥tfps = " << fps << "¥tbitrate = " << bitrate << "¥tflux = " << flux << "¥tcolourmap = " << colourmap << "¥tscale = " << user->ptr->scale << "¥tframe = " << frame_idx << std::endl;
+                               std::cout << "[uWS::init_video]::" << datasetid << "\tfps = " << fps << "\tbitrate = " << bitrate << "\tflux = " << flux << "\tcolourmap = " << colourmap << "\tscale = " << user->ptr->scale << "\tframe = " << frame_idx << std::endl;
                              }
                            }
                          }
