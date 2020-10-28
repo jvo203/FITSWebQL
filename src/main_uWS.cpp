@@ -2652,8 +2652,8 @@ int main(int argc, char *argv[])
                            int seq = -1;
                            int fps = 30;
                            int bitrate = 1000; // start slow
-                           int view_width = -1;
-                           int view_height = -1;
+                           int _width = -1;
+                           int _height = -1;
                            double frame = 0;
                            double ref_freq = 0;
                            float timestamp = 0;
@@ -2685,10 +2685,10 @@ int main(int argc, char *argv[])
                                  seq = std::stoi(value);
 
                                if (key.find("width") != std::string::npos)
-                                 view_width = std::stoi(value);
+                                 _width = std::stoi(value);
 
                                if (key.find("height") != std::string::npos)
-                                 view_height = std::stoi(value);
+                                 _height = std::stoi(value);
 
                                if (key.find("bitrate") != std::string::npos)
                                  bitrate = std::stoi(value);
@@ -2727,6 +2727,33 @@ int main(int argc, char *argv[])
                                  return;
 
                                // set up the x265 stream
+                               user->ptr->flux = flux;
+                               user->ptr->colourmap = colourmap;
+                               user->ptr->fps = fps;
+                               user->ptr->bitrate = bitrate;
+
+                               {
+                                 // gain unique access
+                                 std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                 user->ptr->last_seq = seq;
+                               }
+
+                               // calculate the scale based on the user image
+                               if (!user->ptr->img_mask)
+                                 return;
+
+                               // calculate a new image size
+                               long true_width = fits->width;
+                               long true_height = fits->height;
+                               true_image_dimensions(user->ptr->img_mask.get(), true_width, true_height);
+                               user->ptr->scale = get_image_scale(_width, _height, true_width, true_height);
+
+                               // get the video frame index
+                               int frame_idx;
+
+                               fits->get_spectrum_range(frame, frame, ref_freq, frame_idx, frame_idx);
+
+                               std::cout << "[uWs]::init_video::" << datasetid << "¥tfps = " << fps << "¥tbitrate = " << bitrate << "¥tflux = " << flux << "¥tcolourmap = " << colourmap << "¥tscale = " << user->ptr->scale << "¥tframe = " << frame_idx << std::endl;
                              }
                            }
                          }
