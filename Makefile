@@ -17,7 +17,7 @@ INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSo
 #-Ibm-3.20.0/src
 DEF = -DMG_ENABLE_THREADS -DLIBUS_NO_SSL -DHAVE_INLINE -DFORCE_AVX=ON -DDEVELOPMENT -DLOCAL -DCLUSTER -DPRELOAD -DDEBUG
 #-D_GLIBCXX_PARALLEL
-LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq `pkg-config --libs OpenEXR` $(HOME)/uWebSockets/uSockets/*.o
+LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq `pkg-config --libs OpenEXR` -lx265  $(HOME)/uWebSockets/uSockets/*.o
 #-lIlmImf -lIlmThread -lHalf
 #-lnghttp2_asio
 
