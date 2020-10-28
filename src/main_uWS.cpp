@@ -2659,6 +2659,76 @@ int main(int argc, char *argv[])
                            float timestamp = 0;
                            std::string colourmap;
                            std::string flux;
+
+                           std::string_view query;
+                           size_t pos = message.find_first_of(" ");
+
+                           if (pos != std::string::npos)
+                             query = message.substr(pos + 1, std::string::npos);
+
+                           std::vector<std::string> params;
+                           boost::split(params, query,
+                                        [](char c) { return c == '&'; });
+
+                           for (auto const &s : params)
+                           {
+                             // find '='
+                             size_t pos = s.find("=");
+
+                             if (pos != std::string::npos)
+                             {
+                               std::string key = s.substr(0, pos);
+                               std::string value =
+                                   s.substr(pos + 1, std::string::npos);
+
+                               if (key.find("seq") != std::string::npos)
+                                 seq = std::stoi(value);
+
+                               if (key.find("width") != std::string::npos)
+                                 view_width = std::stoi(value);
+
+                               if (key.find("height") != std::string::npos)
+                                 view_height = std::stoi(value);
+
+                               if (key.find("bitrate") != std::string::npos)
+                                 bitrate = std::stoi(value);
+
+                               if (key.find("fps") != std::string::npos)
+                                 fps = std::stoi(value);
+
+                               if (key.find("frame") != std::string::npos)
+                                 frame = std::stod(value);
+
+                               if (key.find("ref_freq") != std::string::npos)
+                                 ref_freq = std::stod(value);
+
+                               if (key.find("flux") != std::string::npos)
+                                 flux = value;
+
+                               if (key.find("colourmap") != std::string::npos)
+                                 colourmap = value;
+
+                               if (key.find("timestamp") != std::string::npos)
+                                 timestamp = std::stof(value);
+                             }
+                           }
+
+                           // process the parameters
+
+                           auto fits = get_dataset(datasetid);
+
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
+                               fits->update_timestamp();
+
+                               if (!user->ptr->active)
+                                 return;
+
+                               // set up the x265 stream
+                             }
+                           }
                          }
 
                          if (message.find("[image]") != std::string::npos)
