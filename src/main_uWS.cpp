@@ -2623,28 +2623,27 @@ int main(int argc, char *argv[])
                              }
                            }
 
-                           if (seq > -1 && user != NULL)
+                           if (seq > -1)
                            {
-                             if (user->ptr != NULL)
+                             if (user->ptr->active)
                              {
-                               if (user->ptr->active)
-                               {
-                                 // gain unique access
-                                 std::lock_guard<std::shared_mutex> unique_access(
-                                     user->ptr->mtx);
+                               // gain unique access
+                               std::lock_guard<std::shared_mutex> unique_access(
+                                   user->ptr->mtx);
 
-                                 // remove any previous Kalman Filters
-                                 user->ptr->kal_x.reset();
-                                 user->ptr->kal_y.reset();
+                               // remove any previous Kalman Filters
+                               user->ptr->kal_x.reset();
+                               user->ptr->kal_y.reset();
 
-                                 int last_seq = user->ptr->last_seq;
+                               int last_seq = user->ptr->last_seq;
 
-                                 if (seq > last_seq)
-                                   user->ptr->last_seq = seq;
-                               }
+                               if (seq > last_seq)
+                                 user->ptr->last_seq = seq;
                              }
                            }
                          }
+
+                         // [init_video]
 
                          if (message.find("[image]") != std::string::npos)
                          {
@@ -2721,6 +2720,12 @@ int main(int argc, char *argv[])
                              {
                                // launch a separate thread
                                boost::thread *image_thread = new boost::thread([fits, ws, user, frame_start, frame_end, ref_freq, quality, view_width, view_height, timestamp]() {
+                                 if (user == NULL)
+                                   return;
+
+                                 if (user->ptr == NULL)
+                                   return;
+
                                  if (!user->ptr->active)
                                    return;
 
@@ -2810,11 +2815,13 @@ int main(int argc, char *argv[])
                                        offset += integrated_spectrum.size() * sizeof(float);
 
                                        // send the buffer
-                                       if (user->ptr->active)
-                                       {
-                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
-                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
-                                       }
+                                       if (user != NULL)
+                                         if (user->ptr != NULL)
+                                           if (user->ptr->active)
+                                           {
+                                             std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                             ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                           }
 
                                        free(buffer);
                                      }
@@ -3143,11 +3150,13 @@ int main(int argc, char *argv[])
                                        }
 
                                        // send the buffer
-                                       if (user->ptr->active)
-                                       {
-                                         std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
-                                         ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
-                                       }
+                                       if (user != NULL)
+                                         if (user->ptr != NULL)
+                                           if (user->ptr->active)
+                                           {
+                                             std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                             ws->send(std::string_view(buffer, offset)); // by default uWS::OpCode::BINARY
+                                           }
 
                                        free(buffer);
                                      }
@@ -3303,6 +3312,12 @@ int main(int argc, char *argv[])
                                                       view_height, intensity,
                                                       beam, timestamp, seq,
                                                       deltat]() {
+                                     if (user == NULL)
+                                       return;
+
+                                     if (user->ptr == NULL)
+                                       return;
+
                                      if (!user->ptr->active)
                                        return;
 
@@ -3631,19 +3646,21 @@ int main(int argc, char *argv[])
                                                         output.length());
                                                  offset += output.length();
 
-                                                 if (user->ptr->active)
-                                                 {
-                                                   std::lock_guard<
-                                                       std::shared_mutex>
-                                                       unique_access(
-                                                           user->ptr->mtx);
-                                                   if (seq ==
-                                                       user->ptr->last_seq)
-                                                     ws->send(std::string_view(
-                                                         buffer,
-                                                         offset)); // by default
-                                                   // uWS::OpCode::BINARY
-                                                 }
+                                                 if (user != NULL)
+                                                   if (user->ptr != NULL)
+                                                     if (user->ptr->active)
+                                                     {
+                                                       std::lock_guard<
+                                                           std::shared_mutex>
+                                                           unique_access(
+                                                               user->ptr->mtx);
+                                                       if (seq ==
+                                                           user->ptr->last_seq)
+                                                         ws->send(std::string_view(
+                                                             buffer,
+                                                             offset)); // by default
+                                                       // uWS::OpCode::BINARY
+                                                     }
 
                                                  free(buffer);
                                                }
@@ -3786,18 +3803,20 @@ int main(int argc, char *argv[])
                                                     output.length());
                                              offset += output.length();
 
-                                             if (user->ptr->active)
-                                             {
-                                               std::lock_guard<
-                                                   std::shared_mutex>
-                                                   unique_access(
-                                                       user->ptr->mtx);
-                                               if (seq == user->ptr->last_seq)
-                                                 ws->send(std::string_view(
-                                                     buffer,
-                                                     offset)); // by default
-                                               // uWS::OpCode::BINARY
-                                             }
+                                             if (user != NULL)
+                                               if (user->ptr != NULL)
+                                                 if (user->ptr->active)
+                                                 {
+                                                   std::lock_guard<
+                                                       std::shared_mutex>
+                                                       unique_access(
+                                                           user->ptr->mtx);
+                                                   if (seq == user->ptr->last_seq)
+                                                     ws->send(std::string_view(
+                                                         buffer,
+                                                         offset)); // by default
+                                                   // uWS::OpCode::BINARY
+                                                 }
 
                                              free(buffer);
                                            }
@@ -4095,16 +4114,18 @@ int main(int argc, char *argv[])
                                                   outbytes);
                                            offset += outbytes;
 
-                                           if (user->ptr->active)
-                                           {
-                                             std::lock_guard<std::shared_mutex>
-                                                 unique_access(user->ptr->mtx);
-                                             if (seq == user->ptr->last_seq)
-                                               ws->send(std::string_view(
-                                                   buffer,
-                                                   offset)); // by default
-                                             // uWS::OpCode::BINARY
-                                           }
+                                           if (user != NULL)
+                                             if (user->ptr != NULL)
+                                               if (user->ptr->active)
+                                               {
+                                                 std::lock_guard<std::shared_mutex>
+                                                     unique_access(user->ptr->mtx);
+                                                 if (seq == user->ptr->last_seq)
+                                                   ws->send(std::string_view(
+                                                       buffer,
+                                                       offset)); // by default
+                                                 // uWS::OpCode::BINARY
+                                               }
                                          }
 
                                          if (buffer != NULL)
@@ -4113,6 +4134,15 @@ int main(int argc, char *argv[])
                                          if (compressed != NULL)
                                            free(compressed);
                                        }
+
+                                       if (user == NULL)
+                                         return;
+
+                                       if (user->ptr == NULL)
+                                         return;
+
+                                       if (!user->ptr->active)
+                                         return;
 
                                        // track the
                                        // mouse with
