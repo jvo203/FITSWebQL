@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-28.0"
+#define VERSION_STRING "SV2020-10-28.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -4335,12 +4335,12 @@ int main(int argc, char *argv[])
                                          if (!user->ptr->kal_x)
                                            user->ptr->kal_x =
                                                std::shared_ptr<KalmanFilter>(
-                                                   new KalmanFilter(pos_x));
+                                                   new KalmanFilter(pos_x, false));
 
                                          if (!user->ptr->kal_y)
                                            user->ptr->kal_y =
                                                std::shared_ptr<KalmanFilter>(
-                                                   new KalmanFilter(pos_y));
+                                                   new KalmanFilter(pos_y, false));
                                        }
                                      }
 
