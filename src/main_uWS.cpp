@@ -2738,6 +2738,10 @@ int main(int argc, char *argv[])
                                  user->ptr->last_seq = seq;
                                }
 
+                               // copy over the default mask
+                               if (!user->ptr->img_mask)
+                                 user->ptr->img_mask = fits->img_mask;
+
                                // calculate the scale based on the user image
                                if (!user->ptr->img_mask)
                                  return;
@@ -2753,7 +2757,7 @@ int main(int argc, char *argv[])
 
                                fits->get_spectrum_range(frame, frame, ref_freq, frame_idx, frame_idx);
 
-                               std::cout << "[uWs]::init_video::" << datasetid << "¥tfps = " << fps << "¥tbitrate = " << bitrate << "¥tflux = " << flux << "¥tcolourmap = " << colourmap << "¥tscale = " << user->ptr->scale << "¥tframe = " << frame_idx << std::endl;
+                               std::cout << "[uWS::init_video]::" << datasetid << "¥tfps = " << fps << "¥tbitrate = " << bitrate << "¥tflux = " << flux << "¥tcolourmap = " << colourmap << "¥tscale = " << user->ptr->scale << "¥tframe = " << frame_idx << std::endl;
                              }
                            }
                          }
