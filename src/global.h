@@ -14,6 +14,15 @@ using namespace std::chrono;
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 
+#if defined(__cplusplus)
+extern "C"
+{
+#include "x265.h"
+};
+#else
+#include "x265.h"
+#endif
+
 #include "App.h"
 
 #include "fits.hpp"
@@ -48,7 +57,7 @@ struct UserSession
   Ipp32u hist[NBINS];
   float min;
   float max;
-  float median;  
+  float median;
   float black;
   float white;
   float sensitivity;
@@ -62,6 +71,11 @@ struct UserSession
   std::atomic<int> last_seq;
   boost::thread_group active_threads;
   std::atomic<bool> active;
+
+  // streaming video
+  std::shared_ptr<x265_param> params;
+  std::shared_ptr<x265_encoder> encoder;
+  std::shared_ptr<x265_picture> picture;
 
   UserSession(boost::uuids::uuid _session_id, system_clock::time_point _ts, std::string _primary_id, std::vector<std::string> _ids)
   {
