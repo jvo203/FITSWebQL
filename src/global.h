@@ -77,6 +77,8 @@ struct UserSession
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
   float scale;
+  int fps;
+  int bitrate;
   std::string flux;
   std::string colourmap;
 
@@ -94,6 +96,8 @@ struct UserSession
       hist[i] = 0;
 
     scale = 1.0f;
+    fps = 30;
+    bitrate = 1000;
   }
 };
 
