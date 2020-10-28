@@ -5,7 +5,7 @@ class KalmanFilter
     // Constructor / Destructor
 public:
     KalmanFilter() : KalmanFilter(0.0){};
-    KalmanFilter(double position, bool video = false);
+    KalmanFilter(double position, bool video);
     ~KalmanFilter(){};
 
     // methods
