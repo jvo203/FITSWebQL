@@ -97,7 +97,7 @@ struct UserSession
       hist[i] = 0;
 
     scale = 1.0f;
-    fps = 30;
+    fps = 10;
     bitrate = 1000;
   }
 };

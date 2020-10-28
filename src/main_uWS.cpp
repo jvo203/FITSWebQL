@@ -2650,7 +2650,7 @@ int main(int argc, char *argv[])
                            user->ptr->ts = now;
 
                            int seq = -1;
-                           int fps = 30;
+                           int fps = 10;
                            int bitrate = 1000; // start slow
                            int _width = -1;
                            int _height = -1;
