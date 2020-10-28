@@ -9,6 +9,7 @@ KalmanFilter::KalmanFilter(double position, bool video)
 
     if (!video)
     {
+        // normal settings used for tracking X-Y coordinates
         p_xx = 0.1;
         p_xv = 0.1;
         p_vv = 0.1;
