@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-26.0"
+#define VERSION_STRING "SV2020-10-28.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2623,20 +2623,26 @@ int main(int argc, char *argv[])
                              }
                            }
 
-                           if (seq > -1)
+                           if (seq > -1 && user != NULL)
                            {
-                             // gain unique access
-                             std::lock_guard<std::shared_mutex> unique_access(
-                                 user->ptr->mtx);
+                             if (user->ptr != NULL)
+                             {
+                               if (user->ptr->active)
+                               {
+                                 // gain unique access
+                                 std::lock_guard<std::shared_mutex> unique_access(
+                                     user->ptr->mtx);
 
-                             // remove any previous Kalman Filters
-                             user->ptr->kal_x.reset();
-                             user->ptr->kal_y.reset();
+                                 // remove any previous Kalman Filters
+                                 user->ptr->kal_x.reset();
+                                 user->ptr->kal_y.reset();
 
-                             int last_seq = user->ptr->last_seq;
+                                 int last_seq = user->ptr->last_seq;
 
-                             if (seq > last_seq)
-                               user->ptr->last_seq = seq;
+                                 if (seq > last_seq)
+                                   user->ptr->last_seq = seq;
+                               }
+                             }
                            }
                          }
 
