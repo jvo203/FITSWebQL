@@ -76,6 +76,9 @@ struct UserSession
   std::shared_ptr<x265_param> params;
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
+  float scale;
+  std::string flux;
+  std::string colourmap;
 
   UserSession(boost::uuids::uuid _session_id, system_clock::time_point _ts, std::string _primary_id, std::vector<std::string> _ids)
   {
@@ -89,6 +92,8 @@ struct UserSession
     // fill the histogram with zeroes
     for (int i = 0; i < NBINS; i++)
       hist[i] = 0;
+
+    scale = 1.0f;
   }
 };
 
