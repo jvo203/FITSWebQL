@@ -2644,6 +2644,22 @@ int main(int argc, char *argv[])
                          }
 
                          // [init_video]
+                         if (message.find("[init_video]") != std::string::npos)
+                         {
+                           auto now = system_clock::now();
+                           user->ptr->ts = now;
+
+                           int seq = -1;
+                           int fps = 30;
+                           int bitrate = 1000; // start slow
+                           int view_width = -1;
+                           int view_height = -1;
+                           double frame = 0;
+                           double ref_freq = 0;
+                           float timestamp = 0;
+                           std::string colourmap;
+                           std::string flux;
+                         }
 
                          if (message.find("[image]") != std::string::npos)
                          {
