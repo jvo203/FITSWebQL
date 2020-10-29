@@ -2752,6 +2752,15 @@ int main(int argc, char *argv[])
                                true_image_dimensions(user->ptr->img_mask.get(), true_width, true_height);
                                user->ptr->scale = get_image_scale(_width, _height, true_width, true_height);
 
+                               int img_width = fits->width;
+                               int img_height = fits->height;
+
+                               if (user->ptr->scale < 1.0)
+                               {
+                                 img_width = floorf(user->ptr->scale * fits->width);
+                                 img_height = floorf(user->ptr->scale * fits->height);
+                               }
+
                                // get the video frame index
                                int frame_idx;
 
@@ -2760,6 +2769,29 @@ int main(int argc, char *argv[])
                                std::cout << "[uWS::init_video]::" << datasetid << "\tfps = " << fps << "\tbitrate = " << bitrate << "\tflux = " << flux << "\tcolourmap = " << colourmap << "\tscale = " << user->ptr->scale << "\tframe = " << frame_idx << std::endl;
 
                                user->ptr->kal_z = std::shared_ptr<KalmanFilter>(new KalmanFilter(frame, true));
+
+                               //alloc HEVC params
+                               x265_param *param = x265_param_alloc();
+                               if (param == NULL)
+                                 return;
+
+                               x265_param_default_preset(param, "medium", "zerolatency");
+
+                               // HEVC config
+                               param->fpsNum = fps;
+                               param->fpsDenom = 1;
+                               param->bRepeatHeaders = 1;
+                               param->internalCsp = X265_CSP_I444;
+
+                               param->internalBitDepth = 8;
+                               param->sourceWidth = img_width;
+                               param->sourceHeight = img_height;
+
+                               //constant bitrate
+                               param->rc.rateControlMode = X265_RC_CRF;
+                               param->rc.bitrate = bitrate;
+
+                               user->ptr->params = std::shared_ptr<x265_param>(param, x265_param_free);
                              }
                            }
                          }
