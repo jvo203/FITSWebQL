@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-28.1";
+	return "JS2020-10-29.0";
 }
 
 const wasm_supported = (() => {
@@ -7556,7 +7556,7 @@ function x_axis_mouseenter(offset) {
 			wsConn[0].send('[init_video] frame=' + freq + '&view=composite' + '&ref_freq=' + RESTFRQ + '&fps=' + vidFPS + '&seq_id=' + sent_vid_id + '&bitrate=' + Math.round(target_bitrate) + ui + '&flux=' + document.getElementById('flux' + 1).value + '&timestamp=' + performance.now());
 			video_stack[0] = [];
 		} else for (let index = 0; index < va_count; index++) {
-			wsConn[index].send('[init_video] frame=' + freq + '&view=tile' + '&ref_freq=' + RESTFRQ + '&fps=' + vidFPS + '&seq_id=' + sent_vid_id + '&bitrate=' + Math.round(target_bitrate) + ui + '&flux=' + document.getElementById('flux' + (index+1)).value + '&timestamp=' + performance.now());
+			wsConn[index].send('[init_video] frame=' + freq + '&view=tile' + '&ref_freq=' + RESTFRQ + '&fps=' + vidFPS + '&seq_id=' + sent_vid_id + '&bitrate=' + Math.round(target_bitrate) + ui + '&flux=' + document.getElementById('flux' + (index + 1)).value + '&timestamp=' + performance.now());
 			video_stack[index] = [];
 		};
 	}
