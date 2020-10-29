@@ -2797,6 +2797,20 @@ int main(int argc, char *argv[])
                                user->ptr->params = std::shared_ptr<x265_param>(param, x265_param_free);
 
                                // HEVC encoder
+                               user->ptr->encoder = std::shared_ptr<x265_encoder>(x265_encoder_open(param), x265_encoder_close);
+                               if (!user->ptr->encoder)
+                                 return;
+
+                               // HEVC picture
+                               x265_picture *picture = x265_picture_alloc();
+                               if (picture == NULL)
+                                 return;
+
+                               x265_picture_init(param, picture);
+                               user->ptr->picture = std::shared_ptr<x265_picture>(picture, x265_picture_free);
+
+                               //start a video creation event loop
+                               user->ptr->streaming = true;
                              }
                            }
                          }
