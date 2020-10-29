@@ -2815,6 +2815,14 @@ int main(int argc, char *argv[])
                            }
                          }
 
+                         // [end_video]
+                         if (message.find("[end_video]") != std::string::npos)
+                         {
+                           auto now = system_clock::now();
+                           user->ptr->ts = now;
+                           user->ptr->streaming = false;
+                         }
+
                          if (message.find("[image]") != std::string::npos)
                          {
                            auto now = system_clock::now();
