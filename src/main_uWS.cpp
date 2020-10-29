@@ -2761,6 +2761,9 @@ int main(int argc, char *argv[])
                                  img_height = floorf(user->ptr->scale * fits->height);
                                }
 
+                               user->ptr->width = img_width;
+                               user->ptr->height = img_height;
+
                                // get the video frame index
                                int frame_idx;
 
@@ -2792,6 +2795,8 @@ int main(int argc, char *argv[])
                                param->rc.bitrate = bitrate;
 
                                user->ptr->params = std::shared_ptr<x265_param>(param, x265_param_free);
+
+                               // HEVC encoder
                              }
                            }
                          }
