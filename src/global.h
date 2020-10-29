@@ -77,6 +77,8 @@ struct UserSession
   std::shared_ptr<x265_param> params;
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
+  std::atomic<bool> streaming;
+
   float scale;
   int width;
   int height;
@@ -93,6 +95,7 @@ struct UserSession
     ids = _ids;
     last_seq = -1;
     active = true;
+    streaming = false;
 
     // fill the histogram with zeroes
     for (int i = 0; i < NBINS; i++)
