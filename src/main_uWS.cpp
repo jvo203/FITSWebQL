@@ -2823,6 +2823,31 @@ int main(int argc, char *argv[])
                            user->ptr->streaming = false;
                          }
 
+                         // [video]
+                         if (message.find("[video]") != std::string::npos)
+                         {
+                           auto now = system_clock::now();
+                           user->ptr->ts = now;
+
+                           int seq = -1;
+                           int fps = 10;
+                           int bitrate = 1000; // start slow
+                           double frame = 0;
+                           double ref_freq = 0;
+                           float timestamp = 0;
+                           bool keyframe = false; // is it a keyframe?
+
+                           std::string_view query;
+                           size_t pos = message.find_first_of(" ");
+
+                           if (pos != std::string::npos)
+                             query = message.substr(pos + 1, std::string::npos);
+
+                           std::vector<std::string> params;
+                           boost::split(params, query,
+                                        [](char c) { return c == '&'; });
+                         }
+
                          if (message.find("[image]") != std::string::npos)
                          {
                            auto now = system_clock::now();
