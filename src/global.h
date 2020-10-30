@@ -77,6 +77,7 @@ struct UserSession
   std::shared_ptr<x265_param> params;
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
+  std::atomic<int> last_video_seq;
   std::atomic<bool> streaming;
 
   float scale;
@@ -94,6 +95,7 @@ struct UserSession
     primary_id = _primary_id;
     ids = _ids;
     last_seq = -1;
+    last_video_seq = -1;
     active = true;
     streaming = false;
 
