@@ -2734,8 +2734,8 @@ int main(int argc, char *argv[])
 
                                {
                                  // gain unique access
-                                 std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
-                                 user->ptr->last_seq = seq;
+                                 //std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                 user->ptr->last_video_seq = seq;
                                }
 
                                // copy over the default mask
