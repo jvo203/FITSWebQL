@@ -2827,6 +2827,8 @@ int main(int argc, char *argv[])
                          if (message.find("[video]") != std::string::npos)
                          {
                            auto now = system_clock::now();
+                           duration<double, std::milli> deltat =
+                               now - user->ptr->ts;
                            user->ptr->ts = now;
 
                            int seq = -1;
@@ -2846,6 +2848,117 @@ int main(int argc, char *argv[])
                            std::vector<std::string> params;
                            boost::split(params, query,
                                         [](char c) { return c == '&'; });
+
+                           for (auto const &s : params)
+                           {
+                             // find '='
+                             size_t pos = s.find("=");
+
+                             if (pos != std::string::npos)
+                             {
+                               std::string key = s.substr(0, pos);
+                               std::string value =
+                                   s.substr(pos + 1, std::string::npos);
+
+                               if (key.find("seq") != std::string::npos)
+                                 seq = std::stoi(value);
+
+                               if (key.find("bitrate") != std::string::npos)
+                                 bitrate = std::stoi(value);
+
+                               if (key.find("fps") != std::string::npos)
+                                 fps = std::stoi(value);
+
+                               if (key.find("frame") != std::string::npos)
+                                 frame = std::stod(value);
+
+                               if (key.find("ref_freq") != std::string::npos)
+                                 ref_freq = std::stod(value);
+
+                               if (key.find("key") != std::string::npos)
+                               {
+                                 if (value == "true")
+                                   keyframe = true;
+                               }
+
+                               if (key.find("timestamp") != std::string::npos)
+                                 timestamp = std::stof(value);
+                             }
+                           }
+
+                           // process the video frame in a separate thread
+
+                           auto fits = get_dataset(datasetid);
+
+                           if (fits != nullptr)
+                           {
+                             if (!fits->has_error && fits->has_data)
+                             {
+                               // launch a separate thread
+                               boost::thread *video_thread =
+                                   new boost::thread([fits, ws, user, frame,
+                                                      ref_freq, keyframe,
+                                                      timestamp, seq,
+                                                      fps, bitrate, deltat]() {
+                                     if (user == NULL)
+                                       return;
+
+                                     if (user->ptr == NULL)
+                                       return;
+
+                                     if (!user->ptr->active)
+                                       return;
+
+                                     fits->update_timestamp();
+
+                                     {
+                                       // gain unique
+                                       // access
+                                       std::lock_guard<std::shared_mutex>
+                                           unique_access(user->ptr->video_mtx);
+
+                                       int last_seq = user->ptr->last_video_seq;
+
+                                       if (last_seq > seq)
+                                       {
+                                         printf("skippin"
+                                                "g an "
+                                                "old "
+                                                "frame "
+                                                "(%d < "
+                                                "%d)\n",
+                                                seq, last_seq);
+                                         return;
+                                       }
+
+                                       user->ptr->last_video_seq = seq;
+                                     }
+
+                                     double _frame = frame;
+
+                                     if (user->ptr->kal_z)
+                                     {
+                                       KalmanFilter *kal_z = user->ptr->kal_z.get();
+
+                                       // update the frame
+                                       kal_z->update(frame, deltat.count());
+
+                                       // predict the frame deltat [ms] ahead
+                                       _frame = kal_z->predict(frame, deltat.count());
+                                     }
+
+                                     // get the video frame index
+                                     int frame_idx;
+
+                                     fits->get_spectrum_range(_frame, _frame, ref_freq, frame_idx, frame_idx);
+
+                                     std::cout << "[uWS::video]::" << fits->dataset_id << "\tfps = " << fps << "\tbitrate = " << bitrate << "\t_frame = " << _frame << "\tframe_idx = " << frame_idx << std::endl;
+                                   });
+
+                               user->ptr->active_threads.add_thread(
+                                   video_thread);
+                             }
+                           }
                          }
 
                          if (message.find("[image]") != std::string::npos)
