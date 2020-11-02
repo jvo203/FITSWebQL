@@ -144,6 +144,7 @@ public:
                                   int y2, intensity_mode intensity,
                                   beam_shape beam, double &elapsed);
   std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, std::vector<float>> get_cube(int start, int end);
+  void get_video(int frame);
   std::tuple<float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins);
   void preempt_cache(int start, int end, int x1, int y1, int x2, int y2);
   void to_json(std::ostringstream &json);

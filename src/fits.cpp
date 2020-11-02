@@ -4330,6 +4330,11 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2) {
   }
 }
 
+void FITS::void get_video(int frame)
+{
+  // call get_cube(frame, frame);???
+}
+
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>,
            std::vector<float>>
 FITS::get_cube(int start, int end) {
