@@ -79,6 +79,7 @@ struct UserSession
   std::shared_ptr<x265_picture> picture;
   std::atomic<int> last_video_seq;
   std::atomic<bool> streaming;
+  std::shared_mutex video_mtx;
 
   float scale;
   int width;

@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-10-30.0"
+#define VERSION_STRING "SV2020-11-02.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2734,7 +2734,7 @@ int main(int argc, char *argv[])
 
                                {
                                  // gain unique access
-                                 //std::lock_guard<std::shared_mutex> unique_access(user->ptr->mtx);
+                                 std::lock_guard<std::shared_mutex> unique_access(user->ptr->video_mtx);
                                  user->ptr->last_video_seq = seq;
                                }
 
