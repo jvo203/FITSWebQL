@@ -4746,12 +4746,12 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
         int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
                  idy * ZFP_CACHE_REGION;
 
-        // ispc::make_video_frameF16(region.get())
-        /*ispc::make_video_frameF16_logistic_greyscale(
-            region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[i],
-            frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale,
-            ignrval, datamin, datamax, _cdelt3, pixels,
-            mask, pixels_r, pixels_g, pixels_b, offset_x, offset_y, width);*/
+        ispc::make_video_frameF16_logistic_greyscale(
+            region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+            frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale,
+            ignrval, datamin, datamax, _cdelt3, pixels.get(),
+            mask.get(), pixels_r.get(), pixels_g.get(), pixels_b.get(), offset_x, offset_y, width,
+            median, sensitivity);
       }
     }
 
