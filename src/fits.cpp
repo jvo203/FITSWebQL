@@ -4679,6 +4679,86 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
     return res;
   }
 
+  bool has_compressed_frame = false;
+  bool compressed_pixels = false;
+  bool compressed_mask = false;
+
+  int pixels_idz = frame / 4;
+  int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
+  int mask_idz = frame;
+
+  {
+    auto pixel_blocks = cube_pixels[pixels_idz].load();
+    if (pixel_blocks != nullptr)
+      compressed_pixels = true;
+  }
+
+  {
+    auto mask_blocks = cube_mask[mask_idz].load();
+    if (mask_blocks != nullptr)
+      compressed_mask = true;
+  }
+
+  // use the cache holding decompressed pixel data
+  if (compressed_pixels && compressed_mask)
+  {
+    std::atomic<bool> jmp = false;
+
+#pragma omp parallel for schedule(dynamic)
+    for (auto idy = start_y; idy <= end_y; idy++)
+    {
+      if (jmp)
+        continue;
+
+      for (auto idx = start_x; idx <= end_x; idx++)
+      {
+        if (jmp)
+          break;
+
+        std::shared_ptr<unsigned short> region =
+            request_cached_region_ptr(frame, idy, idx);
+
+        if (!region)
+        {
+          jmp = true;
+          break;
+        }
+
+        float _cdelt3 = this->has_velocity
+                            ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                            : 1.0f;
+
+        // the destination position offsets
+        int offset_x = idx * ZFP_CACHE_REGION;
+        int offset_y = idy * ZFP_CACHE_REGION;
+
+        // how many source region pixels in the X and Y dimensions should be
+        // taken into account
+        int dx =
+            MIN((idx + 1) * ZFP_CACHE_REGION, width) - idx * ZFP_CACHE_REGION;
+        int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
+                 idy * ZFP_CACHE_REGION;
+
+        // ispc::make_video_frameF16(region.get())
+      }
+    }
+
+    if (!jmp)
+      has_compressed_frame = true;
+  }
+
+jmp:
+  if (!has_compressed_frame && fits_cube[frame])
+  {
+    auto pixels_buf = fits_cube[frame].get();
+
+    float _cdelt3 = this->has_velocity
+                        ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                        : 1.0f;
+
+    // ispc::make_video_frameF32((int32_t *)pixels_buf)
+  }
+
   return res;
 }
 
