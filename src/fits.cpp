@@ -4711,47 +4711,56 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
   {
     std::atomic<bool> jmp = false;
 
-#pragma omp parallel for schedule(dynamic)
-    for (auto idy = start_y; idy <= end_y; idy++)
+//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel
     {
-      if (jmp)
-        continue;
-
-      for (auto idx = start_x; idx <= end_x; idx++)
+#pragma omp single
       {
-        if (jmp)
-          break;
-
-        std::shared_ptr<unsigned short> region =
-            request_cached_region_ptr(frame, idy, idx);
-
-        if (!region)
+        for (auto idy = start_y; idy <= end_y; idy++)
         {
-          jmp = true;
-          break;
+          if (jmp)
+            break;
+
+          for (auto idx = start_x; idx <= end_x; idx++)
+          {
+            if (jmp)
+              break;
+
+            std::shared_ptr<unsigned short> region =
+                request_cached_region_ptr(frame, idy, idx);
+
+            if (!region)
+            {
+              jmp = true;
+              break;
+            }
+
+#pragma omp task
+            {
+              float _cdelt3 = this->has_velocity
+                                  ? this->cdelt3 * this->frame_multiplier / 1000.0f
+                                  : 1.0f;
+
+              // the destination position offsets
+              int offset_x = idx * ZFP_CACHE_REGION;
+              int offset_y = idy * ZFP_CACHE_REGION;
+
+              // how many source region pixels in the X and Y dimensions should be
+              // taken into account
+              int dx =
+                  MIN((idx + 1) * ZFP_CACHE_REGION, width) - idx * ZFP_CACHE_REGION;
+              int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
+                       idy * ZFP_CACHE_REGION;
+
+              ispc::make_video_frameF16_logistic_greyscale(
+                  region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                  frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale,
+                  ignrval, datamin, datamax, _cdelt3, pixels.get(),
+                  mask.get(), pixels_r.get(), pixels_g.get(), pixels_b.get(), offset_x, offset_y, width,
+                  median, sensitivity);
+            }
+          }
         }
-
-        float _cdelt3 = this->has_velocity
-                            ? this->cdelt3 * this->frame_multiplier / 1000.0f
-                            : 1.0f;
-
-        // the destination position offsets
-        int offset_x = idx * ZFP_CACHE_REGION;
-        int offset_y = idy * ZFP_CACHE_REGION;
-
-        // how many source region pixels in the X and Y dimensions should be
-        // taken into account
-        int dx =
-            MIN((idx + 1) * ZFP_CACHE_REGION, width) - idx * ZFP_CACHE_REGION;
-        int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
-                 idy * ZFP_CACHE_REGION;
-
-        ispc::make_video_frameF16_logistic_greyscale(
-            region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-            frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale,
-            ignrval, datamin, datamax, _cdelt3, pixels.get(),
-            mask.get(), pixels_r.get(), pixels_g.get(), pixels_b.get(), offset_x, offset_y, width,
-            median, sensitivity);
       }
     }
 
