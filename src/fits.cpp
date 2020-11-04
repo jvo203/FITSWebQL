@@ -4618,10 +4618,10 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> FITS::get_video(int frame)
+std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> FITS::get_video(int frame)
 {
-  // {R,G,B,A}
-  std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;
+  // {F32,R8,G8,B8,A8}
+  std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;
 
   // sanity checks
   if (bitpix != -32)
@@ -4642,6 +4642,18 @@ std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
 
+  std::shared_ptr<Ipp32f> pixels =
+      std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+        if (ptr != NULL)
+          Ipp32fFree(ptr);
+      });
+
+  std::shared_ptr<Ipp8u> mask =
+      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+        if (ptr != NULL)
+          Ipp8uFree(ptr);
+      });
+
   std::shared_ptr<Ipp8u> pixels_r =
       std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
         if (ptr != NULL)
@@ -4660,15 +4672,9 @@ std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u
           Ipp8uFree(ptr);
       });
 
-  std::shared_ptr<Ipp8u> mask =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
-        if (ptr != NULL)
-          Ipp8uFree(ptr);
-      });
-
-  if (!pixels_r || !pixels_g || !pixels_b || !mask)
+  if (!pixels || !mask || !pixels_r || !pixels_g || !pixels_b)
   {
-    printf("%s::cannot allocate memory for an {R,G,B,A} video frame\n",
+    printf("%s::cannot allocate memory for an {F32,R8,G8,B8,A8} video frame\n",
            dataset_id.c_str());
     return res;
   }
