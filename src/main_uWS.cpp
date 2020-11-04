@@ -2947,6 +2947,17 @@ int main(int argc, char *argv[])
                                        _frame = kal_z->predict(frame, deltat.count());
                                      }
 
+                                     if (user->ptr->encoder && user->ptr->params)
+                                     {
+                                       //adaptive bitrate
+                                       user->ptr->params.get()->rc.bitrate = bitrate;
+
+                                       auto ret = x265_encoder_reconfig(user->ptr->encoder.get(), user->ptr->params.get());
+
+                                       if (ret < 0)
+                                         printf("x265: error changing the bitrate\n");
+                                     }
+
                                      // get the video frame index
                                      int frame_idx;
 
