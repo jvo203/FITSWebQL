@@ -4699,6 +4699,13 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
       compressed_mask = true;
   }
 
+  //calculate white, black, sensitivity from the all-data histogram
+  float u = 7.5f;
+  float median = this->data_median;
+  float black = MAX(this->dmin, ((this->data_median) - u * (this->data_madN)));
+  float white = MIN(this->dmax, ((this->data_median) + u * (this->data_madP)));
+  float sensitivity = 1.0f / (white - black);
+
   // use the cache holding decompressed pixel data
   if (compressed_pixels && compressed_mask)
   {
@@ -4740,6 +4747,11 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
                  idy * ZFP_CACHE_REGION;
 
         // ispc::make_video_frameF16(region.get())
+        /*ispc::make_video_frameF16_logistic_greyscale(
+            region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[i],
+            frame_max[i], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero, bscale,
+            ignrval, datamin, datamax, _cdelt3, pixels,
+            mask, pixels_r, pixels_g, pixels_b, offset_x, offset_y, width);*/
       }
     }
 
