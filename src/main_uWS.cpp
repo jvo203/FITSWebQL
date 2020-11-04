@@ -2952,7 +2952,18 @@ int main(int argc, char *argv[])
 
                                      fits->get_spectrum_range(_frame, _frame, ref_freq, frame_idx, frame_idx);
 
-                                     std::cout << "[uWS::video]::" << fits->dataset_id << "\tfps = " << fps << "\tbitrate = " << bitrate << "\t_frame = " << _frame << "\tframe_idx = " << frame_idx << std::endl;
+                                     auto start_t = steady_clock::now();
+
+                                     fits->get_video(_frame);
+
+                                     auto end_t = steady_clock::now();
+
+                                     double elapsedSeconds = ((end_t - start_t).count()) *
+                                                             steady_clock::period::num /
+                                                             static_cast<double>(steady_clock::period::den);
+                                     double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+                                     std::cout << "[uWS::video]::" << fits->dataset_id << "\tfps = " << fps << "\tbitrate = " << bitrate << "\t_frame = " << _frame << "\tframe_idx = " << frame_idx << "\telapsed = " << elapsedMilliseconds << " [ms]" << std::endl;
                                    });
 
                                user->ptr->active_threads.add_thread(
