@@ -4620,7 +4620,7 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
 
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> FITS::get_video(int frame, std::string flux, std::string colourmap)
 {
-  // {F32,R8,G8,B8,A8}
+  // {F32,A8,R8,G8,B8}
   std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;
 
   // sanity checks
@@ -4674,7 +4674,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
 
   if (!pixels || !mask || !pixels_r || !pixels_g || !pixels_b)
   {
-    printf("%s::cannot allocate memory for an {F32,R8,G8,B8,A8} video frame\n",
+    printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
            dataset_id.c_str());
     return res;
   }
@@ -4771,7 +4771,10 @@ jmp:
     // ispc::make_video_frameF32((int32_t *)pixels_buf)
   }
 
-  return res;
+  /*for (int i = 0; i < 100; i++)
+    printf("%f\t%d\t%d\t%d\t%d\n", pixels.get()[i], mask.get()[i], pixels_r.get()[i], pixels_g.get()[i], pixels_b.get()[i]);*/
+
+  return {std::move(pixels), std::move(mask), std::move(pixels_r), std::move(pixels_g), std::move(pixels_b)};
 }
 
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>,

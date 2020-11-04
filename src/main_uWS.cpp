@@ -2965,7 +2965,7 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                     fits->get_video(_frame, user->ptr->flux, user->ptr->colourmap);
+                                     auto [_pixels, _mask, _r, _g, _b] = fits->get_video(frame_idx, user->ptr->flux, user->ptr->colourmap);
 
                                      auto end_t = steady_clock::now();
 
