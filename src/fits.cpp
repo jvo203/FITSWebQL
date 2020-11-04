@@ -4618,7 +4618,7 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> FITS::get_video(int frame)
+std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> FITS::get_video(int frame, std::string flux, std::string colourmap)
 {
   // {F32,R8,G8,B8,A8}
   std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;
