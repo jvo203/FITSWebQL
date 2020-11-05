@@ -67,7 +67,8 @@ darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 	/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -L/usr/local/lib $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP) $(JEMALLOC)
 
-#clang -Xpreprocessor -fopenmp test.c -lomp
+omp:
+	clang -Xpreprocessor -fopenmp testOpenMP.cpp -lomp
 
 #$(JEMALLOC)
 
