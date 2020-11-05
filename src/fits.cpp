@@ -4711,6 +4711,8 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
   {
     std::atomic<bool> jmp = false;
 
+    printf("start_x: %d, start_y: %d, end_x: %d, end_y: %d\n", start_x, start_y, end_x, end_y);
+
 #pragma omp parallel
     {
 #pragma omp single
@@ -4727,6 +4729,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
 
 #pragma omp task
             {
+              printf("idx: %d, idy: %d\n", idx, idy);
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
                   request_cached_region_ptr(frame, idy, idx);
@@ -4766,6 +4769,8 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
     if (!jmp)
       has_compressed_frame = true;
   }
+
+  printf("got here#0\n");
 
 jmp:
   if (!has_compressed_frame && fits_cube[frame])
