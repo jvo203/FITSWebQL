@@ -679,6 +679,34 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
     return 0.0f ;
 } ;
 
+export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe)
+{
+  uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
+  uniform float bzero_new = bzero + bscale * bzero16 ;
+  uniform float bscale_new = bscale * bscale16;
+
+  foreach (y=0 ... dy, x=0 ... dx)
+    {
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
+
+      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x); // to be re-worked using destination offsets
+
+      //alternative coherent if
+      cif (!nan)
+	    {
+	      dst_pixels[idx] = tmp ;
+	      dst_mask[idx] = 255 ;
+	    }
+      else
+      {
+        dst_pixels[idx] = 0.0 ;
+	      dst_mask[idx] = 0 ;         
+      }
+    } ;  
+} ;
+
 export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float median, uniform float sensitivity)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
