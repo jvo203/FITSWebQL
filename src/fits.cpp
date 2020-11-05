@@ -4725,7 +4725,7 @@ std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8
             if (jmp)
               break;
 
-#pragma omp task private(idx, idy)
+#pragma omp task
             {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
