@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
             if (jmp)
               break;
 
-#pragma omp task private(idx, idy)
+#pragma omp task
             {
                 printf("idx: %d, idy: %d\n", idx, idy);
             }
