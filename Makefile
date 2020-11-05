@@ -65,13 +65,15 @@ gcc:
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -L/usr/local/lib $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP) $(JEMALLOC)
+	clang++ -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -lomp -L/usr/local/opt/openssl/lib $(LIBS) $(IPP) $(JEMALLOC)
+
+#/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -L/usr/local/lib $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP) $(JEMALLOC)
 
 omp1:
 	/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) testOpenMP.cpp -L/usr/local/opt/llvm/lib
 
 omp2:
-	clang++ -Xpreprocessor -std=c++17 testOpenMP.cpp -lomp
+	clang++ -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize testOpenMP.cpp -lomp
 #$(JEMALLOC)
 
 #	cargo run -- ~/NAO/NRO/SF/orion_12co_all_SF7.5arcsec_dV1.0kms.fits
