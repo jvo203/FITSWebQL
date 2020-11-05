@@ -2968,6 +2968,12 @@ int main(int argc, char *argv[])
                                      //auto [_pixels, _mask, _r, _g, _b] = fits->get_video(frame_idx, user->ptr->flux, user->ptr->colourmap);
                                      auto [_pixels, _mask] = fits->get_frame(frame_idx);
 
+                                    // downscaling (optional)
+
+                                    // tone-mapping + colourmap
+
+                                    // contour lines (optional)
+
                                      auto end_t = steady_clock::now();
 
                                      double elapsedSeconds = ((end_t - start_t).count()) *
