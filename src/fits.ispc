@@ -179,8 +179,7 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform float bzero, 
 
   foreach(i=0 ... total_size)
     {
-      float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;      
-      
+      float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax) ;
 
       //alternative coherent if
@@ -701,8 +700,29 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
 	    }
       else
       {
-        dst_pixels[idx] = 0.0 ;
+        dst_pixels[idx] = 0.0f ;
 	      dst_mask[idx] = 0 ;         
+      }
+    } ;  
+} ;
+
+export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {
+      float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;
+      bool nan = isnan(tmp) || isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax) ;
+
+      //alternative coherent if
+      cif (!nan)
+	    {
+	      dst_pixels[i] = tmp ;
+	      dst_mask[i] = 255 ;
+	    }
+      else
+      {
+        dst_pixels[i] = 0.0f ;
+	      dst_mask[i] = 0 ;         
       }
     } ;  
 } ;
@@ -734,7 +754,7 @@ export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[],
 	    }
       else
       {
-        dst_pixels[idx] = 0.0 ;
+        dst_pixels[idx] = 0.0f ;
 	      dst_mask[idx] = 0 ;
         dst_r[idx] = 0;
         dst_g[idx] = 0;
