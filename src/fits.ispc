@@ -763,7 +763,7 @@ export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[],
     } ;  
 } ;
 
-export void logistic_greyscale_cm(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform float median, uniform float sensitivity, uniform unsigned int total_size)
+export void logistic_greyscale(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform float median, uniform float sensitivity, uniform unsigned int total_size)
 {
   foreach(i=0 ... total_size)
     {     
