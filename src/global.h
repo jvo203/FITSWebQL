@@ -81,7 +81,6 @@ struct UserSession
   std::atomic<bool> streaming;
   std::shared_mutex video_mtx;
 
-  float scale;
   int width;
   int height;
   int fps;
@@ -104,7 +103,6 @@ struct UserSession
     for (int i = 0; i < NBINS; i++)
       hist[i] = 0;
 
-    scale = 1.0f;
     width = 0;
     height = 0;
     fps = 10;

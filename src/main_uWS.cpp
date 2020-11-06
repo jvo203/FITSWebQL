@@ -2750,15 +2750,15 @@ int main(int argc, char *argv[])
                                long true_width = fits->width;
                                long true_height = fits->height;
                                true_image_dimensions(user->ptr->img_mask.get(), true_width, true_height);
-                               user->ptr->scale = get_image_scale(_width, _height, true_width, true_height);
+                               float scale = get_image_scale(_width, _height, true_width, true_height);
 
                                int img_width = fits->width;
                                int img_height = fits->height;
 
-                               if (user->ptr->scale < 1.0)
+                               if (scale < 1.0)
                                {
-                                 img_width = floorf(user->ptr->scale * fits->width);
-                                 img_height = floorf(user->ptr->scale * fits->height);
+                                 img_width = floorf(scale * fits->width);
+                                 img_height = floorf(scale * fits->height);
                                }
 
                                user->ptr->width = img_width;
@@ -2769,7 +2769,7 @@ int main(int argc, char *argv[])
 
                                fits->get_spectrum_range(frame, frame, ref_freq, frame_idx, frame_idx);
 
-                               std::cout << "[uWS::init_video]::" << datasetid << "\tfps = " << fps << "\tbitrate = " << bitrate << "\tflux = " << flux << "\tcolourmap = " << colourmap << "\tscale = " << user->ptr->scale << "\tframe = " << frame_idx << std::endl;
+                               std::cout << "[uWS::init_video]::" << datasetid << "\tfps = " << fps << "\tbitrate = " << bitrate << "\tflux = " << flux << "\tcolourmap = " << colourmap << "\tscale = " << scale << "\tframe = " << frame_idx << std::endl;
 
                                user->ptr->kal_z = std::shared_ptr<KalmanFilter>(new KalmanFilter(frame, true));
 
@@ -2968,11 +2968,50 @@ int main(int argc, char *argv[])
                                      //auto [_pixels, _mask, _r, _g, _b] = fits->get_video(frame_idx, user->ptr->flux, user->ptr->colourmap);
                                      auto [_pixels, _mask] = fits->get_frame(frame_idx);
 
-                                    // downscaling (optional)
+                                     if (_pixels && _mask)
+                                     {
+                                       int img_width = user->ptr->width;
+                                       int img_height = user->ptr->height;
 
-                                    // tone-mapping + colourmap
+                                       // optional downscaling (if needed)
+                                       if (img_width < fits->width || img_height < fits->height)
+                                       {
+                                         printf("downscaling the video frame to %d x %d\n", img_width, img_height);
 
-                                    // contour lines (optional)
+                                         size_t plane_size = size_t(img_width) * size_t(img_height);
+
+                                         // allocate {pixel_buf, mask_buf}
+                                         std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
+                                         std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+
+                                         if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+                                         {
+                                           // downsize float32 pixels and a mask
+                                           IppiSize srcSize;
+                                           srcSize.width = fits->width;
+                                           srcSize.height = fits->height;
+                                           Ipp32s srcStep = srcSize.width;
+
+                                           IppiSize dstSize;
+                                           dstSize.width = img_width;
+                                           dstSize.height = img_height;
+                                           Ipp32s dstStep = dstSize.width;
+
+                                           IppStatus pixels_stat = tileResize32f_C1R(_pixels.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+
+                                           IppStatus mask_stat = tileResize8u_C1R(_mask.get(), srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
+
+                                           printf(" %d : %s, %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat), mask_stat, ippGetStatusString(mask_stat));
+
+                                           _pixels = std::move(pixels_buf);
+                                           _mask = std::move(mask_buf);
+                                         }
+                                       }
+
+                                       // tone-mapping + colourmap
+
+                                       // contour lines (optional)
+                                     }
 
                                      auto end_t = steady_clock::now();
 
