@@ -3033,6 +3033,7 @@ int main(int argc, char *argv[])
                                          float sensitivity = 1.0f / (white - black);
 
                                          // tone-mapping + colourmap
+                                         ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
 
                                          // contour lines (optional)
                                        }
