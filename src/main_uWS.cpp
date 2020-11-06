@@ -3037,6 +3037,8 @@ int main(int argc, char *argv[])
                                          ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
 
                                          // contour lines (optional)
+                                         // 1. Run Marching Squares on _pixels
+                                         // 2. Overlay raster lines over _r, _g, _b
                                        }
                                      }
 
