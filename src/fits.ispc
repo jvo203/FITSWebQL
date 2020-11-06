@@ -678,7 +678,7 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
     return 0.0f ;
 } ;
 
-export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe)
+export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -706,7 +706,7 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
     } ;  
 } ;
 
-export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
+export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
 {
   foreach(i=0 ... total_size)
     {
@@ -727,7 +727,7 @@ export void make_video_frameF32(uniform int32 src[], uniform float bzero, unifor
     } ;  
 } ;
 
-export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float median, uniform float sensitivity)
+export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float median, uniform float sensitivity)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -759,6 +759,28 @@ export void make_video_frameF16_logistic_greyscale(uniform unsigned int16 src[],
         dst_r[idx] = 0;
         dst_g[idx] = 0;
         dst_b[idx] = 0;	      
+      }
+    } ;  
+} ;
+
+export void logistic_greyscale_cm(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_r[], uniform unsigned int8 dst_g[], uniform unsigned int8 dst_b[], uniform float median, uniform float sensitivity, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {     
+      //alternative coherent if
+      cif (src_mask[i] != 0)
+	    {
+	      float tmp = src_pixels[i];
+        float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
+        dst_r[i] = clamp( (int) pixel, 0, 255) ;
+        dst_g[i] = clamp( (int) pixel, 0, 255) ;
+        dst_b[i] = clamp( (int) pixel, 0, 255) ;
+	    }
+      else
+      {        
+        dst_r[i] = 0;
+        dst_g[i] = 0;
+        dst_b[i] = 0;	      
       }
     } ;  
 } ;
