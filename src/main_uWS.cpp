@@ -3025,6 +3025,13 @@ int main(int argc, char *argv[])
                                          printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
                                                 fits->dataset_id.c_str());
 
+                                         // calculate white, black, sensitivity from the all-data histogram
+                                         float u = 7.5f;
+                                         float median = fits->data_median;
+                                         float black = MAX(fits->dmin, ((fits->data_median) - u * (fits->data_madN)));
+                                         float white = MIN(fits->dmax, ((fits->data_median) + u * (fits->data_madP)));
+                                         float sensitivity = 1.0f / (white - black);
+
                                          // tone-mapping + colourmap
 
                                          // contour lines (optional)
