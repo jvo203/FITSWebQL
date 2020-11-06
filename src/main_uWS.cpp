@@ -3008,9 +3008,27 @@ int main(int argc, char *argv[])
                                          }
                                        }
 
-                                       // tone-mapping + colourmap
+                                       // allocate memory for RGB channels
+                                       const size_t plane_size = img_width * img_height;
 
-                                       // contour lines (optional)
+                                       std::shared_ptr<Ipp8u> _r =
+                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
+
+                                       std::shared_ptr<Ipp8u> _g =
+                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
+
+                                       std::shared_ptr<Ipp8u> _b =
+                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
+
+                                       if (!_pixels || !_mask || !_r || !_g || !_b)
+                                       {
+                                         printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
+                                                fits->dataset_id.c_str());
+
+                                         // tone-mapping + colourmap
+
+                                         // contour lines (optional)
+                                       }
                                      }
 
                                      auto end_t = steady_clock::now();
