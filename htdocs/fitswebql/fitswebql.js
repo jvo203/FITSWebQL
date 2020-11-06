@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-10-30.0";
+	return "JS2020-11-06.0";
 }
 
 const wasm_supported = (() => {
@@ -2415,6 +2415,8 @@ function poll_heartbeat() {
 				.attr("opacity", 1.0)
 				//.text('\ue143');// an empty heart
 				.text('\ue005');// a full heart
+				//.text('📡');
+				//.text('📶');
 
 			setTimeout(function () {
 				d3.select("#heartbeat")
