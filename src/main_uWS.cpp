@@ -130,6 +130,7 @@ std::thread beacon_thread;
 #define JVO_USER "jvo"
 #endif
 
+#include "../fits.h"
 #include "fits.hpp"
 #include "json.h"
 #include "lttb.hpp"
