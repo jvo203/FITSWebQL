@@ -784,3 +784,19 @@ export void logistic_greyscale(uniform float src_pixels[], uniform unsigned int8
       }
     } ;  
 } ;
+
+export void logistic(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float median, uniform float sensitivity, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {     
+      //alternative coherent if
+      cif (src_mask[i] != 0)
+	    {
+	      float tmp = src_pixels[i];
+        float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
+        dst_luma[i] = clamp( (int) pixel, 0, 255) ;        
+	    }
+      else      
+        dst_luma[i] = 0;              
+    } ;  
+} ;
