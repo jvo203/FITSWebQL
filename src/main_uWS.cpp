@@ -3028,6 +3028,7 @@ int main(int argc, char *argv[])
                                        std::shared_ptr<Ipp8u> _b =
                                            std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);*/
 
+                                       // luminance
                                        if (!_pixels || !_mask || !_luma /*!_r || !_g || !_b*/)
                                        {
                                          /*printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
@@ -3079,11 +3080,6 @@ int main(int argc, char *argv[])
                                            ispc::legacy(_pixels.get(), _mask.get(), _luma.get(), fits->dmin, fits->dmax, fits->lmin, fits->lmax, plane_size);
                                            has_luma = true;
                                          }
-
-                                         // contour lines (optional)
-                                         // 1. run Marching Squares on _pixels
-                                         // 2. overlay raster contour lines over _r, _g, _b
-                                         // uses CONREC for now
                                        }
 
                                        if (!has_luma)
@@ -3092,6 +3088,12 @@ int main(int argc, char *argv[])
                                                 fits->dataset_id.c_str(), user->ptr->flux.c_str());
                                          return;
                                        }
+
+                                       // contour lines (optional)
+                                       // 1. run Marching Squares on _pixels
+                                       // 2. overlay raster contour lines over _r, _g, _b
+                                       // uses CONREC for now
+                                       FITSRaster raster(_pixels, img_width, img_height);
                                      }
 
                                      auto end_t = steady_clock::now();
