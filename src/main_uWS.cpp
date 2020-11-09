@@ -137,7 +137,7 @@ std::thread beacon_thread;
 #include <fpzip.h>
 
 #include "contours.h"
-#include "MyRaster.hpp"
+#include "FITSRaster.hpp"
 
 struct SpectrumPoint
 {
