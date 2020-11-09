@@ -3011,6 +3011,7 @@ int main(int argc, char *argv[])
 
                                        // allocate memory for RGB channels
                                        const size_t plane_size = img_width * img_height;
+                                       bool has_luma = false;
 
                                        std::shared_ptr<Ipp8u> _luma =
                                            std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
@@ -3040,7 +3041,6 @@ int main(int argc, char *argv[])
                                          float black = MAX(fits->dmin, ((fits->data_median) - u * (fits->data_madN)));
                                          float white = MIN(fits->dmax, ((fits->data_median) + u * (fits->data_madP)));
                                          float sensitivity = 1.0f / (white - black);
-                                         bool has_luma = false;
 
                                          // tone-mapping + colourmap
                                          //ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
@@ -3077,15 +3077,16 @@ int main(int argc, char *argv[])
                                            has_luma = true;
                                          }
 
-                                         if (!has_luma)
-                                         {
-                                           // default: zero-out the luminance in case of an unrecognised flux
-                                           memset(_luma.get(), 0, plane_size);
-                                         }
-
                                          // contour lines (optional)
                                          // 1. run Marching Squares on _pixels
                                          // 2. overlay raster contour lines over _r, _g, _b
+                                       }
+
+                                       if (!has_luma)
+                                       {
+                                         printf("%s::unrecognised flux '%s'\n",
+                                                fits->dataset_id.c_str(), user->ptr->flux.c_str());
+                                         return;
                                        }
                                      }
 
