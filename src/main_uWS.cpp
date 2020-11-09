@@ -3093,7 +3093,26 @@ int main(int argc, char *argv[])
                                        // 1. run Marching Squares on _pixels
                                        // 2. overlay raster contour lines over _r, _g, _b
                                        // uses CONREC for now
-                                       FITSRaster raster(_pixels, img_width, img_height);
+                                       if (keyframe)
+                                       {
+                                         auto start_t = steady_clock::now();
+
+                                         FITSRaster raster(_pixels, img_width, img_height);
+                                         CContourMap contours();
+
+                                         contours.contour(&raster);
+
+                                         auto end_t = steady_clock::now();
+
+                                         double elapsedSeconds = ((end_t - start_t).count()) *
+                                                                 steady_clock::period::num /
+                                                                 static_cast<double>(steady_clock::period::den);
+                                         double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+                                         contours.dump();
+
+                                         printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
+                                       }
                                      }
 
                                      auto end_t = steady_clock::now();
