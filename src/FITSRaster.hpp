@@ -36,7 +36,7 @@ public:
         if (idx >= plane_size)
             return (0);
         else
-            return data[idx];
+            return (data[idx]);
     };
 
     virtual SPoint upper_bound() { return (SPoint(width - 1, height - 1)); };
