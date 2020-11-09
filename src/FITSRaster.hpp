@@ -33,7 +33,7 @@ public:
 
         int idx = int(y) * width + int(x);
 
-        if (idx >= plane_size)
+        if ((idx < 0) || (idx >= plane_size))
             return (0);
         else
             return (data[idx]);
