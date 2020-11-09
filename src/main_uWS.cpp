@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-09.1"
+#define VERSION_STRING "SV2020-11-09.2"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2969,7 +2969,8 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                     //auto [_pixels, _mask, _r, _g, _b] = fits->get_video(frame_idx, user->ptr->flux, user->ptr->colourmap);
+                                    //auto [_luma, _mask] = fits->get_video(frame_idx, user->ptr->flux);
+                                     
                                      auto [_pixels, _mask] = fits->get_frame(frame_idx);
 
                                      if (_pixels && _mask)
