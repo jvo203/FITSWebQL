@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-09.0"
+#define VERSION_STRING "SV2020-11-09.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -135,6 +135,8 @@ std::thread beacon_thread;
 #include "json.h"
 #include "lttb.hpp"
 #include <fpzip.h>
+
+#include "contours.h"
 
 struct SpectrumPoint
 {
