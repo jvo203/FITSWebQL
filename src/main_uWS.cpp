@@ -3030,17 +3030,58 @@ int main(int argc, char *argv[])
                                                 fits->dataset_id.c_str());*/
                                          printf("%s::cannot allocate memory for an {F32,A8,L8} video frame\n",
                                                 fits->dataset_id.c_str());
-
+                                         return;
+                                       }
+                                       else
+                                       {
                                          // calculate white, black, sensitivity from the all-data histogram
                                          float u = 7.5f;
                                          float median = fits->data_median;
                                          float black = MAX(fits->dmin, ((fits->data_median) - u * (fits->data_madN)));
                                          float white = MIN(fits->dmax, ((fits->data_median) + u * (fits->data_madP)));
                                          float sensitivity = 1.0f / (white - black);
+                                         bool has_luma = false;
 
                                          // tone-mapping + colourmap
                                          //ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
-                                         ispc::logistic(_pixels.get(), _mask.get(), _luma.get(), median, sensitivity, plane_size);
+
+                                         // tone-mapping
+                                         if (user->ptr->flux == "linear")
+                                         {
+                                           float slope = 1.0f / (white - black);
+                                           ispc::linear(_pixels.get(), _mask.get(), _luma.get(), black, slope, plane_size);
+                                           has_luma = true;
+                                         }
+
+                                         if (user->ptr->flux == "logistic")
+                                         {
+                                           ispc::logistic(_pixels.get(), _mask.get(), _luma.get(), median, sensitivity, plane_size);
+                                           has_luma = true;
+                                         }
+
+                                         if (user->ptr->flux == "ratio")
+                                         {
+                                           ispc::ratio(_pixels.get(), _mask.get(), _luma.get(), black, sensitivity, plane_size);
+                                           has_luma = true;
+                                         }
+
+                                         if (user->ptr->flux == "square")
+                                         {
+                                           ispc::square(_pixels.get(), _mask.get(), _luma.get(), black, sensitivity, plane_size);
+                                           has_luma = true;
+                                         }
+
+                                         if (user->ptr->flux == "legacy")
+                                         {
+                                           ispc::legacy(_pixels.get(), _mask.get(), _luma.get(), fits->dmin, fits->dmax, fits->lmin, fits->lmax, plane_size);
+                                           has_luma = true;
+                                         }
+
+                                         if (!has_luma)
+                                         {
+                                           // default: zero-out the luminance in case of an unrecognised flux
+                                           memset(_luma.get(), 0, plane_size);
+                                         }
 
                                          // contour lines (optional)
                                          // 1. run Marching Squares on _pixels
