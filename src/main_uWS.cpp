@@ -3098,7 +3098,7 @@ int main(int argc, char *argv[])
                                          auto start_t = steady_clock::now();
 
                                          FITSRaster raster(_pixels, img_width, img_height);
-                                         CContourMap contours();
+                                         CContourMap contours;
 
                                          contours.contour(&raster);
 

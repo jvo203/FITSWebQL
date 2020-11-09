@@ -4,7 +4,7 @@
 
 #include <ipp.h>
 
-class FITSRaster : CRaster
+class FITSRaster : public CRaster
 {
 public:
     FITSRaster(std::shared_ptr<Ipp32f> _pixels, int _width, int _height)
