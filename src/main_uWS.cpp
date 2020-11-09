@@ -137,6 +137,7 @@ std::thread beacon_thread;
 #include <fpzip.h>
 
 #include "contours.h"
+#include "MyRaster.hpp"
 
 struct SpectrumPoint
 {
@@ -3082,6 +3083,7 @@ int main(int argc, char *argv[])
                                          // contour lines (optional)
                                          // 1. run Marching Squares on _pixels
                                          // 2. overlay raster contour lines over _r, _g, _b
+                                         // uses CONREC for now
                                        }
 
                                        if (!has_luma)
