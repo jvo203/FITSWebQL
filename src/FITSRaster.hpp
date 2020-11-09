@@ -2,6 +2,6 @@
 
 #include "contours.h"
 
-class FITSRaster : CRaster {
-
-}
+class FITSRaster : CRaster
+{
+};
