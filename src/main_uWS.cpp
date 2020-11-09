@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-06.0"
+#define VERSION_STRING "SV2020-11-09.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -3012,18 +3012,23 @@ int main(int argc, char *argv[])
                                        // allocate memory for RGB channels
                                        const size_t plane_size = img_width * img_height;
 
-                                       std::shared_ptr<Ipp8u> _r =
+                                       std::shared_ptr<Ipp8u> _luma =
+                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
+
+                                       /*std::shared_ptr<Ipp8u> _r =
                                            std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
 
                                        std::shared_ptr<Ipp8u> _g =
                                            std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
 
                                        std::shared_ptr<Ipp8u> _b =
-                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
+                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);*/
 
-                                       if (!_pixels || !_mask || !_r || !_g || !_b)
+                                       if (!_pixels || !_mask || !_luma /*!_r || !_g || !_b*/)
                                        {
-                                         printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
+                                         /*printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
+                                                fits->dataset_id.c_str());*/
+                                         printf("%s::cannot allocate memory for an {F32,A8,L8} video frame\n",
                                                 fits->dataset_id.c_str());
 
                                          // calculate white, black, sensitivity from the all-data histogram
@@ -3034,7 +3039,8 @@ int main(int argc, char *argv[])
                                          float sensitivity = 1.0f / (white - black);
 
                                          // tone-mapping + colourmap
-                                         ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
+                                         //ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
+                                         ispc::logistic(_pixels.get(), _mask.get(), _luma.get(), median, sensitivity, plane_size);
 
                                          // contour lines (optional)
                                          // 1. run Marching Squares on _pixels
