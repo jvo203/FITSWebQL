@@ -3100,6 +3100,7 @@ int main(int argc, char *argv[])
 
                                          FITSRaster raster(_pixels, img_width, img_height);
                                          CContourMap contours;
+                                         contours.generate_levels(fits->frame_min[frame_idx], fits->frame_max[frame_idx], 5);
 
                                          contours.contour(&raster);
 
@@ -3110,6 +3111,7 @@ int main(int argc, char *argv[])
                                                                  static_cast<double>(steady_clock::period::den);
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
+                                         contours.consolidate();
                                          contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
