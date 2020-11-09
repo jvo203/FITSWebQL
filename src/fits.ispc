@@ -785,18 +785,82 @@ export void logistic_greyscale(uniform float src_pixels[], uniform unsigned int8
     } ;  
 } ;
 
+export void linear(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float black, uniform float slope, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {     
+      //alternative coherent if
+      cif (src_mask[i] > 0)
+	    {
+	      float tmp = src_pixels[i];        
+        float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - black) * slope) ) ;
+        dst_luma[i] = clamp( (int) pixel, 0, 255) ;        
+	    }
+      else      
+        dst_luma[i] = 0;      
+    } ;  
+} ;
+
 export void logistic(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float median, uniform float sensitivity, uniform unsigned int total_size)
 {
   foreach(i=0 ... total_size)
     {     
       //alternative coherent if
-      cif (src_mask[i] != 0)
+      cif (src_mask[i] > 0)
 	    {
 	      float tmp = src_pixels[i];
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
         dst_luma[i] = clamp( (int) pixel, 0, 255) ;        
 	    }
       else      
-        dst_luma[i] = 0;              
+        dst_luma[i] = 0;      
     } ;  
 } ;
+
+export void ratio(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float black, uniform float sensitivity, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {     
+      //alternative coherent if
+      cif (src_mask[i] > 0)
+	    {
+	      float tmp = src_pixels[i];        
+        float pixel = 5.0f * (tmp - black) * sensitivity ;
+        dst_luma[i] = pixel > 0.0f ? (int) (255.0f*pixel/(1.0f + pixel)) : 0 ;    
+	    }
+      else      
+        dst_luma[i] = 0;      
+    } ;  
+} ;
+
+export void square(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float black, uniform float sensitivity, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+    {     
+      //alternative coherent if
+      cif (src_mask[i] > 0)
+	    {
+	      float tmp = src_pixels[i];        
+        float pixel = (tmp - black) * sensitivity ;
+        dst_luma[i] = pixel > 0.0f ? clamp( (int) (255.0f*pixel*pixel), 0, 255) : 0 ;        
+	    }
+      else      
+        dst_luma[i] = 0;      
+    } ;  
+} ;
+
+export void legacy(uniform float src_pixels[], uniform unsigned int8 src_mask[], uniform unsigned int8 dst_luma[], uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax, uniform unsigned int total_size)
+{
+  foreach(i=0 ... total_size)
+  {
+    cif(src_mask[i] > 0)
+    {
+      float tmp = src_pixels[i];       
+      float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
+      dst_luma[i] = pixel > 0.0f ? clamp( (int) (255.0f * (log(pixel) - lmin) / (lmax - lmin)), 0, 255) : 0 ;
+    }
+    else
+      dst_luma[i] = 0 ;
+  }
+} ;
+
