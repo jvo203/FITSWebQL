@@ -2785,7 +2785,7 @@ int main(int argc, char *argv[])
                                param->fpsNum = fps;
                                param->fpsDenom = 1;
                                param->bRepeatHeaders = 1;
-                               param->internalCsp = X265_CSP_I444;
+                               param->internalCsp = X265_CSP_I400;
 
                                param->internalBitDepth = 8;
                                param->sourceWidth = img_width;
