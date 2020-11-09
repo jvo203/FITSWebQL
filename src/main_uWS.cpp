@@ -3112,7 +3112,7 @@ int main(int argc, char *argv[])
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
                                          contours.consolidate();
-                                         contours.dump();
+                                         //contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
