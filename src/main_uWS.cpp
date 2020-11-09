@@ -3096,22 +3096,22 @@ int main(int argc, char *argv[])
                                        //if (keyframe)
                                        if (true)
                                        {
-                                         auto start_t = steady_clock::now();
+                                         auto _start_t = steady_clock::now();
 
                                          FITSRaster raster(_pixels, img_width, img_height);
                                          CContourMap contours;
                                          contours.generate_levels(fits->frame_min[frame_idx], fits->frame_max[frame_idx], 5);
 
                                          contours.contour(&raster);
+                                         //contours.consolidate(); // consolidating segments takes up far too much time ...
 
-                                         auto end_t = steady_clock::now();
+                                         auto _end_t = steady_clock::now();
 
-                                         double elapsedSeconds = ((end_t - start_t).count()) *
+                                         double elapsedSeconds = ((_end_t - _start_t).count()) *
                                                                  steady_clock::period::num /
                                                                  static_cast<double>(steady_clock::period::den);
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-
-                                         contours.consolidate();
+                                         
                                          //contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
