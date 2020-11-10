@@ -2969,11 +2969,17 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                    //auto [_luma, _mask] = fits->get_video(frame_idx, user->ptr->flux);
-                                     
-                                     auto [_pixels, _mask] = fits->get_frame(frame_idx);
+                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);                                     
+                                    //auto [_pixels, _mask] = fits->get_frame(frame_idx);
 
-                                     if (_pixels && _mask)
+                                    if (!has_luma)
+                                       {
+                                         printf("%s::unrecognised flux '%s'\n",
+                                                fits->dataset_id.c_str(), user->ptr->flux.c_str());
+                                         return;
+                                       }
+
+                                     if (_luma && _mask)
                                      {
                                        int img_width = user->ptr->width;
                                        int img_height = user->ptr->height;
@@ -2986,10 +2992,10 @@ int main(int argc, char *argv[])
                                          size_t plane_size = size_t(img_width) * size_t(img_height);
 
                                          // allocate {pixel_buf, mask_buf}
-                                         std::shared_ptr<Ipp32f> pixels_buf(ippsMalloc_32f_L(plane_size), ippsFree);
+                                         std::shared_ptr<Ipp8u> pixels_buf(ippsMalloc_8u_L(plane_size), ippsFree);
                                          std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
 
-                                         if (pixels_buf.get() != NULL && mask_buf.get() != NULL)
+                                         if (pixels_buf && mask_buf)
                                          {
                                            // downsize float32 pixels and a mask
                                            IppiSize srcSize;
@@ -3002,93 +3008,16 @@ int main(int argc, char *argv[])
                                            dstSize.height = img_height;
                                            Ipp32s dstStep = dstSize.width;
 
-                                           IppStatus pixels_stat = tileResize32f_C1R(_pixels.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
+                                           IppStatus pixels_stat = tileResize8u_C1R(_luma.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 
                                            IppStatus mask_stat = tileResize8u_C1R(_mask.get(), srcSize, srcStep, mask_buf.get(), dstSize, dstStep);
 
                                            printf(" %d : %s, %d : %s\n", pixels_stat, ippGetStatusString(pixels_stat), mask_stat, ippGetStatusString(mask_stat));
 
-                                           _pixels = std::move(pixels_buf);
+                                           _luma = std::move(pixels_buf);
                                            _mask = std::move(mask_buf);
                                          }
-                                       }
-
-                                       // allocate memory for RGB channels
-                                       const size_t plane_size = img_width * img_height;
-                                       bool has_luma = false;
-
-                                       std::shared_ptr<Ipp8u> _luma =
-                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
-
-                                       /*std::shared_ptr<Ipp8u> _r =
-                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
-
-                                       std::shared_ptr<Ipp8u> _g =
-                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);
-
-                                       std::shared_ptr<Ipp8u> _b =
-                                           std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), ippsFree);*/
-
-                                       // luminance
-                                       if (!_pixels || !_mask || !_luma /*!_r || !_g || !_b*/)
-                                       {
-                                         /*printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
-                                                fits->dataset_id.c_str());*/
-                                         printf("%s::cannot allocate memory for an {F32,A8,L8} video frame\n",
-                                                fits->dataset_id.c_str());
-                                         return;
-                                       }
-                                       else
-                                       {
-                                         // calculate white, black, sensitivity from the all-data histogram
-                                         float u = 7.5f;
-                                         float median = fits->data_median;
-                                         float black = MAX(fits->dmin, ((fits->data_median) - u * (fits->data_madN)));
-                                         float white = MIN(fits->dmax, ((fits->data_median) + u * (fits->data_madP)));
-                                         float sensitivity = 1.0f / (white - black);
-
-                                         // tone-mapping + colourmap
-                                         //ispc::logistic_greyscale(_pixels.get(), _mask.get(), _r.get(), _g.get(), _b.get(), median, sensitivity, plane_size);
-
-                                         // tone-mapping
-                                         if (user->ptr->flux == "linear")
-                                         {
-                                           float slope = 1.0f / (white - black);
-                                           ispc::linear(_pixels.get(), _mask.get(), _luma.get(), black, slope, plane_size);
-                                           has_luma = true;
-                                         }
-
-                                         if (user->ptr->flux == "logistic")
-                                         {
-                                           ispc::logistic(_pixels.get(), _mask.get(), _luma.get(), median, sensitivity, plane_size);
-                                           has_luma = true;
-                                         }
-
-                                         if (user->ptr->flux == "ratio")
-                                         {
-                                           ispc::ratio(_pixels.get(), _mask.get(), _luma.get(), black, sensitivity, plane_size);
-                                           has_luma = true;
-                                         }
-
-                                         if (user->ptr->flux == "square")
-                                         {
-                                           ispc::square(_pixels.get(), _mask.get(), _luma.get(), black, sensitivity, plane_size);
-                                           has_luma = true;
-                                         }
-
-                                         if (user->ptr->flux == "legacy")
-                                         {
-                                           ispc::legacy(_pixels.get(), _mask.get(), _luma.get(), fits->dmin, fits->dmax, fits->lmin, fits->lmax, plane_size);
-                                           has_luma = true;
-                                         }
-                                       }
-
-                                       if (!has_luma)
-                                       {
-                                         printf("%s::unrecognised flux '%s'\n",
-                                                fits->dataset_id.c_str(), user->ptr->flux.c_str());
-                                         return;
-                                       }
+                                       }                                   
 
                                        // contour lines (optional)
                                        // 1. run Marching Squares on _pixels
@@ -3099,7 +3028,7 @@ int main(int argc, char *argv[])
                                        {
                                          auto _start_t = steady_clock::now();
 
-                                         FITSRaster raster(_pixels, img_width, img_height);
+                                         FITSRaster raster(_luma, img_width, img_height);
                                          CContourMap contours;
                                          contours.generate_levels(fits->frame_min[frame_idx], fits->frame_max[frame_idx], 5);
 
