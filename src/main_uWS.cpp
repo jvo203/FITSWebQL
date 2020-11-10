@@ -2969,8 +2969,7 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);                                     
-                                    //auto [_pixels, _mask] = fits->get_frame(frame_idx);
+                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);                                    
 
                                     if (!has_luma)
                                        {
