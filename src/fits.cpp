@@ -4750,11 +4750,11 @@ jmp:
   return {std::move(pixels), std::move(mask)};
 }
 
-std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>>           
+std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool>           
 FITS::get_video_frame(int frame, std::string flux)
 {
   // {L8,A8}
-  std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;             
+  std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool> res;             
 
   // sanity checks
   if (bitpix != -32)
@@ -4774,6 +4774,7 @@ FITS::get_video_frame(int frame, std::string flux)
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
+  bool has_luma = false;
   
   std::shared_ptr<Ipp8u> pixels =
       std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
@@ -4861,11 +4862,56 @@ FITS::get_video_frame(int frame, std::string flux)
                 int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
                          idy * ZFP_CACHE_REGION;
 
-                ispc::make_video_frameF16_logistic(
+                if (flux == "linear")
+                {
+                  float slope = 1.0f / (white - black);
+                  ispc::make_video_frameF16_linear(
+                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                    offset_x, offset_y, width, black, slope);
+                    has_luma = true;
+                }
+
+                if (flux == "logistic")
+                {
+                  ispc::make_video_frameF16_logistic(
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
                     offset_x, offset_y, width, median, sensitivity);
+                    has_luma = true;
+                }
+
+                if (flux == "ratio")
+                {                  
+                  ispc::make_video_frameF16_ratio(
+                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                    offset_x, offset_y, width, black, sensitivity);
+                    has_luma = true;
+                }
+
+                if (flux == "square")
+                {                  
+                  ispc::make_video_frameF16_square(
+                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                    offset_x, offset_y, width, black, sensitivity);
+                    has_luma = true;
+                }
+
+                if (flux == "legacy")
+                {                  
+                  ispc::make_video_frameF16_legacy(
+                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                    offset_x, offset_y, width, dmin, dmax, lmin, lmax);
+                    has_luma = true;
+                }
               }
             }
           }
@@ -4889,7 +4935,7 @@ jmp:
     printf("%f\t%d\t%d\t%d\t%d\n", pixels.get()[i], mask.get()[i],
     pixels_r.get()[i], pixels_g.get()[i], pixels_b.get()[i]);*/
 
-  return {std::move(pixels), std::move(mask)};
+  return {std::move(pixels), std::move(mask), has_luma};
 }
 
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>,
