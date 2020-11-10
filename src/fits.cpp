@@ -4750,16 +4750,11 @@ jmp:
   return {std::move(pixels), std::move(mask)};
 }
 
-std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>,
-           std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>,
-           std::shared_ptr<Ipp8u>>
-FITS::get_video(int frame, std::string flux, std::string colourmap)
+std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>>           
+FITS::get_video_frame(int frame, std::string flux)
 {
-  // {F32,A8,R8,G8,B8}
-  std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>,
-             std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>,
-             std::shared_ptr<Ipp8u>>
-      res;
+  // {L8,A8}
+  std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>> res;             
 
   // sanity checks
   if (bitpix != -32)
@@ -4779,11 +4774,11 @@ FITS::get_video(int frame, std::string flux, std::string colourmap)
 
   // allocate memory for pixels and a mask
   const size_t plane_size = width * height;
-
-  std::shared_ptr<Ipp32f> pixels =
-      std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+  
+  std::shared_ptr<Ipp8u> pixels =
+      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
         if (ptr != NULL)
-          Ipp32fFree(ptr);
+          Ipp8uFree(ptr);
       });
 
   std::shared_ptr<Ipp8u> mask =
@@ -4792,27 +4787,9 @@ FITS::get_video(int frame, std::string flux, std::string colourmap)
           Ipp8uFree(ptr);
       });
 
-  std::shared_ptr<Ipp8u> pixels_r =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
-        if (ptr != NULL)
-          Ipp8uFree(ptr);
-      });
-
-  std::shared_ptr<Ipp8u> pixels_g =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
-        if (ptr != NULL)
-          Ipp8uFree(ptr);
-      });
-
-  std::shared_ptr<Ipp8u> pixels_b =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
-        if (ptr != NULL)
-          Ipp8uFree(ptr);
-      });
-
-  if (!pixels || !mask || !pixels_r || !pixels_g || !pixels_b)
+  if (!pixels || !mask)
   {
-    printf("%s::cannot allocate memory for an {F32,A8,R8,G8,B8} video frame\n",
+    printf("%s::cannot allocate memory for an {L8,A8} video frame\n",
            dataset_id.c_str());
     return res;
   }
@@ -4884,11 +4861,10 @@ FITS::get_video(int frame, std::string flux, std::string colourmap)
                 int dy = MIN((idy + 1) * ZFP_CACHE_REGION, height) -
                          idy * ZFP_CACHE_REGION;
 
-                ispc::make_video_frameF16_logistic_greyscale(
+                ispc::make_video_frameF16_logistic(
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(),
-                    mask.get(), pixels_r.get(), pixels_g.get(), pixels_b.get(),
+                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
                     offset_x, offset_y, width, median, sensitivity);
               }
             }
@@ -4913,8 +4889,7 @@ jmp:
     printf("%f\t%d\t%d\t%d\t%d\n", pixels.get()[i], mask.get()[i],
     pixels_r.get()[i], pixels_g.get()[i], pixels_b.get()[i]);*/
 
-  return {std::move(pixels), std::move(mask), std::move(pixels_r),
-          std::move(pixels_g), std::move(pixels_b)};
+  return {std::move(pixels), std::move(mask)};
 }
 
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>,
