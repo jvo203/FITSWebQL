@@ -7,7 +7,7 @@
 class FITSRaster : public CRaster
 {
 public:
-    FITSRaster(std::shared_ptr<Ipp32f> _pixels, int _width, int _height)
+    FITSRaster(std::shared_ptr<Ipp8u> _pixels, int _width, int _height)
     {
         pixels = _pixels;
         width = _width;
@@ -44,8 +44,8 @@ public:
 
     // attributes
 private:
-    std::shared_ptr<Ipp32f> pixels;
-    Ipp32f *data;
+    std::shared_ptr<Ipp8u> pixels;
+    Ipp8u *data;
     int width;
     int height;
     int plane_size;
