@@ -3023,8 +3023,8 @@ int main(int argc, char *argv[])
                                        // 1. run Marching Squares on _pixels
                                        // 2. overlay raster contour lines over _r, _g, _b
                                        // uses CONREC for now
-                                       //if (keyframe)
-                                       if (true)
+                                       if (keyframe)
+                                       //if (true)
                                        {
                                          auto _start_t = steady_clock::now();
 
