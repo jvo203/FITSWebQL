@@ -143,7 +143,7 @@ par_msquares_boundary* par_msquares_extract_boundary(par_msquares_mesh const* );
 // END PUBLIC API
 // -----------------------------------------------------------------------------
 
-#ifdef PAR_MSQUARES_IMPLEMENTATION
+#ifndef PAR_MSQUARES_IMPLEMENTATION
 #include <stdlib.h>
 #include <assert.h>
 #include <float.h>
