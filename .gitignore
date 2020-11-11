@@ -15,6 +15,9 @@
 #ispc output files
 /fits.*
 
+#object files
+*.o
+
 #Intel C/C++ Compiler optimizer reports
 *.optrpt
 
