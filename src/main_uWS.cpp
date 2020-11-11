@@ -138,7 +138,11 @@ std::thread beacon_thread;
 
 #include "contours.h"
 #include "FITSRaster.hpp"
-#include "par_msquares.h"
+
+extern "C"
+{
+  #include "par_msquares.h"
+}
 
 struct SpectrumPoint
 {
