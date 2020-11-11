@@ -8,7 +8,8 @@ override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -W
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
-SRC = src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp  src/main_uWS.cpp
+SRC = src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp src/main_uWS.cpp
+OBJ = fits.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
@@ -53,12 +54,15 @@ TARGET=fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
-OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
+#OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
 
 fits.o:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
 
 %.o: %.c
+	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
+
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
 
 Linux: $(OBJ)
