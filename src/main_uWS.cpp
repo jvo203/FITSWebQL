@@ -2970,14 +2970,14 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);                                    
+                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);
 
-                                    if (!has_luma)
-                                       {
-                                         printf("%s::unrecognised flux '%s'\n",
-                                                fits->dataset_id.c_str(), user->ptr->flux.c_str());
-                                         return;
-                                       }
+                                     if (!has_luma)
+                                     {
+                                       printf("%s::unrecognised flux '%s'\n",
+                                              fits->dataset_id.c_str(), user->ptr->flux.c_str());
+                                       return;
+                                     }
 
                                      if (_luma && _mask)
                                      {
@@ -3017,7 +3017,7 @@ int main(int argc, char *argv[])
                                            _luma = std::move(pixels_buf);
                                            _mask = std::move(mask_buf);
                                          }
-                                       }                                   
+                                       }
 
                                        // contour lines (optional)
                                        // 1. run Marching Squares on _pixels
@@ -3041,26 +3041,26 @@ int main(int argc, char *argv[])
                                                                  steady_clock::period::num /
                                                                  static_cast<double>(steady_clock::period::den);
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-                                         
+
                                          //contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
 
-                                      if (true)
+                                       if (true)
                                        {
                                          auto _start_t = steady_clock::now();
 
-                                        // needs to be called multiple times with different colour thresholds
-                                         par_msquares_meshlist* mesh = par_msquares_color(_luma.get(), img_width, img_height, 5, 127, 1, 0);
-                                         
+                                         // needs to be called multiple times with different colour thresholds
+                                         par_msquares_meshlist *mesh = par_msquares_color(_luma.get(), img_width, img_height, 5, 127, 1, 0);
+
                                          auto _end_t = steady_clock::now();
 
                                          double elapsedSeconds = ((_end_t - _start_t).count()) *
                                                                  steady_clock::period::num /
                                                                  static_cast<double>(steady_clock::period::den);
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
-                                         
+
                                          printf("%s::contouring the video frame (Marching Squares); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
                                      }
