@@ -3051,8 +3051,9 @@ int main(int argc, char *argv[])
                                        {
                                          auto _start_t = steady_clock::now();
 
-                                         par_msquares_meshlist* mesh = par_msquares_color(_luma.get(), img_width,
-    img_height, 5, 127, 1, 0);                                         
+                                        // needs to be called multiple times with different colour thresholds
+                                         par_msquares_meshlist* mesh = par_msquares_color(_luma.get(), img_width, img_height, 5, 127, 1, 0);
+                                         
                                          auto _end_t = steady_clock::now();
 
                                          double elapsedSeconds = ((_end_t - _start_t).count()) *
