@@ -115,7 +115,6 @@ par_msquares_boundary* par_msquares_extract_boundary(par_msquares_mesh const* );
 // END PUBLIC API
 // -----------------------------------------------------------------------------
 
-
 #endif // PAR_MSQUARES_H
 
 // par_msquares is distributed under the MIT license:
