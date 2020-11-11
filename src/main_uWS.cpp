@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-11.0"
+#define VERSION_STRING "SV2020-11-11.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -3048,12 +3048,22 @@ int main(int argc, char *argv[])
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
 
-                                       if (true)
+                                       /*if (true)
                                        {
                                          auto _start_t = steady_clock::now();
 
                                          // needs to be called multiple times with different colour thresholds
-                                         par_msquares_meshlist *mesh = par_msquares_color(_luma.get(), img_width, img_height, img_width, 127, 1, 0);
+                                         int cellsize = 10;
+                                         par_msquares_meshlist* mesh_list = par_msquares_color(_luma.get(), img_width, img_height, cellsize, 127, 1, 0);                                         
+                                         par_msquares_mesh const* mesh = par_msquares_get_mesh(mesh_list, 0);
+                                         //par_msquares_boundary* par_msquares_extract_boundary(mesh);
+
+                                         float* pt = mesh->points;
+                                         for (int i = 0; i < mesh->npoints; i++)
+                                         {                                            
+                                            printf("v %f %f\n", pt[0], pt[1]);
+                                            pt += mesh->dim;
+                                         };
 
                                          auto _end_t = steady_clock::now();
 
@@ -3063,7 +3073,7 @@ int main(int argc, char *argv[])
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
                                          printf("%s::contouring the video frame (Marching Squares); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
-                                       }
+                                       }*/
                                      }
 
                                      auto end_t = steady_clock::now();
