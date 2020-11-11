@@ -1,6 +1,8 @@
 # detect the OS
 UNAME_S := $(shell uname -s)
 
+CXX = g++
+
 #-Ofast does not work with NaN and Inf, unfortunately... and so -fno-finite-math-only is needed
 override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
 
@@ -50,6 +52,20 @@ JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -l
 TARGET=fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
+
+OBJ = $(SRC:.c=.o) $(SRC:.cpp=.o) fits.o
+
+fits.o:
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
+
+%.o: %.c
+	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
+
+Linux:
+	@echo $(OBJ)
+
+clean:
+	rm -f src/*.o fits.h fits.o $(TARGET)
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
