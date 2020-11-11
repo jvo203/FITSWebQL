@@ -53,7 +53,7 @@ TARGET=fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
-OBJ = $(SRC:.c=.o) $(SRC:.cpp=.o) fits.o
+OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
 
 fits.o:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
@@ -61,11 +61,13 @@ fits.o:
 %.o: %.c
 	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
 
-Linux:
-	@echo $(OBJ)
+Linux: $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
+
+#@echo $(OBJ)
 
 clean:
-	rm -f src/*.o fits.h fits.o $(TARGET)
+	rm -f src/*.o lz4/*.o fits.h fits.o $(TARGET)
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
