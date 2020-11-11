@@ -6,7 +6,7 @@ override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -W
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
-SRC = src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/main_uWS.cpp
+SRC = src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp  src/main_uWS.cpp
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
