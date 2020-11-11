@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-10.0"
+#define VERSION_STRING "SV2020-11-11.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -138,6 +138,7 @@ std::thread beacon_thread;
 
 #include "contours.h"
 #include "FITSRaster.hpp"
+#include "par_msquares.h"
 
 struct SpectrumPoint
 {
@@ -3044,6 +3045,22 @@ int main(int argc, char *argv[])
                                          //contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
+                                       }
+
+                                      if (true)
+                                       {
+                                         auto _start_t = steady_clock::now();
+
+                                         par_msquares_meshlist* mesh = par_msquares_color(_luma.get(), img_width,
+    img_height, 5, 127, 1, 0);                                         
+                                         auto _end_t = steady_clock::now();
+
+                                         double elapsedSeconds = ((_end_t - _start_t).count()) *
+                                                                 steady_clock::period::num /
+                                                                 static_cast<double>(steady_clock::period::den);
+                                         double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+                                         
+                                         printf("%s::contouring the video frame (Marching Squares); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
                                      }
 
