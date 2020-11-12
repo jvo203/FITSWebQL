@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-12.0"
+#define VERSION_STRING "SV2020-11-12.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -3073,7 +3073,8 @@ int main(int argc, char *argv[])
 #pragma omp parallel for
                                          for (int i = 0; i < contour_levels; i++)
                                          {
-                                           int threshold = pixel_min + (i + 1) * delta;
+                                           uint32_t threshold = pixel_min + (i + 1) * delta;
+                                           printf("par_msquares: i = %d, threshold = %d\n", i, threshold);
 
                                            // needs to be called multiple times with different colour thresholds
                                            par_msquares_meshlist *mesh_list = par_msquares_color(_luma.get(), padded_width, padded_height, CELLSIZE, threshold, 1, 0);
