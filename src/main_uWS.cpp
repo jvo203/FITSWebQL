@@ -2971,7 +2971,7 @@ int main(int argc, char *argv[])
 
                                      auto start_t = steady_clock::now();
 
-                                     auto [_luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);
+                                     auto [padded_width, padded_height, _luma, _mask, has_luma] = fits->get_video_frame(frame_idx, user->ptr->flux);
 
                                      if (!has_luma)
                                      {
@@ -2988,26 +2988,29 @@ int main(int argc, char *argv[])
                                        // optional downscaling (if needed)
                                        if (img_width < fits->width || img_height < fits->height)
                                        {
-                                         printf("downscaling the video frame to %d x %d\n", img_width, img_height);
+                                         padded_width = img_width + img_width % CELLSIZE;
+                                         padded_height = img_height + img_height % CELLSIZE;
+                                         printf("downscaling the video frame to %d x %d; padded(%d x %d)\n", img_width, img_height, padded_width, padded_height);
 
-                                         size_t plane_size = size_t(img_width) * size_t(img_height);
+                                         const size_t frame_size = padded_width * padded_height;
+                                         //size_t plane_size = size_t(img_width) * size_t(img_height);
 
                                          // allocate {pixel_buf, mask_buf}
-                                         std::shared_ptr<Ipp8u> pixels_buf(ippsMalloc_8u_L(plane_size), ippsFree);
-                                         std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(plane_size), ippsFree);
+                                         std::shared_ptr<Ipp8u> pixels_buf(ippsMalloc_8u_L(frame_size), ippsFree);
+                                         std::shared_ptr<Ipp8u> mask_buf(ippsMalloc_8u_L(frame_size), ippsFree);
 
                                          if (pixels_buf && mask_buf)
                                          {
-                                           // downsize float32 pixels and a mask
+                                           // downsize uint8_t pixels and a mask
                                            IppiSize srcSize;
                                            srcSize.width = fits->width;
                                            srcSize.height = fits->height;
-                                           Ipp32s srcStep = srcSize.width;
+                                           Ipp32s srcStep = padded_width;
 
                                            IppiSize dstSize;
                                            dstSize.width = img_width;
                                            dstSize.height = img_height;
-                                           Ipp32s dstStep = dstSize.width;
+                                           Ipp32s dstStep = padded_width;
 
                                            IppStatus pixels_stat = tileResize8u_C1R(_luma.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 

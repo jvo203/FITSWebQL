@@ -4618,11 +4618,11 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool>           
+std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool>           
 FITS::get_video_frame(int frame, std::string flux)
 {
   // {L8,A8}
-  std::tuple<std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool> res;             
+  std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool> res;             
 
   // sanity checks
   if (bitpix != -32)
@@ -4641,17 +4641,21 @@ FITS::get_video_frame(int frame, std::string flux)
   int end_y = _end_y;
 
   // allocate memory for pixels and a mask
-  const size_t plane_size = width * height;
+  int padded_width = width +width % CELLSIZE;
+  int padded_height = height + height % CELLSIZE;
+  const size_t frame_size = padded_width * padded_height;
+  //std::cout << width << " x " << height << " --> " << padded_width << " x " << padded_height << std::endl;
+
   bool has_luma = false;
   
   std::shared_ptr<Ipp8u> pixels =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(frame_size), [=](Ipp8u *ptr) {
         if (ptr != NULL)
           Ipp8uFree(ptr);
       });
 
   std::shared_ptr<Ipp8u> mask =
-      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(plane_size), [=](Ipp8u *ptr) {
+      std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(frame_size), [=](Ipp8u *ptr) {
         if (ptr != NULL)
           Ipp8uFree(ptr);
       });
@@ -4737,7 +4741,7 @@ FITS::get_video_frame(int frame, std::string flux)
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, width, black, slope);
+                    offset_x, offset_y, padded_width, black, slope);
                     has_luma = true;
                 }
 
@@ -4747,7 +4751,7 @@ FITS::get_video_frame(int frame, std::string flux)
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, width, median, sensitivity);
+                    offset_x, offset_y, padded_width, median, sensitivity);
                     has_luma = true;
                 }
 
@@ -4757,7 +4761,7 @@ FITS::get_video_frame(int frame, std::string flux)
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, width, black, sensitivity);
+                    offset_x, offset_y, padded_width, black, sensitivity);
                     has_luma = true;
                 }
 
@@ -4767,7 +4771,7 @@ FITS::get_video_frame(int frame, std::string flux)
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, width, black, sensitivity);
+                    offset_x, offset_y, padded_width, black, sensitivity);
                     has_luma = true;
                 }
 
@@ -4777,7 +4781,7 @@ FITS::get_video_frame(int frame, std::string flux)
                     region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                     frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                     bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, width, dmin, dmax, lmin, lmax);
+                    offset_x, offset_y, padded_width, dmin, dmax, lmin, lmax);
                     has_luma = true;
                 }
               }
@@ -4803,7 +4807,7 @@ jmp:
     printf("%f\t%d\t%d\t%d\t%d\n", pixels.get()[i], mask.get()[i],
     pixels_r.get()[i], pixels_g.get()[i], pixels_b.get()[i]);*/
 
-  return {std::move(pixels), std::move(mask), has_luma};
+  return {padded_width, padded_height, std::move(pixels), std::move(mask), has_luma};
 }
 
 std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>,
