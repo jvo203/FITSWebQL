@@ -2988,11 +2988,11 @@ int main(int argc, char *argv[])
                                        // optional downscaling (if needed)
                                        if (img_width < fits->width || img_height < fits->height)
                                        {
-                                         padded_width = img_width + img_width % CELLSIZE;
-                                         padded_height = img_height + img_height % CELLSIZE;
-                                         printf("downscaling the video frame to %d x %d; padded(%d x %d)\n", img_width, img_height, padded_width, padded_height);
+                                         int _padded_width = img_width + img_width % CELLSIZE;
+                                         int _padded_height = img_height + img_height % CELLSIZE;
+                                         printf("downscaling the video frame to %d x %d; after padding (%d x %d)\n", img_width, img_height, _padded_width, _padded_height);
 
-                                         const size_t frame_size = padded_width * padded_height;
+                                         const size_t frame_size = _padded_width * _padded_height;
                                          //size_t plane_size = size_t(img_width) * size_t(img_height);
 
                                          // allocate {pixel_buf, mask_buf}
@@ -3005,12 +3005,12 @@ int main(int argc, char *argv[])
                                            IppiSize srcSize;
                                            srcSize.width = fits->width;
                                            srcSize.height = fits->height;
-                                           Ipp32s srcStep = padded_width;
+                                           Ipp32s srcStep = _padded_width;
 
                                            IppiSize dstSize;
                                            dstSize.width = img_width;
                                            dstSize.height = img_height;
-                                           Ipp32s dstStep = padded_width;
+                                           Ipp32s dstStep = _padded_width;
 
                                            IppStatus pixels_stat = tileResize8u_C1R(_luma.get(), srcSize, srcStep, pixels_buf.get(), dstSize, dstStep);
 
@@ -3020,6 +3020,9 @@ int main(int argc, char *argv[])
 
                                            _luma = std::move(pixels_buf);
                                            _mask = std::move(mask_buf);
+
+                                           padded_width = _padded_width;
+                                           padded_height = _padded_height;
                                          }
                                        }
 
