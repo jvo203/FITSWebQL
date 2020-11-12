@@ -1,4 +1,4 @@
-#include "../fits.h"
+#include "webql.h"
 #include "fits.hpp"
 
 #include "global.h"
