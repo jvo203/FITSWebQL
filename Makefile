@@ -11,11 +11,9 @@ MONGOOSE = mongoose/mongoose.c
 
 SRC = src/webql.ispc src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp src/main_uWS.cpp
 #OBJ = src/webql.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
-
-TMP1 = $(subst .ispc,.o,$(SRC))
-TMP2 = $(subst .cpp,.o,$(TMP1))
-OBJ = $(subst .c,.o,$(TMP2))
-
+OBJ := $(SRC:.cpp=.o)
+OBJ := $(OBJ:.c=.o)
+OBJ := $(OBJ:.ispc=.o)
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
@@ -72,9 +70,10 @@ TARGET=fitswebql
 Linux: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
 
-TMP1 = $(subst .ispc,.o,$(SRC))
-TMP2 = $(subst .cpp,.o,$(TMP1))
-OBJ = $(subst .c,.o,$(TMP2))
+#OBJ := $(addsuffix .o,$(basename $(SRC))
+OBJ := $(SRC:.cpp=.o)
+OBJ := $(OBJ:.c=.o)
+OBJ := $(OBJ:.ispc=.o)
 subst:
 	@echo $(OBJ)
 
