@@ -9,7 +9,7 @@ override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -W
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
 SRC = src/webql.ispc src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp src/main_uWS.cpp
-OBJ = src/webql.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
+OBJ = webql.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
@@ -57,7 +57,7 @@ TARGET=fitswebql
 #OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
 
 webql.o:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o src/webql.o -h webql.h
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o webql.o -h webql.h
 
 %.o: %.c
 	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
