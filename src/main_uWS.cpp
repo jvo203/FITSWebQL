@@ -3060,21 +3060,33 @@ int main(int argc, char *argv[])
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
 
+                                       int contour_levels = 5;
+
                                        if (true)
                                        {
                                          auto _start_t = steady_clock::now();
 
-                                         // needs to be called multiple times with different colour thresholds                                         
-                                         par_msquares_meshlist *mesh_list = par_msquares_color(_luma.get(), padded_width, padded_height, CELLSIZE, 127, 1, 0);
-                                         par_msquares_mesh const *mesh = par_msquares_get_mesh(mesh_list, 0);
-                                         //par_msquares_boundary* par_msquares_extract_boundary(mesh);
+                                         int pixel_max = 255;
+                                         int pixel_min = 0;
+                                         float delta = float(pixel_max - pixel_min) / float(contour_levels + 1);
 
-                                         /*float *pt = mesh->points;
+#pragma omp parallel for
+                                         for (int i = 0; i < contour_levels; i++)
+                                         {
+                                           int threshold = pixel_min + (i + 1) * delta;
+
+                                           // needs to be called multiple times with different colour thresholds
+                                           par_msquares_meshlist *mesh_list = par_msquares_color(_luma.get(), padded_width, padded_height, CELLSIZE, threshold, 1, 0);
+                                           par_msquares_mesh const *mesh = par_msquares_get_mesh(mesh_list, 0);
+                                           //par_msquares_boundary* par_msquares_extract_boundary(mesh);
+
+                                           /*float *pt = mesh->points;
                                          for (int i = 0; i < mesh->npoints; i++)
                                          {
                                            printf("v %f %f\n", pt[0], pt[1]);
                                            pt += mesh->dim;
                                          };*/
+                                         }
 
                                          auto _end_t = steady_clock::now();
 
