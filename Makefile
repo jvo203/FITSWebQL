@@ -85,16 +85,16 @@ clean:
 	rm -f src/*.o lz4/*.o src/*.d lz4/*.d fits.h fits.o webql.o webql.h $(TARGET)
 
 dev:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	icpc -g -O3 -xHost -mcmodel large -qopenmp -qopenmp-simd -qopt-streaming-stores auto -funroll-loops -ipo -std=c++17 -fp-model fast -qopt-report=5 -qopt-report-phase=vec $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) -ipp $(JEMALLOC)
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o src/webql.o -h src/webql.h
+	icpc -g -O3 -xHost -mcmodel large -qopenmp -qopenmp-simd -qopt-streaming-stores auto -funroll-loops -ipo -std=c++17 -fp-model fast -qopt-report=5 -qopt-report-phase=vec $(DEF) $(INC) $(SRC) src/webql.o -o $(TARGET) $(LIBS) -ipp $(JEMALLOC)
 
 llvm:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	clang++ $(CXXFLAGS) -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o src/webql.o -h src/webql.h
+	clang++ $(CXXFLAGS) -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) src/webql.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
 
 gcc:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	g++ $(CXXFLAGS) $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o src/webql.o -h src/webql.h
+	g++ $(CXXFLAGS) $(DEF) $(INC) $(SRC) src/webql.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
 
 darwin:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o src/webql.o -h src/webql.h
