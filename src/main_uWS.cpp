@@ -3052,9 +3052,8 @@ int main(int argc, char *argv[])
                                        {
                                          auto _start_t = steady_clock::now();
 
-                                         // needs to be called multiple times with different colour thresholds
-                                         int cellsize = 10;
-                                         par_msquares_meshlist* mesh_list = par_msquares_color(_luma.get(), img_width, img_height, cellsize, 127, 1, 0);                                         
+                                         // needs to be called multiple times with different colour thresholds                                         
+                                         par_msquares_meshlist* mesh_list = par_msquares_color(_luma.get(), img_width, img_height, CELLSIZE, 127, 1, 0);                                         
                                          par_msquares_mesh const* mesh = par_msquares_get_mesh(mesh_list, 0);
                                          //par_msquares_boundary* par_msquares_extract_boundary(mesh);
 
