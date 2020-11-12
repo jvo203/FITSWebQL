@@ -56,8 +56,11 @@ TARGET=fitswebql
 
 #OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
 
-webql.o:
-	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o webql.o -h webql.h
+#webql.o:
+#ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o webql.o -h webql.h
+
+%.o %.ispc:
+	ispc -g -O3 --pic --opt=fast-math --addressing=32 -o $@ -c $<
 
 %.o: %.c
 	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
@@ -71,7 +74,7 @@ Linux: $(OBJ)
 #@echo $(OBJ)
 
 clean:
-	rm -f src/*.o lz4/*.o fits.h fits.o $(TARGET)
+	rm -f src/*.o lz4/*.o fits.h fits.o webql.o webql.h $(TARGET)
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
