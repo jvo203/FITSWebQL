@@ -1,10 +1,24 @@
+.DEFAULT_GOAL := fitswebql
+
 # detect the OS
 UNAME_S := $(shell uname -s)
 
-CXX = g++
+#CXX = clang++
+
+ifeq ($(UNAME_S),Darwin)
+	CXX = clang++
+endif
 
 #-Ofast does not work with NaN and Inf, unfortunately... and so -fno-finite-math-only is needed
 override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+
+ifeq ($(CXX),clang++)
+	CXXFLAGS += -Rpass=loop-vectorize
+endif
+
+ifeq ($(UNAME_S),Darwin)
+	CXXFLAGS = -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize
+endif
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
@@ -32,11 +46,12 @@ LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq `pkg-config
 LIBS += -lboost_system
 
 ifeq ($(UNAME_S),Linux)
-	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lboost_thread
+	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lboost_thread -lmvec -lm
 endif
 
 ifeq ($(UNAME_S),Darwin)
-	LIBS += -lpq -lboost_thread-mt
+	INC += -I/usr/local/opt/openssl/include
+	LIBS += -lpq -lboost_thread-mt -lomp -L/usr/local/opt/openssl/lib
 endif 
 
 #-lstdc++fs
@@ -55,7 +70,7 @@ endif
 IPP += -lippi -lippdc -lipps -lippcore
 
 JEMALLOC = -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
-TARGET=fitswebql
+TARGET = fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
@@ -71,8 +86,8 @@ TARGET=fitswebql
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -MMD -o $@ -c $<
 
-Linux: $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
+fitswebql: $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC)
 
 #OBJ := $(addsuffix .o,$(basename $(SRC))
 OBJ := $(SRC:.cpp=.o)
