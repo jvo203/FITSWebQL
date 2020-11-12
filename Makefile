@@ -6,18 +6,20 @@ UNAME_S := $(shell uname -s)
 #CXX = clang++
 
 ifeq ($(UNAME_S),Darwin)
-	CXX = clang++
+	CXX := clang++
 endif
 
-#-Ofast does not work with NaN and Inf, unfortunately... and so -fno-finite-math-only is needed
-override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+ifeq ($(UNAME_S),Linux)
+	#-Ofast does not work with NaN and Inf, unfortunately... and so -fno-finite-math-only is needed
+	override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -Wno-register -fopenmp -fopenmp-simd -funroll-loops -ftree-vectorize
+endif
 
 ifeq ($(CXX),clang++)
 	CXXFLAGS += -Rpass=loop-vectorize
 endif
 
 ifeq ($(UNAME_S),Darwin)
-	CXXFLAGS = -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize
+	CXXFLAGS := -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize
 endif
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
