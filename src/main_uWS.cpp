@@ -130,7 +130,7 @@ std::thread beacon_thread;
 #define JVO_USER "jvo"
 #endif
 
-#include "../webql.h"
+#include "webql.h"
 #include "fits.hpp"
 #include "json.h"
 #include "lttb.hpp"
