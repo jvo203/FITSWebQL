@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-11.1"
+#define VERSION_STRING "SV2020-11-12.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -130,7 +130,7 @@ std::thread beacon_thread;
 #define JVO_USER "jvo"
 #endif
 
-#include "../fits.h"
+#include "webql.h"
 #include "fits.hpp"
 #include "json.h"
 #include "lttb.hpp"
