@@ -8,8 +8,14 @@ override CXXFLAGS += -march=native -g -Ofast -fno-finite-math-only -std=c++17 -W
 
 BEAST = src/shared_state.cpp src/listener.cpp src/websocket_session.cpp src/http_session.cpp
 MONGOOSE = mongoose/mongoose.c
+
 SRC = src/webql.ispc src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c lz4/lz4.c lz4/lz4hc.c src/contours.cpp src/par_msquares.cpp src/main_uWS.cpp
-OBJ = src/webql.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
+#OBJ = src/webql.o src/kalman.o src/fits.o src/classifier.o src/json.o lz4/lz4.o lz4/lz4hc.o src/contours.o src/par_msquares.o src/main_uWS.o
+
+TMP1 = $(subst .ispc,.o,$(SRC))
+TMP2 = $(subst .cpp,.o,$(TMP1))
+OBJ = $(subst .c,.o,$(TMP2))
+
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
@@ -54,11 +60,6 @@ TARGET=fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
-#OBJ = fits.o $(SRC:.c=.o) $(SRC:.cpp=.o)
-
-#webql.o:
-#ispc -g -O3 --pic --opt=fast-math --addressing=32 src/webql.ispc -o webql.o -h webql.h
-
 %.o: %.ispc
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 -o $@ -h $(subst .o,.h,$@) $<
 
@@ -71,7 +72,11 @@ TARGET=fitswebql
 Linux: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
 
-#@echo $(OBJ)
+TMP1 = $(subst .ispc,.o,$(SRC))
+TMP2 = $(subst .cpp,.o,$(TMP1))
+OBJ = $(subst .c,.o,$(TMP2))
+subst:
+	@echo $(OBJ)
 
 clean:
 	rm -f src/*.o lz4/*.o fits.h fits.o webql.o webql.h $(TARGET)
@@ -82,7 +87,7 @@ dev:
 
 llvm:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
-	clang++ $(CXXFLAGS) -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC)
+	clang++ $(CXXFLAGS) -Rpass=loop-vectorize $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
 
 gcc:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
