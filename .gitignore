@@ -18,6 +18,9 @@
 #object files
 *.o
 
+#dependencies
+*.d
+
 #Intel C/C++ Compiler optimizer reports
 *.optrpt
 
