@@ -14,6 +14,7 @@ SRC = src/webql.ispc src/kalman.cpp src/fits.cpp src/classifier.cpp src/json.c l
 OBJ := $(SRC:.cpp=.o)
 OBJ := $(OBJ:.c=.o)
 OBJ := $(OBJ:.ispc=.o)
+DEP = $(OBJ:%.o=%.d)
 #$(MONGOOSE)
 #$(BEAST) 
 INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
@@ -58,14 +59,17 @@ TARGET=fitswebql
 
 # disabled jemalloc for now as it seems to have problems with ZFP private views...mutable or not!
 
+# include dependencies (all .d files)
+-include $(DEP)
+
 %.o: %.ispc
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 -o $@ -h $(subst .o,.h,$@) $<
 
 %.o: %.c
-	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -MMD -o $@ -c $<
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(DEF) $(INC) -MMD -o $@ -c $<
 
 Linux: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $^ $(LIBS) $(IPP) $(JEMALLOC) -lmvec -lm
@@ -78,7 +82,7 @@ subst:
 	@echo $(OBJ)
 
 clean:
-	rm -f src/*.o lz4/*.o fits.h fits.o webql.o webql.h $(TARGET)
+	rm -f src/*.o lz4/*.o src/*.d lz4/*.d fits.h fits.o webql.o webql.h $(TARGET)
 
 dev:
 	ispc -g -O3 --pic --opt=fast-math --addressing=32 src/fits.ispc -o fits.o -h fits.h
