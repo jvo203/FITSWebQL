@@ -4618,11 +4618,11 @@ void FITS::preempt_cache(int start, int end, int x1, int y1, int x2, int y2)
   }
 }
 
-std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool>           
+std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool>
 FITS::get_video_frame(int frame, std::string flux)
 {
   // {L8,A8}
-  std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool> res;             
+  std::tuple<int, int, std::shared_ptr<Ipp8u>, std::shared_ptr<Ipp8u>, bool> res;
 
   // sanity checks
   if (bitpix != -32)
@@ -4641,13 +4641,18 @@ FITS::get_video_frame(int frame, std::string flux)
   int end_y = _end_y;
 
   // allocate memory for pixels and a mask
-  int padded_width = width +width % CELLSIZE;
-  int padded_height = height + height % CELLSIZE;
-  const size_t frame_size = padded_width * padded_height;
-  //std::cout << width << " x " << height << " --> " << padded_width << " x " << padded_height << std::endl;
+  int padded_width = width;
+  if (width % CELLSIZE > 0)
+    padded_width += CELLSIZE - width % CELLSIZE;
 
-  bool has_luma = false;
+  int padded_height = height;
+  if (height % CELLSIZE > 0)
+    padded_height += CELLSIZE - height % CELLSIZE;
+
+  const size_t frame_size = padded_width * padded_height;
   
+  bool has_luma = false;
+
   std::shared_ptr<Ipp8u> pixels =
       std::shared_ptr<Ipp8u>(ippsMalloc_8u_L(frame_size), [=](Ipp8u *ptr) {
         if (ptr != NULL)
@@ -4738,51 +4743,51 @@ FITS::get_video_frame(int frame, std::string flux)
                 {
                   float slope = 1.0f / (white - black);
                   ispc::make_video_frameF16_linear(
-                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, padded_width, black, slope);
-                    has_luma = true;
+                      region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                      frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      offset_x, offset_y, padded_width, black, slope);
+                  has_luma = true;
                 }
 
                 if (flux == "logistic")
                 {
                   ispc::make_video_frameF16_logistic(
-                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, padded_width, median, sensitivity);
-                    has_luma = true;
+                      region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                      frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      offset_x, offset_y, padded_width, median, sensitivity);
+                  has_luma = true;
                 }
 
                 if (flux == "ratio")
-                {                  
+                {
                   ispc::make_video_frameF16_ratio(
-                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, padded_width, black, sensitivity);
-                    has_luma = true;
+                      region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                      frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      offset_x, offset_y, padded_width, black, sensitivity);
+                  has_luma = true;
                 }
 
                 if (flux == "square")
-                {                  
+                {
                   ispc::make_video_frameF16_square(
-                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, padded_width, black, sensitivity);
-                    has_luma = true;
+                      region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                      frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      offset_x, offset_y, padded_width, black, sensitivity);
+                  has_luma = true;
                 }
 
                 if (flux == "legacy")
-                {                  
+                {
                   ispc::make_video_frameF16_legacy(
-                    region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
-                    frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                    bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                    offset_x, offset_y, padded_width, dmin, dmax, lmin, lmax);
-                    has_luma = true;
+                      region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
+                      frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
+                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      offset_x, offset_y, padded_width, dmin, dmax, lmin, lmax);
+                  has_luma = true;
                 }
               }
             }

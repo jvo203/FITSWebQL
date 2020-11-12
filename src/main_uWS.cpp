@@ -2988,8 +2988,14 @@ int main(int argc, char *argv[])
                                        // optional downscaling (if needed)
                                        if (img_width < fits->width || img_height < fits->height)
                                        {
-                                         int _padded_width = img_width + img_width % CELLSIZE;
-                                         int _padded_height = img_height + img_height % CELLSIZE;
+                                         int _padded_width = img_width;
+                                         if (img_width % CELLSIZE > 0)
+                                           _padded_width += CELLSIZE - img_width % CELLSIZE;
+
+                                         int _padded_height = img_height;
+                                         if (img_height % CELLSIZE > 0)
+                                           _padded_height += CELLSIZE - img_height % CELLSIZE;
+
                                          printf("downscaling the video frame to %d x %d; after padding (%d x %d)\n", img_width, img_height, _padded_width, _padded_height);
 
                                          const size_t frame_size = _padded_width * _padded_height;
@@ -3054,21 +3060,21 @@ int main(int argc, char *argv[])
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
 
-                                       /*if (true)
+                                       if (true)
                                        {
                                          auto _start_t = steady_clock::now();
 
                                          // needs to be called multiple times with different colour thresholds                                         
-                                         par_msquares_meshlist* mesh_list = par_msquares_color(_luma.get(), img_width, img_height, CELLSIZE, 127, 1, 0);                                         
-                                         par_msquares_mesh const* mesh = par_msquares_get_mesh(mesh_list, 0);
+                                         par_msquares_meshlist *mesh_list = par_msquares_color(_luma.get(), padded_width, padded_height, CELLSIZE, 127, 1, 0);
+                                         par_msquares_mesh const *mesh = par_msquares_get_mesh(mesh_list, 0);
                                          //par_msquares_boundary* par_msquares_extract_boundary(mesh);
 
-                                         float* pt = mesh->points;
+                                         /*float *pt = mesh->points;
                                          for (int i = 0; i < mesh->npoints; i++)
-                                         {                                            
-                                            printf("v %f %f\n", pt[0], pt[1]);
-                                            pt += mesh->dim;
-                                         };
+                                         {
+                                           printf("v %f %f\n", pt[0], pt[1]);
+                                           pt += mesh->dim;
+                                         };*/
 
                                          auto _end_t = steady_clock::now();
 
@@ -3078,7 +3084,7 @@ int main(int argc, char *argv[])
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
                                          printf("%s::contouring the video frame (Marching Squares); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
-                                       }*/
+                                       }
                                      }
 
                                      auto end_t = steady_clock::now();
