@@ -55,6 +55,7 @@ using namespace std::chrono;
 
 #define NBINS 1024
 #define NBINS2 16384
+#define CELLSIZE 16
 
 #define ZFP_CACHE_REGION 256
 #define ZFPMAXPREC 11
