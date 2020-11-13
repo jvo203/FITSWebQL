@@ -3010,6 +3010,9 @@ int main(int argc, char *argv[])
 
                                          if (pixels_buf && mask_buf)
                                          {
+                                           memset(pixels_buf.get(), 0, frame_size);
+                                           memset(mask_buf.get(), 0, frame_size);
+
                                            // downsize uint8_t pixels and a mask
                                            IppiSize srcSize;
                                            srcSize.width = fits->width;
@@ -3064,7 +3067,7 @@ int main(int argc, char *argv[])
 
                                        int contour_levels = 5;
 
-                                       if (keyframe)
+                                       if (!keyframe)
                                        {
                                          auto _start_t = steady_clock::now();
 
