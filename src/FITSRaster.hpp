@@ -7,12 +7,12 @@
 class FITSRaster : public CRaster
 {
 public:
-    FITSRaster(std::shared_ptr<Ipp8u> _pixels, int _width, int _height)
+    FITSRaster(std::shared_ptr<Ipp8u> _pixels, int _width, int _height, int _stride)
     {
         pixels = _pixels;
         width = _width;
         height = _height;
-        plane_size = width * height;
+        stride = _stride;        
 
         if (pixels)
             data = pixels.get();
@@ -31,12 +31,15 @@ public:
         if (data == NULL)
             return (0);
 
-        int idx = int(y) * width + int(x);
-
-        if ((idx < 0) || (idx >= plane_size))
+        if ( (int(x) >= width) || (int(y) >= height) )
             return (0);
-        else
-            return (data[idx]);
+
+        int idx = int(y) * stride + int(x);
+
+        /*if ((idx < 0) || (idx >= plane_size))
+            return (0);
+        else*/
+        return (data[idx]);
     };
 
     virtual SPoint upper_bound() { return (SPoint(width - 1, height - 1)); };
@@ -48,5 +51,5 @@ private:
     Ipp8u *data;
     int width;
     int height;
-    int plane_size;
+    int stride;    
 };
