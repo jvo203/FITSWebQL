@@ -2995,7 +2995,7 @@ function open_websocket_connection(datasetId, index) {
 							var Buffer = require('buffer').Buffer;
 							var LZ4 = require('lz4');
 
-							var uncompressed = new Buffer(width * height);
+							var uncompressed = new Buffer(stride * height);
 							uncompressedSize = LZ4.decodeBlock(new Buffer(alpha), uncompressed);
 							alpha = uncompressed.slice(0, uncompressedSize);*/
 
