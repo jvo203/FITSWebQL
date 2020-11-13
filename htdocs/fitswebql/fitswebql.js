@@ -2988,6 +2988,7 @@ function open_websocket_connection(datasetId, index) {
 						if (data.type == "init_video") {
 							var width = data.width;
 							var height = data.height;
+							var stride = data.stride;
 
 							/*var alpha = data.alpha;
 
@@ -3010,7 +3011,7 @@ function open_websocket_connection(datasetId, index) {
 										data[i] = 0;
 									var img = new ImageData(data, width, height);
 									
-									var alpha_ptr = Module._malloc(width * height);
+									var alpha_ptr = Module._malloc(stride * height);
 									//Module.HEAPU8.set(alpha, alpha_ptr);
 
 									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img, "alpha_ptr=", alpha_ptr);
