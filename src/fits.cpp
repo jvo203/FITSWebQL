@@ -4672,8 +4672,8 @@ FITS::get_video_frame(int frame, std::string flux)
     return res;
   }
 
-  memset(pixels_buf.get(), 0, frame_size);
-  memset(mask_buf.get(), 0, frame_size);
+  memset(pixels.get(), 0, frame_size);
+  memset(mask.get(), 0, frame_size);
 
   bool has_compressed_frame = false;
   bool compressed_pixels = false;
