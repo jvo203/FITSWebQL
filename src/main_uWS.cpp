@@ -3014,8 +3014,8 @@ int main(int argc, char *argv[])
 
                                          if (pixels_buf && mask_buf)
                                          {
-                                           memset(pixels_buf.get(), 0, frame_size);
-                                           memset(mask_buf.get(), 0, frame_size);
+                                           /*memset(pixels_buf.get(), 0, frame_size);
+                                           memset(mask_buf.get(), 0, frame_size);*/
 
                                            // downsize uint8_t pixels and a mask
                                            IppiSize srcSize;
