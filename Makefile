@@ -52,8 +52,8 @@ ifeq ($(UNAME_S),Linux)
 endif
 
 ifeq ($(UNAME_S),Darwin)
-	INC += -I/usr/local/opt/openssl/include
-	LIBS += -lpq -lboost_thread-mt -lomp -L/usr/local/opt/openssl/lib
+	INC += -I/usr/local/opt/openssl/include -I/usr/local/opt/libpq/include
+	LIBS += -L/usr/local/opt/libpq/lib -lpq -lboost_thread-mt -lomp -L/usr/local/opt/openssl/lib
 endif 
 
 #-lstdc++fs
