@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-06.0";
+	return "JS2020-11-13.0";
 }
 
 const wasm_supported = (() => {
@@ -2988,41 +2988,40 @@ function open_websocket_connection(datasetId, index) {
 						if (data.type == "init_video") {
 							var width = data.width;
 							var height = data.height;
-							var alpha = data.alpha;
+
+							/*var alpha = data.alpha;
 
 							var Buffer = require('buffer').Buffer;
 							var LZ4 = require('lz4');
 
 							var uncompressed = new Buffer(width * height);
 							uncompressedSize = LZ4.decodeBlock(new Buffer(alpha), uncompressed);
-							alpha = uncompressed.slice(0, uncompressedSize);
+							alpha = uncompressed.slice(0, uncompressedSize);*/
 
 							if (videoFrame[index - 1] == null) {
-								let imageFrame = imageContainer[va_count - 1].imageFrame;
-
-								var image_bounding_dims = true_image_dimensions(alpha, width, height);
+								let imageFrame = imageContainer[va_count - 1];
 
 								if (imageFrame != null) {
 									var len = width * height * 4;
-									var ptr = Module._malloc(len);
+									var img_ptr = Module._malloc(len);
 
-									var data = new Uint8ClampedArray(Module.HEAPU8.buffer, ptr, len);
+									var data = new Uint8ClampedArray(Module.HEAPU8.buffer, img_ptr, len);
 									for (let i = 0; i < len; i++)
 										data[i] = 0;
 									var img = new ImageData(data, width, height);
-
+									
 									var alpha_ptr = Module._malloc(width * height);
-									Module.HEAPU8.set(alpha, alpha_ptr);
+									//Module.HEAPU8.set(alpha, alpha_ptr);
 
-									console.log("Module._malloc ptr=", ptr, "ImageData=", img, "alpha_ptr=", alpha_ptr);
+									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img, "alpha_ptr=", alpha_ptr);
 
 									videoFrame[index - 1] = {
 										img: img,
-										ptr: ptr,
+										ptr: img_ptr,
 										alpha: alpha_ptr,
-										scaleX: imageFrame.w / width,
-										scaleY: imageFrame.h / height,
-										image_bounding_dims: image_bounding_dims,
+										scaleX: imageFrame.width / width,
+										scaleY: imageFrame.height / height,
+										image_bounding_dims: imageFrame.image_bounding_dims,
 									}
 								}
 							}
