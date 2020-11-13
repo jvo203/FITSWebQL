@@ -2770,7 +2770,11 @@ int main(int argc, char *argv[])
                                user->ptr->width = img_width;
                                user->ptr->height = img_height;
 
-                              std::string resp = "{\"type\" : \"init_video\", \"width\" : " + std::to_string(img_width) + ", \"height\" : " + std::to_string(img_height) + "}";
+                               int stride = img_width;
+                               if (img_width % CELLSIZE > 0)
+                                stride += CELLSIZE - img_width % CELLSIZE;
+
+                              std::string resp = "{\"type\" : \"init_video\", \"width\" : " + std::to_string(img_width) + ", \"height\" : " + std::to_string(img_height) + ", \"stride\" : " + std::to_string(stride) + "}";
                               ws->send(resp, opCode);
 
                                // get the video frame index
