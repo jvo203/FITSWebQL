@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-12.1"
+#define VERSION_STRING "SV2020-11-13.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2769,6 +2769,9 @@ int main(int argc, char *argv[])
 
                                user->ptr->width = img_width;
                                user->ptr->height = img_height;
+
+                              std::string resp = "{\"type\" : \"init_video\", \"width\" : " + std::to_string(img_width) + ", \"height\" : " + std::to_string(img_height) + "}";
+                              ws->send(resp, opCode);
 
                                // get the video frame index
                                int frame_idx;
