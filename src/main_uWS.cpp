@@ -3039,8 +3039,7 @@ int main(int argc, char *argv[])
                                        // 1. run Marching Squares on _pixels
                                        // 2. overlay raster contour lines over _r, _g, _b
                                        // uses CONREC for now
-                                       if (keyframe)
-                                       //if (true)
+                                       if (keyframe)                                       
                                        {
                                          auto _start_t = steady_clock::now();
 
@@ -3058,7 +3057,7 @@ int main(int argc, char *argv[])
                                                                  static_cast<double>(steady_clock::period::den);
                                          double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-                                         contours.dump();
+                                         //contours.dump();
 
                                          printf("%s::contouring the video frame (CONREC); elapsed time %f [ms]\n", fits->dataset_id.c_str(), elapsedMilliseconds);
                                        }
