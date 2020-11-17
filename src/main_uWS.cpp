@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-16.0"
+#define VERSION_STRING "SV2020-11-17.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -3175,7 +3175,27 @@ int main(int argc, char *argv[])
                                             elapsedMilliseconds);
                                    }
 
-                                   // LZ4-compress the mask (alpha)
+                                   // lz4-compress the mask (alpha)
+                                   Ipp8u *_mask_lz4 = NULL;
+                                   int compressed_size = 0;
+
+                                   const size_t frame_size = padded_width * padded_height;
+
+                                   // LZ4-compress the FITS header
+                                   int worst_size = LZ4_compressBound(frame_size);
+
+                                   _mask_lz4 = ippsMalloc_8u_L(worst_size);
+
+                                   if (_mask_lz4 != NULL)
+                                   {
+
+                                     // compress the mask with LZ4
+                                     compressed_size = LZ4_compress_HC((const char *)_mask.get(), (char *)_mask_lz4,
+                                                                       frame_size, worst_size, LZ4HC_CLEVEL_MAX);
+                                     printf("alpha mask size %zu bytes, LZ4-compressed: %d bytes.\n", frame_size, compressed_size);
+
+                                     ippsFree(_mask_lz4);
+                                   }
                                  }
 
                                  auto end_t = steady_clock::now();
