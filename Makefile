@@ -145,6 +145,9 @@ ippzfp:
 resize:
 	icpc -g -O3 -xHost testIPPResize.cpp -ipp -lnetpbm
 
+x265:
+	g++ -march=native -g -O3 testx265.cpp -lx265
+
 home:
 	g++ -march=native -g -O3 testIPPResize.cpp $(IPP)
 
