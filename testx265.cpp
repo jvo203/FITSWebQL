@@ -15,8 +15,8 @@ int main(int argc, char **argv)
     x265_encoder *encoder = NULL;
     x265_picture *picture = NULL;
 
-    int img_width = 125;
-    int img_height = 75;
+    int img_width = 601;
+    int img_height = 601;
 
     int padded_width = img_width;
     if (img_width % CELLSIZE > 0)
