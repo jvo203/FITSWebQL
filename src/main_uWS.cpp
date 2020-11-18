@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-17.0"
+#define VERSION_STRING "SV2020-11-18.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2803,7 +2803,7 @@ int main(int argc, char *argv[])
                            param->fpsNum = fps;
                            param->fpsDenom = 1;
                            param->bRepeatHeaders = 1;
-                           param->internalCsp = X265_CSP_I400;
+                           param->internalCsp = X265_CSP_I444;
 
                            param->internalBitDepth = 8;
                            param->sourceWidth = img_width;
@@ -3119,7 +3119,8 @@ int main(int argc, char *argv[])
 
                                    int contour_levels = 5;
 
-                                   if (!keyframe)
+                                   //if (!keyframe)
+                                   if (false) // disabled, Marching Squares to be debugged ...
                                    {
                                      auto _start_t = steady_clock::now();
 
@@ -3176,7 +3177,7 @@ int main(int argc, char *argv[])
                                    }
 
                                    // lz4-compress the mask (alpha)
-                                   Ipp8u *_mask_lz4 = NULL;
+                                   /*Ipp8u *_mask_lz4 = NULL;
                                    int compressed_size = 0;
 
                                    const size_t frame_size = padded_width * padded_height;
@@ -3195,7 +3196,9 @@ int main(int argc, char *argv[])
                                      printf("alpha mask size %zu bytes, LZ4-compressed: %d bytes.\n", frame_size, compressed_size);
 
                                      ippsFree(_mask_lz4);
-                                   }
+                                   }*/
+
+                                   // HEVC-encode _luma as R, _mask as G, blank out R
                                  }
 
                                  auto end_t = steady_clock::now();
