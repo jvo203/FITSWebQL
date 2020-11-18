@@ -2827,9 +2827,35 @@ int main(int argc, char *argv[])
                            if (picture == NULL)
                              return;
 
+                           // allocate a dummy B channel
+                           const size_t frame_size = img_width * img_height;
+                           Ipp8u *B_buf = ippsMalloc_8u_L(frame_size);
+
+                           if (B_buf != NULL)
+                             memset(B_buf, 0, frame_size);
+
+                           picture->planes[0] = NULL;
+                           picture->planes[1] = NULL;
+                           picture->planes[2] = B_buf;
+
+                           picture->stride[0] = 0;
+                           picture->stride[1] = 0;
+                           picture->stride[2] = img_width;
+
                            x265_picture_init(param, picture);
                            user->ptr->picture = std::shared_ptr<x265_picture>(
-                               picture, x265_picture_free);
+                               picture, [=](x265_picture *ptr) {
+                                 if (ptr != NULL)
+                                 {
+                                   // deallocate RGB planes
+                                   for (int i = 0; i < 3; i++)
+                                     if (ptr->planes[i] != NULL)
+                                       ippsFree(ptr->planes[i]);
+
+                                   // finally free the picture
+                                   x265_picture_free(ptr);
+                                 }
+                               });
 
                            // start a video creation event loop
                            user->ptr->streaming = true;
