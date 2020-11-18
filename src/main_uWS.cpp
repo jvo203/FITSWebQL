@@ -2753,9 +2753,15 @@ int main(int argc, char *argv[])
                            user->ptr->width = img_width;
                            user->ptr->height = img_height;
 
-                           int stride = img_width;
+                           int _padded_width = img_width;
                            if (img_width % CELLSIZE > 0)
-                             stride += CELLSIZE - img_width % CELLSIZE;
+                             _padded_width +=
+                                 CELLSIZE - img_width % CELLSIZE;
+
+                           int _padded_height = img_height;
+                           if (img_height % CELLSIZE > 0)
+                             _padded_height +=
+                                 CELLSIZE - img_height % CELLSIZE;
 
                            if (user != NULL)
                              if (user->ptr != NULL)
@@ -2770,7 +2776,7 @@ int main(int argc, char *argv[])
                                      ", \"height\" : " +
                                      std::to_string(img_height) +
                                      ", \"stride\" : " +
-                                     std::to_string(stride) + "}";
+                                     std::to_string(_padded_width) + "}";
                                  ws->send(resp, opCode);
                                }
 
@@ -2828,7 +2834,7 @@ int main(int argc, char *argv[])
                              return;
 
                            // allocate a dummy B channel
-                           const size_t frame_size = stride * img_height;
+                           const size_t frame_size = _padded_width * _padded_height;
                            Ipp8u *B_buf = ippsMalloc_8u_L(frame_size);
 
                            if (B_buf != NULL)
@@ -2840,7 +2846,7 @@ int main(int argc, char *argv[])
 
                            picture->stride[0] = 0;
                            picture->stride[1] = 0;
-                           picture->stride[2] = stride;
+                           picture->stride[2] = _padded_width;
 
                            x265_picture_init(param, picture);
                            user->ptr->picture = std::shared_ptr<x265_picture>(
@@ -3202,18 +3208,24 @@ int main(int argc, char *argv[])
                                             elapsedMilliseconds);
                                    }
 
-                                   // HEVC-encode _luma as R, _mask as G, blank out R
-                                   // set the R and R planes
+                                   // HEVC-encode _luma as R, _mask as G, blank out B
+                                   // set the R and G planes
                                    if (user->ptr->picture && user->ptr->encoder)
                                    {
                                      x265_picture *picture = user->ptr->picture.get();
                                      x265_encoder *encoder = user->ptr->encoder.get();
 
-                                     picture->planes[0] = _luma.get();
+                                     /*picture->planes[0] = _luma.get();
                                      picture->planes[1] = _mask.get();
 
                                      picture->stride[0] = padded_width;
-                                     picture->stride[1] = padded_width;
+                                     picture->stride[1] = padded_width;*/
+
+                                     picture->planes[0] = picture->planes[2];
+                                     picture->planes[1] = picture->planes[2];
+
+                                     picture->stride[0] = picture->stride[2];
+                                     picture->stride[1] = picture->stride[2];
 
                                      // RGB-encode
                                      x265_nal *pNals = NULL;
@@ -3225,6 +3237,9 @@ int main(int argc, char *argv[])
                                      // done with the planes
                                      picture->planes[0] = NULL;
                                      picture->planes[1] = NULL;
+
+                                     picture->stride[0] = 0;
+                                     picture->stride[1] = 0;
                                    }
                                  }
 
