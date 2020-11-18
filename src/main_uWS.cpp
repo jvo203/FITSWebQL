@@ -2802,8 +2802,9 @@ int main(int argc, char *argv[])
                            if (param == NULL)
                              return;
 
-                           x265_param_default_preset(param, "medium",
-                                                     "zerolatency");
+                           //x265_param_default_preset(param, "ultrafast", "zerolatency");
+                           //x265_param_default_preset(param, "superfast", "zerolatency");
+                           x265_param_default_preset(param, "medium", "zerolatency");
 
                            // HEVC config
                            param->fpsNum = fps;
@@ -2813,7 +2814,7 @@ int main(int argc, char *argv[])
 
                            param->internalBitDepth = 8;
                            param->sourceWidth = img_width;
-                           param->sourceHeight = img_height;
+                           param->sourceHeight = img_height;                           
 
                            // constant bitrate
                            param->rc.rateControlMode = X265_RC_CRF;
@@ -2833,6 +2834,8 @@ int main(int argc, char *argv[])
                            if (picture == NULL)
                              return;
 
+                           x265_picture_init(param, picture);
+
                            // allocate a dummy B channel
                            const size_t frame_size = _padded_width * _padded_height;
                            Ipp8u *B_buf = ippsMalloc_8u_L(frame_size);
@@ -2848,7 +2851,6 @@ int main(int argc, char *argv[])
                            picture->stride[1] = 0;
                            picture->stride[2] = _padded_width;
 
-                           x265_picture_init(param, picture);
                            user->ptr->picture = std::shared_ptr<x265_picture>(
                                picture, [=](x265_picture *ptr) {
                                  if (ptr != NULL)
@@ -3215,17 +3217,20 @@ int main(int argc, char *argv[])
                                      x265_picture *picture = user->ptr->picture.get();
                                      x265_encoder *encoder = user->ptr->encoder.get();
 
-                                     /*picture->planes[0] = _luma.get();
+                                     picture->planes[0] = _luma.get();
                                      picture->planes[1] = _mask.get();
 
                                      picture->stride[0] = padded_width;
-                                     picture->stride[1] = padded_width;*/
+                                     picture->stride[1] = padded_width;
 
-                                     picture->planes[0] = picture->planes[2];
+                                     /*picture->planes[0] = picture->planes[2];
                                      picture->planes[1] = picture->planes[2];
 
                                      picture->stride[0] = picture->stride[2];
-                                     picture->stride[1] = picture->stride[2];
+                                     picture->stride[1] = picture->stride[2];*/
+
+                                     for (int i = 0; i < 3; i++)
+                                       printf("picture->stride[%d] = %d\n", i, picture->stride[i]);
 
                                      // RGB-encode
                                      x265_nal *pNals = NULL;
