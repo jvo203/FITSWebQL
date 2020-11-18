@@ -2828,7 +2828,7 @@ int main(int argc, char *argv[])
                              return;
 
                            // allocate a dummy B channel
-                           const size_t frame_size = img_width * img_height;
+                           const size_t frame_size = stride * img_height;
                            Ipp8u *B_buf = ippsMalloc_8u_L(frame_size);
 
                            if (B_buf != NULL)
@@ -2840,7 +2840,7 @@ int main(int argc, char *argv[])
 
                            picture->stride[0] = 0;
                            picture->stride[1] = 0;
-                           picture->stride[2] = img_width;
+                           picture->stride[2] = stride;
 
                            x265_picture_init(param, picture);
                            user->ptr->picture = std::shared_ptr<x265_picture>(
