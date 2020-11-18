@@ -3202,29 +3202,30 @@ int main(int argc, char *argv[])
                                             elapsedMilliseconds);
                                    }
 
-                                   // lz4-compress the mask (alpha)
-                                   /*Ipp8u *_mask_lz4 = NULL;
-                                   int compressed_size = 0;
-
-                                   const size_t frame_size = padded_width * padded_height;
-
-                                   // LZ4-compress the FITS header
-                                   int worst_size = LZ4_compressBound(frame_size);
-
-                                   _mask_lz4 = ippsMalloc_8u_L(worst_size);
-
-                                   if (_mask_lz4 != NULL)
-                                   {
-
-                                     // compress the mask with LZ4
-                                     compressed_size = LZ4_compress_HC((const char *)_mask.get(), (char *)_mask_lz4,
-                                                                       frame_size, worst_size, LZ4HC_CLEVEL_MAX);
-                                     printf("alpha mask size %zu bytes, LZ4-compressed: %d bytes.\n", frame_size, compressed_size);
-
-                                     ippsFree(_mask_lz4);
-                                   }*/
-
                                    // HEVC-encode _luma as R, _mask as G, blank out R
+                                   // set the R and R planes
+                                   if (user->ptr->picture && user->ptr->encoder)
+                                   {
+                                     x265_picture *picture = user->ptr->picture.get();
+                                     x265_encoder *encoder = user->ptr->encoder.get();
+
+                                     picture->planes[0] = _luma.get();
+                                     picture->planes[1] = _mask.get();
+
+                                     picture->stride[0] = padded_width;
+                                     picture->stride[1] = padded_width;
+
+                                     // RGB-encode
+                                     x265_nal *pNals = NULL;
+                                     uint32_t iNal = 0;
+
+                                     int ret = x265_encoder_encode(encoder, &pNals, &iNal, picture, NULL);
+                                     printf("[x265_encode]::ret = %d, #frames = %d\n", ret, iNal);
+
+                                     // done with the planes
+                                     picture->planes[0] = NULL;
+                                     picture->planes[1] = NULL;
+                                   }
                                  }
 
                                  auto end_t = steady_clock::now();
