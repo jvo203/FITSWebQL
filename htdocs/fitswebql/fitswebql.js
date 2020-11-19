@@ -2415,8 +2415,8 @@ function poll_heartbeat() {
 				.attr("opacity", 1.0)
 				//.text('\ue143');// an empty heart
 				.text('\ue005');// a full heart
-				//.text('📡');
-				//.text('📶');
+			//.text('📡');
+			//.text('📶');
 
 			setTimeout(function () {
 				d3.select("#heartbeat")
@@ -2864,14 +2864,11 @@ function open_websocket_connection(datasetId, index) {
 							}
 							else {
 								try {
-									//VP9
-									api.vpx_decode_frame(ptr, len, null, 0, 0, null, 'greyscale');
-								} catch (e) { };
-
-								try {
 									//HEVC
-									api.hevc_decode_nal_unit(index - 1, ptr, len, null, 0, 0, null, null, 'greyscale');
-								} catch (e) { };
+									Module.hevc_decode_nal_unit(index - 1, ptr, len, null, 0, 0, null, null, 'greyscale');
+								} catch (e) {
+									console.log(e);
+								};
 							}
 
 							Module._free(ptr);
@@ -3005,7 +3002,7 @@ function open_websocket_connection(datasetId, index) {
 									for (let i = 0; i < len; i++)
 										data[i] = 0;
 									var img = new ImageData(data, width, height);
-									
+
 									var alpha_ptr = Module._malloc(stride * height);
 									//Module.HEAPU8.set(alpha, alpha_ptr);
 
@@ -7536,8 +7533,10 @@ function x_axis_mouseenter(offset) {
 	if (wasm_supported) {
 		try {
 			//init the HEVC encoder		
-			api.hevc_init(va_count);
-		} catch (e) { };
+			Module.hevc_init(va_count);
+		} catch (e) {
+			console.log(e);
+		};
 
 		var freq = get_mouse_frequency(offset);
 
@@ -7662,8 +7661,10 @@ function x_axis_mouseleave() {
 	//send an end_video command via WebSockets
 	if (videoFrame[0] != null) {
 		try {
-			api.hevc_destroy(va_count);
-		} catch (e) { };
+			Module.hevc_destroy(va_count);
+		} catch (e) {
+			console.log(e);
+		};
 
 		if (composite_view) {
 			Module._free(videoFrame[0].ptr);
