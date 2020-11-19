@@ -3256,6 +3256,21 @@ int main(int argc, char *argv[])
                                        std::cout << "NAL unit #" << (i + 1) << " [type: " << pNals[i].type << ", size: " << pNals[i].sizeBytes << " bytes]." << std::endl;
 
                                        // send a binary WebSocket frame (msg_id = 5)
+                                       std::cout << "[uWS] sending the video frame NAL unit" << std::endl;
+
+                                       size_t bufferSize = sizeof(float) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float) + pNals[i].sizeBytes;
+
+                                       char *buffer = (char *)malloc(bufferSize);
+
+                                       if (buffer != NULL)
+                                       {
+                                         float ts = timestamp;
+                                         uint32_t id = 0;
+                                         uint32_t msg_type = 5;
+
+                                         free(buffer);
+                                       }
+
                                        /*let ws_frame = WsFrame{
                                          ts : timestamp as f32,
                                          seq_id : seq_id as u32,
