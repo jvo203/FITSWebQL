@@ -3305,15 +3305,6 @@ int main(int argc, char *argv[])
 
                                          free(buffer);
                                        }
-
-                                       /*let ws_frame = WsFrame{
-                                         ts : timestamp as f32,
-                                         seq_id : seq_id as u32,
-                                         msg_type : 5, //an hevc video frame
-                                         //length: video_frame.len() as u32,
-                                         elapsed : watch.elapsed().as_millis() as f32,
-                                         frame : payload.to_vec(),
-                                       };*/
                                      }
 
                                      // done with the planes
