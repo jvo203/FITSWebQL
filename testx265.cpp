@@ -15,8 +15,8 @@ int main(int argc, char **argv)
     x265_encoder *encoder = NULL;
     x265_picture *picture = NULL;
 
-    int img_width = 601;
-    int img_height = 601;
+    int img_width = 1097;
+    int img_height = 1097;
 
     int padded_width = img_width;
     if (img_width % CELLSIZE > 0)
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     param->internalCsp = X265_CSP_I444;
     param->sourceWidth = img_width;
     param->sourceHeight = img_height;
-    param->fpsNum = 25;
+    param->fpsNum = 5;
     param->fpsDenom = 1;
     param->internalBitDepth = 8;
 
