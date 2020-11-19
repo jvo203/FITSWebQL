@@ -6473,7 +6473,7 @@ IppStatus tileResize32f_C1R(Ipp32f *pSrc, IppiSize srcSize, Ipp32s srcStep,
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =
       MAX((int)roundf(float(plane_size) / float(work_size)), 1);
-  printf("tileResize32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
+  //printf("tileResize32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
   int specSize = 0, initSize = 0, bufSize = 0;
@@ -6625,7 +6625,7 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =
       MAX((int)roundf(float(plane_size) / float(work_size)), 1);
-  printf("tileResize8u_C1R::num_threads = %d\n", MAX_NUM_THREADS);
+  //printf("tileResize8u_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
   IppiResizeSpec_32f *pSpec = 0;
   int specSize = 0, initSize = 0, bufSize = 0;
@@ -6774,7 +6774,7 @@ void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height)
   size_t work_size = MIN(plane_size, max_work_size);
   int MAX_NUM_THREADS =
       MAX((int)roundf(float(plane_size) / float(work_size)), 1);
-  printf("tileMirror32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
+  //printf("tileMirror32f_C1R::num_threads = %d\n", MAX_NUM_THREADS);
 
 #pragma omp parallel num_threads(MAX_NUM_THREADS)
   {
