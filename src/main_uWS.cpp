@@ -3230,6 +3230,11 @@ int main(int argc, char *argv[])
                                      int ret = x265_encoder_encode(encoder, &pNals, &iNal, picture, NULL);
                                      printf("[x265_encode]::ret = %d, #frames = %d\n", ret, iNal);
 
+                                     for (int i = 0; i < iNal; i++)
+                                     {
+                                       std::cout << "NAL unit #" << (i + 1) << " [type: " << pNals[i].type << ", size: " << pNals[i].sizeBytes << " bytes]." << std::endl;
+                                     }
+
                                      // done with the planes
                                      picture->planes[0] = NULL;
                                      picture->planes[1] = NULL;
