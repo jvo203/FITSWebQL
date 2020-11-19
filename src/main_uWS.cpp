@@ -3214,10 +3214,13 @@ int main(int argc, char *argv[])
 
                                    // HEVC-encode _luma as R, _mask as G, blank out B
                                    // set the R and G planes
-                                   if (user->ptr->picture && user->ptr->encoder)
+                                   if (user->ptr->picture && user->ptr->encoder && user->ptr->params)
                                    {
+                                     x265_param *param = user->ptr->params.get();
                                      x265_picture *picture = user->ptr->picture.get();
                                      x265_encoder *encoder = user->ptr->encoder.get();
+
+                                     std::cout << "param->sourceWidth: " << param->sourceWidth << ", param->sourceHeight: " << param->sourceHeight << std::endl;
 
                                      picture->planes[0] = _luma.get();
                                      picture->planes[1] = _mask.get();
