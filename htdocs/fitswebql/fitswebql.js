@@ -2840,14 +2840,11 @@ function open_websocket_connection(datasetId, index) {
 								var img = videoFrame[index - 1].img;
 
 								try {
-									//VP9
-									api.vpx_decode_frame(ptr, len, videoFrame[index - 1].ptr, img.width, img.height, videoFrame[index - 1].alpha, colourmap);
-								} catch (e) { };
-
-								try {
 									//HEVC
-									api.hevc_decode_nal_unit(index - 1, ptr, len, videoFrame[index - 1].ptr, img.width, img.height, videoFrame[index - 1].alpha, null, colourmap);
-								} catch (e) { };
+									Module.hevc_decode_nal_unit(index - 1, ptr, len, videoFrame[index - 1].ptr, img.width, img.height, videoFrame[index - 1].alpha, null, colourmap);
+								} catch (e) {
+									console.log(e);
+								};
 
 								if (img.data.length == 0) {
 									//detect detached data due to WASM memory growth
