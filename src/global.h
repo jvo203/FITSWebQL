@@ -78,6 +78,7 @@ struct UserSession
   std::shared_ptr<x265_encoder> encoder;
   std::shared_ptr<x265_picture> picture;
   std::atomic<int> last_video_seq;
+  std::atomic<int> last_frame_idx;
   std::atomic<bool> streaming;
   std::shared_mutex video_mtx;
 
@@ -96,6 +97,7 @@ struct UserSession
     ids = _ids;
     last_seq = -1;
     last_video_seq = -1;
+    last_frame_idx = -1;
     active = true;
     streaming = false;
 
