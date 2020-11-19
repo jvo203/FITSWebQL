@@ -2984,6 +2984,8 @@ int main(int argc, char *argv[])
                                           seq, last_seq);
                                    return;
                                  }
+                                 else
+                                   printf("processing video frame #%d\n", seq);
 
                                  user->ptr->last_video_seq = seq;
                                  //}
