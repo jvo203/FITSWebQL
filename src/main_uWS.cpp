@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-18.0"
+#define VERSION_STRING "SV2020-11-19.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -230,6 +230,8 @@ void signalHandler(int signum)
     sqlite3_close(splat_db);
     splat_db = NULL;
   }
+
+  x265_cleanup();
 
   std::cout << "FITSWebQL shutdown completed." << std::endl;
 
@@ -2814,7 +2816,7 @@ int main(int argc, char *argv[])
 
                            param->internalBitDepth = 8;
                            param->sourceWidth = img_width;
-                           param->sourceHeight = img_height;                           
+                           param->sourceHeight = img_height;
 
                            // constant bitrate
                            param->rc.rateControlMode = X265_RC_CRF;
