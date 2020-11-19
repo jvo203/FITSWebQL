@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-13.0";
+	return "JS2020-11-19.0";
 }
 
 const wasm_supported = (() => {
@@ -2810,9 +2810,7 @@ function open_websocket_connection(datasetId, index) {
 					if (type == 5) {
 						computed = dv.getFloat32(12, endianness);
 
-						var length = dv.getUint32(16, endianness);
-
-						var frame = new Uint8Array(received_msg, 24);//16+8, extra 8 bytes for the length of the vector, added automatically by Rust
+						var frame = new Uint8Array(received_msg, 16);
 
 						var latency = performance.now() - dv.getFloat32(0, endianness);
 						var transfer = (latency - computed) / 1000;//[s]
@@ -2827,7 +2825,7 @@ function open_websocket_connection(datasetId, index) {
 							target_bitrate = 0.8 * bitrate;
 						}
 
-						console.log("[ws] computed = " + computed.toFixed(1) + " [ms], latency = " + latency.toFixed(1) + "[ms], n/w transfer time = " + (1000 * transfer).toFixed(1) + " [ms],  n/w bandwidth = " + Math.round(bandwidth) + " [kbps], frame length: " + length + " frame length:" + frame.length);
+						console.log("[ws] computed = " + computed.toFixed(1) + " [ms], latency = " + latency.toFixed(1) + "[ms], n/w transfer time = " + (1000 * transfer).toFixed(1) + " [ms],  n/w bandwidth = " + Math.round(bandwidth) + " [kbps], frame length:" + frame.length);
 
 						//call the wasm decoder
 						{
