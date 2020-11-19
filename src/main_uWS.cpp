@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.06.22.1"
-#define VERSION_STRING "SV2020-11-19.0"
+#define VERSION_STRING "SV2020-11-19.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2720,12 +2720,10 @@ int main(int argc, char *argv[])
                            user->ptr->fps = fps;
                            user->ptr->bitrate = bitrate;
 
-                           {
-                             // gain unique access
-                             std::lock_guard<std::shared_mutex> unique_access(
-                                 user->ptr->video_mtx);
-                             user->ptr->last_video_seq = seq;
-                           }
+                           // gain unique access
+                           std::lock_guard<std::shared_mutex> unique_access(
+                               user->ptr->video_mtx);
+                           user->ptr->last_video_seq = seq;
 
                            // copy over the default mask
                            if (!user->ptr->img_mask)
@@ -2967,28 +2965,28 @@ int main(int argc, char *argv[])
 
                                  fits->update_timestamp();
 
+                                 //{
+                                 // gain unique
+                                 // access
+                                 std::lock_guard<std::shared_mutex>
+                                     unique_access(user->ptr->video_mtx);
+
+                                 int last_seq = user->ptr->last_video_seq;
+
+                                 if (last_seq > seq)
                                  {
-                                   // gain unique
-                                   // access
-                                   std::lock_guard<std::shared_mutex>
-                                       unique_access(user->ptr->video_mtx);
-
-                                   int last_seq = user->ptr->last_video_seq;
-
-                                   if (last_seq > seq)
-                                   {
-                                     printf("skippin"
-                                            "g an "
-                                            "old "
-                                            "frame "
-                                            "(%d < "
-                                            "%d)\n",
-                                            seq, last_seq);
-                                     return;
-                                   }
-
-                                   user->ptr->last_video_seq = seq;
+                                   printf("skippin"
+                                          "g an "
+                                          "old "
+                                          "frame "
+                                          "(%d < "
+                                          "%d)\n",
+                                          seq, last_seq);
+                                   return;
                                  }
+
+                                 user->ptr->last_video_seq = seq;
+                                 //}
 
                                  double _frame = frame;
 
@@ -3214,28 +3212,16 @@ int main(int argc, char *argv[])
 
                                    // HEVC-encode _luma as R, _mask as G, blank out B
                                    // set the R and G planes
-                                   if (user->ptr->picture && user->ptr->encoder && user->ptr->params)
+                                   if (user->ptr->picture && user->ptr->encoder)
                                    {
-                                     x265_param *param = user->ptr->params.get();
                                      x265_picture *picture = user->ptr->picture.get();
                                      x265_encoder *encoder = user->ptr->encoder.get();
-
-                                     std::cout << "param->sourceWidth: " << param->sourceWidth << ", param->sourceHeight: " << param->sourceHeight << std::endl;
 
                                      picture->planes[0] = _luma.get();
                                      picture->planes[1] = _mask.get();
 
                                      picture->stride[0] = padded_width;
                                      picture->stride[1] = padded_width;
-
-                                     /*picture->planes[0] = picture->planes[2];
-                                     picture->planes[1] = picture->planes[2];
-
-                                     picture->stride[0] = picture->stride[2];
-                                     picture->stride[1] = picture->stride[2];*/
-
-                                     for (int i = 0; i < 3; i++)
-                                       printf("picture->stride[%d] = %d\n", i, picture->stride[i]);
 
                                      // RGB-encode
                                      x265_nal *pNals = NULL;
