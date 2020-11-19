@@ -2724,6 +2724,7 @@ int main(int argc, char *argv[])
                            std::lock_guard<std::shared_mutex> unique_access(
                                user->ptr->video_mtx);
                            user->ptr->last_video_seq = seq;
+                           user->ptr->last_frame_idx = -1;
 
                            // copy over the default mask
                            if (!user->ptr->img_mask)
@@ -3025,6 +3026,14 @@ int main(int argc, char *argv[])
                                  fits->get_spectrum_range(_frame, _frame,
                                                           ref_freq, frame_idx,
                                                           frame_idx);
+
+                                 if (frame_idx == user->ptr->last_frame_idx)
+                                 {
+                                   printf("skipping a repeat video frame.\n");
+                                   return;
+                                 }
+                                 else
+                                   user->ptr->last_frame_idx = frame_idx;
 
                                  auto start_t = steady_clock::now();
 
