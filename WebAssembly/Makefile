@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := fitswebql
+.DEFAULT_GOAL := wasm
 VERSION = 20.11.19.0
 
 FPZIP=fpzip
