@@ -3265,8 +3265,43 @@ int main(int argc, char *argv[])
                                        if (buffer != NULL)
                                        {
                                          float ts = timestamp;
-                                         uint32_t id = 0;
+                                         uint32_t id = seq;
                                          uint32_t msg_type = 5;
+                                         float elapsed = elapsedMilliseconds;
+
+                                         size_t offset = 0;
+
+                                         memcpy(buffer + offset, &ts,
+                                                sizeof(float));
+                                         offset += sizeof(float);
+
+                                         memcpy(buffer + offset, &id,
+                                                sizeof(uint32_t));
+                                         offset += sizeof(uint32_t);
+
+                                         memcpy(buffer + offset, &msg_type,
+                                                sizeof(uint32_t));
+                                         offset += sizeof(uint32_t);
+
+                                         memcpy(buffer + offset, &elapsed,
+                                                sizeof(float));
+                                         offset += sizeof(float);
+
+                                         memcpy(buffer + offset, pNals[i].payload, pNals[i].sizeBytes);
+                                         offset += pNals[i].sizeBytes;
+
+                                         // send the buffer
+                                         if (user != NULL)
+                                           if (user->ptr != NULL)
+                                             if (user->ptr->active)
+                                             {
+                                               std::lock_guard<std::shared_mutex>
+                                                   unique_access(user->ptr->mtx);
+                                               ws->send(std::string_view(
+                                                   buffer,
+                                                   offset)); // by default
+                                                             // uWS::OpCode::BINARY
+                                             }
 
                                          free(buffer);
                                        }
