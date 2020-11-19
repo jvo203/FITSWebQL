@@ -3241,9 +3241,21 @@ int main(int argc, char *argv[])
                                      int ret = x265_encoder_encode(encoder, &pNals, &iNal, picture, NULL);
                                      printf("[x265_encode]::ret = %d, #frames = %d\n", ret, iNal);
 
+                                     auto end_t = steady_clock::now();
+
+                                     double elapsedSeconds =
+                                         ((end_t - start_t).count()) *
+                                         steady_clock::period::num /
+                                         static_cast<double>(
+                                             steady_clock::period::den);
+                                     double elapsedMilliseconds =
+                                         1000.0 * elapsedSeconds;
+
                                      for (int i = 0; i < iNal; i++)
                                      {
                                        std::cout << "NAL unit #" << (i + 1) << " [type: " << pNals[i].type << ", size: " << pNals[i].sizeBytes << " bytes]." << std::endl;
+
+                                       // send a WebSocket frame (msg_id = 5)
                                      }
 
                                      // done with the planes
