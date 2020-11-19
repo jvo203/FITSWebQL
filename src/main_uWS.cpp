@@ -3255,7 +3255,15 @@ int main(int argc, char *argv[])
                                      {
                                        std::cout << "NAL unit #" << (i + 1) << " [type: " << pNals[i].type << ", size: " << pNals[i].sizeBytes << " bytes]." << std::endl;
 
-                                       // send a WebSocket frame (msg_id = 5)
+                                       // send a binary WebSocket frame (msg_id = 5)
+                                       /*let ws_frame = WsFrame{
+                                         ts : timestamp as f32,
+                                         seq_id : seq_id as u32,
+                                         msg_type : 5, //an hevc video frame
+                                         //length: video_frame.len() as u32,
+                                         elapsed : watch.elapsed().as_millis() as f32,
+                                         frame : payload.to_vec(),
+                                       };*/
                                      }
 
                                      // done with the planes
