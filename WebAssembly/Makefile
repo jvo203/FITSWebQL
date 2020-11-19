@@ -1,4 +1,5 @@
-VERSION = 20.06.22.1
+.DEFAULT_GOAL := fitswebql
+VERSION = 20.11.19.0
 
 FPZIP=fpzip
 SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
