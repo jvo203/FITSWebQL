@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := wasm
-VERSION = 20.11.19.0
+VERSION = 20.11.20.0
 
 FPZIP=fpzip
 SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
