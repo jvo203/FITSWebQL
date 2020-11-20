@@ -3,10 +3,7 @@
 #include <emscripten/val.h>
 
 // HEVC video decoder
-extern "C"
-{
 #include "hevc_decoder.h"
-}
 
 // OpenEXR image decoder
 #include <OpenEXR/IlmThread.h>
