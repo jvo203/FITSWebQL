@@ -19,8 +19,7 @@
 #ifndef AVUTIL_BUFFER_INTERNAL_H
 #define AVUTIL_BUFFER_INTERNAL_H
 
-//#include <stdatomic.h>
-#include "../compat/atomics/gcc/stdatomic.h"
+#include <stdatomic.h>
 #include <stdint.h>
 
 #include "buffer.h"
