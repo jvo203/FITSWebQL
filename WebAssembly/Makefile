@@ -1,10 +1,11 @@
 .DEFAULT_GOAL := wasm
 VERSION = 20.11.20.0
 
-FPZIP=fpzip
-SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
+OPENEXR = OpenEXR
+FPZIP = fpzip
+SRC = $(wildcard $(OPENEXR)/*.cpp) $(wildcard $(FPZIP)/*.cpp)
 OBJ = $(SRC:.cpp=.o)
-INCLUDE=-I./ -I./OpenEXR -I./$(FPZIP)/include -I./$(FPZIP)/src
+INCLUDE=-I./ -I./$(OPENEXR) -I./$(FPZIP)/include -I./$(FPZIP)/src
 LIBRARY=
 CXXFLAGS=-std=c++11 -O3
 LDFLAGS=-lz --llvm-lto 1
