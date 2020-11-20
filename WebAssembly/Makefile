@@ -3,6 +3,7 @@ VERSION = 20.11.20.0
 
 FPZIP=fpzip
 SRC=OpenEXR/*.cpp $(FPZIP)/src/*.cpp
+OBJ = $(SRC:.cpp=.o)
 INCLUDE=-I./ -I./OpenEXR -I./$(FPZIP)/include -I./$(FPZIP)/src
 LIBRARY=
 CXXFLAGS=-std=c++11 -O3
@@ -31,11 +32,14 @@ FFMPEG_OBJ = $(FFMPEG_SRC:.c=.o)
 %.o: %.c
 	emcc $(FFMPEG_FLAGS) -MMD -o $@ -c $<
 
-wasm: $(FFMPEG_OBJ)
-	em++ $(EMFLAGS) $(DEFS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
+%.o: %.cpp
+	em++ $(EMFLAGS) $(DEFS) -MMD -o $@ -c $<
+
+wasm: $(FFMPEG_OBJ) $(OBJ)
+	em++ $(EMFLAGS) $(DEFS) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f ../htdocs/fitswebql/exr.*.js ../htdocs/fitswebql/exr.*.js.mem ../htdocs/fitswebql/exr.*.wasm
 
 clean2:
-	rm -f $(FFMPEG_OBJ)
+	rm -f $(FFMPEG_OBJ) $(OBJ)
