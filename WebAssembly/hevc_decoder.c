@@ -16,7 +16,6 @@ static AVFrame **avframe = NULL;
 static AVPacket **avpkt = NULL;
 
 extern AVCodec ff_hevc_decoder;
-//extern AVCodecParser ff_hevc_parser;
 
 void hevc_init(int va_count)
 {

@@ -2,8 +2,11 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+extern "C"
+{
 // HEVC video decoder
 #include "hevc_decoder.h"
+}
 
 // OpenEXR image decoder
 #include <OpenEXR/IlmThread.h>
@@ -220,5 +223,5 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
   function("hevc_destroy", &hevc_destroy);
-  function("hevc_decode_nal_unit", &hevc_decode_nal_unit, allow_raw_pointer<arg<0>>());
+  function("hevc_decode_nal_unit", &hevc_decode_nal_unit, allow_raw_pointers());
 }
