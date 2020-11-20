@@ -1,12 +1,11 @@
 #include <emscripten.h>
 
-#define WASM_EXPORT __attribute__((visibility("default")))
-
 #include <libavcodec/hevc_parse.h>
-
 #include <libavutil/common.h>
 
 #include <string.h>
+
+#include "hevc_decoder.h"
 
 //colourmaps
 #include "colourmap.h"
@@ -19,11 +18,7 @@ static AVPacket **avpkt = NULL;
 extern AVCodec ff_hevc_decoder;
 //extern AVCodecParser ff_hevc_parser;
 
-EMSCRIPTEN_KEEPALIVE static void hevc_init(int va_count);
-EMSCRIPTEN_KEEPALIVE static void hevc_destroy(int va_count);
-EMSCRIPTEN_KEEPALIVE static double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, unsigned char *bytes, const char *colourmap);
-
-EMSCRIPTEN_KEEPALIVE static void hevc_init(int va_count)
+void hevc_init(int va_count)
 {
     //the "standard" way
     codec = &ff_hevc_decoder;
@@ -79,7 +74,7 @@ EMSCRIPTEN_KEEPALIVE static void hevc_init(int va_count)
     }
 }
 
-EMSCRIPTEN_KEEPALIVE static void hevc_destroy(int va_count)
+void hevc_destroy(int va_count)
 {
     if (avctx != NULL)
     {
@@ -112,7 +107,7 @@ EMSCRIPTEN_KEEPALIVE static void hevc_destroy(int va_count)
     }
 }
 
-EMSCRIPTEN_KEEPALIVE static double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, unsigned char *bytes, const char *colourmap)
+double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, unsigned char *bytes, const char *colourmap)
 {
     if (avctx == NULL || avpkt == NULL || avframe == NULL)
         return 0.0;
