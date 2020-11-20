@@ -3,7 +3,9 @@ VERSION = 20.11.20.0
 
 OPENEXR = OpenEXR
 FPZIP = fpzip
-SRC = $(wildcard $(OPENEXR)/*.cpp) $(wildcard $(FPZIP)/*.cpp)
+OPENEXR_SRC = $(wildcard $(OPENEXR)/*.cpp)
+FPZIP_SRC = $(wildcard $(FPZIP)/*.cpp)
+SRC = $(OPENEXR_SRC) $(FPZIP_SRC)
 OBJ = $(SRC:.cpp=.o)
 INCLUDE=-I./ -I./$(OPENEXR) -I./$(FPZIP)/include -I./$(FPZIP)/src
 LIBRARY=
