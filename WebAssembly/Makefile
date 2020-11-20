@@ -51,6 +51,3 @@ clean:
 
 clean2:
 	rm -f $(FFMPEG_OBJ) $(OBJ)
-
-echo:
-	@echo $(OBJ)
