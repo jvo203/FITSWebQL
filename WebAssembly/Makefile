@@ -31,7 +31,7 @@ FFMPEG_OBJ = $(FFMPEG_SRC:.c=.o)
 %.o: %.c
 	emcc $(FFMPEG_FLAGS) -o $@ -c $<
 
-wasm $(FFMPEG_OBJ):
+wasm: $(FFMPEG_OBJ)
 	em++ $(EMFLAGS) $(DEFS) $(SRC) colourmap.cc main.cc -o ../htdocs/fitswebql/exr.$(VERSION).js --post-js module-post.js $(INCLUDE) -L$(LIBRARY) $(CXXFLAGS) $(LDFLAGS)
 
 clean:
