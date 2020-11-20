@@ -36,3 +36,6 @@ wasm: $(FFMPEG_OBJ)
 
 clean:
 	rm -f ../htdocs/fitswebql/exr.*.js ../htdocs/fitswebql/exr.*.js.mem ../htdocs/fitswebql/exr.*.wasm
+
+clean2:
+	rm -f $(FFMPEG_OBJ)
