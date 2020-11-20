@@ -497,4 +497,7 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("loadEXRStr", &loadEXRStr);
   function("enableMultithreading", &enableMultithreading);
   function("FPunzip", &FPunzip);
+  function("hevc_init", &hevc_init);
+  function("hevc_destroy", &hevc_destroy);
+  function("hevc_decode_nal_unit", &hevc_decode_nal_unit);
 }
