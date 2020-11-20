@@ -20,8 +20,7 @@
 #define AVCODEC_ERROR_RESILIENCE_H
 
 #include <stdint.h>
-//#include <stdatomic.h>
-#include "../compat/atomics/gcc/stdatomic.h"
+#include <stdatomic.h>
 
 #include "avcodec.h"
 #include "me_cmp.h"

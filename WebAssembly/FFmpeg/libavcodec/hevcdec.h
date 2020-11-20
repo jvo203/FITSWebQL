@@ -23,8 +23,7 @@
 #ifndef AVCODEC_HEVCDEC_H
 #define AVCODEC_HEVCDEC_H
 
-//#include <stdatomic.h>
-#include "../compat/atomics/gcc/stdatomic.h" // added by Chris
+#include <stdatomic.h>
 
 #include "libavutil/buffer.h"
 #include "libavutil/md5.h"
