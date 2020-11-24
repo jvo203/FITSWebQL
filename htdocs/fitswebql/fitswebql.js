@@ -1904,7 +1904,7 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 
 function process_video(index) {
-	if (!streaming || videoFrame[index - 1] == null || videoFrame[index - 1].img == null || videoFrame[index - 1].ptr == null || videoFrame[index - 1].alpha == null)
+	if (!streaming || videoFrame[index - 1] == null)
 		return;
 
 	//let image_bounding_dims = imageContainer[index-1].image_bounding_dims;
@@ -2837,14 +2837,13 @@ function open_websocket_connection(datasetId, index) {
 
 								try {
 									//HEVC
-									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);
-									console.log(data);
+									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);									
 								} catch (e) {
 									console.log(e);
 								};
 
-								var img = new ImageData(data, videoFrame[index - 1].width, videoFrame[index - 1].height);
-								videoFrame[index - 1].img = img;
+								var img = new ImageData(new Uint8ClampedArray(data), videoFrame[index - 1].width, videoFrame[index - 1].height);
+								videoFrame[index - 1].img = img;								
 
 								/*if (img.data.length == 0) {
 									//detect detached data due to WASM memory growth
