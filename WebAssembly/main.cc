@@ -206,8 +206,8 @@ std::vector<float> FPunzip(std::string const &bytes)
 }
 
 double hevc_decode(std::string const &frame, int index, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, std::string const &colourmap)
-{  
-  return  hevc_decode_nal_unit(index, frame.data(), frame.size(), canvas, _w, _h, colourmap.c_str());
+{
+  return hevc_decode_nal_unit(index, (unsigned char *)frame.data(), frame.size(), canvas, _w, _h, colourmap.c_str());
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -227,6 +227,6 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("enableMultithreading", &enableMultithreading);
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
-  function("hevc_destroy", &hevc_destroy);  
+  function("hevc_destroy", &hevc_destroy);
   function("hevc_decode", &hevc_decode, allow_raw_pointer<arg<3>>());
 }
