@@ -205,11 +205,14 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
-void hevc_decode_frame(std::string const &bytes, int index, std::string const &canvas) //, unsigned int _w, unsigned int _h, const char *colourmap)
+void hevc_decode_frame(std::string const &bytes, int index, std::string const &canvas, unsigned int _w, unsigned int _h) //, const char *colourmap)
 {
   std::cout << "[hevc_decode_frame] frame: " << bytes.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] index: " << index << std::endl;
   std::cout << "[hevc_decode_frame] canvas: " << canvas.size() << " bytes." << std::endl;
+  std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
+  unsigned char *_canvas = (unsigned char *)canvas.data();
+  _canvas[0] = 1;
   //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap);
 }
 
