@@ -2775,9 +2775,7 @@ int main(int argc, char *argv[])
                                      ": " +
                                      std::to_string(img_width) +
                                      ", \"height\" : " +
-                                     std::to_string(img_height) +
-                                     ", \"stride\" : " +
-                                     std::to_string(_padded_width) + "}";
+                                     std::to_string(img_height) + "}";
                                  ws->send(resp, opCode);
                                }
 
