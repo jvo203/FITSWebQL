@@ -213,6 +213,24 @@ void hevc_decode_frame(std::string const &canvas, unsigned int _w, unsigned int 
   std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
   std::cout << "[hevc_decode_frame] colourmap: " << colourmap << std::endl;
 
+  unsigned char *_canvas = (unsigned char *)canvas.data();
+
+  // fill-in the canvas with RED for testing purposes
+  size_t dst_offset = 0;
+
+  for (int j = 0; j < _h; j++)
+  {
+    for (int i = 0; i < _w; i++)
+    {
+      unsigned char pixel = 255;
+
+      _canvas[dst_offset++] = pixel;
+      _canvas[dst_offset++] = 0;
+      _canvas[dst_offset++] = 0;
+      _canvas[dst_offset++] = 255;
+    }
+  }
+
   //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap.c_str());
 }
 
