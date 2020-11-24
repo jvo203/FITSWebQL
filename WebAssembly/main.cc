@@ -232,6 +232,8 @@ val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes
       }
     }
   }
+  else
+    printf("canvasLength(%zu) does not match len(%zu)\n", canvasLength, len);
 
   return val(typed_memory_view(canvasLength, canvasBuffer));
 

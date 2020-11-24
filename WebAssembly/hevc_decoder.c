@@ -31,6 +31,8 @@ void hevc_init(int va_count, unsigned int _w, unsigned int _h)
     if (canvasBuffer != NULL)
         canvasLength = len;
 
+    printf("[hevc_init] _w: %d, _h: %d, canvasLength = %zu, canvasBuffer = %zu\n", _w, _h, canvasLength, canvasBuffer);
+
     //the "standard" way
     codec = &ff_hevc_decoder;
 
