@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-24.1";
+	return "JS2020-11-24.3";
 }
 
 const wasm_supported = (() => {
@@ -2831,20 +2831,22 @@ function open_websocket_connection(datasetId, index) {
 						{
 							let start = performance.now();
 
-							if (streaming && videoFrame[index - 1] != null && videoFrame[index - 1].img != null && videoFrame[index - 1].data != null) {
+							if (streaming && videoFrame[index - 1] != null) {
 								var img = videoFrame[index - 1].img;
+								var data;
 
 								try {
 									//HEVC
-									Module.hevc_decode_frame(videoFrame[index - 1].data, img.width, img.height, frame, index - 1, colourmap);
+									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);
+									console.log(data);
 								} catch (e) {
 									console.log(e);
-								};								
+								};
 
-								var img = new ImageData(videoFrame[index - 1].data, img.width, img.height);
-								videoFrame[index - 1].img = img;								
+								var img = new ImageData(data, videoFrame[index - 1].width, videoFrame[index - 1].height);
+								videoFrame[index - 1].img = img;
 
-								if (img.data.length == 0) {
+								/*if (img.data.length == 0) {
 									//detect detached data due to WASM memory growth
 									console.log("detached WASM buffer detected, refreshing videoFrame.ImageData");
 
@@ -2855,7 +2857,7 @@ function open_websocket_connection(datasetId, index) {
 
 									videoFrame[index - 1].img = img;								
 									videoFrame[index - 1].data = data;
-								}
+								}*/
 
 								requestAnimationFrame(function () {
 									process_video(index)
@@ -2864,7 +2866,7 @@ function open_websocket_connection(datasetId, index) {
 							else {
 								try {
 									//HEVC
-									Module.hevc_decode_frame('', 0, 0, frame, index - 1, 'greyscale');
+									Module.hevc_decode_frame(0, 0, frame, index - 1, 'greyscale');
 								} catch (e) {
 									console.log(e);
 								};
@@ -2993,6 +2995,8 @@ function open_websocket_connection(datasetId, index) {
 									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img);
 
 									videoFrame[index - 1] = {
+										width: width,
+										height: height,
 										img: img,
 										ptr: img_ptr,
 										data: data,
@@ -7517,7 +7521,7 @@ function x_axis_mouseenter(offset) {
 	if (wasm_supported) {
 		try {
 			//init the HEVC encoder		
-			Module.hevc_init(va_count);
+			Module.hevc_init(va_count, videoFrame[va_count - 1].width, videoFrame[va_count - 1].height);
 		} catch (e) {
 			console.log(e);
 		};

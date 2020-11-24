@@ -17,8 +17,20 @@ static AVPacket **avpkt = NULL;
 
 extern AVCodec ff_hevc_decoder;
 
-void hevc_init(int va_count)
+void hevc_init(int va_count, unsigned int _w, unsigned int _h)
 {
+    if (canvasBuffer != NULL)
+    {
+        free(canvasBuffer);
+        canvasLength = 0;
+    }
+
+    size_t len = _w * _h * 4;
+    canvasBuffer = malloc(len);
+
+    if (canvasBuffer != NULL)
+        canvasLength = len;
+
     //the "standard" way
     codec = &ff_hevc_decoder;
 
@@ -104,6 +116,12 @@ void hevc_destroy(int va_count)
         free(avpkt);
         avpkt = NULL;
     }
+
+    if (canvasBuffer != NULL)
+    {
+        free(canvasBuffer);
+        canvasLength = 0;
+    }
 }
 
 double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
@@ -150,7 +168,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
         int format = avframe[index]->format;
 
         printf("[wasm hevc] decoded a %d x %d frame in a colourspace:format %d:%d, elapsed time %5.2f [ms], colourmap: %s\n", avframe[index]->width, avframe[index]->height, cs, format, (stop - start), colourmap);
-     
+
         if (format == AV_PIX_FMT_YUV444P)
         {
             printf("processing a YUV444P format\n");
@@ -158,7 +176,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
             //apply a colourmap etc.
             int w = avframe[index]->width;
             int h = avframe[index]->height;
-            
+
             const unsigned char *luma = avframe[index]->data[0];
             int stride_luma = avframe[index]->linesize[0];
 
@@ -166,7 +184,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
             int stride_alpha = avframe[index]->linesize[1];
 
             if (w == _w && h == _h)
-            {                
+            {
                 //apply a colourmap
                 /*if (strcmp(colourmap, "red") == 0)
                 {

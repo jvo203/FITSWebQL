@@ -205,31 +205,35 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
-void hevc_decode_frame(std::string const &canvas, unsigned int _w, unsigned int _h, std::string const &bytes, int index, std::string const &colourmap)
+val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes, int index, std::string const &colourmap)
 {
   std::cout << "[hevc_decode_frame] frame: " << bytes.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] index: " << index << std::endl;
-  std::cout << "[hevc_decode_frame] canvas: " << canvas.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
   std::cout << "[hevc_decode_frame] colourmap: " << colourmap << std::endl;
 
-  unsigned char *_canvas = (unsigned char *)canvas.data();
+  size_t len = _w * _h * 4;
 
-  // fill-in the canvas with RED for testing purposes
-  size_t dst_offset = 0;
-
-  for (int j = 0; j < _h; j++)
+  if (len == canvasLength)
   {
-    for (int i = 0; i < _w; i++)
-    {
-      unsigned char pixel = 255;
+    // fill-in the canvas with RED for testing purposes
+    size_t dst_offset = 0;
 
-      _canvas[dst_offset++] = pixel;
-      _canvas[dst_offset++] = 0;
-      _canvas[dst_offset++] = 0;
-      _canvas[dst_offset++] = 255;
+    for (int j = 0; j < _h; j++)
+    {
+      for (int i = 0; i < _w; i++)
+      {
+        unsigned char pixel = 255;
+
+        canvasBuffer[dst_offset++] = pixel;
+        canvasBuffer[dst_offset++] = 0;
+        canvasBuffer[dst_offset++] = 0;
+        canvasBuffer[dst_offset++] = 255;
+      }
     }
   }
+
+  return val(typed_memory_view(canvasLength, canvasBuffer));
 
   //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap.c_str());
 }
