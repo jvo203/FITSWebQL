@@ -39,26 +39,28 @@ void apply_colourmap(unsigned char* canvas, const unsigned char* luma, int w, in
 	}
 }
 
-void apply_greyscale(unsigned char* canvas, const unsigned char* luma, int w, int h, int stride, const unsigned char* alpha, bool invert)
+void apply_greyscale(unsigned char* canvas, int w, int h, const unsigned char* luma, int luma_stride, const unsigned char* alpha, int alpha_stride, bool invert)
 {
 	if(canvas == NULL || luma == NULL || alpha == NULL)
 		return;
 
-	size_t src_offset = 0 ;
+	size_t luma_offset = 0 ;
+	size_t alpha_offset = 0 ;
 	size_t dst_offset = 0 ;
 
 	for(int j=0;j<h;j++)
 	{	  
-	  size_t offset = j * stride ;
+	  size_t luma_offset = j * luma_stride ;
+	  size_t alpha_offset = j * alpha_stride ;
 
 	  for(int i=0;i<w;i++)
 	  {			
-			unsigned char pixel = invert ? (255 - luma[offset++]) : luma[offset++] ;
+			unsigned char pixel = invert ? (255 - luma[luma_offset++]) : luma[luma_offset++] ;
 			
 			canvas[dst_offset++] = pixel ;
 			canvas[dst_offset++] = pixel ;
 			canvas[dst_offset++] = pixel ;
-			canvas[dst_offset++] = alpha[src_offset++] ;//the alpha channel
+			canvas[dst_offset++] = alpha[alpha_offset++] ;//the alpha channel
 		}
 	}
 }
