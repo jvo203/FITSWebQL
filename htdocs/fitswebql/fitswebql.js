@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-19.0";
+	return "JS2020-11-24.0";
 }
 
 const wasm_supported = (() => {
@@ -2831,17 +2831,12 @@ function open_websocket_connection(datasetId, index) {
 						{
 							let start = performance.now();
 
-							var len = frame.length;
-							var ptr = Module._malloc(len);
-
-							Module.HEAPU8.set(frame, ptr);
-
-							if (streaming && videoFrame[index - 1] != null && videoFrame[index - 1].img != null && videoFrame[index - 1].ptr != null && videoFrame[index - 1].alpha != null) {
+							if (streaming && videoFrame[index - 1] != null && videoFrame[index - 1].img != null && videoFrame[index - 1].ptr != null) {
 								var img = videoFrame[index - 1].img;
 
 								try {
 									//HEVC
-									Module.hevc_decode_nal_unit(index - 1, ptr, len, videoFrame[index - 1].ptr, img.width, img.height, videoFrame[index - 1].alpha, null, colourmap);
+									Module.hevc_decode(frame, index - 1, videoFrame[index - 1].ptr, img.width, img.height, null, colourmap);
 								} catch (e) {
 									console.log(e);
 								};
@@ -2865,13 +2860,11 @@ function open_websocket_connection(datasetId, index) {
 							else {
 								try {
 									//HEVC
-									Module.hevc_decode_nal_unit(index - 1, ptr, len, null, 0, 0, null, null, 'greyscale');
+									Module.hevc_decode(frame, index - 1, null, 0, 0, null, 'greyscale');
 								} catch (e) {
 									console.log(e);
 								};
 							}
-
-							Module._free(ptr);
 
 							let delta = performance.now() - start;
 
@@ -2980,16 +2973,6 @@ function open_websocket_connection(datasetId, index) {
 						if (data.type == "init_video") {
 							var width = data.width;
 							var height = data.height;
-							var stride = data.stride;
-
-							/*var alpha = data.alpha;
-
-							var Buffer = require('buffer').Buffer;
-							var LZ4 = require('lz4');
-
-							var uncompressed = new Buffer(stride * height);
-							uncompressedSize = LZ4.decodeBlock(new Buffer(alpha), uncompressed);
-							alpha = uncompressed.slice(0, uncompressedSize);*/
 
 							if (videoFrame[index - 1] == null) {
 								let imageFrame = imageContainer[va_count - 1];
@@ -3003,15 +2986,11 @@ function open_websocket_connection(datasetId, index) {
 										data[i] = 0;
 									var img = new ImageData(data, width, height);
 
-									var alpha_ptr = Module._malloc(stride * height);
-									//Module.HEAPU8.set(alpha, alpha_ptr);
-
 									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img, "alpha_ptr=", alpha_ptr);
 
 									videoFrame[index - 1] = {
 										img: img,
 										ptr: img_ptr,
-										alpha: alpha_ptr,
 										scaleX: imageFrame.width / width,
 										scaleY: imageFrame.height / height,
 										image_bounding_dims: imageFrame.image_bounding_dims,
