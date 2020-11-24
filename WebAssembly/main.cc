@@ -205,14 +205,10 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
-/*double hevc_decode(std::string const &frame, int index, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, const char *colourmap)
+void hevc_decode_frame(std::string const &bytes, int index, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
 {
-  return hevc_decode_nal_unit(index, (unsigned char *)frame.data(), frame.size(), canvas, _w, _h, colourmap);
-}*/
-
-void hevc_decode_frame(std::string const &bytes)
-{
-  std::cout << "[hevc_decode_frame] " << bytes.size() << " bytes." << std::endl;
+  //std::cout << "[hevc_decode_frame] " << bytes.size() << " bytes." << std::endl;
+  hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap);
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -232,7 +228,6 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("enableMultithreading", &enableMultithreading);
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
-  function("hevc_destroy", &hevc_destroy);
-  //function("hevc_decode", &hevc_decode, allow_raw_pointer<arg<2>>(), allow_raw_pointer<arg<5>>(), allow_raw_pointer<arg<6>>());
-  function("hevc_decode_frame", &hevc_decode_frame);
+  function("hevc_destroy", &hevc_destroy);  
+  function("hevc_decode_frame", &hevc_decode_frame, allow_raw_pointer<arg<2>>(), allow_raw_pointer<arg<5>>());
 }
