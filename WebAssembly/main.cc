@@ -205,10 +205,11 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
-void hevc_decode_frame(std::string const &bytes, int index, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
+void hevc_decode_frame(std::string const &bytes, int index)//, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
 {
-  //std::cout << "[hevc_decode_frame] " << bytes.size() << " bytes." << std::endl;
-  hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap);
+  std::cout << "[hevc_decode_frame] " << bytes.size() << " bytes." << std::endl;
+  std::cout << "[hevc_decode_frame] " << "index = " << index << std::endl;
+  //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap);
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -229,5 +230,5 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
   function("hevc_destroy", &hevc_destroy);  
-  function("hevc_decode_frame", &hevc_decode_frame, allow_raw_pointer<arg<2>>(), allow_raw_pointer<arg<5>>());
+  function("hevc_decode_frame", &hevc_decode_frame);//, allow_raw_pointer<arg<2>>(), allow_raw_pointer<arg<5>>());
 }

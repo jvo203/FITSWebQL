@@ -2836,7 +2836,7 @@ function open_websocket_connection(datasetId, index) {
 
 								try {
 									//HEVC
-									Module.hevc_decode_frame(frame, index - 1, videoFrame[index - 1].ptr, img.width, img.height, colourmap);
+									Module.hevc_decode_frame(frame, index - 1);//, videoFrame[index - 1].ptr, img.width, img.height, colourmap);
 								} catch (e) {
 									console.log(e);
 								};
@@ -2858,12 +2858,12 @@ function open_websocket_connection(datasetId, index) {
 								});
 							}
 							else {
-								try {
+								/*try {
 									//HEVC
 									Module.hevc_decode_frame(frame, index - 1, null, 0, 0, 'greyscale');
 								} catch (e) {
 									console.log(e);
-								};
+								};*/
 							}
 
 							let delta = performance.now() - start;
