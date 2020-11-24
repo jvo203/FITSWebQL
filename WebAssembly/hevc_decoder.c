@@ -150,44 +150,25 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
         int format = avframe[index]->format;
 
         printf("[wasm hevc] decoded a %d x %d frame in a colourspace:format %d:%d, elapsed time %5.2f [ms], colourmap: %s\n", avframe[index]->width, avframe[index]->height, cs, format, (stop - start), colourmap);
-
+     
         if (format == AV_PIX_FMT_YUV444P)
         {
-            printf("processing a YUV444 format\n");
-
-            int w = avframe[index]->width;
-            int h = avframe[index]->height;
-
-            int stride_y = avframe[index]->linesize[0];
-            int stride_u = avframe[index]->linesize[1];
-            int stride_v = avframe[index]->linesize[2];
-
-            const unsigned char *y = avframe[index]->data[0];
-            const unsigned char *u = avframe[index]->data[1];
-            const unsigned char *v = avframe[index]->data[2];
-
-            if (w == _w && h == _h && stride_y == stride_u && stride_y == stride_v)
-            {
-                //carry YUV (RGB) over to the canvas
-                apply_yuv(canvas, y, u, v, w, h, stride_y, alpha);
-            }
-            else
-                printf("[wasm hevc] canvas image dimensions %d x %d do not match the decoded image size, or the y,u,v strides differ; doing nothing\n", _w, _h);
-        }
-        else
-        {
-            printf("processing a YUV400 format\n");
+            printf("processing a YUV444P format\n");
 
             //apply a colourmap etc.
             int w = avframe[index]->width;
             int h = avframe[index]->height;
-            int stride = avframe[index]->linesize[0];
+            
             const unsigned char *luma = avframe[index]->data[0];
+            int stride_luma = avframe[index]->linesize[0];
+
+            const unsigned char *alpha = avframe[index]->data[1];
+            int stride_alpha = avframe[index]->linesize[1];
 
             if (w == _w && h == _h)
             {                
                 //apply a colourmap
-                if (strcmp(colourmap, "red") == 0)
+                /*if (strcmp(colourmap, "red") == 0)
                 {
                     apply_colourmap(canvas, luma, w, h, stride, false, ocean_g, ocean_r, ocean_b, alpha);
                 }
@@ -239,10 +220,10 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
                 {
                     apply_greyscale(canvas, luma, w, h, stride, alpha, true);
                 }
-                else
+                else*/
                 {
                     //no colour by default
-                    apply_greyscale(canvas, luma, w, h, stride, alpha, false);
+                    apply_greyscale(canvas, w, h, luma, luma_stride, alpha, alpha_stride, false);
                 };
             }
             else
