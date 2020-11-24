@@ -223,7 +223,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
                 else*/
                 {
                     //no colour by default
-                    apply_greyscale(canvas, w, h, luma, luma_stride, alpha, alpha_stride, false);
+                    apply_greyscale(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false);
                 };
             }
             else
