@@ -2836,7 +2836,7 @@ function open_websocket_connection(datasetId, index) {
 
 								try {
 									//HEVC
-									Module.hevc_decode_frame(frame, index - 1, videoFrame[index - 1].data, img.width, img.height);//, colourmap);
+									Module.hevc_decode_frame(frame, index - 1, videoFrame[index - 1].data, img.width, img.height, colourmap);
 								} catch (e) {
 									console.log(e);
 								};
