@@ -106,7 +106,7 @@ void hevc_destroy(int va_count)
     }
 }
 
-double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, unsigned char *bytes, const char *colourmap)
+double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, const char *colourmap)
 {
     if (avctx == NULL || avpkt == NULL || avframe == NULL)
         return 0.0;
@@ -185,21 +185,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
             const unsigned char *luma = avframe[index]->data[0];
 
             if (w == _w && h == _h)
-            {
-                //copy luma into bytes
-                if (bytes != NULL)
-                {
-                    size_t dst_offset = 0;
-
-                    for (int j = 0; j < h; j++)
-                    {
-                        size_t offset = j * stride;
-
-                        for (int i = 0; i < w; i++)
-                            bytes[dst_offset++] = luma[offset++];
-                    }
-                }
-
+            {                
                 //apply a colourmap
                 if (strcmp(colourmap, "red") == 0)
                 {
