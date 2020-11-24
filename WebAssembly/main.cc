@@ -212,9 +212,8 @@ void hevc_decode_frame(std::string const &bytes, int index, std::string const &c
   std::cout << "[hevc_decode_frame] canvas: " << canvas.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
   std::cout << "[hevc_decode_frame] colourmap: " << colourmap << std::endl;
-  unsigned char *_canvas = (unsigned char *)canvas.data();
-  _canvas[0] = 1;
-  //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap);
+
+  hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), (unsigned char *)canvas.data(), _w, _h, colourmap.c_str());
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -235,5 +234,5 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
   function("hevc_destroy", &hevc_destroy);
-  function("hevc_decode_frame", &hevc_decode_frame); //, allow_raw_pointer<arg<2>>(), allow_raw_pointer<arg<5>>());
+  function("hevc_decode_frame", &hevc_decode_frame);
 }
