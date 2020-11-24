@@ -106,7 +106,7 @@ void hevc_destroy(int va_count)
     }
 }
 
-double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const unsigned char *alpha, const char *colourmap)
+double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
 {
     if (avctx == NULL || avpkt == NULL || avframe == NULL)
         return 0.0;
