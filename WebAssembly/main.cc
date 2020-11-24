@@ -214,7 +214,24 @@ val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes
 
   size_t len = _w * _h * 4;
 
-  if (len == canvasLength)
+  if (canvasLength != len)
+  {
+    free(canvasBuffer);
+    canvasBuffer = NULL;
+    canvasLength = 0;
+  }
+
+  if (canvasBuffer == NULL)
+  {
+    canvasBuffer = (unsigned char *)malloc(len);
+
+    if (canvasBuffer != NULL)
+      canvasLength = len;
+
+    printf("[hevc_decode_frame] _w: %d, _h: %d, canvasLength = %zu, canvasBuffer = %p\n", _w, _h, canvasLength, canvasBuffer);
+  }
+
+  if (canvasBuffer != NULL)
   {
     // fill-in the canvas with RED for testing purposes
     size_t dst_offset = 0;

@@ -7521,7 +7521,7 @@ function x_axis_mouseenter(offset) {
 	if (wasm_supported) {
 		try {
 			//init the HEVC encoder		
-			Module.hevc_init(va_count, videoFrame[va_count - 1].width, videoFrame[va_count - 1].height);
+			Module.hevc_init(va_count);
 		} catch (e) {
 			console.log(e);
 		};

@@ -17,22 +17,8 @@ static AVPacket **avpkt = NULL;
 
 extern AVCodec ff_hevc_decoder;
 
-void hevc_init(int va_count, unsigned int _w, unsigned int _h)
+void hevc_init(int va_count)
 {
-    if (canvasBuffer != NULL)
-    {
-        free(canvasBuffer);
-        canvasLength = 0;
-    }
-
-    size_t len = _w * _h * 4;
-    canvasBuffer = malloc(len);
-
-    if (canvasBuffer != NULL)
-        canvasLength = len;
-
-    printf("[hevc_init] _w: %d, _h: %d, canvasLength = %zu, canvasBuffer = %zu\n", _w, _h, canvasLength, canvasBuffer);
-
     //the "standard" way
     codec = &ff_hevc_decoder;
 
@@ -122,6 +108,7 @@ void hevc_destroy(int va_count)
     if (canvasBuffer != NULL)
     {
         free(canvasBuffer);
+        canvasBuffer = NULL;
         canvasLength = 0;
     }
 }
