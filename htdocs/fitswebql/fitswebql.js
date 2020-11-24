@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-24.0";
+	return "JS2020-11-24.1";
 }
 
 const wasm_supported = (() => {
@@ -2986,7 +2986,7 @@ function open_websocket_connection(datasetId, index) {
 										data[i] = 0;
 									var img = new ImageData(data, width, height);
 
-									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img, "alpha_ptr=", alpha_ptr);
+									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img);
 
 									videoFrame[index - 1] = {
 										img: img,
