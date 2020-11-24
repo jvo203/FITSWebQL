@@ -2836,7 +2836,7 @@ function open_websocket_connection(datasetId, index) {
 
 								try {
 									//HEVC
-									Module.hevc_decode_frame(frame, index - 1, videoFrame[index - 1].data, img.width, img.height, colourmap);
+									Module.hevc_decode_frame(videoFrame[index - 1].ptr, img.width, img.height, frame, index - 1, colourmap);
 								} catch (e) {
 									console.log(e);
 								};
@@ -2850,8 +2850,7 @@ function open_websocket_connection(datasetId, index) {
 									var data = new Uint8ClampedArray(Module.HEAPU8.buffer, videoFrame[index - 1].ptr, len);
 									var img = new ImageData(data, img.width, img.height);
 
-									videoFrame[index - 1].img = img;
-									videoFrame[index - 1].data = data;
+									videoFrame[index - 1].img = img;									
 								}
 
 								requestAnimationFrame(function () {
@@ -2859,12 +2858,12 @@ function open_websocket_connection(datasetId, index) {
 								});
 							}
 							else {
-								/*try {
+								try {
 									//HEVC
-									Module.hevc_decode_frame(frame, index - 1, null, 0, 0, 'greyscale');
+									Module.hevc_decode_frame(null, 0, 0, frame, index - 1, 'greyscale');
 								} catch (e) {
 									console.log(e);
-								};*/
+								};
 							}
 
 							let delta = performance.now() - start;
@@ -2992,7 +2991,6 @@ function open_websocket_connection(datasetId, index) {
 									videoFrame[index - 1] = {
 										img: img,
 										ptr: img_ptr,
-										data: data,					
 										scaleX: imageFrame.width / width,
 										scaleY: imageFrame.height / height,
 										image_bounding_dims: imageFrame.image_bounding_dims,

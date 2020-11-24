@@ -205,15 +205,15 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
-void hevc_decode_frame(std::string const &bytes, int index, std::string const &canvas, unsigned int _w, unsigned int _h, std::string const &colourmap)
+void hevc_decode_frame(unsigned char *canvas, unsigned int _w, unsigned int _h, std::string const &bytes, int index, std::string const &colourmap)
 {
   std::cout << "[hevc_decode_frame] frame: " << bytes.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] index: " << index << std::endl;
-  std::cout << "[hevc_decode_frame] canvas: " << canvas.size() << " bytes." << std::endl;
+  //std::cout << "[hevc_decode_frame] canvas: " << canvas.size() << " bytes." << std::endl;
   std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
   std::cout << "[hevc_decode_frame] colourmap: " << colourmap << std::endl;
 
-  hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), (unsigned char *)canvas.data(), _w, _h, colourmap.c_str());
+  hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap.c_str());
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)
@@ -234,5 +234,5 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("FPunzip", &FPunzip);
   function("hevc_init", &hevc_init);
   function("hevc_destroy", &hevc_destroy);
-  function("hevc_decode_frame", &hevc_decode_frame);
+  function("hevc_decode_frame", &hevc_decode_frame, allow_raw_pointer<arg<0>>());
 }
