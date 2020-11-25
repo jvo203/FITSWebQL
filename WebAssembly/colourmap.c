@@ -38,7 +38,7 @@ void apply_colourmap(unsigned char* canvas, int w, int h, const unsigned char* l
 			canvas[dst_offset++] = r_pixel;
 			canvas[dst_offset++] = g_pixel;
 			canvas[dst_offset++] = b_pixel;
-			canvas[dst_offset++] = mask < 200 ? 0 : 255; //the alpha channel
+			canvas[dst_offset++] = mask < 128 ? 0 : 255; //the alpha channel
 		}
 	}
 }
@@ -67,7 +67,7 @@ void apply_greyscale(unsigned char *canvas, int w, int h, const unsigned char *l
 			canvas[dst_offset++] = pixel;
 			canvas[dst_offset++] = pixel;
 			canvas[dst_offset++] = pixel;
-			canvas[dst_offset++] = mask < 200 ? 0 : 255; //the alpha channel
+			canvas[dst_offset++] = mask < 128 ? 0 : 255; //the alpha channel
 		}
 	}
 }
