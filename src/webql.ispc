@@ -750,7 +750,7 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {        
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - black) * slope) ) ;             
-        dst_luma[idx] = rgb2yuv((int) clamp(pixel, 0.0f, 255.0f)) ;
+        dst_luma[idx] = (int) clamp(pixel, 16.0f, 235.0f) ;
         dst_mask[idx] = 240 ;
 	    }
       else
@@ -778,7 +778,7 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
       cif (!nan)
 	    {
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
-        dst_luma[idx] = rgb2yuv((int) clamp(pixel, 0.0f, 255.0f)) ;
+        dst_luma[idx] = (int) clamp(pixel, 16.0f, 235.0f) ;
         dst_mask[idx] = 240 ;
 	    }
       else
@@ -806,7 +806,7 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f)) : 16 ;    
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 16.0f, 235.0f) : 16 ;    
         dst_mask[idx] = 240 ;
 	    }
       else
@@ -834,7 +834,7 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f)) : 16 ;    
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 16.0f, 235.0f) : 16 ;    
         dst_mask[idx] = 240 ;
 	    }
       else
