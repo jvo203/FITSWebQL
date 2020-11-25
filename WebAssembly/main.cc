@@ -299,7 +299,7 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("loadEXRStr", &loadEXRStr);
   function("enableMultithreading", &enableMultithreading);
   function("FPunzip", &FPunzip);
-  function("hevc_init_frame", &hevc_init);
-  function("hevc_destroy_frame", &hevc_destroy);
+  function("hevc_init_frame", &hevc_init_frame);
+  function("hevc_destroy_frame", &hevc_destroy_frame);
   function("hevc_decode_frame", &hevc_decode_frame);
 }
