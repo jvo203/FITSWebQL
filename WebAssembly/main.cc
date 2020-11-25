@@ -249,34 +249,11 @@ void hevc_destroy_frame(int va_count)
 }
 
 val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes, int index, std::string const &colourmap)
-{
-  std::cout << "[hevc_decode_frame] frame: " << bytes.size() << " bytes." << std::endl;
-  std::cout << "[hevc_decode_frame] index: " << index << std::endl;
-  std::cout << "[hevc_decode_frame] _w: " << _w << ", _h: " << _h << std::endl;
-  std::cout << "[hevc_decode_frame] colourmap: " << colourmap << std::endl;
-
+{  
   size_t len = _w * _h * 4;
 
   if (canvasBuffer != NULL && canvasLength == len)
-  {
     hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvasBuffer, _w, _h, colourmap.c_str());
-
-    // fill-in the canvas with RED for testing purposes
-    /*size_t dst_offset = 0;
-
-    for (int j = 0; j < _h; j++)
-    {
-      for (int i = 0; i < _w; i++)
-      {
-        unsigned char pixel = 255;
-
-        canvasBuffer[dst_offset++] = pixel;
-        canvasBuffer[dst_offset++] = 0;
-        canvasBuffer[dst_offset++] = 0;
-        canvasBuffer[dst_offset++] = 255;
-      }
-    }*/
-  }
   else
   {
     printf("canvasBuffer(%p) == NULL and/or canvasLength(%zu) does not match len(%zu)\n", canvasBuffer, canvasLength, len);
