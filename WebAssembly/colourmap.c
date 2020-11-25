@@ -3,24 +3,27 @@
 #include <stdio.h>
 #include <math.h>
 
-void apply_colourmap(unsigned char *canvas, const unsigned char *luma, int w, int h, int stride, bool invert, const float *r, const float *g, const float *b, const unsigned char *alpha)
+void apply_colourmap(unsigned char* canvas, int w, int h, const unsigned char* luma, int stride_luma, const unsigned char* alpha, int stride_alpha, bool invert, const float* r, const float* g, const float* b)
 {
 	if (canvas == NULL || luma == NULL || alpha == NULL)
 		return;
 
-	size_t src_offset = 0;
+	size_t luma_offset = 0;
+	size_t alpha_offset = 0;
 	size_t dst_offset = 0;
 
 	int no_colours = 64;
 	float interp_factor = no_colours / 256.0f;
 
 	for (int j = 0; j < h; j++)
-	{
-		size_t offset = j * stride;
+	{		
+		// Y-mirror-flip the image
+		size_t luma_offset = (h - 1 - j) * stride_luma;
+		size_t alpha_offset = (h - 1 - j) * stride_alpha;
 
 		for (int i = 0; i < w; i++)
 		{
-			unsigned char pixel = luma[offset++];
+			unsigned char pixel = luma[luma_offset++];
 			pixel = invert ? (255 - pixel) : pixel;
 
 			float pos = pixel * interp_factor;
@@ -34,7 +37,7 @@ void apply_colourmap(unsigned char *canvas, const unsigned char *luma, int w, in
 			canvas[dst_offset++] = r_pixel;
 			canvas[dst_offset++] = g_pixel;
 			canvas[dst_offset++] = b_pixel;
-			canvas[dst_offset++] = alpha[src_offset++]; //the alpha channel
+			canvas[dst_offset++] = alpha[alpha_offset++]; //the alpha channel
 		}
 	}
 }
