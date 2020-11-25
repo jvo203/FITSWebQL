@@ -1904,7 +1904,7 @@ function process_image(width, height, w, h, bytes, stride, alpha, index) {
 
 
 function process_video(index) {
-	if (!streaming || videoFrame[index - 1] == null)
+	if (!streaming || videoFrame[index - 1] == null || videoFrame[index - 1].img == null)
 		return;
 
 	//let image_bounding_dims = imageContainer[index-1].image_bounding_dims;
