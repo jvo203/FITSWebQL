@@ -205,6 +205,49 @@ std::vector<float> FPunzip(std::string const &bytes)
   return spectrum;
 }
 
+void hevc_init_frame(int va_count, int width, int height)
+{
+  size_t len = width * height * 4;
+
+  if (canvasLength != len)
+  {
+    if (canvasBuffer != NULL)
+      free(canvasBuffer);
+
+    canvasBuffer = NULL;
+    canvasLength = 0;
+  }
+
+  if (canvasBuffer == NULL)
+  {
+    canvasBuffer = (unsigned char *)malloc(len);
+
+    if (canvasBuffer != NULL)
+      canvasLength = len;
+
+    printf("[hevc_init_frame] width: %d, height: %d, canvasLength = %zu, canvasBuffer = %p\n", width, height, canvasLength, canvasBuffer);
+  }
+
+  hevc_init(va_count);
+
+  printf("[hevc_init_frame] done.\n");
+}
+
+void hevc_destroy_frame(int va_count)
+{
+  if (canvasBuffer != NULL)
+  {
+    free(canvasBuffer);
+
+    canvasBuffer = NULL;
+    canvasLength = 0;
+  }
+
+  hevc_destroy(va_count);
+
+  printf("[hevc_destroy_frame] done.\n");
+}
+
 val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes, int index, std::string const &colourmap)
 {
   std::cout << "[hevc_decode_frame] frame: " << bytes.size() << " bytes." << std::endl;
@@ -256,7 +299,7 @@ EMSCRIPTEN_BINDINGS(Wrapper)
   function("loadEXRStr", &loadEXRStr);
   function("enableMultithreading", &enableMultithreading);
   function("FPunzip", &FPunzip);
-  function("hevc_init", &hevc_init);
-  function("hevc_destroy", &hevc_destroy);
+  function("hevc_init_frame", &hevc_init);
+  function("hevc_destroy_frame", &hevc_destroy);
   function("hevc_decode_frame", &hevc_decode_frame);
 }

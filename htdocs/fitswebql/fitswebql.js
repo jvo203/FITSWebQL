@@ -2977,41 +2977,29 @@ function open_websocket_connection(datasetId, index) {
 
 						if (data.type == "init_video") {
 							var width = data.width;
-							var height = data.height;
-
-							try {
-								//init the HEVC encoder		
-								Module.hevc_init(va_count, width, height);
-							} catch (e) {
-								console.log(e);
-							};
+							var height = data.height;							
 
 							if (videoFrame[index - 1] == null) {
 								let imageFrame = imageContainer[va_count - 1];
 
 								if (imageFrame != null) {
-									var len = width * height * 4;
-									var img_ptr = Module._malloc(len);
-
-									var data = new Uint8ClampedArray(Module.HEAPU8.buffer, img_ptr, len);
-									for (let i = 0; i < len; i++)
-										data[i] = 0;
-									var img = new ImageData(data, width, height);
-
-									console.log("Module._malloc ptr=", img_ptr, "ImageData=", img);
-
 									videoFrame[index - 1] = {
 										width: width,
 										height: height,
-										img: img,
-										ptr: img_ptr,
-										data: data,
+										img: null,																				
 										scaleX: imageFrame.width / width,
 										scaleY: imageFrame.height / height,
 										image_bounding_dims: imageFrame.image_bounding_dims,
 									}
 								}
 							}
+
+							try {
+								//init the HEVC encoder		
+								Module.hevc_init_frame(va_count, width, height);
+							} catch (e) {
+								console.log(e);
+							};
 						}
 
 						return;
@@ -7646,29 +7634,15 @@ function x_axis_mouseleave() {
 	d3.select("#fps").text("");
 
 	//send an end_video command via WebSockets
-	if (videoFrame[0] != null) {
-		try {
-			Module.hevc_destroy(va_count);
-		} catch (e) {
-			console.log(e);
-		};
-
-		if (composite_view) {
-			Module._free(videoFrame[0].ptr);
-			Module._free(videoFrame[0].alpha_ptr);
-			videoFrame[0].img = null;
-			videoFrame[0].ptr = null;
-			videoFrame[0].alpha_ptr = null;
+	if (videoFrame[0] != null) {		
+		if (composite_view) {			
+			videoFrame[0].img = null;			
 			videoFrame[0] = null;
 
 			wsConn[0].send('[end_video]');
 			video_stack[0] = [];
-		} else for (let index = 0; index < va_count; index++) {
-			Module._free(videoFrame[index].ptr);
-			Module._free(videoFrame[index].alpha_ptr);
-			videoFrame[index].img = null;
-			videoFrame[index].ptr = null;
-			videoFrame[index].alpha_ptr = null;
+		} else for (let index = 0; index < va_count; index++) {			
+			videoFrame[index].img = null;			
 			videoFrame[index] = null;
 
 			wsConn[index].send('[end_video]');
@@ -7677,6 +7651,12 @@ function x_axis_mouseleave() {
 			if (va_count > 1)
 				refresh_tiles(index + 1);
 		}
+
+		try {
+			Module.hevc_destroy_frame(va_count);
+		} catch (e) {
+			console.log(e);
+		};
 	}
 
 	shortcut.remove("f");
