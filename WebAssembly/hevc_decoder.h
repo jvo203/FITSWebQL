@@ -2,8 +2,8 @@
 
 #include <emscripten.h>
 
-unsigned char *canvasBuffer = NULL;
-size_t canvasLength = 0;
+extern unsigned char *canvasBuffer;
+extern size_t canvasLength;
 
 void hevc_init(int va_count, int width, int height);
 void hevc_destroy(int va_count);

@@ -5,6 +5,9 @@
 
 #include <string.h>
 
+static unsigned char *canvasBuffer = NULL;
+static size_t canvasLength = 0;
+
 #include "hevc_decoder.h"
 
 //colourmaps
@@ -19,7 +22,6 @@ extern AVCodec ff_hevc_decoder;
 
 void hevc_init(int va_count, int width, int height)
 {
-
   size_t len = width * height * 4;
 
   if (canvasLength != len)
