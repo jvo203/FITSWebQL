@@ -744,7 +744,7 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {        
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - black) * slope) ) ;             
-        dst_luma[idx] = clamp( (int) pixel, 0, 255) ;
+        dst_luma[idx] = (int) clamp(pixel, 0.0f, 255.0f) ;
         dst_mask[idx] = 255 ;
 	    }
       else
@@ -772,7 +772,7 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
       cif (!nan)
 	    {
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
-        dst_luma[idx] = clamp( (int) pixel, 0, 255) ;
+        dst_luma[idx] = (int) clamp(pixel, 0.0f, 255.0f) ;
         dst_mask[idx] = 255 ;
 	    }
       else
@@ -800,7 +800,7 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) (255.0f*pixel/(1.0f + pixel)) : 0 ;    
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;    
         dst_mask[idx] = 255 ;
 	    }
       else
@@ -828,7 +828,7 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) (255.0f*pixel/(1.0f + pixel)) : 0 ;    
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;    
         dst_mask[idx] = 255 ;
 	    }
       else
@@ -856,7 +856,7 @@ export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {       
         float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
-        dst_luma[idx] = pixel > 0.0f ? clamp( (int) (255.0f * (log(pixel) - lmin) / (lmax - lmin)), 0, 255) : 0 ;
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 0.0f, 255.0f) : 0 ;
         dst_mask[idx] = 255 ;
 	    }
       else
