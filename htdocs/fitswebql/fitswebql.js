@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-24.3";
+	return "JS2020-11-25.0";
 }
 
 const wasm_supported = (() => {
@@ -2837,13 +2837,13 @@ function open_websocket_connection(datasetId, index) {
 
 								try {
 									//HEVC
-									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);									
+									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);
 								} catch (e) {
 									console.log(e);
 								};
 
 								var img = new ImageData(new Uint8ClampedArray(data), videoFrame[index - 1].width, videoFrame[index - 1].height);
-								videoFrame[index - 1].img = img;								
+								videoFrame[index - 1].img = img;
 
 								/*if (img.data.length == 0) {
 									//detect detached data due to WASM memory growth
@@ -2978,6 +2978,13 @@ function open_websocket_connection(datasetId, index) {
 						if (data.type == "init_video") {
 							var width = data.width;
 							var height = data.height;
+
+							try {
+								//init the HEVC encoder		
+								Module.hevc_init(va_count, width, height);
+							} catch (e) {
+								console.log(e);
+							};
 
 							if (videoFrame[index - 1] == null) {
 								let imageFrame = imageContainer[va_count - 1];
@@ -7518,13 +7525,6 @@ function x_axis_mouseenter(offset) {
 
 	//if (videoFrame == null)
 	if (wasm_supported) {
-		try {
-			//init the HEVC encoder		
-			Module.hevc_init(va_count);
-		} catch (e) {
-			console.log(e);
-		};
-
 		var freq = get_mouse_frequency(offset);
 
 		sent_vid_id++;

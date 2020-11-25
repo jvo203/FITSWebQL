@@ -214,24 +214,7 @@ val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes
 
   size_t len = _w * _h * 4;
 
-  if (canvasLength != len)
-  {
-    free(canvasBuffer);
-    canvasBuffer = NULL;
-    canvasLength = 0;
-  }
-
-  if (canvasBuffer == NULL)
-  {
-    canvasBuffer = (unsigned char *)malloc(len);
-
-    if (canvasBuffer != NULL)
-      canvasLength = len;
-
-    printf("[hevc_decode_frame] _w: %d, _h: %d, canvasLength = %zu, canvasBuffer = %p\n", _w, _h, canvasLength, canvasBuffer);
-  }
-
-  if (canvasBuffer != NULL)
+  if (canvasBuffer != NULL && canvasLength == len)
   {
     // fill-in the canvas with RED for testing purposes
     size_t dst_offset = 0;
@@ -250,11 +233,11 @@ val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes
     }
   }
   else
-    printf("canvasLength(%zu) does not match len(%zu)\n", canvasLength, len);
+    printf("canvasBuffer == NULL and/or canvasLength(%zu) does not match len(%zu)\n", canvasLength, len);
+
+  //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), _w, _h, colourmap.c_str());
 
   return val(typed_memory_view(canvasLength, canvasBuffer));
-
-  //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), canvas, _w, _h, colourmap.c_str());
 }
 
 EMSCRIPTEN_BINDINGS(Wrapper)

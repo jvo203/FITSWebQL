@@ -17,8 +17,29 @@ static AVPacket **avpkt = NULL;
 
 extern AVCodec ff_hevc_decoder;
 
-void hevc_init(int va_count)
+void hevc_init(int va_count, int width, int height)
 {
+
+  size_t len = width * height * 4;
+
+  if (canvasLength != len)
+  {
+    free(canvasBuffer);
+
+    canvasBuffer = NULL;
+    canvasLength = 0;
+  }
+
+  if (canvasBuffer == NULL)
+  {
+    canvasBuffer = malloc(len);
+
+    if (canvasBuffer != NULL)
+      canvasLength = len;
+
+    printf("[hevc_init] width: %d, height: %d, canvasLength = %zu, canvasBuffer = %p\n", width, height, canvasLength, canvasBuffer);
+  }
+
     //the "standard" way
     codec = &ff_hevc_decoder;
 
@@ -108,12 +129,13 @@ void hevc_destroy(int va_count)
     if (canvasBuffer != NULL)
     {
         free(canvasBuffer);
+
         canvasBuffer = NULL;
         canvasLength = 0;
     }
 }
 
-double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned char *canvas, unsigned int _w, unsigned int _h, const char *colourmap)
+double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_len, unsigned int _w, unsigned int _h, const char *colourmap)
 {
     if (avctx == NULL || avpkt == NULL || avframe == NULL)
         return 0.0;
@@ -172,7 +194,9 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
             const unsigned char *alpha = avframe[index]->data[1];
             int stride_alpha = avframe[index]->linesize[1];
 
-            if (w == _w && h == _h)
+            size_t len = _w * _h * 4;
+
+            if (w == _w && h == _h && canvasBuffer != NULL && canvasLength == len)
             {
                 //apply a colourmap
                 /*if (strcmp(colourmap, "red") == 0)
@@ -230,7 +254,7 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
                 else*/
                 {
                     //no colour by default
-                    apply_greyscale(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false);
+                    apply_greyscale(canvasBuffer, w, h, luma, stride_luma, alpha, stride_alpha, false);
                 };
             }
             else
