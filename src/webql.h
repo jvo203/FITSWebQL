@@ -63,7 +63,7 @@ extern "C" {
     extern void make_video_frameF16_logistic(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stripe, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, uint8_t * dst_luma, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stripe, float median, float sensitivity);
     extern void make_video_frameF16_ratio(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stripe, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, uint8_t * dst_luma, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stripe, float black, float sensitivity);
     extern void make_video_frameF16_square(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stripe, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, uint8_t * dst_luma, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stripe, float black, float sensitivity);
-    extern void make_video_frameF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float * dst_pixels, uint8_t * dst_mask, uint32_t total_size);
+    extern void make_video_frameF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, uint8_t * dst_luma, uint8_t * dst_mask, uint32_t total_size);
     extern void mirror_float32(float * image, int32_t width, int32_t height);
     extern void mirror_u8(uint8_t * image, int32_t width, int32_t height);
     extern void nan_mask(float * buffer, uint8_t * mask, uint32_t size);

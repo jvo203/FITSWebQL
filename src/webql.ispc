@@ -16,6 +16,12 @@ uint32_t bswap32(uint32_t u)
   return ((u&0xFF)<<24) | (((u>>8)&0xFF)<<16) | (((u>>16)&0xFF)<<8) | (((u>>24)&0xFF)<<0);
 }
 
+unsigned int8 rgb2yuv(int pixel)
+{
+  int tmp = 66 * pixel + 129 * pixel + 25 * pixel ; // R,G,B are all equal
+  return (tmp + 128) >> 8 + 16 ;
+}
+
 export void mirror_u8(uniform unsigned int8 image[], uniform int32 width, uniform int32 height)
 {  
   foreach(j = 0 ... height / 2, i = 0 ... width)
@@ -706,7 +712,7 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
     } ;  
 } ;
 
-export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
+export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
 {
   foreach(i=0 ... total_size)
     {
@@ -716,13 +722,13 @@ export void make_video_frameF32(uniform int32 src[], uniform float bzero, unifor
       //alternative coherent if
       cif (!nan)
 	    {
-	      dst_pixels[i] = tmp ;
-	      dst_mask[i] = 255 ;
+	      dst_luma[i] = (int) tmp ;
+	      dst_mask[i] = 240 ;
 	    }
       else
       {
-        dst_pixels[i] = 0.0f ;
-	      dst_mask[i] = 0 ;         
+        dst_luma[i] = 16 ;
+	      dst_mask[i] = 16 ;         
       }
     } ;  
 } ;
@@ -744,13 +750,13 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {        
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - black) * slope) ) ;             
-        dst_luma[idx] = (int) clamp(pixel, 0.0f, 255.0f) ;
-        dst_mask[idx] = 255 ;
+        dst_luma[idx] = rgb2yuv((int) clamp(pixel, 0.0f, 255.0f)) ;
+        dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[idx] = 0 ;
-	      dst_mask[idx] = 0 ;
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;
       }
     } ;  
 } ;
@@ -772,13 +778,13 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
       cif (!nan)
 	    {
         float pixel = 255.0f / ( 1.0f + exp(-6.0f * (tmp - median) * sensitivity) ) ;                
-        dst_luma[idx] = (int) clamp(pixel, 0.0f, 255.0f) ;
-        dst_mask[idx] = 255 ;
+        dst_luma[idx] = rgb2yuv((int) clamp(pixel, 0.0f, 255.0f)) ;
+        dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[idx] = 0 ;
-	      dst_mask[idx] = 0 ;
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;
       }
     } ;  
 } ;
@@ -800,13 +806,13 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;    
-        dst_mask[idx] = 255 ;
+        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f)) : 16 ;    
+        dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[idx] = 0 ;
-	      dst_mask[idx] = 0 ;
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;
       }
     } ;  
 } ;
@@ -828,13 +834,13 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {
         float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;    
-        dst_mask[idx] = 255 ;
+        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f)) : 16 ;    
+        dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[idx] = 0 ;
-	      dst_mask[idx] = 0 ;
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;
       }
     } ;  
 } ;
@@ -856,13 +862,13 @@ export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {       
         float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
-        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 0.0f, 255.0f) : 0 ;
-        dst_mask[idx] = 255 ;
+        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 0.0f, 255.0f)) : 16 ;
+        dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[idx] = 0 ;
-	      dst_mask[idx] = 0 ;
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;
       }
     } ;  
 } ;
