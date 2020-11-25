@@ -233,7 +233,7 @@ val hevc_decode_frame(unsigned int _w, unsigned int _h, std::string const &bytes
     }
   }
   else
-    printf("canvasBuffer == NULL and/or canvasLength(%zu) does not match len(%zu)\n", canvasLength, len);
+    printf("canvasBuffer(%p) == NULL and/or canvasLength(%zu) does not match len(%zu)\n", canvasBuffer, canvasLength, len);
 
   //hevc_decode_nal_unit(index, (unsigned char *)bytes.data(), bytes.size(), _w, _h, colourmap.c_str());
 

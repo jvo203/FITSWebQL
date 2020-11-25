@@ -1,3 +1,5 @@
+#pragma once
+
 #include <emscripten.h>
 
 static unsigned char *canvasBuffer = NULL;
