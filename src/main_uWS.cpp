@@ -2840,7 +2840,7 @@ int main(int argc, char *argv[])
                            Ipp8u *B_buf = ippsMalloc_8u_L(frame_size);
 
                            if (B_buf != NULL)
-                             memset(B_buf, 0, frame_size);
+                             memset(B_buf, 128, frame_size);
 
                            picture->planes[0] = NULL;
                            picture->planes[1] = NULL;
