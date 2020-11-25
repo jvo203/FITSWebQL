@@ -170,59 +170,59 @@ double hevc_decode_nal_unit(int index, const unsigned char *data, size_t data_le
             if (w == _w && h == _h && canvas != NULL)
             {
                 //apply a colourmap
-                /*if (strcmp(colourmap, "red") == 0)
+                if (strcmp(colourmap, "red") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, ocean_g, ocean_r, ocean_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, ocean_g, ocean_r, ocean_b);
                 }
                 else if (strcmp(colourmap, "green") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, ocean_r, ocean_g, ocean_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, ocean_r, ocean_g, ocean_b);
                 }
                 else if (strcmp(colourmap, "blue") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, ocean_b, ocean_r, ocean_g, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, ocean_b, ocean_r, ocean_g);
                 }
                 else if (strcmp(colourmap, "hot") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, hot_r, hot_g, hot_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, hot_r, hot_g, hot_b);
                 }
                 else if (strcmp(colourmap, "haxby") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, haxby_r, haxby_g, haxby_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, haxby_r, haxby_g, haxby_b);
                 }
                 else if (strcmp(colourmap, "rainbow") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, true, rainbow_r, rainbow_g, rainbow_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, true, rainbow_r, rainbow_g, rainbow_b);
                 }
                 else if (strcmp(colourmap, "cubehelix") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, cubehelix_r, cubehelix_g, cubehelix_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, cubehelix_r, cubehelix_g, cubehelix_b);
                 }
                 else if (strcmp(colourmap, "parula") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, parula_r, parula_g, parula_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, parula_r, parula_g, parula_b);
                 }
                 else if (strcmp(colourmap, "inferno") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, inferno_r, inferno_g, inferno_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, inferno_r, inferno_g, inferno_b);
                 }
                 else if (strcmp(colourmap, "magma") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, magma_r, magma_g, magma_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, magma_r, magma_g, magma_b);
                 }
                 else if (strcmp(colourmap, "plasma") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, plasma_r, plasma_g, plasma_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, plasma_r, plasma_g, plasma_b);
                 }
                 else if (strcmp(colourmap, "viridis") == 0)
                 {
-                    apply_colourmap(canvas, luma, w, h, stride, false, viridis_r, viridis_g, viridis_b, alpha);
+                    apply_colourmap(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false, viridis_r, viridis_g, viridis_b);
                 }
                 else if (strcmp(colourmap, "negative") == 0)
                 {
                     apply_greyscale(canvas, luma, w, h, stride, alpha, true);
                 }
-                else*/
+                else
                 {
                     //no colour by default
                     apply_greyscale(canvas, w, h, luma, stride_luma, alpha, stride_alpha, false);
