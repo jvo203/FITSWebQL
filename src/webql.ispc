@@ -862,7 +862,7 @@ export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int
       cif (!nan)
 	    {       
         float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
-        dst_luma[idx] = pixel > 0.0f ? rgb2yuv((int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 0.0f, 255.0f)) : 16 ;
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 16.0f, 235.0f) : 16 ;
         dst_mask[idx] = 240 ;
 	    }
       else
