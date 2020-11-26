@@ -2746,11 +2746,11 @@ int main(int argc, char *argv[])
                            int img_height = fits->height;
 
                            // problems downscaling 4-padded buffers ???
-                           /*if (scale < 1.0)
+                           if (scale < 1.0)
                            {
                              img_width = floorf(scale * fits->width);
                              img_height = floorf(scale * fits->height);
-                           }*/
+                           }
 
                            user->ptr->width = img_width;
                            user->ptr->height = img_height;
