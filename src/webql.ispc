@@ -219,7 +219,7 @@ export void make_image_spectrumF32_ro(uniform int32 src[], uniform float bzero, 
   frame_max = reduce_max(partial_max);  
 } ;
 
-export void make_image_spectrumF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float& mean, uniform float& integrated)
+export void make_image_spectrumF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float cdelt3, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float& mean, uniform float& integrated)
 {  
   varying float partial_sum = 0.0f ;
   varying unsigned int64 partial_count = 0 ;
@@ -231,10 +231,10 @@ export void make_image_spectrumF16(uniform unsigned int16 src[], uniform int dx,
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x); // to be re-worked using destination offsets
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x); // to be re-worked using destination offsets
 
       //alternative coherent if
       cif (!nan)
@@ -684,7 +684,7 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
     return 0.0f ;
 } ;
 
-export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe)
+export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform float dst_pixels[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -693,10 +693,10 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x); // to be re-worked using destination offsets
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x); // to be re-worked using destination offsets
 
       //alternative coherent if
       cif (!nan)
@@ -712,28 +712,30 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
     } ;  
 } ;
 
-export void make_video_frameF32(uniform int32 src[], uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform unsigned int total_size)
+export void make_video_frameF32_legacy(uniform int32 src[], uniform int width, uniform int height, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int dst_stride, uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax)
 {
-  foreach(i=0 ... total_size)
+  foreach (y=0 ... height, x=0 ... width)
     {
-      float tmp = bzero + bscale * floatbits(bswap32(src[i])) ;
+      float tmp = bzero + bscale * floatbits(bswap32(src[y*width+x])) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax) ;
+      unsigned int idx = y * dst_stride + x;
 
       //alternative coherent if
       cif (!nan)
 	    {
-	      dst_luma[i] = (int) tmp ;
-	      dst_mask[i] = 240 ;
+	      float pixel = 0.5f + (tmp - dmin) / (dmax - dmin) ;
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f * (log(pixel) - lmin) / (lmax - lmin), 16.0f, 235.0f) : 16 ;        
+	      dst_mask[idx] = 240 ;
 	    }
       else
       {
-        dst_luma[i] = 16 ;
-	      dst_mask[i] = 16 ;         
+        dst_luma[idx] = 16 ;
+	      dst_mask[idx] = 16 ;         
       }
     } ;  
 } ;
 
-export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float black, uniform float slope)
+export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float black, uniform float slope)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -742,9 +744,9 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x);
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
       //alternative coherent if
       cif (!nan)
@@ -761,7 +763,7 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
     } ;  
 } ;
 
-export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float median, uniform float sensitivity)
+export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float median, uniform float sensitivity)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -770,9 +772,9 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x);
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
       //alternative coherent if
       cif (!nan)
@@ -789,7 +791,7 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
     } ;  
 } ;
 
-export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float black, uniform float sensitivity)
+export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float black, uniform float sensitivity)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -798,9 +800,9 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x);
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
       //alternative coherent if
       cif (!nan)
@@ -817,7 +819,7 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
     } ;  
 } ;
 
-export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float black, uniform float sensitivity)
+export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float black, uniform float sensitivity)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -826,9 +828,9 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x);
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
       //alternative coherent if
       cif (!nan)
@@ -845,7 +847,7 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
     } ;  
 } ;
 
-export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stripe, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stripe, uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax)
+export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int dx, uniform int dy, uniform int src_stride, uniform float frame_min, uniform float frame_max, uniform float min16, uniform float max16, uniform float bzero, uniform float bscale, uniform float ignrval, uniform float datamin, uniform float datamax, uniform unsigned int8 dst_luma[], uniform unsigned int8 dst_mask[], uniform int offset_x, uniform int offset_y, uniform int dst_stride, uniform float dmin, uniform float dmax, uniform float lmin, uniform float lmax)
 {
   uniform float bzero16 = frame_min - min16 * (frame_max - frame_min) / (max16 - min16) ;
   uniform float bscale16 = (frame_max - frame_min) / (max16 - min16) ;
@@ -854,9 +856,9 @@ export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stripe+x]) ;
+      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
-      unsigned int idx = (offset_y +  y) * dst_stripe + (offset_x +  x);
+      unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
       //alternative coherent if
       cif (!nan)
