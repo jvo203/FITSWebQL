@@ -4652,7 +4652,7 @@ FITS::get_video_frame(int frame, std::string flux)
     padded_height += CELLSIZE - height % CELLSIZE;
 
   const size_t frame_size = padded_width * padded_height;
-  
+
   bool has_luma = false;
 
   std::shared_ptr<Ipp8u> pixels =
@@ -4810,7 +4810,11 @@ jmp:
   {
     auto pixels_buf = fits_cube[frame].get();
 
-    // ispc::make_video_frameF32_legacy((int32_t *)pixels_buf)
+    if (flux == "legacy")
+    {
+      ispc::make_video_frameF32_legacy((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, dmin, dmax, lmin, lmax);
+      has_luma = true;
+    }
   }
 
   /*for (int i = 0; i < 100; i++)
