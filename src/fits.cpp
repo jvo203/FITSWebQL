@@ -15,9 +15,12 @@
 #include <ippdc.h>
 #include <limits>
 
-#if !defined(__APPLE__) || !defined(__MACH__)
 // bytes swap
+#if !defined(__APPLE__) || !defined(__MACH__)
 #include <byteswap.h>
+#else
+#include <libkern/OSByteOrder.h>
+#define bswap32(x) OSSwapInt32(x)
 #endif
 
 // base64 encoding with SSL
@@ -3902,6 +3905,34 @@ inline const char *FITS::check_null(const char *str)
   else
     return "\"\"";
 };
+
+void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ipp32f _max, int tid)
+{
+  if (!pixels)
+    return;
+
+  uint32_t *pixels_buf = (uint32_t *)pixels.get();
+
+  const size_t plane_size = width * height;
+
+  std::vector<Ipp32f> v(plane_size);
+
+  size_t len = 0;
+  for (size_t i = 0; i < plane_size; i++)
+  {
+    uint32_t raw = bswap32(pixels_buf[i]);
+    float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
+    bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
+
+    if (!nan)
+      v[len++] = tmp;
+  }
+
+  if (len == 0)
+    return;
+
+  v.resize(len);
+}
 
 void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min,
                                    Ipp32f _max, int tid)
