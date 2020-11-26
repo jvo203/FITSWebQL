@@ -20,7 +20,7 @@
 #include <byteswap.h>
 #else
 #include <libkern/OSByteOrder.h>
-#define bswap32(x) OSSwapInt32(x)
+#define bswap_32(x) OSSwapInt32(x)
 #endif
 
 // base64 encoding with SSL
@@ -3045,6 +3045,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
             integrated_spectrum[frame] = integrated;
           }
 
+          update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], tid);
           send_progress_notification(frame, depth);
         }
 
@@ -3150,6 +3151,7 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
           mean_spectrum[frame] = mean;
           integrated_spectrum[frame] = integrated;
 
+          update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], 0);
           send_progress_notification(frame, depth);
         }
 
@@ -3920,7 +3922,7 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
   size_t len = 0;
   for (size_t i = 0; i < plane_size; i++)
   {
-    uint32_t raw = bswap32(pixels_buf[i]);
+    uint32_t raw = bswap_32(pixels_buf[i]);
     float tmp = bzero + bscale * reinterpret_cast<float &>(raw);
     bool nan = std::isnan(tmp) || std::isinf(tmp) || (tmp <= ignrval) || (tmp < datamin) || (tmp > datamax);
 
@@ -3932,6 +3934,32 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
     return;
 
   v.resize(len);
+
+  if (!hist_pool[tid].has_value())
+  {
+    if (FPzero(_min) && FPzero(_max))
+      return;
+
+    if (FPzero(fabs(_max - _min)))
+    {
+      _min *= 0.9f;
+      _max *= 1.1f;
+    }
+
+    histogram_t _hist = make_histogram(
+        axis::regular<Ipp32f, use_default, use_default, axis::option::growth_t>(
+            NBINS2, _min, _max));
+
+    _hist.fill(v);
+
+    hist_pool[tid] = std::move(_hist);
+  }
+  else
+  {
+    histogram_t &_hist = hist_pool[tid].value();
+
+    _hist.fill(v);
+  }
 }
 
 void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min,
