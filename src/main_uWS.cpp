@@ -3094,7 +3094,7 @@ int main(int argc, char *argv[])
                                        IppiSize srcSize;
                                        srcSize.width = fits->width;
                                        srcSize.height = fits->height;
-                                       Ipp32s srcStep = _padded_width;
+                                       Ipp32s srcStep = padded_width;
 
                                        IppiSize dstSize;
                                        dstSize.width = img_width;
