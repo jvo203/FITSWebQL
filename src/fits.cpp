@@ -4810,16 +4810,37 @@ jmp:
   {
     auto pixels_buf = fits_cube[frame].get();
 
+    if (flux == "linear")
+    {
+      float slope = 1.0f / (white - black);
+      ispc::make_video_frameF32_linear((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, slope);
+      has_luma = true;
+    }
+
+    if (flux == "logistic")
+    {
+      ispc::make_video_frameF32_logistic((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, median, sensitivity);
+      has_luma = true;
+    }
+
+    if (flux == "ratio")
+    {
+      ispc::make_video_frameF32_ratio((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, sensitivity);
+      has_luma = true;
+    }
+
+    if (flux == "square")
+    {
+      ispc::make_video_frameF32_square((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, sensitivity);
+      has_luma = true;
+    }
+
     if (flux == "legacy")
     {
       ispc::make_video_frameF32_legacy((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, dmin, dmax, lmin, lmax);
       has_luma = true;
     }
   }
-
-  /*for (int i = 0; i < 100; i++)
-    printf("%f\t%d\t%d\t%d\t%d\n", pixels.get()[i], mask.get()[i],
-    pixels_r.get()[i], pixels_g.get()[i], pixels_b.get()[i]);*/
 
   return {padded_width, padded_height, std::move(pixels), std::move(mask), has_luma};
 }
