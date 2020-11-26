@@ -3045,14 +3045,15 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
             integrated_spectrum[frame] = integrated;
           }
 
-          update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], tid);
+          //update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], tid);
+
           send_progress_notification(frame, depth);
         }
 
         // append <start_k> to a ZFP compression queue
         // zfp_queue.push(start_k);
 
-        //zfp_compress_cube(start_k);
+        zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3151,14 +3152,15 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
           mean_spectrum[frame] = mean;
           integrated_spectrum[frame] = integrated;
 
-          update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], 0);
+          //update_thread_histogram(fits_cube[frame], frame_min[frame], frame_max[frame], 0);
+
           send_progress_notification(frame, depth);
         }
 
         // append <start_k> to a ZFP compression queue
         // zfp_queue.push(start_k);
 
-        //zfp_compress_cube(start_k);
+        zfp_compress_cube(start_k);
       }
     }
 
