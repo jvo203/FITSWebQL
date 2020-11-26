@@ -4746,12 +4746,12 @@ FITS::get_video_frame(int frame, std::string flux)
 
                 if (flux == "linear")
                 {
-                  float slope = 1.0f / (white - black);
+                  float _slope = 1.0f / (_white - _black);
                   ispc::make_video_frameF16_linear(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                       bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                      offset_x, offset_y, padded_width, black, slope);
+                      offset_x, offset_y, padded_width, _black, _slope);
                   has_luma = true;
                 }
 
@@ -4761,7 +4761,7 @@ FITS::get_video_frame(int frame, std::string flux)
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                       bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                      offset_x, offset_y, padded_width, median, sensitivity);
+                      offset_x, offset_y, padded_width, _median, _sensitivity);
                   has_luma = true;
                 }
 
@@ -4771,7 +4771,7 @@ FITS::get_video_frame(int frame, std::string flux)
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                       bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                      offset_x, offset_y, padded_width, black, sensitivity);
+                      offset_x, offset_y, padded_width, _black, _sensitivity);
                   has_luma = true;
                 }
 
@@ -4781,7 +4781,7 @@ FITS::get_video_frame(int frame, std::string flux)
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
                       bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
-                      offset_x, offset_y, padded_width, black, sensitivity);
+                      offset_x, offset_y, padded_width, _black, _sensitivity);
                   has_luma = true;
                 }
 
