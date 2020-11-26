@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.25.12"
-#define VERSION_STRING "SV2020-11-26.0"
+#define VERSION_STRING "SV2020-11-26.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2745,11 +2745,12 @@ int main(int argc, char *argv[])
                            int img_width = fits->width;
                            int img_height = fits->height;
 
-                           if (scale < 1.0)
+                           // problems downscaling 4-padded buffers ???
+                           /*if (scale < 1.0)
                            {
                              img_width = floorf(scale * fits->width);
                              img_height = floorf(scale * fits->height);
-                           }
+                           }*/
 
                            user->ptr->width = img_width;
                            user->ptr->height = img_height;
