@@ -3047,7 +3047,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         // zfp_queue.push(start_k);
-        zfp_compress_cube(start_k);
+
+        //zfp_compress_cube(start_k);
       }
 
       // join omp_{pixel,mask}
@@ -3151,7 +3152,8 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
 
         // append <start_k> to a ZFP compression queue
         // zfp_queue.push(start_k);
-        zfp_compress_cube(start_k);
+
+        //zfp_compress_cube(start_k);
       }
     }
 
@@ -4808,7 +4810,7 @@ jmp:
   {
     auto pixels_buf = fits_cube[frame].get();
 
-    // ispc::make_video_frameF32((int32_t *)pixels_buf)
+    // ispc::make_video_frameF32_legacy((int32_t *)pixels_buf)
   }
 
   /*for (int i = 0; i < 100; i++)
