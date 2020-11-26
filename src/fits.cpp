@@ -4699,10 +4699,10 @@ FITS::get_video_frame(int frame, std::string flux)
 
   // calculate white, black, sensitivity from the all-data histogram
   float u = 7.5f;
-  float median = this->data_median;
-  float black = MAX(this->dmin, ((this->data_median) - u * (this->data_madN)));
-  float white = MIN(this->dmax, ((this->data_median) + u * (this->data_madP)));
-  float sensitivity = 1.0f / (white - black);
+  float _median = this->data_median;
+  float _black = MAX(this->dmin, ((this->data_median) - u * (this->data_madN)));
+  float _white = MIN(this->dmax, ((this->data_median) + u * (this->data_madP)));
+  float _sensitivity = 1.0f / (_white - _black);
 
   // use the cache holding decompressed pixel data
   if (compressed_pixels && compressed_mask)
@@ -4812,26 +4812,26 @@ jmp:
 
     if (flux == "linear")
     {
-      float slope = 1.0f / (white - black);
-      ispc::make_video_frameF32_linear((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, slope);
+      float _slope = 1.0f / (_white - _black);
+      ispc::make_video_frameF32_linear((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _slope);
       has_luma = true;
     }
 
     if (flux == "logistic")
     {
-      ispc::make_video_frameF32_logistic((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, median, sensitivity);
+      ispc::make_video_frameF32_logistic((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _median, _sensitivity);
       has_luma = true;
     }
 
     if (flux == "ratio")
     {
-      ispc::make_video_frameF32_ratio((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, sensitivity);
+      ispc::make_video_frameF32_ratio((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _sensitivity);
       has_luma = true;
     }
 
     if (flux == "square")
     {
-      ispc::make_video_frameF32_square((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, black, sensitivity);
+      ispc::make_video_frameF32_square((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _sensitivity);
       has_luma = true;
     }
 
