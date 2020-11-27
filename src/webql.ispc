@@ -108,7 +108,8 @@ export void f32tof16(uniform float src[], uniform unsigned int16 dst[], uniform 
 {
   foreach(i=0 ... size)
   {
-    float tmp = min16 + (src[i] - frame_min) / (frame_max - frame_min) * (max16 - min16);
+    //float tmp = min16 + (src[i] - frame_min) / (frame_max - frame_min) * (max16 - min16);
+    float tmp = src[i];
     dst[i] = float_to_half_fast(tmp);
   } 
 }
@@ -886,7 +887,8 @@ export void make_video_frameF16_ratio(uniform unsigned int16 src[], uniform int 
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
