@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-27.0";
+	return "JS2020-11-27.1";
 }
 
 const wasm_supported = (() => {
@@ -2857,7 +2857,7 @@ function open_websocket_connection(datasetId, index) {
 							else {
 								try {
 									//HEVC
-									Module.hevc_decode_frame(0, 0, frame, index - 1, 'greyscale');
+									Module.hevc_decode_frame(0, 0, frame, index - 1, 'greyscale', fill);
 								} catch (e) {
 									console.log(e);
 								};
@@ -7495,7 +7495,14 @@ function x_axis_mouseenter(offset) {
 	});
 
 	if (va_count == 1) {
-		var elem = d3.select("#legend"); elem.attr("opacity", 0);
+		var elem = d3.select("#legend"); elem.attr("opacity", 0);		
+
+		// Clear the legend canvas
+		var image = imageContainer[va_count - 1];
+		var gl = image.legend_gl;
+
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);		
 	}
 	else {
 		for (let index = 1; index <= va_count; index++) {
@@ -7679,6 +7686,8 @@ function x_axis_mouseleave() {
 	mol_pos = -1;
 	var modal = document.getElementById('molecularlist');
 	modal.style.display = "none";
+
+	display_legend();
 }
 
 function x_axis_mousemove(offset) {
@@ -12836,7 +12845,6 @@ function init_webgl_legend_buffers(index) {
 
 function clear_webgl_legend_buffers(index) {
 	var image = imageContainer[index - 1];
-
 	var gl = image.legend_gl;
 
 	if (gl == null)
@@ -12850,7 +12858,7 @@ function clear_webgl_legend_buffers(index) {
 	gl.deleteShader(image.legend_program.fShader);
 	gl.deleteProgram(image.legend_program);
 
-	image.legend_gl = null;
+	//image.legend_gl = null;
 }
 
 function webgl_legend_renderer(index, gl, width, height) {
