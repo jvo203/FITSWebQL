@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-26.1";
+	return "JS2020-11-27.0";
 }
 
 const wasm_supported = (() => {
@@ -2833,11 +2833,16 @@ function open_websocket_connection(datasetId, index) {
 
 							if (streaming && videoFrame[index - 1] != null) {
 								var img = videoFrame[index - 1].img;
-								var data;
+								var data, fill;
+
+								if (theme = "dark")
+									fill = 0;
+								else
+									fill = 255;
 
 								try {
 									//HEVC
-									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap);
+									data = Module.hevc_decode_frame(videoFrame[index - 1].width, videoFrame[index - 1].height, frame, index - 1, colourmap, fill);
 								} catch (e) {
 									console.log(e);
 								};
@@ -2964,7 +2969,7 @@ function open_websocket_connection(datasetId, index) {
 
 						if (data.type == "init_video") {
 							var width = data.width;
-							var height = data.height;							
+							var height = data.height;
 
 							if (videoFrame[index - 1] == null) {
 								let imageFrame = imageContainer[va_count - 1];
@@ -2973,7 +2978,7 @@ function open_websocket_connection(datasetId, index) {
 									videoFrame[index - 1] = {
 										width: width,
 										height: height,
-										img: null,																				
+										img: null,
 										scaleX: imageFrame.width / width,
 										scaleY: imageFrame.height / height,
 										image_bounding_dims: imageFrame.image_bounding_dims,
@@ -7622,15 +7627,15 @@ function x_axis_mouseleave() {
 	d3.select("#fps").text("");
 
 	//send an end_video command via WebSockets
-	if (videoFrame[0] != null) {		
-		if (composite_view) {			
-			videoFrame[0].img = null;			
+	if (videoFrame[0] != null) {
+		if (composite_view) {
+			videoFrame[0].img = null;
 			videoFrame[0] = null;
 
 			wsConn[0].send('[end_video]');
 			video_stack[0] = [];
-		} else for (let index = 0; index < va_count; index++) {			
-			videoFrame[index].img = null;			
+		} else for (let index = 0; index < va_count; index++) {
+			videoFrame[index].img = null;
 			videoFrame[index] = null;
 
 			wsConn[index].send('[end_video]');
