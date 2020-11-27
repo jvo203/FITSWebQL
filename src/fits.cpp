@@ -4774,19 +4774,21 @@ FITS::get_video_frame(int frame, std::string flux)
     {
 #pragma omp single
       {
-        for (auto idy = start_y; idy <= end_y; idy++)
+        for (int idy = start_y; idy <= end_y; idy++)
         {
           if (jmp)
             break;
 
-          for (auto idx = start_x; idx <= end_x; idx++)
+          for (int idx = start_x; idx <= end_x; idx++)
           {
             if (jmp)
               break;
 
+            printf("before: idx = %d, idy = %d\n", idx, idy);
+            
 #pragma omp task private(idx, idy)
             {
-              printf("idx = %d, idy = %d\n", idx, idy);
+              printf("task: idx = %d, idy = %d\n", idx, idy);
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
                   request_cached_region_ptr(frame, idy, idx);
