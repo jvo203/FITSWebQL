@@ -2835,10 +2835,10 @@ function open_websocket_connection(datasetId, index) {
 								var img = videoFrame[index - 1].img;
 								var data, fill;
 
-								if (theme = "dark")
+								if (theme == "dark")
 									fill = 0;
 								else
-									fill = 255;
+									fill = 255;								
 
 								try {
 									//HEVC
