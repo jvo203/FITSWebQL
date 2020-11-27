@@ -2803,8 +2803,8 @@ int main(int argc, char *argv[])
                              return;
 
                            //x265_param_default_preset(param, "ultrafast", "zerolatency");
-                           //x265_param_default_preset(param, "superfast", "zerolatency");
-                           x265_param_default_preset(param, "medium", "zerolatency");
+                           x265_param_default_preset(param, "superfast", "zerolatency");
+                           //x265_param_default_preset(param, "medium", "zerolatency");
 
                            // HEVC config
                            param->fpsNum = fps;
