@@ -4762,6 +4762,9 @@ FITS::get_video_frame(int frame, std::string flux)
   float _white = MIN(this->dmax, ((this->data_median) + u * (this->data_madP)));
   float _sensitivity = 1.0f / (_white - _black);
 
+  Ipp8u *dst_luma = pixels.get();
+  Ipp8u *dst_mask = mask.get();
+
   // use the cache holding decompressed pixel data
   if (compressed_pixels && compressed_mask)
   {
@@ -4783,7 +4786,7 @@ FITS::get_video_frame(int frame, std::string flux)
 
 #pragma omp task private(idx, idy)
             {
-              printf("idx = %d, idy = %d\t", idx, idy);
+              printf("idx = %d, idy = %d\n", idx, idy);
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
                   request_cached_region_ptr(frame, idy, idx);
@@ -4809,7 +4812,7 @@ FITS::get_video_frame(int frame, std::string flux)
                   ispc::make_video_frameF16_linear(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      bscale, ignrval, datamin, datamax, dst_luma, dst_mask,
                       offset_x, offset_y, padded_width, _black, _slope);
                   has_luma = true;
                 }
@@ -4819,7 +4822,7 @@ FITS::get_video_frame(int frame, std::string flux)
                   ispc::make_video_frameF16_logistic(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      bscale, ignrval, datamin, datamax, dst_luma, dst_mask,
                       offset_x, offset_y, padded_width, _median, _sensitivity);
                   has_luma = true;
                 }
@@ -4829,7 +4832,7 @@ FITS::get_video_frame(int frame, std::string flux)
                   ispc::make_video_frameF16_ratio(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      bscale, ignrval, datamin, datamax, dst_luma, dst_mask,
                       offset_x, offset_y, padded_width, _black, _sensitivity);
                   has_luma = true;
                 }
@@ -4839,7 +4842,7 @@ FITS::get_video_frame(int frame, std::string flux)
                   ispc::make_video_frameF16_square(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      bscale, ignrval, datamin, datamax, dst_luma, dst_mask,
                       offset_x, offset_y, padded_width, _black, _sensitivity);
                   has_luma = true;
                 }
@@ -4849,7 +4852,7 @@ FITS::get_video_frame(int frame, std::string flux)
                   ispc::make_video_frameF16_legacy(
                       region.get(), dx, dy, ZFP_CACHE_REGION, frame_min[frame],
                       frame_max[frame], MIN_HALF_FLOAT, MAX_HALF_FLOAT, bzero,
-                      bscale, ignrval, datamin, datamax, pixels.get(), mask.get(),
+                      bscale, ignrval, datamin, datamax, dst_luma, dst_mask,
                       offset_x, offset_y, padded_width, dmin, dmax, lmin, lmax);
                   has_luma = true;
                 }
@@ -4872,31 +4875,31 @@ jmp:
     if (flux == "linear")
     {
       float _slope = 1.0f / (_white - _black);
-      ispc::make_video_frameF32_linear((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _slope);
+      ispc::make_video_frameF32_linear((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, dst_luma, dst_mask, padded_width, _black, _slope);
       has_luma = true;
     }
 
     if (flux == "logistic")
     {
-      ispc::make_video_frameF32_logistic((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _median, _sensitivity);
+      ispc::make_video_frameF32_logistic((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, dst_luma, dst_mask, padded_width, _median, _sensitivity);
       has_luma = true;
     }
 
     if (flux == "ratio")
     {
-      ispc::make_video_frameF32_ratio((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _sensitivity);
+      ispc::make_video_frameF32_ratio((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, dst_luma, dst_mask, padded_width, _black, _sensitivity);
       has_luma = true;
     }
 
     if (flux == "square")
     {
-      ispc::make_video_frameF32_square((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, _black, _sensitivity);
+      ispc::make_video_frameF32_square((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, dst_luma, dst_mask, padded_width, _black, _sensitivity);
       has_luma = true;
     }
 
     if (flux == "legacy")
     {
-      ispc::make_video_frameF32_legacy((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, pixels.get(), mask.get(), padded_width, dmin, dmax, lmin, lmax);
+      ispc::make_video_frameF32_legacy((int32_t *)pixels_buf, width, height, bzero, bscale, ignrval, datamin, datamax, dst_luma, dst_mask, padded_width, dmin, dmax, lmin, lmax);
       has_luma = true;
     }
   }
