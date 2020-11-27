@@ -4735,9 +4735,6 @@ FITS::get_video_frame(int frame, std::string flux)
     return res;
   }
 
-  /*memset(pixels.get(), 0, frame_size);
-  memset(mask.get(), 0, frame_size);*/
-
   bool has_compressed_frame = false;
   bool compressed_pixels = false;
   bool compressed_mask = false;
@@ -4784,7 +4781,7 @@ FITS::get_video_frame(int frame, std::string flux)
             if (jmp)
               break;
 
-#pragma omp task
+#pragma omp task private(idx, idy)
             {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
