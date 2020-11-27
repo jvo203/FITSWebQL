@@ -4769,26 +4769,24 @@ FITS::get_video_frame(int frame, std::string flux)
   if (compressed_pixels && compressed_mask)
   {
     std::atomic<bool> jmp = false;
+    int idx, idy;
 
 #pragma omp parallel
     {
 #pragma omp single
       {
-        for (int idy = start_y; idy <= end_y; idy++)
+        for (idy = start_y; idy <= end_y; idy++)
         {
           if (jmp)
             break;
 
-          for (int idx = start_x; idx <= end_x; idx++)
+          for (idx = start_x; idx <= end_x; idx++)
           {
             if (jmp)
               break;
-
-            printf("before: idx = %d, idy = %d\n", idx, idy);
-            
-#pragma omp task private(idx, idy)
-            {
-              printf("task: idx = %d, idy = %d\n", idx, idy);
+               
+#pragma omp private(idx, idy) task
+            {              
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
                   request_cached_region_ptr(frame, idy, idx);
