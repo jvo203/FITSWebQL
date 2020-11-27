@@ -35,9 +35,9 @@ void apply_colourmap(unsigned char* canvas, int w, int h, const unsigned char* l
 			unsigned char g_pixel = 0xFF * (g[x0] + (g[x0 + 1] - g[x0]) * frac);
 			unsigned char b_pixel = 0xFF * (b[x0] + (b[x0 + 1] - b[x0]) * frac);
 
-			r_pixel = (mask == 0) ? fill : r_pixel;
+			/*r_pixel = (mask == 0) ? fill : r_pixel;
 			g_pixel = (mask == 0) ? fill : g_pixel;
-			b_pixel = (mask == 0) ? fill : b_pixel;
+			b_pixel = (mask == 0) ? fill : b_pixel;*/
 
 			canvas[dst_offset++] = r_pixel;
 			canvas[dst_offset++] = g_pixel;
