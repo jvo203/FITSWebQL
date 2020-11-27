@@ -16,12 +16,6 @@ uint32_t bswap32(uint32_t u)
   return ((u&0xFF)<<24) | (((u>>8)&0xFF)<<16) | (((u>>16)&0xFF)<<8) | (((u>>24)&0xFF)<<0);
 }
 
-unsigned int8 rgb2yuv(int pixel)
-{
-  int tmp = 66 * pixel + 129 * pixel + 25 * pixel ; // R,G,B are all equal
-  return (tmp + 128) >> 8 + 16 ;
-}
-
 export void mirror_u8(uniform unsigned int8 image[], uniform int32 width, uniform int32 height)
 {  
   foreach(j = 0 ... height / 2, i = 0 ... width)
