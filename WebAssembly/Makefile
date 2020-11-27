@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := wasm
-VERSION = 20.11.25.12
+VERSION = 20.11.27.0
 
 OPENEXR = OpenEXR
 FPZIP = fpzip
