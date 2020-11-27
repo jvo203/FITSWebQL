@@ -58,7 +58,7 @@ using namespace std::chrono;
 #define CELLSIZE 16
 
 #define ZFP_CACHE_REGION 256
-#define ZFPMAXPREC 16
+#define ZFPMAXPREC 11
 #define ZFPACCURACY 1.0e-3
 // ZFPMAXPREC 11; perhaps we should use 16 bits as the maximum precision instead of 11 or 8?
 
