@@ -226,7 +226,8 @@ export void make_image_spectrumF16(uniform unsigned int16 src[], uniform int dx,
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x); // to be re-worked using destination offsets
@@ -615,10 +616,9 @@ export uniform float calculate_square_spectrumF16(uniform unsigned int16 src[], 
   uniform float bscale_new = bscale * bscale16;
 
   foreach (y=y1 ... y2, x=x1 ... x2)
-    {      
-      //float tmp = frame_min + (half_to_float_fast(src[y*width+x]) - min16) / (max16 - min16) * (frame_max - frame_min);
-      //tmp = bzero + bscale * tmp;
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
+    {            
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*width+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       
       partial_sum += nan ? 0.0f : tmp ;
@@ -651,10 +651,9 @@ export uniform float calculate_radial_spectrumF16(uniform unsigned int16 src[], 
   uniform float bscale_new = bscale * bscale16;
 
   foreach (y=y1 ... y2, x=x1 ... x2)
-    {      
-      //float tmp = frame_min + (half_to_float_fast(src[y*width+x]) - min16) / (max16 - min16) * (frame_max - frame_min);
-      //tmp = bzero + bscale * tmp;
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
+    {            
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*width+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*width+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
       float dist2 = (cx-(x+dx))*(cx-(x+dx)) + (cy-(y+dy))*(cy-(y+dy)) ;
@@ -688,7 +687,8 @@ export void make_video_frameF16(uniform unsigned int16 src[], uniform int dx, un
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
 
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x); // to be re-worked using destination offsets
@@ -831,7 +831,8 @@ export void make_video_frameF16_linear(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
@@ -859,7 +860,8 @@ export void make_video_frameF16_logistic(uniform unsigned int16 src[], uniform i
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
@@ -916,7 +918,8 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
@@ -944,7 +947,8 @@ export void make_video_frameF16_legacy(uniform unsigned int16 src[], uniform int
 
   foreach (y=0 ... dy, x=0 ... dx)
     {
-      float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      //float tmp = bzero_new + bscale_new * half_to_float_fast(src[y*src_stride+x]) ;
+      float tmp = bzero + bscale * half_to_float_fast(src[y*src_stride+x]) ;
       bool nan = isnan(tmp) || isinf(tmp) || (tmp < datamin) || (tmp > datamax) || (tmp <= ignrval);
       unsigned int idx = (offset_y +  y) * dst_stride + (offset_x +  x);
 
