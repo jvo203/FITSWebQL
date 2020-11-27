@@ -4767,9 +4767,9 @@ FITS::get_video_frame(int frame, std::string flux)
   {
     std::atomic<bool> jmp = false;
 
-#pragma omp parallel
+//#pragma omp parallel
     {
-#pragma omp single
+//#pragma omp single
       {
         for (auto idy = start_y; idy <= end_y; idy++)
         {
@@ -4781,7 +4781,7 @@ FITS::get_video_frame(int frame, std::string flux)
             if (jmp)
               break;
 
-#pragma omp task private(idx, idy)
+//#pragma omp task private(idx, idy)
             {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
