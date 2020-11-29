@@ -11,7 +11,7 @@
   "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR( \
       VERSION_SUB)
 
-#define WASM_VERSION "20.11.27.2"
+#define WASM_VERSION "20.11.29.0"
 #define VERSION_STRING "SV2020-11-27.0"
 
 // OpenEXR
@@ -2772,11 +2772,11 @@ int main(int argc, char *argv[])
                                  std::lock_guard<std::shared_mutex>
                                      unique_access(user->ptr->mtx);
                                  std::string resp =
-                                     "{\"type\" : \"init_video\", \"width\" "
-                                     ": " +
-                                     std::to_string(img_width) +
-                                     ", \"height\" : " +
-                                     std::to_string(img_height) + "}";
+                                     "{\"type\" : \"init_video\", \"width\" : " +
+                                     std::to_string(img_width) + ", \"height\" : " +
+                                     std::to_string(img_height) + ", \"padded_width\" : " +
+                                     std::to_string(_padded_width) + ", \"padded_height\" : " +
+                                     std::to_string(_padded_height) + "}";
                                  ws->send(resp, opCode);
                                }
 
@@ -3250,7 +3250,7 @@ int main(int argc, char *argv[])
                                      double elapsedMilliseconds =
                                          1000.0 * elapsedSeconds;
 
-                                     for (int i = 0; i < iNal; i++)
+                                     for (unsigned int i = 0; i < iNal; i++)
                                      {
                                        std::cout << "NAL unit #" << (i + 1) << " [type: " << pNals[i].type << ", size: " << pNals[i].sizeBytes << " bytes]." << std::endl;
 
