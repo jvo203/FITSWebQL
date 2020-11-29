@@ -1988,15 +1988,14 @@ function process_video(index) {
 		let py = emStrokeWidth;
 
 		let viewport = viewport_zoom_settings;		
-		viewport.y = imageCanvas.height - viewport.y - viewport.clipSize;
-		console.log(viewport);
+		viewport.y = imageCanvas.height - viewport.y - (2 * viewport.clipSize + 1);		
 
 		//and a zoomed viewport
 		if (zoom_shape == "square") {
 			ctx.fillStyle = "rgba(0,0,0,0.3)";
 			ctx.fillRect(px, py, viewport_zoom_settings.zoomed_size, viewport_zoom_settings.zoomed_size);
 
-			ctx.drawImage(imageCanvas, (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleX, (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleY, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleX, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleY, px, py, viewport_zoom_settings.zoomed_size, viewport_zoom_settings.zoomed_size);
+			ctx.drawImage(imageCanvas, (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleX, (viewport.y + viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleY, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleX, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleY, px, py, viewport_zoom_settings.zoomed_size, viewport_zoom_settings.zoomed_size);
 		}
 
 		if (zoom_shape == "circle") {
@@ -2009,7 +2008,7 @@ function process_video(index) {
 
 			ctx.closePath();
 			ctx.clip();
-			ctx.drawImage(imageCanvas, (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleX, (viewport_zoom_settings.y - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleY, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleX, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleY, px, py, viewport_zoom_settings.zoomed_size, viewport_zoom_settings.zoomed_size);
+			ctx.drawImage(imageCanvas, (viewport_zoom_settings.x - viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleX, (viewport.y + viewport_zoom_settings.clipSize) / videoFrame[index - 1].scaleY, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleX, (2 * viewport_zoom_settings.clipSize + 1) / videoFrame[index - 1].scaleY, px, py, viewport_zoom_settings.zoomed_size, viewport_zoom_settings.zoomed_size);
 			ctx.restore();
 		}
 	}
