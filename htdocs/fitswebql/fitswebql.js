@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-29.0";
+	return "JS2020-11-29.1";
 }
 
 const wasm_supported = (() => {
@@ -1986,6 +1986,10 @@ function process_video(index) {
 	if (viewport_zoom_settings != null) {
 		let px = emStrokeWidth;
 		let py = emStrokeWidth;
+
+		let viewport = viewport_zoom_settings;		
+		viewport.y = imageCanvas.height - viewport.y - viewport.clipSize;
+		console.log(viewport);
 
 		//and a zoomed viewport
 		if (zoom_shape == "square") {
