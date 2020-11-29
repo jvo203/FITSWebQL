@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-27.2";
+	return "JS2020-11-29.0";
 }
 
 const wasm_supported = (() => {
@@ -2972,16 +2972,22 @@ function open_websocket_connection(datasetId, index) {
 							var height = data.height;
 
 							if (videoFrame[index - 1] == null) {
-								let imageFrame = imageContainer[va_count - 1];
+								let imageFrame = imageContainer[va_count - 1];						
 
 								if (imageFrame != null) {
+									let dims = imageFrame.image_bounding_dims;
+									dims.y1 = height - dims.y1 - dims.height;
+
 									videoFrame[index - 1] = {
 										width: width,
 										height: height,
+										padded_width: data.padded_width,
+										padded_height: data.padded_width,
 										img: null,
 										scaleX: imageFrame.width / width,
 										scaleY: imageFrame.height / height,
-										image_bounding_dims: imageFrame.image_bounding_dims,
+										image_bounding_dims: dims,
+										//image_bounding_dims: imageFrame.image_bounding_dims,
 										//image_bounding_dims: {x1: 0, y1: 0, width: width, height: height},
 									}
 								}
