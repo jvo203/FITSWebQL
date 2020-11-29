@@ -11,8 +11,8 @@
   "FITSWebQL SE v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR( \
       VERSION_SUB)
 
-#define WASM_VERSION "20.11.29.0"
-#define VERSION_STRING "SV2020-11-27.0"
+#define WASM_VERSION "20.11.27.2"
+#define VERSION_STRING "SV2020-11-29.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
