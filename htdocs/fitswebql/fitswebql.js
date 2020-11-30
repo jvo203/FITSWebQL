@@ -2550,6 +2550,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//spectrum
 					if (type == 0) {
+						hide_hourglass();
 						computed = dv.getFloat32(12, endianness);
 
 						//var spectrum = new Float32Array(received_msg, 16);
@@ -2969,6 +2970,11 @@ function open_websocket_connection(datasetId, index) {
 								setTimeout(function () { ALMAWS.send("[image]"); }, 100);
 							}
 						}*/
+
+						if (data.type == "cached") {
+							console.log(data);
+							display_hourglass();
+						}
 
 						if (data.type == "init_video") {
 							var width = data.width;
