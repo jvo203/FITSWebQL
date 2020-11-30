@@ -4607,7 +4607,7 @@ int main(int argc, char *argv[])
                                    auto start_watch = steady_clock::now();
 
                                    std::vector<float> spectrum =
-                                       fits->get_spectrum(start, end, x1, y1,
+                                       fits->get_spectrum(ws, start, end, x1, y1,
                                                           x2, y2, intensity,
                                                           beam,
                                                           elapsedMilliseconds);

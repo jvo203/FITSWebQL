@@ -20,6 +20,9 @@
 #include "lz4.h"
 #include "lz4hc.h"
 
+#include "App.h"
+typedef uWS::WebSocket<false, true> TWebSocket2;
+
 //#include "fifo.hpp"
 #include <boost/lockfree/queue.hpp>
 #include <boost/histogram.hpp>
@@ -141,7 +144,7 @@ public:
   void get_frequency_range(double &freq_start, double &freq_end);
   void get_spectrum_range(double frame_start, double frame_end, double ref_freq,
                           int &start, int &end);
-  std::vector<float> get_spectrum(int start, int end, int x1, int y1, int x2,
+  std::vector<float> get_spectrum(TWebSocket2 *ws, int start, int end, int x1, int y1, int x2,
                                   int y2, intensity_mode intensity,
                                   beam_shape beam, double &elapsed);
   std::tuple<std::shared_ptr<Ipp32f>, std::shared_ptr<Ipp8u>, std::vector<float>, std::vector<float>> get_cube(int start, int end);
