@@ -4341,7 +4341,7 @@ void FITS::send_progress_notification(size_t running, size_t total)
 }
 
 std::shared_ptr<unsigned short>
-FITS::request_cached_region_ptr(int frame, int idy, int idx)
+FITS::request_cached_region_ptr(int frame, int idy, int idx, TWebSocket2 *ws)
 {
   int pixels_idz = frame / 4;
   int sub_frame = frame % 4; // a sub-pixels frame count in [0,4)
@@ -5276,7 +5276,7 @@ std::vector<float> FITS::get_spectrum(TWebSocket2 *ws, int start, int end, int x
         for (auto idx = start_x; idx <= end_x; idx++)
         {
           std::shared_ptr<unsigned short> region =
-              request_cached_region_ptr(i, idy, idx);
+              request_cached_region_ptr(i, idy, idx, ws);
 
           if (!region)
             goto jmp;

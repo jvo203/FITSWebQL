@@ -186,7 +186,7 @@ private:
   bool zfp_load_cube(size_t start_k);
   bool zfp_mmap_cube(size_t start_k);
   std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy,
-                                                            int idx);
+                                                            int idx, TWebSocket2 *ws = NULL);
   void purge_cache();
 
 public:
