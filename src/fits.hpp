@@ -187,6 +187,7 @@ private:
   bool zfp_mmap_cube(size_t start_k);
   std::shared_ptr<unsigned short> request_cached_region_ptr(int frame, int idy,
                                                             int idx, TWebSocket2 *ws = NULL);
+  void send_cache_notification(TWebSocket2 *ws, int frame, int idy, int idx);
   void purge_cache();
 
 public:
@@ -300,6 +301,7 @@ private:
   // housekeeping
   struct timespec created;
   std::atomic<std::time_t> timestamp;
+  std::atomic<std::time_t> cache_timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;
   off_t fits_file_size;

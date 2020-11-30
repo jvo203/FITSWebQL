@@ -313,6 +313,7 @@ FITS::FITS()
   std::cout << this->dataset_id << "::default constructor." << std::endl;
 
   this->timestamp = std::time(nullptr);
+  this->cache_timestamp = std::time(nullptr);
   clock_gettime(CLOCK_MONOTONIC, &(this->created));
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
@@ -331,6 +332,7 @@ FITS::FITS(std::string id, std::string flux)
   this->data_id = id + "_00_00_00";
   this->flux = flux;
   this->timestamp = std::time(nullptr);
+  this->cache_timestamp = std::time(nullptr);
   clock_gettime(CLOCK_MONOTONIC, &(this->created));
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
@@ -4288,6 +4290,10 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
   return brightness / float(num_threads);
 }
 
+void FITS::send_cache_notification(TWebSocket2 *ws, int frame, int idy, int idx)
+{
+}
+
 void FITS::send_progress_notification(size_t running, size_t total)
 {
   struct timespec now;
@@ -4382,6 +4388,9 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx, TWebSocket2 *ws)
     else
       return res;
   }
+
+  if (ws != NULL)
+    send_cache_notification(ws, frame, idy, idx);
 
   // decompress the pixels and a mask
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
@@ -4784,9 +4793,9 @@ FITS::get_video_frame(int frame, std::string flux)
           {
             if (jmp)
               break;
-               
+
 #pragma omp private(idx, idy) task
-            {              
+            {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
                   request_cached_region_ptr(frame, idy, idx);
