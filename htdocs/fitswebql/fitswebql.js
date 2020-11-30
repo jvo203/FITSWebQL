@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-29.1";
+	return "JS2020-11-30.0";
 }
 
 const wasm_supported = (() => {
@@ -7530,7 +7530,7 @@ function x_axis_mouseenter(offset) {
 		var width = rect.width - 20;
 		var height = rect.height - 20;
 
-		let ui = '&width=' + width + '&height=' + height + '&colourmap=' + colourmap;
+		let ui = '&width=' + width + '&height=' + height;
 
 		if (composite_view) {
 			wsConn[0].send('[init_video] frame=' + freq + '&view=composite' + '&ref_freq=' + RESTFRQ + '&fps=' + vidFPS + '&seq_id=' + sent_vid_id + '&bitrate=' + Math.round(target_bitrate) + ui + '&flux=' + document.getElementById('flux' + 1).value + '&timestamp=' + performance.now());

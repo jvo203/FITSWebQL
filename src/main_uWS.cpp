@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-11-29.0"
+#define VERSION_STRING "SV2020-11-30.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2644,8 +2644,7 @@ int main(int argc, char *argv[])
                        int _height = -1;
                        double frame = 0;
                        double ref_freq = 0;
-                       float timestamp = 0;
-                       std::string colourmap;
+                       float timestamp = 0;                       
                        std::string flux;
 
                        std::string_view query;
@@ -2691,10 +2690,7 @@ int main(int argc, char *argv[])
                              ref_freq = std::stod(value);
 
                            if (key.find("flux") != std::string::npos)
-                             flux = value;
-
-                           if (key.find("colourmap") != std::string::npos)
-                             colourmap = value;
+                             flux = value;                          
 
                            if (key.find("timestamp") != std::string::npos)
                              timestamp = std::stof(value);
@@ -2715,8 +2711,7 @@ int main(int argc, char *argv[])
                              return;
 
                            // set up the x265 stream
-                           user->ptr->flux = flux;
-                           user->ptr->colourmap = colourmap;
+                           user->ptr->flux = flux;                           
                            user->ptr->fps = fps;
                            user->ptr->bitrate = bitrate;
 
@@ -2789,8 +2784,7 @@ int main(int argc, char *argv[])
                            std::cout << "[uWS::init_video]::" << datasetid
                                      << "\tfps = " << fps
                                      << "\tbitrate = " << bitrate
-                                     << "\tflux = " << flux
-                                     << "\tcolourmap = " << colourmap
+                                     << "\tflux = " << flux                                     
                                      << "\tscale = " << scale
                                      << "\tframe = " << frame_idx << std::endl;
 

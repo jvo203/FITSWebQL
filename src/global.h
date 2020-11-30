@@ -87,7 +87,6 @@ struct UserSession
   int fps;
   int bitrate;
   std::string flux;
-  std::string colourmap;
 
   UserSession(boost::uuids::uuid _session_id, system_clock::time_point _ts, std::string _primary_id, std::vector<std::string> _ids)
   {
