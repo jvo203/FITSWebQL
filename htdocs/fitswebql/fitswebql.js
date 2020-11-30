@@ -2974,9 +2974,14 @@ function open_websocket_connection(datasetId, index) {
 							}
 						}*/
 
-						if (data.type == "cached") {
+						if (data.type == "caching") {
 							console.log(data);
 							display_hourglass();
+						}
+
+						if (data.type == "cached") {
+							console.log(data);
+							hide_hourglass();
 						}
 
 						if (data.type == "init_video") {
