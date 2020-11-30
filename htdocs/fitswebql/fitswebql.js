@@ -2591,6 +2591,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//viewport
 					if (type == 1) {
+						hide_hourglass();
 						var offset = 12;
 						var frame = new Uint8Array(received_msg, offset);
 
@@ -2621,7 +2622,7 @@ function open_websocket_connection(datasetId, index) {
 					}
 
 					//image
-					if (type == 2) {
+					if (type == 2) {						
 						var tone_mapping = new Object();
 						let p = 0.5;
 						tone_mapping.lmin = Math.log(p);
@@ -2727,6 +2728,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//full spectrum refresh
 					if (type == 3) {
+						hide_hourglass();
 						var length = dv.getUint32(12, endianness);
 						var offset = 16;
 						var mean_spectrum = new Float32Array(received_msg, offset, length);
@@ -2771,6 +2773,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//histogram refresh
 					if (type == 4) {
+						hide_hourglass();
 						var min = dv.getFloat32(12, endianness);
 						var max = dv.getFloat32(16, endianness);
 						var black = dv.getFloat32(20, endianness);
