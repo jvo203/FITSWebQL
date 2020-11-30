@@ -301,7 +301,7 @@ private:
   // housekeeping
   struct timespec created;
   std::atomic<std::time_t> timestamp;
-  std::atomic<std::time_t> cache_timestamp;
+  system_clock::time_point cache_timestamp;
   int fits_file_desc;
   gzFile compressed_fits_stream;
   off_t fits_file_size;

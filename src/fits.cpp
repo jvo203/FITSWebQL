@@ -313,7 +313,7 @@ FITS::FITS()
   std::cout << this->dataset_id << "::default constructor." << std::endl;
 
   this->timestamp = std::time(nullptr);
-  this->cache_timestamp = std::time(nullptr);
+  this->cache_timestamp = system_clock::now();
   clock_gettime(CLOCK_MONOTONIC, &(this->created));
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
@@ -332,7 +332,7 @@ FITS::FITS(std::string id, std::string flux)
   this->data_id = id + "_00_00_00";
   this->flux = flux;
   this->timestamp = std::time(nullptr);
-  this->cache_timestamp = std::time(nullptr);
+  this->cache_timestamp = system_clock::now();
   clock_gettime(CLOCK_MONOTONIC, &(this->created));
   this->fits_file_desc = -1;
   this->compressed_fits_stream = NULL;
@@ -4292,6 +4292,23 @@ float FITS::calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
 
 void FITS::send_cache_notification(TWebSocket2 *ws, int frame, int idy, int idx)
 {
+  auto now = system_clock::now();
+  duration<double, std::milli> elapsed = now - this->cache_timestamp;
+
+  if (elapsed < duration_cast<system_clock::duration>(
+                    duration<double>(uWS_PROGRESS_TIMEOUT)))
+    return;
+
+  // lock the mutex and send a json WebSocket message
+  std::lock_guard<std::mutex> guard(fits_mtx);
+  this->cache_timestamp = now;
+
+  std::string resp =
+      "{\"type\" : \"cached\", \"frame\" : " +
+      std::to_string(frame) + ", \"idy\" : " +
+      std::to_string(idy) + ", \"idx\" : " +
+      std::to_string(idx) + "}";
+  ws->send(resp, uWS::OpCode::TEXT);
 }
 
 void FITS::send_progress_notification(size_t running, size_t total)
@@ -4388,9 +4405,6 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx, TWebSocket2 *ws)
     else
       return res;
   }
-
-  if (ws != NULL)
-    send_cache_notification(ws, frame, idy, idx);
 
   // decompress the pixels and a mask
   size_t region_size = ZFP_CACHE_REGION * ZFP_CACHE_REGION;
@@ -4613,6 +4627,9 @@ FITS::request_cached_region_ptr(int frame, int idy, int idx, TWebSocket2 *ws)
   if (_mask != NULL)
     ippsFree(_mask);
 #endif
+
+  if (ws != NULL)
+    send_cache_notification(ws, frame, idy, idx);
 
   return res;
 }
