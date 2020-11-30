@@ -4303,11 +4303,7 @@ void FITS::send_cache_notification(TWebSocket2 *ws, int frame, int idy, int idx)
   std::lock_guard<std::mutex> guard(fits_mtx);
   this->cache_timestamp = now;
 
-  std::string resp =
-      "{\"type\" : \"caching\", \"frame\" : " +
-      std::to_string(frame) + ", \"idy\" : " +
-      std::to_string(idy) + ", \"idx\" : " +
-      std::to_string(idx) + "}";
+  std::string resp = "{\"type\" : \"caching\"}";
   ws->send(resp, uWS::OpCode::TEXT);
 }
 
