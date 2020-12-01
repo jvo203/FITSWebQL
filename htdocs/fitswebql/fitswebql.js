@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-11-30.0";
+	return "JS2020-12-01.0";
 }
 
 const wasm_supported = (() => {
@@ -1987,8 +1987,8 @@ function process_video(index) {
 		let px = emStrokeWidth;
 		let py = emStrokeWidth;
 
-		let viewport = viewport_zoom_settings;		
-		viewport.y = imageCanvas.height - viewport.y - (2 * viewport.clipSize + 1);		
+		let viewport = viewport_zoom_settings;
+		viewport.y = imageCanvas.height - viewport.y - (2 * viewport.clipSize + 1);
 
 		//and a zoomed viewport
 		if (zoom_shape == "square") {
@@ -2550,7 +2550,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//spectrum
 					if (type == 0) {
-						hide_hourglass();
+						hide_cursor();
 						computed = dv.getFloat32(12, endianness);
 
 						//var spectrum = new Float32Array(received_msg, 16);
@@ -2591,7 +2591,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//viewport
 					if (type == 1) {
-						hide_hourglass();
+						hide_cursor();
 						var offset = 12;
 						var frame = new Uint8Array(received_msg, offset);
 
@@ -2622,7 +2622,7 @@ function open_websocket_connection(datasetId, index) {
 					}
 
 					//image
-					if (type == 2) {						
+					if (type == 2) {
 						var tone_mapping = new Object();
 						let p = 0.5;
 						tone_mapping.lmin = Math.log(p);
@@ -2728,7 +2728,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//full spectrum refresh
 					if (type == 3) {
-						hide_hourglass();
+						hide_cursor();
 						var length = dv.getUint32(12, endianness);
 						var offset = 16;
 						var mean_spectrum = new Float32Array(received_msg, offset, length);
@@ -2773,7 +2773,7 @@ function open_websocket_connection(datasetId, index) {
 
 					//histogram refresh
 					if (type == 4) {
-						hide_hourglass();
+						hide_cursor();
 						var min = dv.getFloat32(12, endianness);
 						var max = dv.getFloat32(16, endianness);
 						var black = dv.getFloat32(20, endianness);
@@ -2845,7 +2845,7 @@ function open_websocket_connection(datasetId, index) {
 								if (theme == "dark")
 									fill = 0;
 								else
-									fill = 255;								
+									fill = 255;
 
 								try {
 									//HEVC
@@ -2976,12 +2976,12 @@ function open_websocket_connection(datasetId, index) {
 
 						if (data.type == "caching") {
 							console.log(data);
-							display_hourglass();
+							show_cursor();
 						}
 
 						if (data.type == "cached") {
 							console.log(data);
-							hide_hourglass();
+							hide_cursor();
 						}
 
 						if (data.type == "init_video") {
@@ -2989,7 +2989,7 @@ function open_websocket_connection(datasetId, index) {
 							var height = data.height;
 
 							if (videoFrame[index - 1] == null) {
-								let imageFrame = imageContainer[va_count - 1];						
+								let imageFrame = imageContainer[va_count - 1];
 
 								if (imageFrame != null) {
 									let dims = imageFrame.image_bounding_dims;
@@ -7518,14 +7518,14 @@ function x_axis_mouseenter(offset) {
 	});
 
 	if (va_count == 1) {
-		var elem = d3.select("#legend"); elem.attr("opacity", 0);		
+		var elem = d3.select("#legend"); elem.attr("opacity", 0);
 
 		// Clear the legend canvas
 		var image = imageContainer[va_count - 1];
 		var gl = image.legend_gl;
 
 		gl.clearColor(0, 0, 0, 0);
-		gl.clear(gl.COLOR_BUFFER_BIT);		
+		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 	else {
 		for (let index = 1; index <= va_count; index++) {
@@ -9084,6 +9084,22 @@ function setup_image_selection_index(index, topx, topy, img_width, img_height) {
 		});
 
 	zoom.scaleTo(rect, zoom_scale);
+}
+
+function show_cursor() {
+	if (va_count > 1)
+		return;
+
+	d3.select("#image_rectangle")
+		.style('cursor', 'wait');
+}
+
+function hide_cursor() {
+	if (va_count > 1)
+		return;
+
+	d3.select("#image_rectangle")
+		.style('cursor', 'none');
 }
 
 function setup_image_selection() {
