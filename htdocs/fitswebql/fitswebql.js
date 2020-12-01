@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-01.0";
+	return "JS2020-12-01.1";
 }
 
 const wasm_supported = (() => {
@@ -13211,18 +13211,17 @@ function contour_surface_webworker() {
 	catch (e) { };
 
 	var data = [];
-
-	var imageCanvas = imageContainer[va_count - 1].imageCanvas;
-	var imageFrame = imageContainer[va_count - 1].imageFrame;
-	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+	
+	var imageFrame = imageContainer[va_count - 1];	
+	var image_bounding_dims = imageFrame.image_bounding_dims;
 
 	if (composite_view) {
 		imageCanvas = compositeCanvas;
 		imageDataCopy = compositeImageData.data;
 	}
 
-	let min_value = 255;
-	let max_value = 0;
+	let min_value = imageFrame.pixel_range.min_pixel;
+	let max_value = imageFrame.pixel_range.max_pixel;
 
 	if (composite_view)
 		for (var h = image_bounding_dims.height - 1; h >= 0; h--) {
@@ -13257,17 +13256,11 @@ function contour_surface_webworker() {
 
 			var xcoord = image_bounding_dims.x1;
 			var ycoord = image_bounding_dims.y1 + h;
-			var pixel = ycoord * imageFrame.stride + xcoord;
+			var pixel = ycoord * imageFrame.width + xcoord;
 
 			for (var w = 0; w < image_bounding_dims.width; w++) {
-				var z = imageFrame.bytes[pixel];
+				var z = imageFrame.pixels[pixel];
 				pixel += 1;
-
-				if (z < min_value)
-					min_value = z;
-
-				if (z > max_value)
-					max_value = z;
 
 				row.push(z);
 			}
@@ -13277,8 +13270,6 @@ function contour_surface_webworker() {
 	}
 
 	//console.log(data);
-
-	//console.log("min_pixel:", min_pixel, "max_pixel:", max_pixel) ;
 	console.log("min_value:", min_value, "max_value:", max_value);
 
 	var contours = parseInt(document.getElementById('contour_lines').value) + 1;
