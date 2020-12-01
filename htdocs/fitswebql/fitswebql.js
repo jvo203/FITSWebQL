@@ -9469,7 +9469,8 @@ function setup_image_selection() {
 				return;
 			}
 
-			d3.select(this).style('cursor', 'none');
+			// commented out so that the caching 'wait' cursor remains visible
+			//d3.select(this).style('cursor', 'none');
 
 			d3.event.preventDefault = true;
 			if (!has_image) return;
