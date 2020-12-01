@@ -13306,10 +13306,6 @@ function contour_surface_webworker() {
 				.range([height, 1])
 				.domain([0, data.length - 1]);
 
-			var colours = d3.scaleLinear()
-				.domain([min_value, max_value])
-				.range(["#fff", "red"]);
-
 			d3.select("#ContourSVG").append("svg")
 				.attr("id", "contourPlot")
 				.attr("x", elem.attr("x"))
@@ -13318,8 +13314,7 @@ function contour_surface_webworker() {
 				.attr("height", height)
 				.selectAll("path")
 				.data(isoBands)
-				.enter().append("path")
-				//.style("fill",function(d) { return colours(d.level);})
+				.enter().append("path")				
 				.style("fill", "none")
 				.style("stroke", "black")
 				.attr("opacity", 0.5)
