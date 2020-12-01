@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-01.1";
+	return "JS2020-12-01.2";
 }
 
 const wasm_supported = (() => {
@@ -13323,7 +13323,7 @@ function contour_surface_webworker() {
 					d.coords.forEach(function (aa, i) {
 						p += (d3.line()
 							.x(function (dat) { return x(dat[0]); })
-							.y(function (dat) { return y(dat[1]); })
+							.y(function (dat) { return ((height - 1) - y(dat[1])); })
 							.curve(d3.curveLinear)
 						)(aa) + "Z";
 					});
