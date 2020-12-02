@@ -68,17 +68,18 @@ function colourFunction(x, y) {
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
     var xcoord = Math.round(image_bounding_dims.x1 + ((1 - x) - 0.5) * (image_bounding_dims.width - 1));
     var ycoord = Math.round(image_bounding_dims.y1 + ((1 - y) / aspect + 0.5) * (image_bounding_dims.height - 1));
-    var pixel = 2 * (ycoord * imageCanvas.width + xcoord); // the texture is 2 x length
+    var pixel = 2 * (ycoord * imageFrame.width + xcoord); // the texture is 2 x length
 
     var r, g, b, a;
     let raw = imageFrame.texture[pixel];
-    let alpha = 255 * imageFrame.texture[pixel + 1];
+    let alpha = clamp(255 * imageFrame.texture[pixel + 1], 0, 255);
+    
     pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);
 
-    r = pixel;
-    g = pixel;
-    b = pixel;
-    a = alpha;
+    r = Math.round(pixel);
+    g = Math.round(pixel);
+    b = Math.round(pixel);
+    a = Math.round(alpha);
 
     return new THREE.Color("rgb(" + r + "," + g + "," + b + ")");
 }
