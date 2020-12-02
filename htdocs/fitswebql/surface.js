@@ -9,9 +9,9 @@ var segments = 512;//512
 var is_active;
 
 //get z from imageFrame raw float32 pixels
-function meshFunction(x, y, p0) {    
-    var imageFrame = imageContainer[va_count - 1];	
-	var image_bounding_dims = imageFrame.image_bounding_dims;
+function meshFunction(x, y, p0) {
+    var imageFrame = imageContainer[va_count - 1];
+    var image_bounding_dims = imageFrame.image_bounding_dims;
 
     let fitsData = imageFrame.tone_mapping;
     let black = fitsData.black;
@@ -19,7 +19,7 @@ function meshFunction(x, y, p0) {
     let median = fitsData.median;
     let noise_sensitivity = document.getElementById('sensitivity' + va_count).value;
     let multiplier = get_noise_sensitivity(noise_sensitivity);
-    let flux = document.getElementById('flux' + va_count).value;    
+    let flux = document.getElementById('flux' + va_count).value;
 
     var xcoord = Math.round(image_bounding_dims.x1 + (1 - x) * (image_bounding_dims.width - 1));
     var ycoord = Math.round(image_bounding_dims.y1 + (1 - y) * (image_bounding_dims.height - 1));
@@ -37,7 +37,7 @@ function meshFunction(x, y, p0) {
         var pixel = ycoord * imageFrame.width + xcoord;
         let raw = imageFrame.pixels[pixel];
         // <raw> needs to be transformed into a pixel range in [0, 255] via the tone mapping function
-        pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);        
+        pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);
         z = pixel - 127;
         //console.log(xcoord, ycoord, "raw:", raw, "pixel:", pixel, "z:", z);
     }
@@ -48,10 +48,16 @@ function meshFunction(x, y, p0) {
 }
 
 function colourFunction(x, y) {
-    let imageCanvas = imageContainer[va_count - 1].imageCanvas;
-    let imageData = imageContainer[va_count - 1].imageData;
-    let newImageData = imageContainer[va_count - 1].newImageData;
-    let image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+    var imageFrame = imageContainer[va_count - 1];
+    var image_bounding_dims = imageFrame.image_bounding_dims;
+
+    let fitsData = imageFrame.tone_mapping;
+    let black = fitsData.black;
+    let white = fitsData.white;
+    let median = fitsData.median;
+    let noise_sensitivity = document.getElementById('sensitivity' + va_count).value;
+    let multiplier = get_noise_sensitivity(noise_sensitivity);
+    let flux = document.getElementById('flux' + va_count).value;
 
     if (composite_view) {
         imageCanvas = compositeCanvas;
@@ -62,22 +68,17 @@ function colourFunction(x, y) {
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
     var xcoord = Math.round(image_bounding_dims.x1 + ((1 - x) - 0.5) * (image_bounding_dims.width - 1));
     var ycoord = Math.round(image_bounding_dims.y1 + ((1 - y) / aspect + 0.5) * (image_bounding_dims.height - 1));
-    var pixel = 4 * (ycoord * imageCanvas.width + xcoord);
+    var pixel = 2 * (ycoord * imageCanvas.width + xcoord); // the texture is 2 x length
 
     var r, g, b, a;
+    let raw = imageFrame.texture[pixel];
+    let alpha = 255 * imageFrame.texture[pixel + 1];
+    pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);
 
-    if (newImageData != null) {
-        r = newImageData.data[pixel];
-        g = newImageData.data[pixel + 1];
-        b = newImageData.data[pixel + 2];
-        a = newImageData.data[pixel + 3];
-    }
-    else {
-        r = imageData.data[pixel];
-        g = imageData.data[pixel + 1];
-        b = imageData.data[pixel + 2];
-        a = imageData.data[pixel + 3];
-    }
+    r = pixel;
+    g = pixel;
+    b = pixel;
+    a = alpha;
 
     return new THREE.Color("rgb(" + r + "," + g + "," + b + ")");
 }
@@ -220,7 +221,7 @@ function animate_surface() {
 function update() {
     /*if ( keyboard.pressed("z") ) 
     { 
-	// do something
+    // do something
     }*/
 
     controls.update();
