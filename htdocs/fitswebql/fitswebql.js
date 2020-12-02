@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-02.0";
+	return "JS2020-12-02.1";
 }
 
 const wasm_supported = (() => {
@@ -13419,7 +13419,7 @@ function enable_3d_view() {
 
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'surface2.js' + '?' + encodeURIComponent(get_js_version());
+			po.src = 'surface.js' + '?' + encodeURIComponent(get_js_version());
 			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
 		})();
 
