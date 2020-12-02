@@ -5729,6 +5729,35 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 	}
 }
 
+function get_tone_mapping(raw, flux, black, white, median, multiplier, index) {
+	let fitsData = imageContainer[index - 1].tone_mapping;
+	let sensitivity = multiplier * fitsData.sensitivity;
+	let ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
+	let min = fitsData.min;
+	let max = fitsData.max;
+
+	switch (flux) {
+		case 'linear':
+			return get_tone_mapping_linear(value, black, white);
+			break;
+		case 'legacy':
+			return get_tone_mapping_legacy(value, black, white, multiplier);
+			break;		
+		case 'logistic':
+			return get_tone_mapping_logistic(value, min, max, median, sensitivity);
+			break;
+		case 'ratio':
+			return get_tone_mapping_value_ratio(value, max, black, ratio_sensitivity);
+			break;
+		case 'square':
+			return get_tone_mapping_value_square(value, black, white);
+			break;
+		default:
+			return NaN;
+			break;
+	}
+}
+
 function get_pixel_flux(pixel, index) {
 	var black, white, median, multiplier, flux;
 
@@ -13211,8 +13240,8 @@ function contour_surface_webworker() {
 	catch (e) { };
 
 	var data = [];
-	
-	var imageFrame = imageContainer[va_count - 1];	
+
+	var imageFrame = imageContainer[va_count - 1];
 	var image_bounding_dims = imageFrame.image_bounding_dims;
 
 	if (composite_view) {
@@ -13281,8 +13310,8 @@ function contour_surface_webworker() {
 	max_value = 1;
 	var step = (max_value - min_value) / contours;
 	var zs = d3.range(min_value + step, max_value, step);
-	for(var i=0;i<zs.length;i++)
-	zs[i] = get_pixel_flux(zs[i], va_count);
+	for (var i = 0; i < zs.length; i++)
+		zs[i] = get_pixel_flux(zs[i], va_count);
 	console.log("zs:", zs);
 
 	var completed_levels = 0;
@@ -13321,7 +13350,7 @@ function contour_surface_webworker() {
 				.attr("height", height)
 				.selectAll("path")
 				.data(isoBands)
-				.enter().append("path")				
+				.enter().append("path")
 				.style("fill", "none")
 				.style("stroke", "black")
 				.attr("opacity", 0.5)
