@@ -5247,7 +5247,8 @@ std::vector<float> FITS::get_spectrum(TWebSocket2 *ws, int start, int end, int x
   // std::lock_guard<std::mutex> guard(fits_mtx);
 
 #pragma omp parallel for schedule(dynamic, 4) shared(start_x, end_x, start_y, end_y)
-  for (size_t i = (start - (start % 4)); i <= end; i++)
+  //for (size_t i = (start - (start % 4)); i <= end; i++)
+  for (size_t i = start; i <= end; i++)
   {
     // int tid = omp_get_thread_num();
 
