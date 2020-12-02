@@ -17,6 +17,7 @@ function meshFunction(x, y, p0) {
     let black = tone_mapping.black;
     let white = tone_mapping.white;
     let median = tone_mapping.median;
+    let noise_sensitivity = document.getElementById('sensitivity' + va_count).value;
     let multiplier = get_noise_sensitivity(noise_sensitivity);
     let flux = document.getElementById('flux' + va_count).value;    
 
