@@ -5250,8 +5250,8 @@ std::vector<float> FITS::get_spectrum(TWebSocket2 *ws, int start, int end, int x
   for (size_t i = (start - (start % 4)); i <= end; i++)
   //for (size_t i = start; i <= end; i++)
   {
-    int tid = omp_get_thread_num();
-    printf("start = %d, end = %d; i = %zu, tid = %d\n", start, end, i, tid);
+    /*int tid = omp_get_thread_num();
+    printf("start = %d, end = %d; i = %zu, tid = %d\n", start, end, i, tid);*/
 
     // ZFP needs a chunk of 4 iterations per thread; <start> needs to be a
     // multiple of 4
