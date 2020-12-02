@@ -5733,29 +5733,75 @@ function get_tone_mapping(raw, flux, black, white, median, multiplier, index) {
 	let fitsData = imageContainer[index - 1].tone_mapping;
 	let sensitivity = multiplier * fitsData.sensitivity;
 	let ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
-	let min = fitsData.min;
-	let max = fitsData.max;
+	let lmin = fitsData.lmin;
+	let lmax = fitsData.lmax;
 
 	switch (flux) {
 		case 'linear':
 			return get_tone_mapping_linear(value, black, white);
 			break;
 		case 'legacy':
-			return get_tone_mapping_legacy(value, black, white, multiplier);
-			break;		
+			return get_tone_mapping_legacy(value, black, white, lmin, lmax);
+			break;
 		case 'logistic':
-			return get_tone_mapping_logistic(value, min, max, median, sensitivity);
+			return get_tone_mapping_logistic(value, median, sensitivity);
 			break;
 		case 'ratio':
-			return get_tone_mapping_value_ratio(value, max, black, ratio_sensitivity);
+			return get_tone_mapping_value_ratio(value, black, ratio_sensitivity);
 			break;
 		case 'square':
-			return get_tone_mapping_value_square(value, black, white);
+			return get_tone_mapping_value_square(value, black, sensitivity);
 			break;
 		default:
 			return NaN;
 			break;
 	}
+}
+
+function get_tone_mapping_value_square(value, black, sensitivity) {
+	var pixel = (value - black) * sensitivity;
+
+	if (pixel > 0.0)
+		pixel = pixel * pixel;
+	else
+		pixel = 0.0;
+
+	return clamp(255 * pixel, 0, 255);
+}
+
+function get_tone_mapping_logistic(value, median, sensitivity) {
+	var pixel = 1.0 / (1.0 + exp(-6.0 * (value - median) * sensitivity));
+
+	return clamp(255 * pixel, 0, 255);
+}
+
+function get_tone_mapping_legacy(value, black, white, lmin, lmax) {
+	var pixel = 0.5 + (value - black) / (white - black);
+
+	if (pixel > 0.0)
+		pixel = (log(pixel) - lmin) / (lmax - lmin);
+	else
+		pixel = 0.0;
+
+	return clamp(255 * pixel, 0, 255);
+}
+
+function get_tone_mapping_linear(value, black, white) {
+	var slope = 1.0 / (white - black);
+	var pixel = (value - black) * slope;
+
+	return clamp(255 * pixel, 0, 255);
+}
+
+function get_tone_mapping_value_ratio(value, black, ratio_sensitivity) {
+	var pixel = 5.0 * (value - black) * sensitivity;
+
+	if (pixel > 0.0)
+		pixel = pixel / (1.0 + pixel);
+	else
+		pixel = 0.0;
+
+	return clamp(255 * pixel, 0, 255);
 }
 
 function get_pixel_flux(pixel, index) {
