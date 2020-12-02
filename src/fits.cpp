@@ -4807,7 +4807,7 @@ FITS::get_video_frame(int frame, std::string flux)
             if (jmp)
               break;
 
-#pragma omp task private(idx, idy)
+#pragma omp private(idx, idy) task
             {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
