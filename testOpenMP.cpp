@@ -1,6 +1,8 @@
 #include <atomic>
 #include <stdio.h>
 
+#include <omp.h>
+
 int main(int argc, char *argv[])
 {
     int start_x = 0;
@@ -26,7 +28,8 @@ int main(int argc, char *argv[])
 
 #pragma omp task
             {
-                printf("idx: %d, idy: %d\n", idx, idy);
+		int tid = omp_get_thread_num();
+                printf("idx: %d, idy: %d; tid = %d\n", idx, idy, tid);
             }
           }
         }
