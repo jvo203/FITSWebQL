@@ -5729,7 +5729,7 @@ function add_histogram_line(g, pos, width, height, offset, info, position, addLi
 	}
 }
 
-function get_tone_mapping(raw, flux, black, white, median, multiplier, index) {
+function get_tone_mapping(value, flux, black, white, median, multiplier, index) {
 	let fitsData = imageContainer[index - 1].tone_mapping;
 	let sensitivity = multiplier * fitsData.sensitivity;
 	let ratio_sensitivity = multiplier * fitsData.ratio_sensitivity;
@@ -5793,7 +5793,7 @@ function get_tone_mapping_linear(value, black, white) {
 	return clamp(255 * pixel, 0, 255);
 }
 
-function get_tone_mapping_value_ratio(value, black, ratio_sensitivity) {
+function get_tone_mapping_value_ratio(value, black, sensitivity) {
 	var pixel = 5.0 * (value - black) * sensitivity;
 
 	if (pixel > 0.0)
