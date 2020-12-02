@@ -120,7 +120,7 @@ darwin:
 #/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) -Rpass=loop-vectorize -I/usr/local/include -I/usr/local/opt/llvm/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/usr/local/opt/openssl/include $(DEF) $(INC) $(SRC) fits.o -o $(TARGET) -L/usr/local/lib $(LIBS) -L/usr/local/opt/llvm/lib -L/usr/local/opt/openssl/lib $(IPP) $(JEMALLOC)
 
 omp1:
-	/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) testOpenMP.cpp -L/usr/local/opt/llvm/lib
+	/usr/local/opt/llvm/bin/clang++ $(CXXFLAGS) testOpenMP.cpp -L/usr/local/opt/llvm/lib -lomp
 
 omp2:
 	clang++ -Xpreprocessor -Ofast -fno-finite-math-only -std=c++17 -Wno-register -funroll-loops -ftree-vectorize -Rpass=loop-vectorize testOpenMP.cpp -lomp
