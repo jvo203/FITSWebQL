@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-02.1";
+	return "JS2020-12-02.2";
 }
 
 const wasm_supported = (() => {
@@ -5770,7 +5770,7 @@ function get_tone_mapping_value_square(value, black, sensitivity) {
 }
 
 function get_tone_mapping_logistic(value, median, sensitivity) {
-	var pixel = 1.0 / (1.0 + exp(-6.0 * (value - median) * sensitivity));
+	var pixel = 1.0 / (1.0 + Math.exp(-6.0 * (value - median) * sensitivity));
 
 	return clamp(255 * pixel, 0, 255);
 }
@@ -5779,7 +5779,7 @@ function get_tone_mapping_legacy(value, black, white, lmin, lmax) {
 	var pixel = 0.5 + (value - black) / (white - black);
 
 	if (pixel > 0.0)
-		pixel = (log(pixel) - lmin) / (lmax - lmin);
+		pixel = (Math.log(pixel) - lmin) / (lmax - lmin);
 	else
 		pixel = 0.0;
 
