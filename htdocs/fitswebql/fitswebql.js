@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-01.2";
+	return "JS2020-12-02.0";
 }
 
 const wasm_supported = (() => {
@@ -13373,42 +13373,6 @@ function enable_3d_view() {
 
 	if (test_webgl_support()) {
 		console.log("WebGL supported");
-
-		/*(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'three.min.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();
-	
-		(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'Detector.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();
-	
-		(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'threex.keyboardstate.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();
-	
-		(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'threex.windowresize.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();
-	
-		(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'THREEx.FullScreen.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();
-	
-		(function () {
-			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
-			po.src = 'TrackballControls.js' + '?' + encodeURIComponent(get_js_version());
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-		})();*/
 
 		(function () {
 			var po = document.createElement('script'); po.type = 'text/javascript'; po.async = false;
