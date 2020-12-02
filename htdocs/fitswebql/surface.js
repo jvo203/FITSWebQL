@@ -13,10 +13,10 @@ function meshFunction(x, y, p0) {
     var imageFrame = imageContainer[va_count - 1];	
 	var image_bounding_dims = imageFrame.image_bounding_dims;
 
-    let tone_mapping = imageFrame.tone_mapping;
-    let black = tone_mapping.black;
-    let white = tone_mapping.white;
-    let median = tone_mapping.median;
+    let fitsData = imageFrame.tone_mapping;
+    let black = fitsData.black;
+    let white = fitsData.white;
+    let median = fitsData.median;
     let noise_sensitivity = document.getElementById('sensitivity' + va_count).value;
     let multiplier = get_noise_sensitivity(noise_sensitivity);
     let flux = document.getElementById('flux' + va_count).value;    
@@ -36,10 +36,9 @@ function meshFunction(x, y, p0) {
     else {
         var pixel = ycoord * imageFrame.width + xcoord;
         let raw = imageFrame.pixels[pixel];
-        // <raw> needs to be transformed into a pixel range in [0, 255]
-        //pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);
-        // via the tone mapping function
-        z = raw;// - 127;
+        // <raw> needs to be transformed into a pixel range in [0, 255] via the tone mapping function
+        pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);        
+        z = pixel - 127;
         //console.log(xcoord, ycoord, "raw:", raw, "pixel:", pixel, "z:", z);
     }
 
