@@ -67,7 +67,7 @@ function colourFunction(x, y) {
 
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
     var xcoord = Math.round(image_bounding_dims.x1 + ((1 - x) - 0.5) * (image_bounding_dims.width - 1));
-    var ycoord = Math.round(image_bounding_dims.y1 + (y / aspect + 0.5) * (image_bounding_dims.height - 1));
+    var ycoord = Math.round(image_bounding_dims.y1 + ((- y) / aspect + 0.5) * (image_bounding_dims.height - 1));
     var pixel = 2 * (ycoord * imageFrame.width + xcoord); // the texture is 2 x length
 
     var r, g, b, a;
