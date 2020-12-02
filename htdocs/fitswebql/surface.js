@@ -13,6 +13,13 @@ function meshFunction(x, y, p0) {
     var imageFrame = imageContainer[va_count - 1];	
 	var image_bounding_dims = imageFrame.image_bounding_dims;
 
+    let tone_mapping = imageFrame.tone_mapping;
+    let black = tone_mapping.black;
+    let white = tone_mapping.white;
+    let median = tone_mapping.median;
+    let multiplier = get_noise_sensitivity(noise_sensitivity);
+    let flux = document.getElementById('flux' + va_count).value;    
+
     var xcoord = Math.round(image_bounding_dims.x1 + (1 - x) * (image_bounding_dims.width - 1));
     var ycoord = Math.round(image_bounding_dims.y1 + (1 - y) * (image_bounding_dims.height - 1));
 
@@ -28,9 +35,11 @@ function meshFunction(x, y, p0) {
     else {
         var pixel = ycoord * imageFrame.width + xcoord;
         let raw = imageFrame.pixels[pixel];
+        //pixel = get_flux(raw, flux, black, white, median, multiplier, va_count);
         // <raw> needs to be transformed into a pixel range in [0, 255]
         // via the tone mapping function
         z = raw;// - 127;
+        //console.log(xcoord, ycoord, "raw:", raw, "pixel:", pixel, "z:", z);
     }
 
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
