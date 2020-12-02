@@ -8,7 +8,7 @@ var wireTexture, geometry, material, plane;
 var segments = 512;//512
 var is_active;
 
-//get z from imageDataCopy r,g,b
+//get z from imageFrame raw float32 pixels
 function meshFunction(x, y, p0) {    
     var imageFrame = imageContainer[va_count - 1];	
 	var image_bounding_dims = imageFrame.image_bounding_dims;
@@ -36,8 +36,8 @@ function meshFunction(x, y, p0) {
     else {
         var pixel = ycoord * imageFrame.width + xcoord;
         let raw = imageFrame.pixels[pixel];
-        //pixel = get_flux(raw, flux, black, white, median, multiplier, va_count);
         // <raw> needs to be transformed into a pixel range in [0, 255]
+        //pixel = get_tone_mapping(raw, flux, black, white, median, multiplier, va_count);
         // via the tone mapping function
         z = raw;// - 127;
         //console.log(xcoord, ycoord, "raw:", raw, "pixel:", pixel, "z:", z);
