@@ -60,8 +60,8 @@ function colourFunction(x, y) {
     }
 
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
-    var xcoord = Math.round(image_bounding_dims.x1 + (1 - x - 0.5) * (image_bounding_dims.width - 1));
-    var ycoord = Math.round(image_bounding_dims.y1 + (y / aspect + 0.5) * (image_bounding_dims.height - 1));
+    var xcoord = Math.round(image_bounding_dims.x1 + ((1 - x) - 0.5) * (image_bounding_dims.width - 1));
+    var ycoord = Math.round(image_bounding_dims.y1 + ((1 - y) / aspect + 0.5) * (image_bounding_dims.height - 1));
     var pixel = 4 * (ycoord * imageCanvas.width + xcoord);
 
     var r, g, b, a;
