@@ -9,13 +9,12 @@ var segments = 512;//512
 var is_active;
 
 //get z from imageDataCopy r,g,b
-function meshFunction(x, y, p0) {
-    let imageCanvas = imageContainer[va_count - 1].imageCanvas;
-    let imageFrame = imageContainer[va_count - 1].imageFrame;
-    let image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
+function meshFunction(x, y, p0) {    
+    var imageFrame = imageContainer[va_count - 1];	
+	var image_bounding_dims = imageFrame.image_bounding_dims;
 
     var xcoord = Math.round(image_bounding_dims.x1 + (1 - x) * (image_bounding_dims.width - 1));
-    var ycoord = Math.round(image_bounding_dims.y1 + y * (image_bounding_dims.height - 1));
+    var ycoord = Math.round(image_bounding_dims.y1 + (1 - y) * (image_bounding_dims.height - 1));
 
     var z;
 
@@ -27,8 +26,11 @@ function meshFunction(x, y, p0) {
         z = imageDataCopy[pixel] - 127;
     }
     else {
-        var pixel = ycoord * imageFrame.stride + xcoord;
-        z = imageFrame.bytes[pixel] - 127;
+        var pixel = ycoord * imageFrame.width + xcoord;
+        let raw = imageFrame.pixels[pixel];
+        // <raw> needs to be transformed into a pixel range in [0, 255]
+        // via the tone mapping function
+        z = raw;// - 127;
     }
 
     var aspect = image_bounding_dims.height / image_bounding_dims.width;
