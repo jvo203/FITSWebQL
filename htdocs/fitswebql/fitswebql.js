@@ -13275,7 +13275,14 @@ function contour_surface_webworker() {
 	var contours = parseInt(document.getElementById('contour_lines').value) + 1;
 	var step = (max_value - min_value) / contours;
 	var zs = d3.range(min_value + step, max_value, step);
+	console.log("zs:", zs);
 
+	min_value = 0;
+	max_value = 1;
+	var step = (max_value - min_value) / contours;
+	var zs = d3.range(min_value + step, max_value, step);
+	for(var i=0;i<zs.length;i++)
+	zs[i] = get_pixel_flux(zs[i], va_count);
 	console.log("zs:", zs);
 
 	var completed_levels = 0;
