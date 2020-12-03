@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-02.0"
+#define VERSION_STRING "SV2020-12-03.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -58,7 +58,9 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include <algorithm>
 #include <atomic>
