@@ -2382,10 +2382,8 @@ bool FITS::process_fits_header_unit(const char *buf)
 }
 
 void FITS::from_url(
-    std::string url, std::string flux,
-    int va_count /*, boost::shared_ptr<shared_state> const& state*/)
+    std::string url, std::string flux, int va_count)
 {
-  // state_ = state;
   deserialise();
 
   std::unique_lock<std::mutex> header_lck(header_mtx);

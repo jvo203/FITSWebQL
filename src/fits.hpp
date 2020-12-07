@@ -137,8 +137,7 @@ public:
 public:
   void update_timestamp();
   void
-  from_url(std::string url, std::string flux,
-           int va_count /*, boost::shared_ptr<shared_state> const& state*/);
+  from_url(std::string url, std::string flux, int va_count);
   void from_path(std::string path, bool is_compressed, std::string flux,
                  int va_count, bool use_mmap = true);
   void get_frequency_range(double &freq_start, double &freq_end);
