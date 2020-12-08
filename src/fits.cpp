@@ -2392,6 +2392,54 @@ void FITS::from_url(
   int no_omp_threads = MAX(omp_get_max_threads() / va_count, 1);
   printf("downloading %s from %s, va_count = %d, no_omp_threads = %d\n",
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
+
+  // a temporary FITS file
+  std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(fits->dataset_id, "/", "_") + std::string(".tmp");
+
+  //fetch the FITS file from the JVO portal
+  CURL *curl = NULL;
+
+  curl = curl_easy_init();
+
+  if (curl)
+  {
+    FILE *fp = fopen(tmp, "wb");
+
+    struct FITSDownloadStruct download;
+
+    download.fp = fp;
+    download.datasetId = this->dataset_id.c_str();
+    download.fits = this; // a pointer to the FITS dataset (i.e. this)
+    download.hdr_end = false;
+    download.buffer_size = 0;
+    download.running_size = 0;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&download);
+    curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, FITS_CHUNK_LENGTH);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK)
+      printf("cURL(%s) error code: %d\n", url, res);
+
+    //send_progress_notification(datasetId, "downloading FITS", download.alma->size, download.running_size);
+    printf("downloaded %zu bytes, converted %zu half-floats, remaining buffer size = %zu\n", download.size, download.running_size, download.buffer_size);
+
+    /* always cleanup */
+    curl_easy_cleanup(curl);
+
+    fclose(fp);
+
+    sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
+    rename(tmp, filename);
+
+    //re-open the FITS file with mmap
+    fd = open(filename, O_RDONLY);
+  };
+
+  // and then call "from_path" (slightly sub-optimum compared with v3 and v4 ...)
 }
 
 void FITS::from_path(std::string path, bool is_compressed, std::string flux,
