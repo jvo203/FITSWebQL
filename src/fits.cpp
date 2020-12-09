@@ -2424,7 +2424,7 @@ void FITS::from_url(
     if (res != CURLE_OK)
       printf("cURL(%s) error code: %d\n", url, res);
 
-    //send_progress_notification(datasetId, "downloading FITS", download.alma->size, download.running_size);
+    send_progress_notification(datasetId, "downloading FITS", download.alma->size, download.running_size);
     printf("downloaded %zu bytes, converted %zu half-floats, remaining buffer size = %zu\n", download.size, download.running_size, download.buffer_size);
 
     /* always cleanup */
