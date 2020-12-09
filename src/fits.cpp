@@ -2408,7 +2408,7 @@ void FITS::from_url(
     struct FITSDownloadStruct download;
 
     download.fp = fp;
-    download.datasetId = this->dataset_id.c_str();
+    download.datasetId = this->dataset_id;
     download.fits = this; // a pointer to the FITS dataset (i.e. this)
     download.hdr_end = false;
     download.buffer_size = 0;
