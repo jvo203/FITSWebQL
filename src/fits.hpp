@@ -306,10 +306,10 @@ private:
 
 public:
   int fits_file_desc;
+  off_t fits_file_size;
 
 private:
   gzFile compressed_fits_stream;
-  off_t fits_file_size;
   bool gz_compressed;
 
   // mmap pointer to the underlying FITS file
