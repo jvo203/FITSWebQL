@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <shared_mutex>
 
+#include <curl/curl.h>
+
 using namespace std::chrono;
 
 #include <boost/uuid/uuid.hpp>            // uuid class
@@ -27,6 +29,34 @@ extern "C"
 
 #include "fits.hpp"
 #include "kalman.hpp"
+
+#define FITS_CHUNK_LENGTH 2880
+#define FITS_LINE_LENGTH 80
+
+struct FITSDownloadStruct
+{
+  char *datasetId;
+  FILE *fp;
+  size_t previous_size;
+  size_t size;
+  char buffer[CURL_MAX_WRITE_SIZE + FITS_CHUNK_LENGTH];
+  size_t buffer_size;
+  FITS *fits;
+  size_t running_size;
+  bool hdr_end;
+
+  FITSDownloadStruct()
+  {
+    datasetId = NULL;
+    fp = NULL;
+    previous_size = 0;
+    size = 0;
+    buffer_size = 0;
+    fits = NULL;
+    running_size = 0;
+    hdr_end = false;
+  }
+};
 
 typedef uWS::WebSocket<false, true> TWebSocket;
 typedef std::set<TWebSocket *> TWebSocketList;
