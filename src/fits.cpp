@@ -2414,7 +2414,7 @@ void FITS::from_url(
     download.buffer_size = 0;
     download.running_size = 0;
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&download);
     curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, FITS_CHUNK_LENGTH);
@@ -2422,9 +2422,9 @@ void FITS::from_url(
     CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK)
-      printf("cURL(%s) error code: %d\n", url, res);
+      printf("cURL(%s) error code: %d\n", url.c_str(), res);
 
-    send_progress_notification(datasetId, "downloading FITS", download.alma->size, download.running_size);
+    send_progress_notification(download.running_size, download.fits->fits_file_size);
     printf("downloaded %zu bytes, converted %zu half-floats, remaining buffer size = %zu\n", download.size, download.running_size, download.buffer_size);
 
     /* always cleanup */
@@ -2432,11 +2432,11 @@ void FITS::from_url(
 
     fclose(fp);
 
-    sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
+    /*sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
     rename(tmp, filename);
 
     //re-open the FITS file with mmap
-    fd = open(filename, O_RDONLY);
+    fd = open(filename, O_RDONLY);*/
   };
 
   // and then call "from_path" (slightly sub-optimum compared with v3 and v4 ...)
