@@ -80,6 +80,8 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            bool mirror = false);
 
 size_t write_data(void *contents, size_t size, size_t nmemb, void *user);
+bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents, size_t size);
+void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, size_t size);
 
 struct Progress
 {

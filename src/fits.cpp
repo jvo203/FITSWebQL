@@ -6969,9 +6969,9 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *user)
 
   size_t written = fwrite(contents, size, nmemb, download->fp);
 
-  /*if (!download->hdr_end)
+  if (!download->hdr_end)
     download->hdr_end = scan_fits_header(download, (char *)contents, realsize);
-  else
+  /*else
     scan_fits_data(download, (char *)contents, realsize);*/
 
   size_t NOTIFICATION_CHUNK = 1024 * 1024;
@@ -6991,3 +6991,97 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *user)
   //printf("CURL download progress %d bytes\n", written) ;
   return written;
 }
+
+bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents, size_t size)
+{
+  //printf("scan_fits_header:\tsize = %zu\n", size) ;
+
+  //append contents to the existing buffer
+  memcpy(download->buffer + download->buffer_size, contents, size);
+  download->buffer_size += size;
+
+  if (download->buffer_size < FITS_CHUNK_LENGTH)
+    return false;
+
+  //scan the FITS header as much as we can in <FITS_LINE_LENGTH> chunks
+  char *buffer = download->buffer;
+  size_t buffer_size = download->buffer_size;
+
+  FITS *fits = download->fits;
+
+  if (fits->header == NULL)
+  {
+    printf("%s::reading FITS header...\n", fits->dataset_id.c_str());
+  }
+
+  size_t offset = this->hdr_len;
+
+  size_t work_size = FITS_CHUNK_LENGTH;
+
+  if (processed_header && processed_data)
+    end = (fits->naxis > 0);
+  else
+  {
+    fits->header = (char *)realloc(fits->header, offset + FITS_CHUNK_LENGTH + 1); // an extra space for the ending NULL
+
+    if (fits->header == NULL)
+      fprintf(stderr, "CRITICAL: could not (re)allocate FITS header\n");
+    else
+    {
+      // append data to the header
+      memcpy(fits->header + offset, buffer, FITS_CHUNK_LENGTH);
+
+      end = fits->process_fits_header_unit(buffer);
+      offset += FITS_CHUNK_LENGTH;
+
+      header[offset] = '\0';
+      this->hdr_len = offset;
+    }
+
+    end = end && (fits->naxis > 0);
+  }
+
+  //move the remaining unread part to the beginning
+  size_t remainder = buffer_size - work_size;
+
+  //printf("work_size = %zu, buffer_size = %zu, remainder = %zu\n", work_size, buffer_size, remainder) ;
+
+  memmove(buffer, buffer + work_size, remainder);
+  download->buffer_size = remainder;
+
+  if (end)
+  {
+    printf("%s::FITS HEADER END.\n", fits->dataset_id.c_str());
+
+    // test for frequency/velocity
+    fits->frame_reference_unit();
+    fits->frame_reference_type();
+
+    if (fits->has_frequency || fits->has_velocity)
+      fits->is_optical = false;
+
+    if (fits->restfrq > 0.0)
+      fits->has_frequency = true;
+
+    fits->has_header = true;
+    fits->processed_header = true;
+    fits->header_cv.notify_all();
+    fits->header_lck.unlock();
+    fits->header_lck.release();
+
+    printf("%s\n", fits->header);
+
+    // calculate the exact data size
+    size_t total_size = 1;
+    total_size *= fits->width;
+    total_size *= fits->height;
+    total_size *= fits->depth;
+    total_size *= fits->polarisation;
+    fits->fits_filesize = total_size;
+
+    //prepare to the cube and/or image/mask buffers
+    // (...)
+  };
+
+  return end;
+};
