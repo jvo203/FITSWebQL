@@ -35,7 +35,7 @@ extern "C"
 
 struct FITSDownloadStruct
 {
-  char *datasetId;
+  std::string datasetId;
   FILE *fp;
   size_t previous_size;
   size_t size;
@@ -47,7 +47,6 @@ struct FITSDownloadStruct
 
   FITSDownloadStruct()
   {
-    datasetId = NULL;
     fp = NULL;
     previous_size = 0;
     size = 0;
