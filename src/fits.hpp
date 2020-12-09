@@ -153,6 +153,7 @@ public:
   std::tuple<float, float, float, float, float, float, float> make_cube_statistics(std::shared_ptr<Ipp32f> pixels, std::shared_ptr<Ipp8u> mask, Ipp32u *bins);
   void preempt_cache(int start, int end, int x1, int y1, int x2, int y2);
   void to_json(std::ostringstream &json);
+  void send_progress_notification(size_t running, size_t total);
 
 private:
   void defaults();
@@ -179,7 +180,6 @@ private:
                        float &_ratio_sensitivity);
   float calculate_brightness(Ipp32f *_pixels, Ipp8u *_mask, float _black,
                              float _sensitivity);
-  void send_progress_notification(size_t running, size_t total);
   void zfp_compress();
   void zfp_compression_thread(int tid);
   void zfp_compress_cube(size_t start_k);
