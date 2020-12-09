@@ -57,6 +57,8 @@ struct FITSDownloadStruct
   }
 };
 
+size_t write_data(void *contents, size_t size, size_t nmemb, void *user);
+
 typedef uWS::WebSocket<false, true> TWebSocket;
 typedef std::set<TWebSocket *> TWebSocketList;
 

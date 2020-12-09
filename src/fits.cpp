@@ -6955,3 +6955,39 @@ void tileMirror32f_C1R(Ipp32f *pSrc, Ipp32f *pDst, int width, int height)
     ispc::copy_mirror_float32(pSrcT, pDstT, width, height);
   }
 }
+
+size_t write_data(void *contents, size_t size, size_t nmemb, void *user)
+{
+  struct FITSDownloadStruct *download = (struct FITSDownloadStruct *)user;
+
+  size_t realsize = size * nmemb;
+
+  //if(realsize > FITS_CHUNK_LENGTH)
+  //printf("received %zu bytes, more than the requested buffer size\n", realsize) ;
+
+  download->size += realsize;
+
+  size_t written = fwrite(contents, size, nmemb, download->fp);
+
+  if (!download->hdr_end)
+    download->hdr_end = scan_fits_header(download, (char *)contents, realsize);
+  else
+    scan_fits_data(download, (char *)contents, realsize);
+
+  //size_t NOTIFICATION_CHUNK = download->filesize / 50 ;
+  size_t NOTIFICATION_CHUNK = 1024 * 1024;
+
+  if (download->size - download->previous_size > NOTIFICATION_CHUNK)
+  {
+    download->previous_size = download->size;
+    send_progress_notification(download->datasetId, "downloading FITS", download->alma->size, download->running_size);
+
+    ALMA_FITS *alma = download->alma;
+    pthread_mutex_lock(&alma->local_fits_mutex);
+    alma->timestamp = time(NULL);
+    pthread_mutex_unlock(&alma->local_fits_mutex);
+  };
+
+  //printf("CURL download progress %d bytes\n", written) ;
+  return written;
+}
