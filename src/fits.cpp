@@ -2394,7 +2394,7 @@ void FITS::from_url(
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 
   // a temporary FITS file
-  std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(fits->dataset_id, "/", "_") + std::string(".tmp");
+  std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".tmp");
 
   //fetch the FITS file from the JVO portal
   CURL *curl = NULL;
