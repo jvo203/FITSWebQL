@@ -6969,23 +6969,23 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *user)
 
   size_t written = fwrite(contents, size, nmemb, download->fp);
 
-  if (!download->hdr_end)
+  /*if (!download->hdr_end)
     download->hdr_end = scan_fits_header(download, (char *)contents, realsize);
   else
-    scan_fits_data(download, (char *)contents, realsize);
+    scan_fits_data(download, (char *)contents, realsize);*/
 
-  //size_t NOTIFICATION_CHUNK = download->filesize / 50 ;
   size_t NOTIFICATION_CHUNK = 1024 * 1024;
 
   if (download->size - download->previous_size > NOTIFICATION_CHUNK)
   {
     download->previous_size = download->size;
-    send_progress_notification(download->datasetId, "downloading FITS", download->alma->size, download->running_size);
+    FITS *fits = download->fits;
 
-    ALMA_FITS *alma = download->alma;
-    pthread_mutex_lock(&alma->local_fits_mutex);
-    alma->timestamp = time(NULL);
-    pthread_mutex_unlock(&alma->local_fits_mutex);
+    if (fits != NULL)
+    {
+      fits->send_progress_notification(download->running_size, fits->fits_file_size);
+      fits->update_timestamp();
+    }
   };
 
   //printf("CURL download progress %d bytes\n", written) ;
