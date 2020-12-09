@@ -79,6 +79,8 @@ IppStatus tileResize8u_C1R(Ipp8u *pSrc, IppiSize srcSize, Ipp32s srcStep,
                            Ipp8u *pDst, IppiSize dstSize, Ipp32s dstStep,
                            bool mirror = false);
 
+size_t write_data(void *contents, size_t size, size_t nmemb, void *user);
+
 struct Progress
 {
   size_t running;
