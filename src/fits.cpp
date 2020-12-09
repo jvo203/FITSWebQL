@@ -2403,7 +2403,7 @@ void FITS::from_url(
 
   if (curl)
   {
-    FILE *fp = fopen(tmp, "wb");
+    FILE *fp = fopen(filename.c_str(), "wb");
 
     struct FITSDownloadStruct download;
 
