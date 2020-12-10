@@ -7014,13 +7014,10 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
     printf("%s::reading FITS header...\n", fits->dataset_id.c_str());
   }
 
+  bool end = false;
   size_t offset = this->hdr_len;
-
   size_t work_size = FITS_CHUNK_LENGTH;
 
-  if (processed_header && processed_data)
-    end = (fits->naxis > 0);
-  else
   {
     fits->header = (char *)realloc(fits->header, offset + FITS_CHUNK_LENGTH + 1); // an extra space for the ending NULL
 
@@ -7077,7 +7074,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
     total_size *= fits->height;
     total_size *= fits->depth;
     total_size *= fits->polarisation;
-    fits->fits_filesize = total_size;
+    fits->fits_file_size = total_size;
 
     //prepare to the cube and/or image/mask buffers
     // (...)
