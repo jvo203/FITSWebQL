@@ -7197,6 +7197,8 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
       fits->processed_data = true;
       fits->data_cv.notify_all();      
     }
+
+    // if depth > 1 setup the cube structures
   };
 
   return end;
