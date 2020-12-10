@@ -7076,7 +7076,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
     fits->processed_header = true;
     fits->header_cv.notify_all();    
 
-    printf("%s\n", fits->header);
+    //printf("%s\n", fits->header);
 
     // calculate the exact data size
     size_t total_size = 1;
