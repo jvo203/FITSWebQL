@@ -1418,8 +1418,8 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
   html.append("</script>\n");
 
   // FITSWebQL main JavaScript + CSS
-  html.append("<script src=\"fitswebql.js?" VERSION_STRING "\"></script>\n");
-  html.append("<link rel=\"stylesheet\" href=\"fitswebql.css?" VERSION_STRING
+  html.append("<script src=\"fitswebqlse.js?" VERSION_STRING "\"></script>\n");
+  html.append("<link rel=\"stylesheet\" href=\"fitswebqlse.css?" VERSION_STRING
               "\"/>\n");
 
   // HTML content
