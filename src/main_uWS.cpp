@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-09.0"
+#define VERSION_STRING "SV2020-12-10.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
