@@ -2386,6 +2386,11 @@ void FITS::from_url(
 {
   deserialise();
 
+  // exit the function if the FITS file has already been processed in the
+  // deserialiser
+  if (processed_header && processed_data)
+    return;
+
   std::unique_lock<std::mutex> header_lck(header_mtx);
   std::unique_lock<std::mutex> data_lck(data_mtx);
 
@@ -2403,6 +2408,13 @@ void FITS::from_url(
 
   if (curl)
   {
+    if(header != NULL)
+    {
+      free(header);
+      header = NULL;
+      hdr_len = 0;
+    }
+
     FILE *fp = fopen(filename.c_str(), "wb");
 
     struct FITSDownloadStruct download;
