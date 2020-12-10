@@ -296,7 +296,7 @@ public:
   std::shared_ptr<Ipp32f> img_pixels;
   std::shared_ptr<Ipp8u> img_mask;
 
-private:
+public:
   // FITS header
   char *header;
   size_t hdr_len;
@@ -306,11 +306,8 @@ private:
   std::atomic<std::time_t> timestamp;
   system_clock::time_point cache_timestamp;
 
-public:
   int fits_file_desc;
   off_t fits_file_size;
-
-private:
   gzFile compressed_fits_stream;
   bool gz_compressed;
 
