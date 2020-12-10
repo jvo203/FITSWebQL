@@ -7195,10 +7195,61 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
       printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask).\n",
              fits->dataset_id.c_str());
       fits->processed_data = true;
-      fits->data_cv.notify_all();      
+      fits->data_cv.notify_all();
     }
 
-    // if depth > 1 setup the cube structures
+    if (fits->depth > 1)
+    {
+      // init the variables
+      fits->frame_min.resize(fits->depth, FLT_MAX);
+      fits->frame_max.resize(fits->depth, -FLT_MAX);
+      fits->mean_spectrum.resize(fits->depth, 0.0f);
+      fits->integrated_spectrum.resize(fits->depth, 0.0f);
+
+      // prepare the cache directory
+      {
+        std::string filename = FITSCACHE + std::string("/") +
+                               boost::replace_all_copy(fits->dataset_id, "/", "_") +
+                               std::string(".zfp");
+
+        // create a directory on a best-effort basis, ignoring any errors
+        if (mkdir(filename.c_str(), 0777) != 0)
+          perror("(non-critical) cannot create a new pixels cache directory");
+
+        filename = FITSCACHE + std::string("/") +
+                   boost::replace_all_copy(fits->dataset_id, "/", "_") +
+                   std::string(".lz4");
+
+        // create a directory on a best-effort basis, ignoring any errors
+        if (mkdir(filename.c_str(), 0777) != 0)
+          perror("(non-critical) cannot create a new mask cache directory");
+      }
+
+      // reset the cube just in case
+      fits->fits_cube.clear();
+
+      // resize/init the cube with default nullptr-filled std::shared_ptr
+      fits->fits_cube.resize(fits->depth);
+
+      // init the compressed regions (sizing: err on the side of caution)
+      // cannot resize a vector of atomics in C++ ...
+      fits->cube_pixels = std::vector<std::atomic<compressed_blocks *>>(fits->depth / 4 + 4);
+      fits->cube_mask = std::vector<std::atomic<compressed_blocks *>>(fits->depth + 4);
+
+      for (auto i = 0; i < fits->cube_pixels.size(); i++)
+        fits->cube_pixels[i].store(nullptr);
+
+      for (auto i = 0; i < fits->cube_mask.size(); i++)
+        fits->cube_mask[i].store(nullptr);
+
+      fits->cache_mtx = std::vector<std::shared_mutex>(fits->depth / 4 + 4);
+      fits->cache = std::vector<decompressed_blocks>(fits->depth);
+
+      std::cout << "cube_pixels::size = " << fits->cube_pixels.size()
+                << ", cube_mask::size = " << fits->cube_mask.size()
+                << ", cache::size = " << fits->cache.size()
+                << ", cache_mtx::size = " << fits->cache_mtx.size() << std::endl;
+    }
   };
 
   return end;
