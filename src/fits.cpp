@@ -2408,7 +2408,7 @@ void FITS::from_url(
 
   if (curl)
   {
-    if(header != NULL)
+    if (header != NULL)
     {
       free(header);
       header = NULL;
@@ -7074,7 +7074,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
 
     fits->has_header = true;
     fits->processed_header = true;
-    fits->header_cv.notify_all();    
+    fits->header_cv.notify_all();
 
     //printf("%s\n", fits->header);
 
@@ -7087,7 +7087,32 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
     fits->fits_file_size = total_size;
 
     //prepare to the cube and/or image/mask buffers
-    // (...)
+    if (fits->bitpix != -32)
+    {
+      printf("%s::unsupported bitpix(%d), FITS data will not be read.\n",
+             fits->dataset_id.c_str(), fits->bitpix);
+      fits->processed_data = true;
+      fits->data_cv.notify_all();
+    }
+
+    if (fits->width <= 0 || fits->height <= 0 || fits->depth <= 0)
+    {
+      printf("%s::incorrect dimensions (width:%ld, height:%ld, depth:%ld)\n",
+             fits->dataset_id.c_str(), fits->width, fits->height, fits->depth);
+      fits->processed_data = true;
+      fits->data_cv.notify_all();
+    }
+
+    const size_t plane_size = fits->width * fits->height;
+    const size_t frame_size = plane_size * abs(fits->bitpix / 8);
+
+    if (frame_size != plane_size * sizeof(float))
+    {
+      printf("%s::plane_size != frame_size, is the bitpix correct?\n",
+             fits->dataset_id.c_str());
+      fits->processed_data = true;
+      fits->data_cv.notify_all();
+    }
   };
 
   return end;
