@@ -7027,7 +7027,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
   }
 
   bool end = false;
-  size_t offset = this->hdr_len;
+  size_t offset = fits->hdr_len;
   size_t work_size = FITS_CHUNK_LENGTH;
 
   {
@@ -7043,8 +7043,8 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
       end = fits->process_fits_header_unit(buffer);
       offset += FITS_CHUNK_LENGTH;
 
-      header[offset] = '\0';
-      this->hdr_len = offset;
+      fits->header[offset] = '\0';
+      fits->hdr_len = offset;
     }
 
     end = end && (fits->naxis > 0);
@@ -7074,9 +7074,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
 
     fits->has_header = true;
     fits->processed_header = true;
-    fits->header_cv.notify_all();
-    fits->header_lck.unlock();
-    fits->header_lck.release();
+    fits->header_cv.notify_all();    
 
     printf("%s\n", fits->header);
 
