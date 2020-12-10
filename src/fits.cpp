@@ -7086,7 +7086,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
     total_size *= fits->polarisation;
     fits->fits_file_size = total_size;
 
-    //prepare to the cube and/or image/mask buffers
+    //prepare the cube and/or image/mask buffers
     if (fits->bitpix != -32)
     {
       printf("%s::unsupported bitpix(%d), FITS data will not be read.\n",
