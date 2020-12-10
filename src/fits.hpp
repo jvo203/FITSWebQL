@@ -157,7 +157,7 @@ public:
   void to_json(std::ostringstream &json);
   void send_progress_notification(size_t running, size_t total);
 
-private:
+public:
   void defaults();
   void serialise();
   void deserialise();
