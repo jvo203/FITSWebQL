@@ -44,6 +44,7 @@ struct FITSDownloadStruct
   FITS *fits;
   size_t running_size;
   bool hdr_end;
+  bool bSuccess;
 
   FITSDownloadStruct()
   {
@@ -54,6 +55,7 @@ struct FITSDownloadStruct
     fits = NULL;
     running_size = 0;
     hdr_end = false;
+    bSuccess = true;
   }
 };
 
