@@ -6983,8 +6983,8 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *user)
 
   if (!download->hdr_end)
     download->hdr_end = scan_fits_header(download, (char *)contents, realsize);
-  /*else
-    scan_fits_data(download, (char *)contents, realsize);*/
+  else
+    scan_fits_data(download, (char *)contents, realsize);
 
   size_t NOTIFICATION_CHUNK = 1024 * 1024;
 
@@ -7253,4 +7253,62 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
   };
 
   return end;
+};
+
+void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, size_t size)
+{
+  //printf("scan_fits_data:\tsize = %zu\n", size) ;
+
+  FITS *fits = download->fits;
+
+  if (download->running_size >= fits->fits_file_size)
+  {
+    printf("skipping, size overrun detected (running_size = %zu, fits->fits_file_size = %lld)\n", download->running_size, fits->fits_file_size);
+    return;
+  };
+
+  //append contents to the existing buffer
+  memcpy(download->buffer + download->buffer_size, contents, size);
+  download->buffer_size += size;
+
+  //convert the FITS data from float32 to float16 as much as we can up until alma->size
+  char *buffer = download->buffer;
+  size_t buffer_size = download->buffer_size;
+
+  size_t work_size = buffer_size / sizeof(int32_t);
+  //an upper limit on the work_size
+  work_size = MIN(work_size, fits->fits_file_size - download->running_size);
+
+  // incrementally append to the 2D image
+  if (fits->depth == 1)
+  {
+    // use ispc to process the plane
+    // 1. endianness
+    // 2. fill-in {pixels,mask}
+
+    auto _img_pixels = fits->img_pixels.get();
+    auto _img_mask = fits->img_mask.get();
+
+    //ispc::fits2cubeF16((int32_t *)buffer, &(alma->cubeDataF16BIN[start]), work_size);
+    size_t start = download->running_size;
+    memcpy((void *)&(_img_pixels[start]), buffer, work_size * sizeof(int32_t));
+
+    ispc::fits2float32((int32_t *)&(_img_pixels[start]),
+                       (uint8_t *)&(_img_mask[start]), fits->bzero, fits->bscale,
+                       fits->ignrval, fits->datamin, fits->datamax, fits->dmin, fits->dmax, work_size);
+  }
+  else
+  {
+    const size_t plane_size = fits->width * fits->height;
+
+    // adjust the consumed work_size (clip it to plane_size boundaries)
+  }
+
+  download->running_size += work_size;
+
+  size_t offset = work_size * sizeof(int32_t);
+  size_t remainder = buffer_size - offset;
+
+  memmove(buffer, buffer + offset, remainder);
+  download->buffer_size = remainder;
 };
