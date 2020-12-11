@@ -2465,7 +2465,7 @@ void FITS::from_url(
                           static_cast<double>(steady_clock::period::den);
   double elapsedMilliseconds = 1000.0 * elapsedSeconds;
 
-  printf("%s::dmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), dmin, dmax, elapsedMilliseconds);
+  printf("%s::<data:%s>\tdmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), (this->has_data ? "true" : "false"), dmin, dmax, elapsedMilliseconds);
 
   if (this->has_data)
   {
