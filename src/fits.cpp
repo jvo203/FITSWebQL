@@ -2446,17 +2446,19 @@ void FITS::from_url(
 
     fclose(fp);
 
-    if (!download.bSuccess)
-      this->has_error = true;
-
     this->dmin = download.dmin;
     this->dmax = download.dmax;
-    this->has_data = download.bSuccess ? true : false;
 
     if (download.bSuccess)
     {
+      this->has_data = true;
       std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".fits");
       rename(tmp.c_str(), filename.c_str());
+    }
+    else
+    {
+      this->has_data = false;
+      this->has_error = true;
     }
   };
 
@@ -7349,7 +7351,9 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
                        (uint8_t *)&(_img_mask[start]), fits->bzero, fits->bscale,
                        fits->ignrval, fits->datamin, fits->datamax, download->dmin, download->dmax, work_size);
   }
-  else
+
+  // incrementally append incoming data to successive 2D planes
+  if (fits->depth > 1)
   {
     const size_t plane_size = fits->width * fits->height;
 
