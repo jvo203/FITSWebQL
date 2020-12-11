@@ -2401,6 +2401,8 @@ void FITS::from_url(
   // a temporary FITS file
   std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".tmp");
 
+  auto start_t = steady_clock::now();
+
   //fetch the FITS file from the JVO portal
   CURL *curl = NULL;
 
@@ -2444,6 +2446,11 @@ void FITS::from_url(
 
     fclose(fp);
 
+    if (!download.bSuccess)
+      this->has_error = true;
+
+    this->has_data = download.bSuccess ? true : false;
+
     /*sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
     rename(tmp, filename);
 
@@ -2451,7 +2458,55 @@ void FITS::from_url(
     fd = open(filename, O_RDONLY);*/
   };
 
-  // and then call "from_path" (slightly sub-optimum compared with v3 and v4 ...)
+  auto end_t = steady_clock::now();
+
+  double elapsedSeconds = ((end_t - start_t).count()) *
+                          steady_clock::period::num /
+                          static_cast<double>(steady_clock::period::den);
+  double elapsedMilliseconds = 1000.0 * elapsedSeconds;
+
+  printf("%s::dmin = %f\tdmax = %f\telapsed time: %5.2f [ms]\n", dataset_id.c_str(), dmin, dmax, elapsedMilliseconds);
+
+  if (this->has_data)
+  {
+    send_progress_notification(depth, depth);
+
+    if (img_pixels && img_mask)
+    {
+      make_image_statistics();
+
+      printf("%s::statistics\npmin: %f pmax: %f median: %f mad: %f madP: %f "
+             "madN: %f black: %f white: %f sensitivity: %f flux: %s\n",
+             dataset_id.c_str(), this->min, this->max, this->median, this->mad,
+             this->madP, this->madN, this->black, this->white, this->sensitivity,
+             this->flux.c_str());
+
+      auto _img_pixels = img_pixels.get();
+      auto _img_mask = img_mask.get();
+
+      const size_t plane_size = width * height;
+// replace NaNs with 0.0
+#pragma omp parallel for simd
+      for (size_t i = 0; i < plane_size; i++)
+        if (_img_mask[i] == 0)
+          _img_pixels[i] = 0.0f;
+    }
+  }
+
+  this->processed_data = true;
+  this->data_cv.notify_all();
+  this->timestamp = std::time(nullptr);
+
+  // wait until all compression threads have finished
+  // in order to make global statistics
+  for (auto &thread : zfp_pool)
+  {
+    if (thread.joinable())
+      thread.join();
+  }
+
+  if (this->has_data && depth > 1)
+    make_data_statistics();
 }
 
 void FITS::from_path(std::string path, bool is_compressed, std::string flux,
@@ -3250,10 +3305,6 @@ void FITS::from_path(std::string path, bool is_compressed, std::string flux,
   if (bSuccess)
   {
     send_progress_notification(depth, depth);
-    /*for (int i = 0; i < depth; i++)
-      std::cout << "mask[" << i << "]::cardinality: " << masks[i].cardinality()
-      << ", size: " << masks[i].getSizeInBytes() << " bytes"
-      << std::endl;*/
 
     make_image_statistics();
 
