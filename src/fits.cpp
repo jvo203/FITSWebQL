@@ -2399,7 +2399,7 @@ void FITS::from_url(
          this->dataset_id.c_str(), url.c_str(), va_count, no_omp_threads);
 
   // a temporary FITS file
-  std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".tmp");
+  std::string tmp = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".tmp");
 
   auto start_t = steady_clock::now();
 
@@ -2417,7 +2417,7 @@ void FITS::from_url(
       hdr_len = 0;
     }
 
-    FILE *fp = fopen(filename.c_str(), "wb");
+    FILE *fp = fopen(tmp.c_str(), "wb");
 
     struct FITSDownloadStruct download;
 
@@ -2453,11 +2453,11 @@ void FITS::from_url(
     this->dmax = download.dmax;
     this->has_data = download.bSuccess ? true : false;
 
-    /*sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
-    rename(tmp, filename);
-
-    //re-open the FITS file with mmap
-    fd = open(filename, O_RDONLY);*/
+    if (download.bSuccess)
+    {
+      std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".fits");
+      rename(tmp.c_str(), filename.c_str());
+    }
   };
 
   auto end_t = steady_clock::now();
