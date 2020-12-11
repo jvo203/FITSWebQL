@@ -7331,6 +7331,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
   size_t buffer_size = download->buffer_size;
 
   size_t work_size = buffer_size / sizeof(int32_t);
+
   //an upper limit on the work_size
   work_size = MIN(work_size, fits->fits_file_size - download->running_size);
 
@@ -7356,8 +7357,12 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
   if (fits->depth > 1)
   {
     const size_t plane_size = fits->width * fits->height;
+    size_t frame = download->running_size / plane_size;
+    size_t start = download->running_size - frame * plane_size;
 
     // adjust the consumed work_size (clip it to plane_size boundaries)
+    work_size = MIN(work_size, plane_size - start);
+    printf("scan_fits_data:\tsize = %zu\tframe = %zu\tstart = %zu\twork_size = %zu\n", size, frame, start, work_size);
   }
 
   download->running_size += work_size;
