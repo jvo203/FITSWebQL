@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cfloat>
 #include <chrono>
 #include <mutex>
 #include <set>
@@ -43,6 +44,8 @@ struct FITSDownloadStruct
   size_t buffer_size;
   FITS *fits;
   size_t running_size;
+  float dmin;
+  float dmax;
   bool hdr_end;
   bool bSuccess;
 
@@ -54,6 +57,8 @@ struct FITSDownloadStruct
     buffer_size = 0;
     fits = NULL;
     running_size = 0;
+    dmin = FLT_MAX;
+    dmax = -FLT_MAX;
     hdr_end = false;
     bSuccess = true;
   }

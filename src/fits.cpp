@@ -2449,6 +2449,8 @@ void FITS::from_url(
     if (!download.bSuccess)
       this->has_error = true;
 
+    this->dmin = download.dmin;
+    this->dmax = download.dmax;
     this->has_data = download.bSuccess ? true : false;
 
     /*sprintf(filename, "%s/%s.fits", FITSCACHE, get_string(alma->datasetGUID));
@@ -7243,6 +7245,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
 
     if (!fits->img_pixels || !fits->img_mask)
     {
+      download->bSuccess = false;
       printf("%s::cannot allocate memory for a 2D image buffer (pixels+mask).\n",
              fits->dataset_id.c_str());
       fits->processed_data = true;
@@ -7308,7 +7311,7 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
 
 void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, size_t size)
 {
-  //printf("scan_fits_data:\tsize = %zu\n", size) ;
+  //printf("scan_fits_data:\tsize = %zu\n", size);
 
   FITS *fits = download->fits;
 
@@ -7322,7 +7325,6 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
   memcpy(download->buffer + download->buffer_size, contents, size);
   download->buffer_size += size;
 
-  //convert the FITS data from float32 to float16 as much as we can up until alma->size
   char *buffer = download->buffer;
   size_t buffer_size = download->buffer_size;
 
@@ -7340,13 +7342,12 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
     auto _img_pixels = fits->img_pixels.get();
     auto _img_mask = fits->img_mask.get();
 
-    //ispc::fits2cubeF16((int32_t *)buffer, &(alma->cubeDataF16BIN[start]), work_size);
     size_t start = download->running_size;
     memcpy((void *)&(_img_pixels[start]), buffer, work_size * sizeof(int32_t));
 
     ispc::fits2float32((int32_t *)&(_img_pixels[start]),
                        (uint8_t *)&(_img_mask[start]), fits->bzero, fits->bscale,
-                       fits->ignrval, fits->datamin, fits->datamax, fits->dmin, fits->dmax, work_size);
+                       fits->ignrval, fits->datamin, fits->datamax, download->dmin, download->dmax, work_size);
   }
   else
   {
