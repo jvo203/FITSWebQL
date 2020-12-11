@@ -7362,7 +7362,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
     // adjust the consumed work_size (clip it to plane_size boundaries)
     work_size = MIN(work_size, plane_size - start);
-    printf("scan_fits_data:\tsize = %zu\tframe = %zu\tstart = %zu\twork_size = %zu\n", size, frame, start, work_size);
+    //printf("scan_fits_data:\tsize = %zu\tframe = %zu\tstart = %zu\twork_size = %zu\n", size, frame, start, work_size);
   }
 
   download->running_size += work_size;
