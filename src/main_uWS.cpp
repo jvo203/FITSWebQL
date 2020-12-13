@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-11.0"
+#define VERSION_STRING "SV2020-12-13.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -128,7 +128,8 @@ std::thread beacon_thread;
 #if defined(__APPLE__) && defined(__MACH__)
 #include <libpq-fe.h>
 #else
-#include <pgsql/libpq-fe.h>
+#include <libpq-fe.h>
+//#include <pgsql/libpq-fe.h>
 #endif
 
 #define FITSHOME "/home"
