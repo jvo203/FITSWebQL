@@ -33,7 +33,7 @@ OBJ := $(OBJ:.ispc=.o)
 DEP = $(OBJ:%.o=%.d)
 #$(MONGOOSE)
 #$(BEAST) 
-INC = -I/usr/include/postgresql -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
+INC = -Ilz4 -I$(HOME)/uWebSockets/src -I$(HOME)/uWebSockets/uSockets/src
 #-Izfp-0.5.5/include -Izfp-0.5.5/array
 #-I$(HOME)/uWebSockets/src
 #-I$(HOME)/uWebSockets/uSockets/src
@@ -48,6 +48,7 @@ LIBS = -lsqlite3 -lcurl -lcrypto -lssl -lz -lfpzip  -lpthread -lczmq `pkg-config
 LIBS += -lboost_system
 
 ifeq ($(UNAME_S),Linux)
+	INC += -I/usr/include/postgresql -I/usr/include/pgsql
 	LIBS += -l:libpq.so.5 -l:libnuma.so.1 -lboost_thread -lmvec -lm
 endif
 
