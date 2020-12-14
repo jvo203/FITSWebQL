@@ -7254,6 +7254,13 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
       fits->data_cv.notify_all();
     }
 
+    // zero-out pixels and the mask
+    Ipp32f *tmp = fits->img_pixels.get();
+    for (size_t j = 0; j < plane_size; j++)
+      tmp[j] = 0.0f;
+
+    memset(fits->img_mask.get(), 0, plane_size);
+
     if (fits->depth > 1)
     {
       // init the variables
@@ -7342,15 +7349,20 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
     // 1. endianness
     // 2. fill-in {pixels,mask}
 
-    auto _img_pixels = fits->img_pixels.get();
-    auto _img_mask = fits->img_mask.get();
+    if (fits->img_pixels && fits->img_mask)
+    {
+      auto _img_pixels = fits->img_pixels.get();
+      auto _img_mask = fits->img_mask.get();
 
-    size_t start = download->running_size;
-    memcpy((void *)&(_img_pixels[start]), buffer, work_size * sizeof(int32_t));
+      size_t start = download->running_size;
+      memcpy((void *)&(_img_pixels[start]), buffer, work_size * sizeof(int32_t));
 
-    ispc::fits2float32((int32_t *)&(_img_pixels[start]),
-                       (uint8_t *)&(_img_mask[start]), fits->bzero, fits->bscale,
-                       fits->ignrval, fits->datamin, fits->datamax, download->dmin, download->dmax, work_size);
+      ispc::fits2float32((int32_t *)&(_img_pixels[start]),
+                         (uint8_t *)&(_img_mask[start]), fits->bzero, fits->bscale,
+                         fits->ignrval, fits->datamin, fits->datamax, download->dmin, download->dmax, work_size);
+    }
+    else
+      download->bSuccess = false;
   }
 
   // incrementally append incoming data to successive 2D planes
@@ -7362,7 +7374,63 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
     // adjust the consumed work_size (clip it to plane_size boundaries)
     work_size = MIN(work_size, plane_size - start);
-    //printf("scan_fits_data:\tsize = %zu\tframe = %zu\tstart = %zu\twork_size = %zu\n", size, frame, start, work_size);
+    std::cout << "scan_fits_data:\tsize = " << size << "\tframe = " << frame << "\tstart = " << start << "\twork_size = " << work_size << std::endl;
+
+    if (!fits->fits_cube[frame])
+    {
+      // allocate RAM for a new 2D plane
+      fits->fits_cube[frame] = std::shared_ptr<void>(
+          ippsMalloc_32f_L(plane_size), [=](void *ptr) {
+            if (ptr != NULL)
+              Ipp32fFree((Ipp32f *)ptr);
+          });
+
+      fits->frame_min[frame] = FLT_MAX;
+      fits->frame_max[frame] = -FLT_MAX;
+      fits->mean_spectrum[frame] = 0.0f;
+      fits->integrated_spectrum[frame] = 0.0f;
+    }
+
+    if (!fits->fits_cube[frame])
+      download->bSuccess = false;
+    else
+    {
+      Ipp32f *pixels_buf = (Ipp32f *)fits->fits_cube[frame].get();
+
+      // append raw data to the current 2D plane
+      memcpy((void *)&(pixels_buf[start]), buffer, work_size * sizeof(int32_t));
+    }
+
+    // incrementally call ispc::make_image_spectrumF32_ro
+    if (fits->img_pixels && fits->img_mask)
+    {
+      auto _img_pixels = fits->img_pixels.get();
+      auto _img_mask = fits->img_mask.get();
+
+      float fmin = fits->frame_min[frame];
+      float fmax = fits->frame_max[frame];
+      float mean = 0.0f;
+      float integrated = 0.0f;
+
+      float _cdelt3 =
+          fits->has_velocity
+              ? fits->cdelt3 * fits->frame_multiplier / 1000.0f
+              : 1.0f;
+
+      ispc::make_image_spectrumF32_ro(
+          (int32_t *)buffer, fits->bzero, fits->bscale, fits->ignrval, fits->datamin, fits->datamax,
+          _cdelt3, &(_img_pixels[start]), &(_img_mask[start]), fmin, fmax, mean,
+          integrated, work_size);
+
+      download->dmin = MIN(download->dmin, fmin);
+      download->dmax = MAX(download->dmax, fmax);
+      fits->frame_min[frame] = fmin;
+      fits->frame_max[frame] = fmax;
+      fits->mean_spectrum[frame] += mean;
+      fits->integrated_spectrum[frame] += integrated;
+    }
+    else
+      download->bSuccess = false;
   }
 
   download->running_size += work_size;
