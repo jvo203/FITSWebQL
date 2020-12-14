@@ -7319,7 +7319,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
   if (download->running_size >= fits->fits_file_size)
   {
-    printf("skipping, size overrun detected (running_size = %zu, fits->fits_file_size = %lld)\n", download->running_size, fits->fits_file_size);
+    std::cout << "skipping, size overrun detected (running_size = " << download->running_size << "," << fits->fits_file_size << ")" << std::endl;
     return;
   };
 
