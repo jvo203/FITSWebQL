@@ -4053,18 +4053,15 @@ inline const char *FITS::check_null(const char *str)
 
 void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ipp32f _max, int tid)
 {
-  printf("got here#0; tid = %d\n", tid);
   if (!pixels)
     return;
 
-  printf("got here#1\n");
   uint32_t *pixels_buf = (uint32_t *)pixels.get();
 
   const size_t plane_size = width * height;
 
   std::vector<Ipp32f> v(plane_size);
 
-  printf("got here#2\n");
   size_t len = 0;
   for (size_t i = 0; i < plane_size; i++)
   {
@@ -4075,12 +4072,12 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
     if (!nan)
       v[len++] = tmp;
   }
-  printf("got here#3\n");
+
   if (len == 0)
     return;
-  printf("got here#4\n");
+
   v.resize(len);
-  printf("got here#5\n");
+
   if (!hist_pool[tid].has_value())
   {
     if (FPzero(_min) && FPzero(_max))
@@ -4106,7 +4103,6 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
 
     _hist.fill(v);
   }
-  printf("got here#6\n");
 }
 
 void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min,
