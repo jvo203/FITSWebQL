@@ -7407,7 +7407,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
       if (frame % 4 == 0 || frame == fits->depth - 1)
         if (frame_end)
-          fits->zfp_cube_compress(frame)
+          fits->zfp_compress_cube(frame)
     }
 
     // incrementally call ispc::make_image_spectrumF32_ro
