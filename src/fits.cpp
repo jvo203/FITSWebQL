@@ -7405,7 +7405,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
     if (start + work_size == plane_size)
       frame_end = true;
 
-    ssize_t start_k = frame - 4;
+    ssize_t start_k = frame - 3;
 
     if (frame_end)
       std::cout << "scan_fits_data:\tsize = " << size << "\tframe = " << frame << "\tstart = " << start << "\twork_size = " << work_size << "\tframe_end: " << frame_end << "\tstart_k = " << start_k << std::endl;
@@ -7433,26 +7433,6 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
       // append raw data to the current 2D plane
       memcpy((void *)&(pixels_buf[start]), buffer, work_size * sizeof(int32_t));
-
-      if (frame_end && start_k >= 0)
-      {
-        if (start_k % 4 == 0)
-        {
-          std::cout << "zfp_compress_cube(" << start_k << ")" << std::endl;
-          fits->zfp_compress_cube(start_k);
-        }
-        else
-        {
-          // tidy up the loose (odd) ends
-          start_k = start_k - (start_k % 4);
-          std::cout << "zfp_compress_cube(" << start_k << ")" << std::endl;
-          fits->zfp_compress_cube(start_k);
-        }
-      }
-
-      /*if (frame % 4 == 0 || frame == fits->depth - 1)
-        if (frame_end)
-          fits->zfp_compress_cube(frame);*/
     }
 
     // incrementally call ispc::make_image_spectrumF32_ro
@@ -7485,6 +7465,22 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
     }
     else
       download->bSuccess = false;
+
+    if (frame_end && start_k >= 0)
+    {
+      if (start_k % 4 == 0)
+      {
+        std::cout << "zfp_compress_cube(" << start_k << ")" << std::endl;
+        fits->zfp_compress_cube(start_k);
+      }
+      else if (frame == fits->depth - 1)
+      {
+        // tidy up the loose (odd) ends
+        start_k = frame - (frame % 4);
+        std::cout << "zfp_compress_cube(" << start_k << ")" << std::endl;
+        fits->zfp_compress_cube(start_k);
+      }
+    }
   }
 
   download->running_size += work_size;
