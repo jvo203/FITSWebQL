@@ -2485,6 +2485,17 @@ void FITS::from_url(
       this->has_data = false;
       this->has_error = true;
       remove(tmp.c_str());
+
+      // remove any left-over cache folders too
+      std::string filename = FITSCACHE + std::string("/") +
+                             boost::replace_all_copy(this->dataset_id, "/", "_") +
+                             std::string(".zfp");
+      remove(filename.c_str());
+
+      filename = FITSCACHE + std::string("/") +
+                 boost::replace_all_copy(this->dataset_id, "/", "_") +
+                 std::string(".lz4");
+      remove(filename.c_str());
     }
   };
 
