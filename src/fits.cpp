@@ -4053,15 +4053,18 @@ inline const char *FITS::check_null(const char *str)
 
 void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ipp32f _max, int tid)
 {
+  printf("got here#0; tid = %d\n", tid);
   if (!pixels)
     return;
 
+  printf("got here#1\n");
   uint32_t *pixels_buf = (uint32_t *)pixels.get();
 
   const size_t plane_size = width * height;
 
   std::vector<Ipp32f> v(plane_size);
 
+  printf("got here#2\n");
   size_t len = 0;
   for (size_t i = 0; i < plane_size; i++)
   {
@@ -4072,12 +4075,12 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
     if (!nan)
       v[len++] = tmp;
   }
-
+  printf("got here#3\n");
   if (len == 0)
     return;
-
+  printf("got here#4\n");
   v.resize(len);
-
+  printf("got here#5\n");
   if (!hist_pool[tid].has_value())
   {
     if (FPzero(_min) && FPzero(_max))
@@ -4103,6 +4106,7 @@ void FITS::update_thread_histogram(std::shared_ptr<void> pixels, Ipp32f _min, Ip
 
     _hist.fill(v);
   }
+  printf("got here#6\n");
 }
 
 void FITS::update_thread_histogram(Ipp32f *_pixels, Ipp8u *_mask, Ipp32f _min,
@@ -4930,23 +4934,25 @@ FITS::get_video_frame(int frame, std::string flux)
   if (compressed_pixels && compressed_mask)
   {
     std::atomic<bool> jmp = false;
-    int idx, idy;
+    int _idx, _idy;
 
 #pragma omp parallel
     {
 #pragma omp single
       {
-        for (idy = start_y; idy <= end_y; idy++)
+        for (int idy = start_y; idy <= end_y; idy++)
         {
           if (jmp)
             break;
 
-          for (idx = start_x; idx <= end_x; idx++)
+          for (int idx = start_x; idx <= end_x; idx++)
           {
             if (jmp)
               break;
 
-#pragma omp private(idx, idy) task
+            _idx = idx;
+            _idy = idy;
+#pragma omp task private(_idx, _idy)
             {
               // the on-demand decompression will be carried out in parallel
               std::shared_ptr<unsigned short> region =
@@ -7333,6 +7339,9 @@ bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents,
 
       fits->cache_mtx = std::vector<std::shared_mutex>(fits->depth / 4 + 4);
       fits->cache = std::vector<decompressed_blocks>(fits->depth);
+
+      // there is only one histogram thread when receiving FITS data sequentially
+      fits->hist_pool.resize(1);
 
       std::cout << "cube_pixels::size = " << fits->cube_pixels.size()
                 << ", cube_mask::size = " << fits->cube_mask.size()
