@@ -1287,13 +1287,13 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
     </script>)");*/
 
   // OpenEXR WASM decoder
-  /*html.append("<script "
-    "src=\"exr." WASM_VERSION ".js\"></script>\n");*/
   html.append("<script "
+              "src=\"exr." WASM_VERSION ".js\"></script>\n");
+  /*html.append("<script "
               "src=\"https://cdn.jsdelivr.net/gh/jvo203/FITSWebQL@master/" +
               docs_root +
               "/"
-              "fitswebql/exr." WASM_VERSION ".min.js\"></script>\n");
+              "fitswebql/exr." WASM_VERSION ".min.js\"></script>\n");*/
   html.append(R"(
     <script>
     Module.ready
