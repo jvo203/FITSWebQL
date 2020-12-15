@@ -7368,13 +7368,18 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
   // incrementally append incoming data to successive 2D planes
   if (fits->depth > 1)
   {
+    bool frame_end = false;
     const size_t plane_size = fits->width * fits->height;
     size_t frame = download->running_size / plane_size;
     size_t start = download->running_size - frame * plane_size;
 
     // adjust the consumed work_size (clip it to plane_size boundaries)
     work_size = MIN(work_size, plane_size - start);
-    std::cout << "scan_fits_data:\tsize = " << size << "\tframe = " << frame << "\tstart = " << start << "\twork_size = " << work_size << std::endl;
+
+    if (start + work_size == plane_size)
+      frame_end = true;
+
+    std::cout << "scan_fits_data:\tsize = " << size << "\tframe = " << frame << "\tstart = " << start << "\twork_size = " << work_size << "\tframe_end: " << frame_end << std::endl;
 
     if (!fits->fits_cube[frame])
     {
@@ -7399,6 +7404,10 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
       // append raw data to the current 2D plane
       memcpy((void *)&(pixels_buf[start]), buffer, work_size * sizeof(int32_t));
+
+      if (frame % 4 == 0 || frame == fits->depth - 1)
+        if (frame_end)
+          fits->zfp_cube_compress(frame)
     }
 
     // incrementally call ispc::make_image_spectrumF32_ro
