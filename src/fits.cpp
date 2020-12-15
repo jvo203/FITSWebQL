@@ -2441,6 +2441,13 @@ void FITS::from_url(
     send_progress_notification(download.running_size, download.fits->fits_file_size);
     printf("downloaded %zu bytes, converted %zu half-floats, remaining buffer size = %zu\n", download.size, download.running_size, download.buffer_size);
 
+    if (download.running_size == 0)
+      download.bSuccess = false;
+
+    if (this->fits_file_size > 0)
+      if (download.running_size != this->fits_file_size)
+        download.bSuccess = false;
+
     /* always cleanup */
     curl_easy_cleanup(curl);
 
@@ -2454,11 +2461,30 @@ void FITS::from_url(
       this->has_data = true;
       std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".fits");
       rename(tmp.c_str(), filename.c_str());
+
+      // open the proper FITS file
+      int fd = open(filename.c_str(), O_RDONLY);
+
+      if (fd == -1)
+        printf("error opening %s .", filename.c_str());
+      else
+      {
+        struct stat64 st;
+        stat64(filename.c_str(), &st);
+
+        this->fits_file_desc = fd;
+        this->compressed_fits_stream = NULL;
+        this->fits_file_size = st.st_size;
+
+        if (this->fits_file_size < FITS_CHUNK_LENGTH)
+          printf("error: FITS file size smaller than %d bytes.", FITS_CHUNK_LENGTH);
+      }
     }
     else
     {
       this->has_data = false;
       this->has_error = true;
+      remove(tmp.c_str());
     }
   };
 
@@ -7407,7 +7433,7 @@ void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, s
 
       if (frame % 4 == 0 || frame == fits->depth - 1)
         if (frame_end)
-          fits->zfp_compress_cube(frame)
+          fits->zfp_compress_cube(frame);
     }
 
     // incrementally call ispc::make_image_spectrumF32_ro
