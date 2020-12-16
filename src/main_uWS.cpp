@@ -1230,9 +1230,11 @@ void serve_file(uWS::HttpResponse<false> *res, std::string uri)
 }
 
 void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
-                        std::vector<std::string> datasets, bool composite,
+                        std::vector<std::string> datasets, std::string url, bool composite,
                         bool has_fits)
 {
+  int va_count = url.empty() ? datasets.size() : 1;
+
   std::string html =
       "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
   html.append(
@@ -1426,9 +1428,18 @@ void http_fits_response(uWS::HttpResponse<false> *res, std::string root,
   // HTML content
   html.append("<title>FITSWebQL</title></head><body>\n");
   html.append("<div id='votable' style='width: 0; height: 0;' data-va_count='" +
-              std::to_string(datasets.size()) + "' ");
+              std::to_string(va_count) + "' ");
 
-  if (datasets.size() == 1)
+  if (!url.empty())
+  {
+    boost::uuids::name_generator_sha1 gen(boost::uuids::ns::url());
+    boost::uuids::uuid unique_id = gen(url);
+    std::cout << "boost.org uuid in url namespace, sha1 version: " << unique_id << std::endl;
+    std::string data_id = boost::lexical_cast<std::string>(unique_id);
+
+    html.append("data-datasetId='" + data_id + "' ");
+  }
+  else if (datasets.size() == 1)
     html.append("data-datasetId='" + datasets[0] + "' ");
   else
   {
@@ -1569,14 +1580,24 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
     std::cout << "boost.org uuid in url namespace, sha1 version: " << unique_id << std::endl;
     std::string data_id = boost::lexical_cast<std::string>(unique_id);
 
-    // set has_fits to false and load the FITS dataset
-    has_fits = false;
-    std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+    auto item = get_dataset(data_id);
 
-    insert_dataset(data_id, fits);
+    if (item == nullptr)
+    {
+      // set has_fits to false and load the FITS dataset
+      has_fits = false;
+      std::shared_ptr<FITS> fits(new FITS(data_id, flux));
 
-    // download FITS data from a URL in a separate thread
-    std::thread(&FITS::from_url, fits, url, flux, 1).detach();
+      insert_dataset(data_id, fits);
+
+      // download FITS data from a URL in a separate thread
+      std::thread(&FITS::from_url, fits, url, flux, 1).detach();
+    }
+    else
+    {
+      has_fits = has_fits && item->has_data;
+      item->update_timestamp();
+    }
   }
   else
     for (auto const &data_id : datasets)
@@ -1639,7 +1660,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
 
   std::cout << "has_fits: " << has_fits << std::endl;
 
-  return http_fits_response(res, root, datasets, composite, has_fits);
+  return http_fits_response(res, root, datasets, url, composite, has_fits);
 }
 
 void ipp_init()
