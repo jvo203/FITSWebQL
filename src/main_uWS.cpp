@@ -1564,7 +1564,10 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
   if (url != "")
   {
     // make up a datasetid based on the URL converted into a UUID
-    std::string data_id;
+    boost::uuids::name_generator_sha1 gen(boost::uuids::ns::url());
+    boost::uuids::uuid unique_id = gen(url);
+    std::cout << "boost.org uuid in url namespace, sha1 version: " << unique_id << std::endl;
+    std::string data_id = boost::lexical_cast<std::string>(unique_id);
 
     // set has_fits to false and load the FITS dataset
     has_fits = false;
