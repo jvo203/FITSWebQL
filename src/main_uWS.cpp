@@ -1561,7 +1561,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
     jvo_db = jvo_db_connect(db);
 #endif
 
-  if (url != "")
+  if (!url.empty())
   {
     // make up a datasetid based on the URL converted into a UUID
     boost::uuids::name_generator_sha1 gen(boost::uuids::ns::url());
@@ -2495,7 +2495,7 @@ int main(int argc, char *argv[])
                        flux = "logistic";
                    }
 
-                   std::cout << "url:" << url << "dir:" << dir << ", ext:" << ext
+                   std::cout << "url:" << url << ", dir:" << dir << ", ext:" << ext
                              << ", db:" << db << ", table:" << table
                              << ", composite:" << composite << ", flux:" << flux
                              << ", ";
@@ -2503,7 +2503,7 @@ int main(int argc, char *argv[])
                      std::cout << dataset << " ";
                    std::cout << std::endl;
 
-                   if (datasets.size() == 0 || url == "")
+                   if (datasets.size() == 0 && url.empty())
                    {
                      const std::string not_found =
                          "ERROR: please specify an external download URL or at least one dataset in "
