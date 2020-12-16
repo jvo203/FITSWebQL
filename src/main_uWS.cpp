@@ -1547,7 +1547,7 @@ std::string get_jvo_path(PGconn *jvo_db, std::string db, std::string table,
 #endif
 
 void execute_fits(uWS::HttpResponse<false> *res, std::string root,
-                  std::string dir, std::string ext, std::string db,
+                  std::string url, std::string dir, std::string ext, std::string db,
                   std::string table, std::vector<std::string> datasets,
                   bool composite, std::string flux)
 {
@@ -1600,12 +1600,12 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
       else
       {
         // the last resort
-        std::string url = std::string("http://") + JVO_FITS_SERVER +
-                          ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
-                          "&table=cube&data_id=" + data_id + "_00_00_00";
+        std::string _url = std::string("http://") + JVO_FITS_SERVER +
+                           ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
+                           "&table=cube&data_id=" + data_id + "_00_00_00";
 
         // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, url, flux, va_count).detach();
+        std::thread(&FITS::from_url, fits, _url, flux, va_count).detach();
       }
     }
     else
@@ -2377,6 +2377,7 @@ int main(int argc, char *argv[])
                    std::string_view query = req->getQuery();
                    std::cout << "query: (" << query << ")" << std::endl;
 
+                   std::string url;
                    std::vector<std::string> datasets;
                    std::string dir, ext, db, table, flux;
                    bool composite = false;
@@ -2395,6 +2396,14 @@ int main(int argc, char *argv[])
                      {
                        std::string key = s.substr(0, pos);
                        std::string value = s.substr(pos + 1, std::string::npos);
+
+                       if (key == "url")
+                       {
+                         char *str = curl_easy_unescape(curl, value.c_str(),
+                                                        value.length(), NULL);
+                         url = std::string(str);
+                         curl_free(str);
+                       }
 
                        if (key.find("dataset") != std::string::npos)
                        {
@@ -2469,7 +2478,7 @@ int main(int argc, char *argv[])
                        flux = "logistic";
                    }
 
-                   std::cout << "dir:" << dir << ", ext:" << ext
+                   std::cout << "url:" << url << "dir:" << dir << ", ext:" << ext
                              << ", db:" << db << ", table:" << table
                              << ", composite:" << composite << ", flux:" << flux
                              << ", ";
@@ -2477,15 +2486,15 @@ int main(int argc, char *argv[])
                      std::cout << dataset << " ";
                    std::cout << std::endl;
 
-                   if (datasets.size() == 0)
+                   if (datasets.size() == 0 || url == "")
                    {
                      const std::string not_found =
-                         "ERROR: please specify at least one dataset in "
+                         "ERROR: please specify an external download URL or at least one dataset in "
                          "the URL parameters list.";
                      return res->end(not_found);
                    }
                    else
-                     return execute_fits(res, std::string(root), dir, ext, db,
+                     return execute_fits(res, std::string(root), url, dir, ext, db,
                                          table, datasets, composite, flux);
                  };
 
