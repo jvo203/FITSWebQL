@@ -1552,6 +1552,7 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
                   bool composite, std::string flux)
 {
   bool has_fits = true;
+  int va_count = datasets.size();
 
 #ifndef LOCAL
   PGconn *jvo_db = NULL;
@@ -1560,60 +1561,73 @@ void execute_fits(uWS::HttpResponse<false> *res, std::string root,
     jvo_db = jvo_db_connect(db);
 #endif
 
-  int va_count = datasets.size();
-
-  for (auto const &data_id : datasets)
+  if (url != "")
   {
-    auto item = get_dataset(data_id);
+    // make up a datasetid based on the URL converted into a UUID
+    std::string data_id;
 
-    if (item == nullptr)
+    // set has_fits to false and load the FITS dataset
+    has_fits = false;
+    std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+
+    insert_dataset(data_id, fits);
+
+    // download FITS data from a URL in a separate thread
+    std::thread(&FITS::from_url, fits, url, flux, 1).detach();
+  }
+  else
+    for (auto const &data_id : datasets)
     {
-      // set has_fits to false and load the FITS dataset
-      has_fits = false;
-      std::shared_ptr<FITS> fits(new FITS(data_id, flux));
+      auto item = get_dataset(data_id);
 
-      insert_dataset(data_id, fits);
+      if (item == nullptr)
+      {
+        // set has_fits to false and load the FITS dataset
+        has_fits = false;
+        std::shared_ptr<FITS> fits(new FITS(data_id, flux));
 
-      std::string path;
+        insert_dataset(data_id, fits);
 
-      if (dir != "" && ext != "")
-        path = dir + "/" + data_id + "." + ext;
+        std::string path;
+
+        if (dir != "" && ext != "")
+          path = dir + "/" + data_id + "." + ext;
 
 #ifndef LOCAL
-      if (jvo_db != NULL && table != "")
-        path = get_jvo_path(jvo_db, db, table, data_id);
+        if (jvo_db != NULL && table != "")
+          path = get_jvo_path(jvo_db, db, table, data_id);
 #endif
 
-      if (path != "")
-      {
-        bool is_compressed = is_gzip(path.c_str());
-        /*bool is_compressed = false;
+        if (path != "")
+        {
+          bool is_compressed = is_gzip(path.c_str());
+          /*bool is_compressed = false;
           std::string lower_path = boost::algorithm::to_lower_copy(path);
           if (boost::algorithm::ends_with(lower_path, ".gz"))
           is_compressed = is_gzip(path.c_str());*/
 
-        // load FITS data in a separate thread
-        std::thread(&FITS::from_path, fits, path, is_compressed, flux, va_count,
-                    true)
-            .detach();
+          // load FITS data in a separate thread
+          std::thread(&FITS::from_path, fits, path, is_compressed, flux, va_count,
+                      true)
+              .detach();
+        }
+        else
+        {
+          // the last resort
+          std::string _url = std::string("http://") + JVO_FITS_SERVER +
+                             ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
+                             "&table=cube&data_id=" + data_id + "_00_00_00";
+
+          // download FITS data from a URL in a separate thread
+          std::thread(&FITS::from_url, fits, _url, flux, va_count).detach();
+        }
       }
       else
       {
-        // the last resort
-        std::string _url = std::string("http://") + JVO_FITS_SERVER +
-                           ":8060/skynode/getDataForALMA.do?db=" + JVO_FITS_DB +
-                           "&table=cube&data_id=" + data_id + "_00_00_00";
-
-        // download FITS data from a URL in a separate thread
-        std::thread(&FITS::from_url, fits, _url, flux, va_count).detach();
+        has_fits = has_fits && item->has_data;
+        item->update_timestamp();
       }
     }
-    else
-    {
-      has_fits = has_fits && item->has_data;
-      item->update_timestamp();
-    }
-  }
 
 #ifndef LOCAL
   if (jvo_db != NULL)
