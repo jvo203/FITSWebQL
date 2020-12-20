@@ -38,9 +38,9 @@ mkdir build
 
 cd build
 
-cmake3 ..
+cmake ..
 
-cmake3 --build . --config Release
+cmake --build . --config Release
 
 sudo make install
 
@@ -64,7 +64,7 @@ mkdir build
 
 cd build
 
-cmake3 ..
+cmake ..
 
 make
 
