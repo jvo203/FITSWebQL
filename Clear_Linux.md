@@ -26,7 +26,7 @@ sudo make install
 
 sudo ldconfig
 
-cd ..
+cd
 
 # 5. Manually build/install FPZIP
 
