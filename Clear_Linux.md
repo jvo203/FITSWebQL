@@ -50,7 +50,7 @@ cd
 
 sudo swupd bundle-add devpkg-zlib
 
-# 7. Manually build/install OpenEXR (the version in CentOS 7 is too old)
+# 7. Manually build/install OpenEXR
 
 Issue "cd" to return to the home directory
 
