@@ -52,8 +52,6 @@ sudo swupd bundle-add devpkg-zlib
 
 # 7. Manually build/install OpenEXR
 
-Issue "cd" to return to the home directory
-
 wget https://github.com/AcademySoftwareFoundation/openexr/archive/v2.5.3.tar.gz
 
 tar zxvf v2.5.3.tar.gz
@@ -74,8 +72,6 @@ cd
 
 # 8. Manually build (no install is needed) uWebSockets
 
-Issue "cd" to return to your home directory
-
 git clone --recursive https://github.com/uNetworking/uWebSockets.git
 
 cd uWebSockets/uSockets
@@ -89,8 +85,6 @@ make
 cd
 
 # 9. Download the free Intel SPMD Compiler (ispc)
-
-Issue "cd" to return to your home directory
 
 wget https://github.com/ispc/ispc/releases/download/v1.14.1/ispc-v1.14.1-linux.tar.gz
 
@@ -129,8 +123,6 @@ sudo swupd bundle-add devpkg-bzip2
 sudo swupd bundle-add devpkg-boost
 
 # 13. Build/install jemalloc
-
-Issue "cd" to return to the home directory
 
 wget https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
 
@@ -194,8 +186,6 @@ sudo make install
 cd
 
 # 20. Compile FITSWebQL
-
-Issue "cd" to return to the home directory
 
 git clone https://github.com/jvo203/FITSWebQL.git
 
