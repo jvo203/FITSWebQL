@@ -16,7 +16,17 @@ sudo swupd bundle-add devpkg-libzmq
 
 # 4. Manually build/install czmq
 
+git clone git://github.com/zeromq/czmq.git
 
+cd czmq
+
+./autogen.sh && ./configure && make check
+
+sudo make install
+
+sudo ldconfig
+
+cd ..
 
 # 5. Manually build/install FPZIP
 
