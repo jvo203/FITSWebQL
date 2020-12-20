@@ -44,6 +44,8 @@ cmake3 --build . --config Release
 
 sudo make install
 
+cd
+
 # 6. Install zlib
 
 sudo swupd bundle-add devpkg-zlib
@@ -68,6 +70,8 @@ make
 
 sudo make install
 
+cd
+
 # 8. Manually build (no install is needed) uWebSockets
 
 Issue "cd" to return to your home directory
@@ -81,6 +85,8 @@ make
 cd ..
 
 make
+
+cd
 
 # 9. Download the free Intel SPMD Compiler (ispc)
 
@@ -140,6 +146,8 @@ make
 
 sudo make install
 
+cd
+
 # 14. Adjust the environment variables in the .bashrc
 
 Add
@@ -182,6 +190,8 @@ cmake ../source
 make
 
 sudo make install
+
+cd
 
 # 20. Compile FITSWebQL
 
