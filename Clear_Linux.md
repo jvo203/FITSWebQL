@@ -86,18 +86,18 @@ cd
 
 # 9. Download the free Intel SPMD Compiler (ispc)
 
-wget https://github.com/ispc/ispc/releases/download/v1.14.1/ispc-v1.14.1-linux.tar.gz
+wget https://github.com/ispc/ispc/releases/download/v1.15.0/ispc-v1.15.0-linux.tar.gz
 
-tar zxvf ispc-v1.14.1-linux.tar.gz
+tar zxvf ispc-v1.15.0-linux.tar.gz
 
-sudo cp ispc-v1.14.1-linux/bin/ispc /usr/local/bin/
+sudo cp ispc-v1.15.0-linux/bin/ispc /usr/local/bin/
 
-rm -rf ispc-v1.14.1-linux*
+rm -rf ispc-v1.15.0-linux*
 
 Verify ispc:
 
 ispc --version
-Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.14.1 (build commit 88118b90d82b2670 @ 20200828, LLVM 10.0.1)
+Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.15.0 (build commit d385033d72042235 @ 20201219, LLVM 11.0.0)
 
 # 10. Install the free Intel Integrated Performance Primitives (IPP)
 
