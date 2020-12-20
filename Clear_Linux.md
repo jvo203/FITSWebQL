@@ -193,7 +193,7 @@ cd FITSWebQL
 
 wget http://jvo.nao.ac.jp/~chris/splatalogue_v3.db
 
-make gcc
+make
 
 # 21. Run FITSWebQL
 
