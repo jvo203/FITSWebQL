@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-16.0"
+#define VERSION_STRING "SV2020-12-22.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2359,6 +2359,105 @@ int main(int argc, char *argv[])
                    }
                    else
                      return http_not_implemented(res);
+                 }
+
+                 if (uri.find("/get_fits") != std::string::npos)
+                 {
+                   std::string_view query = req->getQuery();
+                   std::cout << "query: (" << query << ")" << std::endl;
+
+                   std::string datasetid;
+                   int x1 = -1;
+                   int x2 = -1;
+                   int y1 = -1;
+                   int y2 = -1;
+
+                   std::vector<std::string> params;
+                   boost::split(params, query, [](char c) { return c == '&'; });
+
+                   CURL *curl = curl_easy_init();
+
+                   for (auto const &s : params)
+                   {
+                     // find '='
+                     size_t pos = s.find("=");
+
+                     if (pos != std::string::npos)
+                     {
+                       std::string key = s.substr(0, pos);
+                       std::string value = s.substr(pos + 1, std::string::npos);
+
+                       if (key.find("dataset") != std::string::npos)
+                       {
+                         char *str = curl_easy_unescape(curl, value.c_str(),
+                                                        value.length(), NULL);
+                         datasetid = std::string(str);
+                         curl_free(str);
+                       }
+
+                       if (key.find("x1") != std::string::npos)
+                       {
+                         x1 = std::stoi(value);
+                       }
+
+                       if (key.find("x2") != std::string::npos)
+                       {
+                         x2 = std::stoi(value);
+                       }
+
+                       if (key.find("y1") != std::string::npos)
+                       {
+                         y1 = std::stoi(value);
+                       }
+
+                       if (key.find("y2") != std::string::npos)
+                       {
+                         y2 = std::stoi(value);
+                       }
+                     }
+                   }
+
+                   curl_easy_cleanup(curl);
+
+                   // process the response
+                   std::cout << "get_fits(" << datasetid << "::X in [" << x1 << "," << x2 << "], Y in [" << y1 << "," << y2 << "])" << std::endl;
+
+                   auto fits = get_dataset(datasetid);
+
+                   if (fits == nullptr)
+                     return http_not_found(res);
+                   else
+                   {
+                     if (fits->has_error)
+                       return http_not_found(res);
+                     else
+                     {
+                       std::shared_ptr<std::atomic<bool>> aborted =
+                           std::make_shared<std::atomic<bool>>(false);
+
+                       res->onAborted([aborted]() {
+                         std::cout << "get_fits aborted\n";
+
+                         // invalidate res (pass the aborted event to the get_fits() thread
+                         *aborted.get() = true;
+                       });
+
+                       std::thread([res, fits, x1, x2, y1, y2, aborted]() {
+                         std::unique_lock<std::mutex> data_lock(fits->data_mtx);
+                         while (!fits->processed_data)
+                           fits->data_cv.wait(data_lock);
+
+                         if (!fits->has_data)
+                         {
+                           if (*aborted.get() != true)
+                             http_not_found(res);
+                         }
+                         else
+                           stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
+                       }).detach();
+                       return;
+                     }
+                   }
                  }
 
                  /*if (uri.find("/get_image") != std::string::npos) {
