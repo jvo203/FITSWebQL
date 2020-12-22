@@ -11101,8 +11101,8 @@ function partial_fits_download(offsetx, offsety, width, height) {
 	let fitsData = fitsContainer[va_count - 1];
 	var image_bounding_dims = imageContainer[va_count - 1].image_bounding_dims;
 
-	var ax = (image_bounding_dims.width - 1) / (d3.select("image_rectangle").attr("width") - 1);
-	var ay = (image_bounding_dims.height - 1) / (d3.select("image_rectangle").attr("height") - 1);
+	var ax = (image_bounding_dims.width - 1) / (d3.select("#image_rectangle").attr("width") - 1);
+	var ay = (image_bounding_dims.height - 1) / (d3.select("#image_rectangle").attr("height") - 1);
 
 	var x1 = image_bounding_dims.x1 + ax * (begin_x - offsetx);
 	var y1 = image_bounding_dims.y1 + ay * (begin_y - offsety);
