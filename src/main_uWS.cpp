@@ -2453,7 +2453,7 @@ int main(int argc, char *argv[])
                              http_not_found(res);
                          }
                          else
-                           stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
+                           //stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
                        }).detach();
                        return;
                      }
