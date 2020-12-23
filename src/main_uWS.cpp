@@ -888,16 +888,59 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
     res->end();
 }
 
-void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, int x1, int x2, int y1, int y2, int start, int end, std::shared_ptr<std::atomic<bool>> aborted)
+void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, int px1, int px2, int py1, int py2, int start, int end, std::shared_ptr<std::atomic<bool>> aborted)
 {
+  int x1, x2, y1, y2;
+  int length;
+
   if (*aborted.get() == true)
   {
     printf("[stream_partial_fits] aborted http connection detected.\n");
     return;
   }
 
+  // sanity checks
+  if (fits->bitpix != -32)
+    goto jmp;
+
+  if ((end < 0) || (start < 0) || (end > fits->depth - 1) || (start > fits->depth - 1))
+    goto jmp;
+
+  if (end < start)
+  {
+    int tmp = start;
+    start = end;
+    end = tmp;
+  };
+
+  // passed the sanity checks
+  length = end - start + 1;
+
+  if (px2 >= px1)
+  {
+    x1 = px1;
+    x2 = px2;
+  }
+  else
+  {
+    x1 = px2;
+    x2 = px1;
+  };
+
+  if (py2 >= py1)
+  {
+    y1 = py1;
+    y2 = py2;
+  }
+  else
+  {
+    y1 = py2;
+    y2 = py1;
+  };
+
   // stream FITS data plane-by-plane
 
+jmp:
   // end of chunked encoding
   if (*aborted.get() != true)
     res->end();
