@@ -1004,7 +1004,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
       int no_hu = fits->hdr_len / FITS_CHUNK_LENGTH;
 
       for (int i = 0; i < no_hu; i++)
-        for (offset = no_hu * FITS_CHUNK_LENGTH; offset < (no_hu + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
+        for (offset = i * FITS_CHUNK_LENGTH; offset < (i + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
         {
           strncpy(hdrLine, header + offset, FITS_LINE_LENGTH);
 
