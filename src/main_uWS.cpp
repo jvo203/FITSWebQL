@@ -990,7 +990,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
     if (header != NULL)
     {
-      memcpy(hdr, fits->header, fits->hdr_len);
+      memcpy(header, fits->header, fits->hdr_len);
 
       //parse the header
       char hdrLine[81];
