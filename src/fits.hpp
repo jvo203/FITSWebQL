@@ -83,6 +83,14 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *user);
 bool scan_fits_header(struct FITSDownloadStruct *download, const char *contents, size_t size);
 void scan_fits_data(struct FITSDownloadStruct *download, const char *contents, size_t size);
 
+void hdr_set_long_value(char *hdr, long value);
+void hdr_set_double_value(char *hdr, double value);
+int hdr_get_int_value(char *hdr);
+long hdr_get_long_value(char *hdr);
+double hdr_get_double_value(char *hdr);
+std::string hdr_get_string_value(char *hdr);
+std::string hdr_get_string_value_with_spaces(char *hdr);
+
 struct Progress
 {
   size_t running;
