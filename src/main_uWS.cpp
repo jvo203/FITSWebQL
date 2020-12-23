@@ -903,6 +903,9 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
   if (fits->bitpix != -32)
     goto jmp;
 
+  if (fits->hdr_len == 0 || fits->header == NULL)
+    goto jmp;
+
   if ((end < 0) || (start < 0) || (end > fits->depth - 1) || (start > fits->depth - 1))
     goto jmp;
 
@@ -982,6 +985,64 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
     //res->writeHeader("Content-Length", std::to_string(required_memory)); // browsers complain about the content-length (cannot be used with 'transfer-encoding' ...)
+
+    char *header = (char *)malloc(fits->hdr_len);
+
+    if (header != NULL)
+    {
+      memcpy(hdr, fits->header, fits->hdr_len);
+
+      //parse the header
+      char hdrLine[81];
+      hdrLine[sizeof(hdrLine) - 1] = '\0';
+      size_t offset = 0;
+
+      float crpix1 = 0.0f;
+      float crpix2 = 0.0f;
+      float crpix3 = 0.0f;
+
+      int no_hu = fits->hdr_len / FITS_CHUNK_LENGTH;
+
+      for (offset = no_hu * FITS_CHUNK_LENGTH; offset < (no_hu + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
+      {
+        strncpy(hdrLine, header + offset, FITS_LINE_LENGTH);
+
+        if (strncmp(hdrLine, "NAXIS1  = ", 10) == 0)
+          hdr_set_int_value(hdrLine + 10, naxes[0]);
+
+        if (strncmp(hdrLine, "NAXIS2  = ", 10) == 0)
+          hdr_set_int_value(hdrLine + 10, naxes[1]);
+
+        if (strncmp(hdrLine, "NAXIS3  = ", 10) == 0)
+          hdr_set_int_value(hdrLine + 10, naxes[2]);
+
+        if (strncmp(hdrLine, "NAXIS4  = ", 10) == 0)
+          hdr_set_int_value(hdrLine + 10, naxes[3]);
+
+        if (strncmp(hdrLine, "CRPIX1  = ", 10) == 0)
+        {
+          crpix1 = hdr_get_float_value(hdrLine + 10);
+          hdr_set_float_value(hdrLine + 10, crpix1 - float(x1));
+        };
+
+        if (strncmp(hdrLine, "CRPIX2  = ", 10) == 0)
+        {
+          crpix2 = hdr_get_float_value(hdrLine + 10);
+          hdr_set_float_value(hdrLine + 10, crpix2 - float(y1));
+        };
+
+        if (strncmp(hdrLine, "CRPIX3  = ", 10) == 0)
+        {
+          crpix3 = hdr_get_float_value(hdrLine + 10);
+          hdr_set_float_value(hdrLine + 10, crpix3 - float(start));
+        };
+      };
+
+      // send the modified FITS header in one chunk
+      res->write(std::string_view((const char *)header, fits->hdr_len));
+
+      free(header);
+    }
   }
 
 jmp:
