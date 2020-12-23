@@ -939,6 +939,17 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
   };
 
   // stream FITS data plane-by-plane
+  {
+    res->writeHeader("Cache-Control", "no-cache");
+    res->writeHeader("Cache-Control", "no-store");
+    res->writeHeader("Pragma", "no-cache");
+
+    std::string filename = "attachment; filename=" + fits->dataset_id + "-subregion.fits ";
+    res->writeHeader("Content-Type", "application/force-download");
+    res->writeHeader("Content-Disposition", filename.c_str());
+    res->writeHeader("Content-Transfer-Encoding", "binary");
+    res->writeHeader("Accept-Ranges", "bytes");
+  }
 
 jmp:
   // end of chunked encoding
