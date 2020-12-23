@@ -951,7 +951,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
   // stream FITS data plane-by-plane
   {
     int naxis = 4;
-    int naxes[4];
+    long naxes[4];
 
     size_t partial_width = abs(x2 - x1);
     size_t partial_height = abs(y2 - y1);
@@ -984,7 +984,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     res->writeHeader("Content-Disposition", filename);
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
-    //res->writeHeader("Content-Length", std::to_string(required_memory)); // browsers complain about the content-length (cannot be used with 'transfer-encoding' ...)
+    res->writeHeader("Content-Range", "bytes 0-" + std::to_string(fits->hdr_len - 1) + "/" + std::to_string(fits->hdr_len));
 
     char *header = (char *)malloc(fits->hdr_len);
 
@@ -993,8 +993,6 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
       memcpy(header, fits->header, fits->hdr_len);
 
       //parse the header
-      char hdrLine[81];
-      hdrLine[sizeof(hdrLine) - 1] = '\0';
       size_t offset = 0;
 
       float crpix1 = 0.0f;
@@ -1004,9 +1002,10 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
       int no_hu = fits->hdr_len / FITS_CHUNK_LENGTH;
 
       for (int i = 0; i < no_hu; i++)
+      {
         for (offset = i * FITS_CHUNK_LENGTH; offset < (i + 1) * FITS_CHUNK_LENGTH; offset += FITS_LINE_LENGTH)
         {
-          strncpy(hdrLine, header + offset, FITS_LINE_LENGTH);
+          char *hdrLine = header + offset;
 
           if (strncmp(hdrLine, "NAXIS1  = ", 10) == 0)
             hdr_set_long_value(hdrLine + 10, naxes[0]);
@@ -1038,6 +1037,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
             hdr_set_double_value(hdrLine + 10, crpix3 - float(start));
           };
         };
+      }
 
       // send the modified FITS header in one chunk
       res->write(std::string_view((const char *)header, fits->hdr_len));
