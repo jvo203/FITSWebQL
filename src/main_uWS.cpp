@@ -888,6 +888,21 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
     res->end();
 }
 
+void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fits, int x1, int x2, int y1, int y2, int start, int end, std::shared_ptr<std::atomic<bool>> aborted)
+{
+  if (*aborted.get() == true)
+  {
+    printf("[stream_partial_fits] aborted http connection detected.\n");
+    return;
+  }
+
+  // stream FITS data plane-by-plane
+
+  // end of chunked encoding
+  if (*aborted.get() != true)
+    res->end();
+}
+
 void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
                       double freq_end, bool compress,
                       std::shared_ptr<std::atomic<bool>> aborted)
