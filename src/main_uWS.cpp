@@ -978,10 +978,10 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
     std::string filename = "attachment; filename=" + fits->dataset_id + "-subregion.fits ";
     res->writeHeader("Content-Type", "application/force-download");
-    res->writeHeader("Content-Length", std::to_string(required_memory));
     res->writeHeader("Content-Disposition", filename);
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
+    //res->writeHeader("Content-Length", std::to_string(required_memory)); // browsers complain about the content-length (cannot be used with 'transfer-encoding' ...)
   }
 
 jmp:
