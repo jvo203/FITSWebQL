@@ -1008,33 +1008,33 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         strncpy(hdrLine, header + offset, FITS_LINE_LENGTH);
 
         if (strncmp(hdrLine, "NAXIS1  = ", 10) == 0)
-          hdr_set_int_value(hdrLine + 10, naxes[0]);
+          hdr_set_long_value(hdrLine + 10, naxes[0]);
 
         if (strncmp(hdrLine, "NAXIS2  = ", 10) == 0)
-          hdr_set_int_value(hdrLine + 10, naxes[1]);
+          hdr_set_long_value(hdrLine + 10, naxes[1]);
 
         if (strncmp(hdrLine, "NAXIS3  = ", 10) == 0)
-          hdr_set_int_value(hdrLine + 10, naxes[2]);
+          hdr_set_long_value(hdrLine + 10, naxes[2]);
 
         if (strncmp(hdrLine, "NAXIS4  = ", 10) == 0)
-          hdr_set_int_value(hdrLine + 10, naxes[3]);
+          hdr_set_long_value(hdrLine + 10, naxes[3]);
 
         if (strncmp(hdrLine, "CRPIX1  = ", 10) == 0)
         {
-          crpix1 = hdr_get_float_value(hdrLine + 10);
-          hdr_set_float_value(hdrLine + 10, crpix1 - float(x1));
+          crpix1 = hdr_get_double_value(hdrLine + 10);
+          hdr_set_double_value(hdrLine + 10, crpix1 - float(x1));
         };
 
         if (strncmp(hdrLine, "CRPIX2  = ", 10) == 0)
         {
-          crpix2 = hdr_get_float_value(hdrLine + 10);
-          hdr_set_float_value(hdrLine + 10, crpix2 - float(y1));
+          crpix2 = hdr_get_double_value(hdrLine + 10);
+          hdr_set_double_value(hdrLine + 10, crpix2 - float(y1));
         };
 
         if (strncmp(hdrLine, "CRPIX3  = ", 10) == 0)
         {
-          crpix3 = hdr_get_float_value(hdrLine + 10);
-          hdr_set_float_value(hdrLine + 10, crpix3 - float(start));
+          crpix3 = hdr_get_double_value(hdrLine + 10);
+          hdr_set_double_value(hdrLine + 10, crpix3 - float(start));
         };
       };
 
