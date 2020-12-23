@@ -2367,8 +2367,9 @@ int main(int argc, char *argv[])
                    std::cout << "query: (" << query << ")" << std::endl;
 
                    std::string datasetid;
-                   double freq_start = 0.0;
-                   double freq_end = 0.0;
+                   double frame_start = 0.0;
+                   double frame_end = 0.0;
+                   double ref_freq = 0.0;
                    int x1 = -1;
                    int x2 = -1;
                    int y1 = -1;
@@ -2417,11 +2418,14 @@ int main(int argc, char *argv[])
                          y2 = std::stoi(value);
                        }
 
-                       if (key.find("freq_start") != std::string::npos)
-                         freq_start = std::stod(value) / 1.0E9; //[Hz -> GHz]
+                       if (key.find("frame_start") != std::string::npos)
+                         frame_start = std::stod(value);
 
-                       if (key.find("freq_end") != std::string::npos)
-                         freq_end = std::stod(value) / 1.0E9; //[Hz -> GHz]
+                       if (key.find("frame_end") != std::string::npos)
+                         frame_end = std::stod(value);
+
+                       if (key.find("ref_freq") != std::string::npos)
+                         ref_freq = std::stod(value);
                      }
                    }
 
@@ -2429,7 +2433,7 @@ int main(int argc, char *argv[])
 
                    // process the response
                    std::cout << "get_fits(" << datasetid << "::X in [" << x1 << "," << x2 << "], Y in [" << y1 << "," << y2 << "]"
-                             << ", freq_start = " << freq_start << ", freq_end = " << freq_end << ")" << std::endl;
+                             << ", frame_start = " << frame_start << ", frame_end = " << frame_end << ", ref_freq = " << ref_freq << ")" << std::endl;
 
                    auto fits = get_dataset(datasetid);
 
@@ -2451,7 +2455,7 @@ int main(int argc, char *argv[])
                          *aborted.get() = true;
                        });
 
-                       std::thread([res, fits, x1, x2, y1, y2, aborted]() {
+                       std::thread([res, fits, x1, x2, y1, y2, frame_start, frame_end, ref_freq, aborted]() {
                          std::unique_lock<std::mutex> data_lock(fits->data_mtx);
                          while (!fits->processed_data)
                            fits->data_cv.wait(data_lock);
@@ -2462,7 +2466,12 @@ int main(int argc, char *argv[])
                              http_not_found(res);
                          }
                          else
-                           ; //stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
+                         {
+                           int start, end;
+
+                           fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
+                           ; //stream_partial_fits(res, fits, x1, x2, y1, y2, start, end, aborted);
+                         }
                        }).detach();
                        return;
                      }
