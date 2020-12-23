@@ -938,15 +938,48 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     y2 = py1;
   };
 
+  x1 = MAX(0, x1);
+  y1 = MAX(0, y1);
+  x2 = MIN(fits->width, x2);
+  y2 = MIN(fits->height, y2);
+
+  std::cout << "[get_fits] " << fits->dataset_id << "\t" << x1 << "\t" << y1 << "\t" << x2 << "\t" << y2 << "\t" << start << "\t" << end << "\t" << length << std::endl;
+
   // stream FITS data plane-by-plane
   {
+    int naxis = 4;
+    int naxes[4];
+
+    size_t partial_width = abs(x2 - x1);
+    size_t partial_height = abs(y2 - y1);
+    size_t partial_depth = length;
+    size_t partial_size = partial_height * partial_width;
+
+    naxes[0] = partial_width;
+    naxes[1] = partial_height;
+    naxes[2] = partial_depth;
+    naxes[3] = 1;
+
+    //hdu memory size = partial_size * partial_depth * (|bitpix|/8) rounded up to be a multiple of 2880
+    //required memory = FITS Header Size + HDU Size
+    size_t partial_data_size = partial_height * partial_width * partial_depth * abs(fits->bitpix / 8);
+    size_t no_units = partial_data_size / FITS_CHUNK_LENGTH;
+
+    if (partial_data_size % FITS_CHUNK_LENGTH > 0)
+      no_units++;
+
+    size_t required_memory = fits->hdr_len + no_units * FITS_CHUNK_LENGTH;
+
+    printf("required memory for a partial download: %zu\n", required_memory);
+
     res->writeHeader("Cache-Control", "no-cache");
     res->writeHeader("Cache-Control", "no-store");
     res->writeHeader("Pragma", "no-cache");
 
     std::string filename = "attachment; filename=" + fits->dataset_id + "-subregion.fits ";
     res->writeHeader("Content-Type", "application/force-download");
-    res->writeHeader("Content-Disposition", filename.c_str());
+    res->writeHeader("Content-Length", std::to_string(required_memory));
+    res->writeHeader("Content-Disposition", filename);
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
   }
