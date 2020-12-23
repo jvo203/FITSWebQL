@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-22.0"
+#define VERSION_STRING "SV2020-12-23.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -2367,6 +2367,8 @@ int main(int argc, char *argv[])
                    std::cout << "query: (" << query << ")" << std::endl;
 
                    std::string datasetid;
+                   double freq_start = 0.0;
+                   double freq_end = 0.0;
                    int x1 = -1;
                    int x2 = -1;
                    int y1 = -1;
@@ -2414,13 +2416,20 @@ int main(int argc, char *argv[])
                        {
                          y2 = std::stoi(value);
                        }
+
+                       if (key.find("freq_start") != std::string::npos)
+                         freq_start = std::stod(value) / 1.0E9; //[Hz -> GHz]
+
+                       if (key.find("freq_end") != std::string::npos)
+                         freq_end = std::stod(value) / 1.0E9; //[Hz -> GHz]
                      }
                    }
 
                    curl_easy_cleanup(curl);
 
                    // process the response
-                   std::cout << "get_fits(" << datasetid << "::X in [" << x1 << "," << x2 << "], Y in [" << y1 << "," << y2 << "])" << std::endl;
+                   std::cout << "get_fits(" << datasetid << "::X in [" << x1 << "," << x2 << "], Y in [" << y1 << "," << y2 << "]"
+                             << ", freq_start = " << freq_start << ", freq_end = " << freq_end << ")" << std::endl;
 
                    auto fits = get_dataset(datasetid);
 
@@ -2452,8 +2461,8 @@ int main(int argc, char *argv[])
                            if (*aborted.get() != true)
                              http_not_found(res);
                          }
-                         else                         
-                           ;//stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
+                         else
+                           ; //stream_partial_fits(res, fits, x1, x2, y1, y2, aborted);
                        }).detach();
                        return;
                      }
