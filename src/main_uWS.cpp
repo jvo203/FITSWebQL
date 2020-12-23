@@ -2469,8 +2469,9 @@ int main(int argc, char *argv[])
                          {
                            int start, end;
 
+                           fits->update_timestamp();
                            fits->get_spectrum_range(frame_start, frame_end, ref_freq, start, end);
-                           ; //stream_partial_fits(res, fits, x1, x2, y1, y2, start, end, aborted);
+                           stream_partial_fits(res, fits, x1, x2, y1, y2, start, end, aborted);
                          }
                        }).detach();
                        return;
