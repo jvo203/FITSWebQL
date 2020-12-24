@@ -1044,6 +1044,51 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
       free(header);
     }
+
+    // now the 2D planes
+    const size_t plane_size = fits->width * fits->height;
+    const size_t frame_size = plane_size * abs(bitpix / 8);
+
+    auto pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
+      if (ptr != NULL)
+        ippsFree(ptr);
+    });
+
+    if (!pixels)
+      goto jmp;
+
+    Ipp32f *pixels_buf = pixels.get();
+    size_t offset = fits->hdr_len + start * plane_size;
+
+    if (fits->fits_file_desc != -1)
+    {
+      std::cout << "cutting out data from an uncompressed FITS file" << std::endl;
+      // loop through the planes temporarily locking the file mutex
+
+      {
+        ssize_t bytes_read = 0;
+
+        if (pixels_buf != nullptr)
+          bytes_read = pread(fits->fits_file_desc, pixels_buf, frame_size,
+                             offset + frame_size * frame);
+
+        if (bytes_read != frame_size)
+        {
+          fprintf(stderr,
+                  "%s::<frame::%d>::CRITICAL: only read %zd out of requested "
+                  "%zd bytes.\n",
+                  fits->dataset_id.c_str(), frame, bytes_read, frame_size);
+          goto jmp;
+        }
+      }
+    }
+
+    if (fits->gzFile != NULL)
+    {
+      std::cout << "cutting out data from a gz-compressed FITS file" << std::endl;
+
+      // lock the file mutex at the beginning and keep it locked throughout
+    }
   }
 
 jmp:
