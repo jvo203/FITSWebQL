@@ -1152,6 +1152,22 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     }
 
     // send the 2880-bytes '\0' padding that might be needed
+    size_t padding_size = required_memory - (fits->hdr_len + partial_data_size);
+
+    if (padding_size > 0)
+    {
+      char *padding = (char *)malloc(padding_size);
+
+      if (padding != NULL)
+      {
+        memset(padding, '\0', padding_size);
+
+        if (*aborted.get() != true)
+          res->write(std::string_view((const char *)padding, padding_size));
+
+        free(padding);
+      }
+    }
   }
 
 jmp:
