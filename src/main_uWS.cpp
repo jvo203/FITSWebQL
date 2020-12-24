@@ -1107,7 +1107,20 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         // send the chunk
         if (*aborted.get() != true)
         {
-          res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+          bool sent = false;
+
+          while (!sent)
+          {
+            bool status = res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+
+            if (!status)
+            {
+              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
+              sleep(1);
+            }
+            else
+              sent = true;
+          }
         }
         else
           break;
@@ -1152,7 +1165,22 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
         // send the chunk
         if (*aborted.get() != true)
-          res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+        {
+          bool sent = false;
+
+          while (!sent)
+          {
+            bool status = res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+
+            if (!status)
+            {
+              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
+              sleep(1);
+            }
+            else
+              sent = true;
+          }
+        }
         else
           break;
       }
