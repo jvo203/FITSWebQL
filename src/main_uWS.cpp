@@ -984,7 +984,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     res->writeHeader("Content-Disposition", filename);
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
-    //res->writeHeader("Content-Range", "bytes 0-" + std::to_string(required_memory - 1) + "/" + std::to_string(required_memory));
+    res->writeHeader("Content-Range", "bytes 0-" + std::to_string(required_memory - 1) + "/" + std::to_string(required_memory));
 
     char *header = (char *)malloc(fits->hdr_len);
 
@@ -1076,8 +1076,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
       for (size_t frame = start; frame <= end; frame++)
       {
-        std::cout << "slicing through frame " << frame << std::endl;
-
+        //std::cout << "slicing through frame " << frame << std::endl;
         ssize_t bytes_read = 0;
 
         if (pixels_buf != nullptr)
@@ -1121,8 +1120,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
       for (size_t frame = start; frame <= end; frame++)
       {
-        std::cout << "slicing through frame " << frame << std::endl;
-
+        //std::cout << "slicing through frame " << frame << std::endl;
         ssize_t bytes_read = 0;
 
         if (pixels_buf != NULL)
