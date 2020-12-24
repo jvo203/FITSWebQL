@@ -1094,11 +1094,6 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         // copy the partial data to the destination buffer
         for (int y = y1; y < y2; y++)
         {
-          /*if (*aborted.get() != true)
-            res->write(std::string_view((const char *)pixels_buf + (y * fits->width + x1) * sizeof(Ipp32f), partial_width * sizeof(Ipp32f)));
-          else
-            break;*/
-
 #pragma simd
           for (int x = x1; x < x2; x++)
             ((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
