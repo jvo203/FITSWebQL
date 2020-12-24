@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-23.0"
+#define VERSION_STRING "SV2020-12-24.0"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -984,7 +984,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     res->writeHeader("Content-Disposition", filename);
     res->writeHeader("Content-Transfer-Encoding", "binary");
     res->writeHeader("Accept-Ranges", "bytes");
-    res->writeHeader("Content-Range", "bytes 0-" + std::to_string(fits->hdr_len - 1) + "/" + std::to_string(fits->hdr_len));
+    res->writeHeader("Content-Range", "bytes 0-" + std::to_string(required_memory - 1) + "/" + std::to_string(required_memory));
 
     char *header = (char *)malloc(fits->hdr_len);
 
