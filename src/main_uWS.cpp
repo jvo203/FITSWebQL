@@ -1047,7 +1047,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
     // now the 2D planes
     const size_t plane_size = fits->width * fits->height;
-    const size_t frame_size = plane_size * abs(bitpix / 8);
+    const size_t frame_size = plane_size * abs(fits->bitpix / 8);
 
     auto pixels = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(plane_size), [=](Ipp32f *ptr) {
       if (ptr != NULL)
@@ -1057,19 +1057,28 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     if (!pixels)
       goto jmp;
 
+    auto dest = std::shared_ptr<Ipp32f>(ippsMalloc_32f_L(partial_size), [=](Ipp32f *ptr) {
+      if (ptr != NULL)
+        ippsFree(ptr);
+    });
+
+    if (!dest)
+      goto jmp;
+
     Ipp32f *pixels_buf = pixels.get();
-    size_t offset = fits->hdr_len + start * plane_size;
+    Ipp32f *dest_buf = dest.get();
 
     if (fits->fits_file_desc != -1)
     {
+      size_t offset = fits->hdr_len;
       std::cout << "cutting out data from an uncompressed FITS file" << std::endl;
 
+      for (size_t frame = start; frame <= end; frame++)
       {
         ssize_t bytes_read = 0;
 
         if (pixels_buf != nullptr)
-          bytes_read = pread(fits->fits_file_desc, pixels_buf, frame_size,
-                             offset + frame_size * frame);
+          bytes_read = pread(fits->fits_file_desc, pixels_buf, frame_size, offset + frame_size * frame);
 
         if (bytes_read != frame_size)
         {
@@ -1084,6 +1093,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
     if (fits->compressed_fits_stream != NULL)
     {
+      size_t offset = fits->hdr_len + start * plane_size;
       std::cout << "cutting out data from a gz-compressed FITS file" << std::endl;
 
       // lock the file mutex at the beginning and keep it locked throughout
@@ -1091,6 +1101,23 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
       // preload the initial <offset> number of bytes from the compressed stream
       gzseek(fits->compressed_fits_stream, offset, SEEK_SET);
+
+      for (size_t frame = start; frame <= end; frame++)
+      {
+        ssize_t bytes_read = 0;
+
+        if (pixels_buf != NULL)
+          bytes_read = gzread(fits->compressed_fits_stream, pixels_buf, frame_size);
+
+        if (bytes_read != frame_size)
+        {
+          fprintf(stderr,
+                  "%s::CRITICAL: read less than %zd bytes from the FITS "
+                  "data unit\n",
+                  fits->dataset_id.c_str(), bytes_read);
+          goto jmp;
+        }
+      }
     }
   }
 
