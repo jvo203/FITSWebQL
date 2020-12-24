@@ -2774,6 +2774,15 @@ int main(int argc, char *argv[])
                          *aborted.get() = true;
                        });
 
+                       std::shared_ptr<std::atomic<bool>> writable =
+                           std::make_shared<std::atomic<bool>>(true);
+
+                       res->onWritable([writable](int offset) {
+                         std::cout << "get_fits is writable, offset = " << offset << "\n";
+                         *writable.get() = true;
+                         return true;
+                       });
+
                        std::thread([res, fits, x1, x2, y1, y2, frame_start, frame_end, ref_freq, aborted]() {
                          std::unique_lock<std::mutex> data_lock(fits->data_mtx);
                          while (!fits->processed_data)
