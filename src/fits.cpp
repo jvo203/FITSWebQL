@@ -2386,6 +2386,26 @@ void FITS::from_url(
 {
   deserialise();
 
+  // point the file descriptor to an uncompressed FITS file frm the cache
+  {
+    std::string filename = FITSCACHE + std::string("/") + boost::replace_all_copy(this->dataset_id, "/", "_") + std::string(".fits");
+
+    // open the proper FITS file
+    int fd = open(filename.c_str(), O_RDONLY);
+
+    if (fd == -1)
+      printf("error opening %s .", filename.c_str());
+    else
+    {
+      struct stat64 st;
+      stat64(filename.c_str(), &st);
+
+      this->fits_file_desc = fd;
+      this->compressed_fits_stream = NULL;
+      this->fits_file_size = st.st_size;
+    }
+  }
+
   // exit the function if the FITS file has already been processed in the
   // deserialiser
   if (processed_header && processed_data)
