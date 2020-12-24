@@ -1063,7 +1063,6 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
     if (fits->fits_file_desc != -1)
     {
       std::cout << "cutting out data from an uncompressed FITS file" << std::endl;
-      // loop through the planes temporarily locking the file mutex
 
       {
         ssize_t bytes_read = 0;
