@@ -1040,7 +1040,8 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
       }
 
       // send the modified FITS header in one chunk
-      res->write(std::string_view((const char *)header, fits->hdr_len));
+      if (*aborted.get() != true)
+        res->write(std::string_view((const char *)header, fits->hdr_len));
 
       free(header);
     }
@@ -1083,11 +1084,25 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         if (bytes_read != frame_size)
         {
           fprintf(stderr,
-                  "%s::<frame::%d>::CRITICAL: only read %zd out of requested "
+                  "%s::<frame::%zu>::CRITICAL: only read %zd out of requested "
                   "%zd bytes.\n",
                   fits->dataset_id.c_str(), frame, bytes_read, frame_size);
           goto jmp;
         }
+
+        // copy the partial data to the destination buffer
+        for (int y = y1; y < y2; y++)
+        {
+#pragma simd
+          for (int x = x1; x < x2; x++)
+            ((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+        };
+
+        // send the chunk
+        if (*aborted.get() != true)
+          res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+        else
+          break;
       }
     }
 
@@ -1117,6 +1132,20 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
                   fits->dataset_id.c_str(), bytes_read);
           goto jmp;
         }
+
+        // copy the partial data to the destination buffer
+        for (int y = y1; y < y2; y++)
+        {
+#pragma simd
+          for (int x = x1; x < x2; x++)
+            ((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+        };
+
+        // send the chunk
+        if (*aborted.get() != true)
+          res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
+        else
+          break;
       }
     }
   }
