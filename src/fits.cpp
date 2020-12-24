@@ -146,21 +146,21 @@ void hdr_set_double_value(char *hdr, double value)
 
 int hdr_get_int_value(char *hdr)
 {
-  printf("VALUE(%s)\n", hdr);
+  //printf("VALUE(%s)\n", hdr);
 
   return atoi(hdr);
 };
 
 long hdr_get_long_value(char *hdr)
 {
-  printf("VALUE(%s)\n", hdr);
+  //printf("VALUE(%s)\n", hdr);
 
   return atol(hdr);
 };
 
 double hdr_get_double_value(char *hdr)
 {
-  printf("VALUE(%s)\n", hdr);
+  //printf("VALUE(%s)\n", hdr);
 
   return atof(hdr);
 };
@@ -169,7 +169,7 @@ std::string hdr_get_string_value(char *hdr)
 {
   char string[FITS_LINE_LENGTH] = "";
 
-  printf("VALUE(%s)\n", hdr);
+  //printf("VALUE(%s)\n", hdr);
 
   sscanf(hdr, "'%s'", string);
 
@@ -183,7 +183,7 @@ std::string hdr_get_string_value_with_spaces(char *hdr)
 {
   char string[FITS_LINE_LENGTH] = "";
 
-  printf("VALUE(%s)\n", hdr);
+  //printf("VALUE(%s)\n", hdr);
 
   char *pos = strstr(hdr, "'");
 
