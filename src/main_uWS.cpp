@@ -1156,6 +1156,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
     if (padding_size > 0)
     {
+      std::cout << "padding the FITS file with " << padding_size << " bytes." << std::endl;
       char *padding = (char *)malloc(padding_size);
 
       if (padding != NULL)
