@@ -1083,11 +1083,15 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
       }
     }
 
-    if (fits->gzFile != NULL)
+    if (fits->compressed_fits_stream != NULL)
     {
       std::cout << "cutting out data from a gz-compressed FITS file" << std::endl;
 
       // lock the file mutex at the beginning and keep it locked throughout
+      std::lock_guard<std::mutex> guard(fits->file_mtx);
+
+      // preload the initial <offset> number of bytes from the compressed stream
+      gzseek(fits->compressed_fits_stream, offset, SEEK_SET);
     }
   }
 
