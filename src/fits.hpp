@@ -318,6 +318,7 @@ public:
   off_t fits_file_size;
   gzFile compressed_fits_stream;
   bool gz_compressed;
+  std::mutex file_mtx;
 
   // mmap pointer to the underlying FITS file
   std::shared_ptr<void> fits_ptr;
