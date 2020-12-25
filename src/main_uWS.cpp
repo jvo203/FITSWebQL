@@ -135,6 +135,45 @@ int msleep(long msec)
 
 #include "global.h"
 
+#define CHUNK_SIZE (1024 * 1024)
+
+void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std::shared_ptr<std::atomic<bool>> aborted)
+{
+  if (buf == NULL || len == 0)
+    return;
+
+  size_t offset = 0;
+  size_t remaining = len;
+
+  while (remaining > 0)
+  {
+    size_t chunk = MIN(remaining, CHUNK_SIZE);
+
+    bool status = false;
+    bool sent = false;
+
+    while (!sent)
+    {
+      // send the chunk
+      if (*aborted.get() != true)
+        status = res->write(std::string_view(buf + offset, chunk));
+      else
+        return;
+
+      if (!status)
+      {
+        std::cout << "[send_chunk]::status: " << status << ", sleeping for 250ms" << std::endl;
+        msleep(250); //sleep(1);
+      }
+      else
+        sent = true;
+    }
+
+    offset += chunk;
+    remaining -= chunk;
+  }
+}
+
 std::atomic<bool> exiting(false);
 
 #ifdef DEBUG
@@ -1130,22 +1169,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
         // send the chunk
         if (*aborted.get() != true)
-        {
-          bool sent = false;
-
-          while (!sent)
-          {
-            bool status = res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
-
-            if (!status)
-            {
-              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 250ms" << std::endl;
-              msleep(250); //sleep(1);
-            }
-            else
-              sent = true;
-          }
-        }
+          send_chunk(res, (const char *)dest_buf, partial_size * sizeof(Ipp32f), aborted);
         else
           break;
       }
@@ -1192,22 +1216,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
         // send the chunk
         if (*aborted.get() != true)
-        {
-          bool sent = false;
-
-          while (!sent)
-          {
-            bool status = res->write(std::string_view((const char *)dest_buf, partial_size * sizeof(Ipp32f)));
-
-            if (!status)
-            {
-              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 250ms" << std::endl;
-              msleep(250); // sleep(1);
-            }
-            else
-              sent = true;
-          }
-        }
+          send_chunk(res, (const char *)dest_buf, partial_size * sizeof(Ipp32f), aborted);
         else
           break;
       }
