@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-25.1";
+	return "JS2020-12-25.2";
 }
 
 const wasm_supported = (() => {
@@ -11105,13 +11105,15 @@ function partial_fits_download(offsetx, offsety, width, height) {
 	var ay = (image_bounding_dims.height - 1) / (d3.select("#image_rectangle").attr("height") - 1);
 
 	var x1 = image_bounding_dims.x1 + ax * (begin_x - offsetx);
-	var y1 = image_bounding_dims.y1 + ay * (begin_y - offsety);
+	//var y1 = image_bounding_dims.y1 + ay * (begin_y - offsety);
+	var y1 = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (begin_y - offsety);
 
 	var orig_x1 = x1 * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 	var orig_y1 = y1 * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 
 	var x2 = image_bounding_dims.x1 + ax * (end_x - offsetx);
-	var y2 = image_bounding_dims.y1 + ay * (end_y - offsety);
+	//var y2 = image_bounding_dims.y1 + ay * (end_y - offsety);
+	var y2 = (image_bounding_dims.y1 + image_bounding_dims.height - 1) - ay * (end_y - offsety);
 
 	var orig_x2 = x2 * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 	var orig_y2 = y2 * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
