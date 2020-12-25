@@ -939,12 +939,12 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
         const char *ptr = (const char *)&json_size;
         if (*aborted.get() != true)
-          //res->write(std::string_view(ptr, sizeof(json_size)));
-          send_chunk(res, (const char *)ptr, sizeof(json_size), aborted);
+          res->write(std::string_view(ptr, sizeof(json_size)));
+          //send_chunk(res, (const char *)ptr, sizeof(json_size), aborted);
 
         if (*aborted.get() != true)
-          //res->write(std::string_view((const char *)json_lz4, compressed_size));
-          send_chunk(res, (const char *)json_lz4, compressed_size, aborted);
+          res->write(std::string_view((const char *)json_lz4, compressed_size));
+          //send_chunk(res, (const char *)json_lz4, compressed_size, aborted);
 
         ippsFree(json_lz4);
       }
