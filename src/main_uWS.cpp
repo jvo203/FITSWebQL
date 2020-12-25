@@ -77,6 +77,9 @@ using namespace OPENEXR_IMF_NAMESPACE;
 #include <thread>
 #include <unordered_map>
 
+#include <time.h>
+#include <errno.h>
+
 #ifdef DEBUG
 #include <jemalloc/jemalloc.h>
 #endif
@@ -101,6 +104,29 @@ private:
 };
 
 std::mutex PrintThread::_mutexPrint{};
+
+/* msleep(): Sleep for the requested number of milliseconds. */
+int msleep(long msec)
+{
+  struct timespec ts;
+  int res;
+
+  if (msec < 0)
+  {
+    errno = EINVAL;
+    return -1;
+  }
+
+  ts.tv_sec = msec / 1000;
+  ts.tv_nsec = (msec % 1000) * 1000000;
+
+  do
+  {
+    res = nanosleep(&ts, &ts);
+  } while (res && errno == EINTR);
+
+  return res;
+}
 
 #include <ipp.h>
 
@@ -1110,7 +1136,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
             if (!status)
             {
-              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
+              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 250ms" << std::endl;
               msleep(250); //sleep(1);
             }
             else
@@ -1169,7 +1195,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
             if (!status)
             {
-              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
+              std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 250ms" << std::endl;
               msleep(250); // sleep(1);
             }
             else

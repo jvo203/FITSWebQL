@@ -9,9 +9,6 @@
 #include <unordered_map>
 #include <shared_mutex>
 
-#include <time.h>
-#include <errno.h>
-
 #include <curl/curl.h>
 
 using namespace std::chrono;
@@ -222,29 +219,6 @@ inline void update_session_timestamp(struct UserSession *session)
   std::lock_guard<std::shared_mutex> guard(session->mtx);
 
   session->ts = system_clock::now();
-}
-
-/* msleep(): Sleep for the requested number of milliseconds. */
-int msleep(long msec)
-{
-  struct timespec ts;
-  int res;
-
-  if (msec < 0)
-  {
-    errno = EINVAL;
-    return -1;
-  }
-
-  ts.tv_sec = msec / 1000;
-  ts.tv_nsec = (msec % 1000) * 1000000;
-
-  do
-  {
-    res = nanosleep(&ts, &ts);
-  } while (res && errno == EINTR);
-
-  return res;
 }
 
 // a global mutex used by real-time spectrum updates to prevent OpenMP pool thread contention
