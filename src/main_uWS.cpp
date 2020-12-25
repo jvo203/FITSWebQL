@@ -1166,8 +1166,8 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
         // copy the partial data to the destination buffer
         size_t dst_offset = 0;
-        for (int y = y1; y < y2; y++)
-        //for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
+        //for (int y = y1; y < y2; y++)
+        for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
         {
 #pragma simd
           for (int x = x1; x < x2; x++)
@@ -1213,8 +1213,8 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
         // copy the partial data to the destination buffer
         size_t dst_offset = 0;
-        for (int y = y1; y < y2; y++)
-        //for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
+        //for (int y = y1; y < y2; y++)
+        for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
         {
 #pragma simd
           for (int x = x1; x < x2; x++)
