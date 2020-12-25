@@ -135,8 +135,8 @@ int msleep(long msec)
 
 #include "global.h"
 
-//#define HTTP_CHUNK 0x4000
-#define HTTP_CHUNK 0x100000
+#define HTTP_CHUNK 0x4000
+//#define HTTP_CHUNK 0x100000
 
 void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std::shared_ptr<std::atomic<bool>> aborted)
 {
@@ -157,7 +157,10 @@ void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std:
     {
       // send the chunk
       if (*aborted.get() != true)
+      {
         status = res->write(std::string_view(buf + offset, chunk_size));
+        status = true; // a manual override whilst debugging transmission problems ...
+      }
       else
         return;
 
