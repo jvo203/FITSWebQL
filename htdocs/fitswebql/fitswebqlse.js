@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-22.0";
+	return "JS2020-12-25.0";
 }
 
 const wasm_supported = (() => {
@@ -11125,7 +11125,7 @@ function partial_fits_download(offsetx, offsety, width, height) {
 			url += "datasetId" + index + "=" + encodeURIComponent(datasetId[index - 1]) + "&";
 	}
 
-	url += "x1=" + Math.round(orig_x1) + "&y1=" + Math.round(orig_y2) + "&x2=" + Math.round(orig_x2) + "&y2=" + Math.round(orig_y1) + "&frame_start=" + data_band_lo + "&frame_end=" + data_band_hi + "&ref_freq=" + RESTFRQ;
+	url += "x1=" + Math.round(orig_x1) + "&y1=" + Math.round(orig_y1) + "&x2=" + Math.round(orig_x2) + "&y2=" + Math.round(orig_y2) + "&frame_start=" + data_band_lo + "&frame_end=" + data_band_hi + "&ref_freq=" + RESTFRQ;
 
 	//console.log(url) ;
 	//window.location.assign(url);
