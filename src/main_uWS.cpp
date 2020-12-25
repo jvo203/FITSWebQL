@@ -906,8 +906,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
         res->write(std::string_view(ptr, sizeof(img_len)));
 
       if (*aborted.get() != true)
-        //res->write(output);
-        send_chunk(res, (const char *)output.c_str(), output.length(), aborted);
+        res->write(output);
+        //send_chunk(res, (const char *)output.c_str(), output.length(), aborted);
     }
 
     // add compressed FITS data, a spectrum and a histogram
