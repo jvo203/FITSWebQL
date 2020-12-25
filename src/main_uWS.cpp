@@ -906,8 +906,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
         res->write(std::string_view(ptr, sizeof(img_len)));
 
       if (*aborted.get() != true)
-        res->write(output);
-        //send_chunk(res, (const char *)output.c_str(), output.length(), aborted);
+        //res->write(output);
+        send_chunk(res, (const char *)output.c_str(), output.length(), aborted);
     }
 
     // add compressed FITS data, a spectrum and a histogram
@@ -939,12 +939,12 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
         const char *ptr = (const char *)&json_size;
         if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(json_size)));
-          //send_chunk(res, (const char *)ptr, sizeof(json_size), aborted);
+          //res->write(std::string_view(ptr, sizeof(json_size)));
+          send_chunk(res, (const char *)ptr, sizeof(json_size), aborted);
 
         if (*aborted.get() != true)
-          res->write(std::string_view((const char *)json_lz4, compressed_size));
-          //send_chunk(res, (const char *)json_lz4, compressed_size, aborted);
+          //res->write(std::string_view((const char *)json_lz4, compressed_size));
+          send_chunk(res, (const char *)json_lz4, compressed_size, aborted);
 
         ippsFree(json_lz4);
       }
@@ -2588,6 +2588,15 @@ int main(int argc, char *argv[])
                          // invalidate res (pass the aborted event to the
                          // get_spectrum() thread
                          *aborted.get() = true;
+                       });
+
+                       std::shared_ptr<std::atomic<bool>> writable =
+                           std::make_shared<std::atomic<bool>>(true);
+
+                       res->onWritable([writable](int offset) {
+                         std::cout << "get_spectrum is writable, offset = " << offset << "\n";
+                         *writable.get() = true;
+                         return true;
                        });
 
                        std::thread([res, fits, width, height, quality,
