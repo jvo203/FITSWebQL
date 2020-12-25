@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-25.1"
+#define VERSION_STRING "SV2020-12-25.2"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -939,7 +939,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
 
         const char *ptr = (const char *)&json_size;
         if (*aborted.get() != true)
-          res->write(std::string_view(ptr, sizeof(json_size)));
+          //res->write(std::string_view(ptr, sizeof(json_size)));
+          send_chunk(res, (const char *)ptr, sizeof(json_size), aborted);
 
         if (*aborted.get() != true)
           //res->write(std::string_view((const char *)json_lz4, compressed_size));
