@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-25.0"
+#define VERSION_STRING "SV2020-12-25.1"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -135,7 +135,7 @@ int msleep(long msec)
 
 #include "global.h"
 
-#define CHUNK_SIZE (1024 * 1024)
+#define HTTP_CHUNK 0x4000
 
 void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std::shared_ptr<std::atomic<bool>> aborted)
 {
@@ -147,7 +147,7 @@ void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std:
 
   while (remaining > 0)
   {
-    size_t chunk = MIN(remaining, CHUNK_SIZE);
+    size_t chunk_size = MIN(remaining, HTTP_CHUNK);
 
     bool status = false;
     bool sent = false;
@@ -156,7 +156,7 @@ void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std:
     {
       // send the chunk
       if (*aborted.get() != true)
-        status = res->write(std::string_view(buf + offset, chunk));
+        status = res->write(std::string_view(buf + offset, chunk_size));
       else
         return;
 
@@ -169,8 +169,8 @@ void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std:
         sent = true;
     }
 
-    offset += chunk;
-    remaining -= chunk;
+    offset += chunk_size;
+    remaining -= chunk_size;
   }
 }
 
