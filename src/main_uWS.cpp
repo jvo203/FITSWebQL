@@ -1111,7 +1111,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
             if (!status)
             {
               std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
-              sleep(1);
+              msleep(250); //sleep(1);
             }
             else
               sent = true;
@@ -1170,7 +1170,7 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
             if (!status)
             {
               std::cout << "frame: " << frame << ", status: " << status << ", sleeping for 1s" << std::endl;
-              sleep(1);
+              msleep(250); // sleep(1);
             }
             else
               sent = true;
