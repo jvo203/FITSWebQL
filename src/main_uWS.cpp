@@ -12,7 +12,7 @@
       VERSION_SUB)
 
 #define WASM_VERSION "20.11.27.2"
-#define VERSION_STRING "SV2020-12-25.2"
+#define VERSION_STRING "SV2020-12-25.3"
 
 // OpenEXR
 #include <OpenEXR/IlmThread.h>
@@ -135,7 +135,8 @@ int msleep(long msec)
 
 #include "global.h"
 
-#define HTTP_CHUNK 0x4000
+//#define HTTP_CHUNK 0x4000
+#define HTTP_CHUNK 0x100000
 
 void send_chunk(uWS::HttpResponse<false> *res, const char *buf, size_t len, std::shared_ptr<std::atomic<bool>> aborted)
 {
@@ -2727,13 +2728,13 @@ int main(int argc, char *argv[])
                      });
 
                      std::shared_ptr<std::atomic<bool>> writable =
-                           std::make_shared<std::atomic<bool>>(true);
+                         std::make_shared<std::atomic<bool>>(true);
 
-                       res->onWritable([writable](int offset) {
-                         std::cout << "get_molecules is writable, offset = " << offset << "\n";
-                         *writable.get() = true;
-                         return true;
-                       });
+                     res->onWritable([writable](int offset) {
+                       std::cout << "get_molecules is writable, offset = " << offset << "\n";
+                       *writable.get() = true;
+                       return true;
+                     });
 
                      std::thread([res, freq_start, freq_end, compress,
                                   aborted]() {
