@@ -906,7 +906,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
         res->write(std::string_view(ptr, sizeof(img_len)));
 
       if (*aborted.get() != true)
-        res->write(output);
+        //res->write(output);
+        send_chunk(res, (const char *)output.c_str(), output.length(), aborted);
     }
 
     // add compressed FITS data, a spectrum and a histogram
@@ -941,7 +942,8 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
           res->write(std::string_view(ptr, sizeof(json_size)));
 
         if (*aborted.get() != true)
-          res->write(std::string_view((const char *)json_lz4, compressed_size));
+          //res->write(std::string_view((const char *)json_lz4, compressed_size));
+          send_chunk(res, (const char *)json_lz4, compressed_size, aborted);
 
         ippsFree(json_lz4);
       }
@@ -1106,7 +1108,8 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
 
       // send the modified FITS header in one chunk
       if (*aborted.get() != true)
-        res->write(std::string_view((const char *)header, fits->hdr_len));
+        //res->write(std::string_view((const char *)header, fits->hdr_len));
+        send_chunk(res, (const char *)header, fits->hdr_len, aborted);
 
       free(header);
     }
@@ -1235,7 +1238,8 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         memset(padding, '\0', padding_size);
 
         if (*aborted.get() != true)
-          res->write(std::string_view((const char *)padding, padding_size));
+          //res->write(std::string_view((const char *)padding, padding_size));
+          send_chunk(res, (const char *)padding, padding_size, aborted);
 
         free(padding);
       }
@@ -1323,7 +1327,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
           fwrite((const char *)stream.out, sizeof(char), have, stream.fp);
 
         if (*aborted.get() != true)
-          stream.res->write(std::string_view((const char *)stream.out, have));
+          //stream.res->write(std::string_view((const char *)stream.out, have));
+          send_chunk(stream.res, (const char *)stream.out, have, aborted);
       }
     } while (stream.z.avail_out == 0);
 
@@ -1333,7 +1338,8 @@ void stream_molecules(uWS::HttpResponse<false> *res, double freq_start,
       fclose(stream.fp);
   }
   else if (*aborted.get() != true)
-    res->write(chunk_data);
+    //res->write(chunk_data);
+    send_chunk(res, (const char *)chunk_data.c_str(), chunk_data.length(), aborted);
 
   // end of chunked encoding
   if (*aborted.get() != true)
