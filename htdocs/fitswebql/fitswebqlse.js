@@ -1,5 +1,5 @@
 function get_js_version() {
-	return "JS2020-12-25.0";
+	return "JS2020-12-25.1";
 }
 
 const wasm_supported = (() => {
@@ -11111,7 +11111,7 @@ function partial_fits_download(offsetx, offsety, width, height) {
 	var orig_y1 = y1 * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
 
 	var x2 = image_bounding_dims.x1 + ax * (end_x - offsetx);
-	var y2 = image_bounding_dims.y1 + ax * (end_y - offsety);
+	var y2 = image_bounding_dims.y1 + ay * (end_y - offsety);
 
 	var orig_x2 = x2 * (fitsData.width - 1) / (imageContainer[va_count - 1].width - 1);
 	var orig_y2 = y2 * (fitsData.height - 1) / (imageContainer[va_count - 1].height - 1);
