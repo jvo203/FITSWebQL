@@ -1118,12 +1118,14 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         }
 
         // copy the partial data to the destination buffer
+        size_t dst_offset = 0;
         //for (int y = y1; y < y2; y++)
         for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
         {
 #pragma simd
           for (int x = x1; x < x2; x++)
-            ((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+            //((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+            ((uint32_t *)dest_buf)[dst_offset++] = ((uint32_t *)pixels_buf)[y * fits->width + x];
         };
 
         // send the chunk
@@ -1178,12 +1180,14 @@ void stream_partial_fits(uWS::HttpResponse<false> *res, std::shared_ptr<FITS> fi
         }
 
         // copy the partial data to the destination buffer
+        size_t dst_offset = 0;
         //for (int y = y1; y < y2; y++)
         for (int y = y2 - 1; y >= y1; y--) // invert the Y-axis
         {
 #pragma simd
           for (int x = x1; x < x2; x++)
-            ((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+            //((uint32_t *)dest_buf)[(y - y1) * partial_width + (x - x1)] = ((uint32_t *)pixels_buf)[y * fits->width + x];
+            ((uint32_t *)dest_buf)[dst_offset++] = ((uint32_t *)pixels_buf)[y * fits->width + x];
         };
 
         // send the chunk
