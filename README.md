@@ -4,7 +4,7 @@ A cleaned-up C/C++ Supercomputer Edition of FITSWebQL, fusing the best elements 
 Although Rust is extremely stable there are still some cases where C/C++ outperforms by a large margin, especially when combined with Intel high-performance libraries.
 
 # status
-incomplete, work-in-progress
+incomplete, work suspended till further notice whilst working on a secret project code-named "BACK TO THE FUTURE" or "A BLAST FROM THE PAST"
 
 # installation
 An installation manual for [CentOS 7](CentOS7.md) might need to be adjusted for other operating systems. [need for speed]: we recommend Intel Clear Linux (even, or especially on AMD CPUs).
