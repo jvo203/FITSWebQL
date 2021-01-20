@@ -7,7 +7,7 @@ Although Rust is extremely stable there are still some cases where C/C++ outperf
 incomplete, work suspended till further notice whilst working on a secret project code-named "BACK TO THE FUTURE" or "A BLAST FROM THE PAST"
 
 # installation
-An installation manual for [CentOS 7](CentOS7.md) might need to be adjusted for other operating systems. [need for speed]: we recommend Intel Clear Linux (even, or especially on AMD CPUs).
+An installation manual for [CentOS 7](CentOS7.md) might need to be adjusted for other operating systems. [need for speed]: we recommend [Intel Clear Linux](Clear_Linux.md) (even, or especially on AMD CPUs)
 
 # requirements
 1. GCC9 or higher
