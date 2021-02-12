@@ -939,7 +939,7 @@ void stream_image_spectrum(uWS::HttpResponse<false> *res,
         printf("FITS::JSON size %d, LZ4-compressed: %d bytes.\n", json_size,
                compressed_size);
 
-        // append json to the trasmission queue
+        // append json to the transmission queue
 
         const char *ptr = (const char *)&json_size;
         if (*aborted.get() != true)
