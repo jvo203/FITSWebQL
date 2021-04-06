@@ -2553,7 +2553,13 @@ int main(int argc, char *argv[])
 
                        if (key.find("quality") != std::string::npos)
                        {
-                         quality = std::stof(value);
+                         try
+                         {
+                           quality = std::stof(value);
+                         }
+                         catch (std::invalid_argument &exc)
+                         {
+                         }
                        }
 
                        if (key.find("fetch_data") != std::string::npos)
