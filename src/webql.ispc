@@ -787,9 +787,9 @@ export void make_video_frameF32_square(uniform int32 src[], uniform int width, u
       //alternative coherent if
       cif (!nan)
 	    {
-	      float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;
-	      dst_mask[idx] = 255 ;
+        float pixel = (tmp - black) * sensitivity ;
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel*pixel, 0.0f, 255.0f) : 0 ;
+        dst_mask[idx] = 255 ;
 	    }
       else
       {
@@ -926,8 +926,8 @@ export void make_video_frameF16_square(uniform unsigned int16 src[], uniform int
       //alternative coherent if
       cif (!nan)
 	    {
-        float pixel = 5.0f * (tmp - black) * sensitivity ;
-        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel/(1.0f + pixel), 0.0f, 255.0f) : 0 ;
+        float pixel = (tmp - black) * sensitivity ;
+        dst_luma[idx] = pixel > 0.0f ? (int) clamp( 255.0f*pixel*pixel, 0.0f, 255.0f) : 0 ;
         dst_mask[idx] = 255 ;
 	    }
       else
