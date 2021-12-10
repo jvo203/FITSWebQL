@@ -1,5 +1,5 @@
 using LinearAlgebra
-using Makie
+using GLMakie
 using NaNMath
 using OpenCL
 using PaddedViews
