@@ -12,7 +12,7 @@ file = "ALMA01030862.fits"
 #file = "ALMA01157085.fits"
 #file = "Cygnus_sp46_vs-150_ve100_dv0.50_CN_Tmb.fits.gz"
 
-fitspath = "/home/chris/NAO/NRO/SF/orion_12co_all_SF7.5arcsec_dV1.0kms.fits"
+fitspath = homedir() * "/NAO/NRO/SF/orion_12co_all_SF7.5arcsec_dV1.0kms.fits"
 #fitspath = string(dir, "/", file)
 
 if size(ARGS)[1] == 0
