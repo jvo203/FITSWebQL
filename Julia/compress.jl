@@ -65,6 +65,8 @@ println(device)
 
 #for frame = 1:depth
 for frame = 1:1
+	global N
+
     if N == 4
         data = read(f[1], :, :, frame, :);
     elseif N == 3
