@@ -7,6 +7,14 @@
 #pragma once
 #include <stdint.h>
 
+#if !defined(__cplusplus)
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+#include <stdbool.h>
+#else
+typedef int bool;
+#endif
+#endif
+
 
 
 #ifdef __cplusplus
@@ -32,7 +40,11 @@ namespace ispc { /* namespace */
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 extern "C" {
 #endif // __cplusplus
+#if defined(__cplusplus)
     extern void asymmetric_mad(float * data, uint8_t * mask, uint32_t size, float median, int64_t &count, float &mad, int64_t &countP, float &madP, int64_t &countN, float &madN);
+#else
+    extern void asymmetric_mad(float * data, uint8_t * mask, uint32_t size, float median, int64_t *count, float *mad, int64_t *countP, float *madP, int64_t *countN, float *madN);
+#endif // asymmetric_mad function declaraion
     extern float calculate_radial_spectrumBF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, uint32_t width, int32_t x1, int32_t x2, int32_t y1, int32_t y2, int32_t cx, int32_t cy, int32_t r2, bool average, float cdelt3);
     extern float calculate_radial_spectrumF16(uint16_t * src, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, uint32_t width, int32_t x1, int32_t x2, int32_t y1, int32_t y2, int32_t dx, int32_t dy, int32_t cx, int32_t cy, int32_t r2, bool average, float cdelt3);
     extern float calculate_radial_spectrumLF32(float * src, float bzero, float bscale, float ignrval, float datamin, float datamax, uint32_t width, int32_t x1, int32_t x2, int32_t y1, int32_t y2, int32_t cx, int32_t cy, int32_t r2, bool average, float cdelt3);
@@ -43,9 +55,17 @@ extern "C" {
     extern void f16tof32(uint16_t * src, float * dst, float frame_min, float frame_max, float min16, float max16, uint32_t size);
     extern void f32PIXMtof16(float * pixels, uint8_t * mask, int32_t src_x, int32_t src_y, uint32_t width, uint32_t height, uint16_t * dst, uint32_t size, float frame_min, float frame_max, float min16, float max16);
     extern void f32tof16(float * src, uint16_t * dst, float frame_min, float frame_max, float min16, float max16, uint32_t size);
+#if defined(__cplusplus)
     extern void fits2float32(int32_t * src, uint8_t * mask, float bzero, float bscale, float ignrval, float datamin, float datamax, float &rmin, float &rmax, uint32_t size);
+#else
+    extern void fits2float32(int32_t * src, uint8_t * mask, float bzero, float bscale, float ignrval, float datamin, float datamax, float *rmin, float *rmax, uint32_t size);
+#endif // fits2float32 function declaraion
     extern void histogram(float * data, uint32_t size, uint32_t * hist, int32_t nbins, float pmin, float pmax);
+#if defined(__cplusplus)
     extern void image_min_max(float * pixels, uint8_t * mask, float cdelt3, uint32_t size, float &rmin, float &rmax);
+#else
+    extern void image_min_max(float * pixels, uint8_t * mask, float cdelt3, uint32_t size, float *rmin, float *rmax);
+#endif // image_min_max function declaraion
     extern void image_to_luminance_f32_linear(float * cubeData, uint8_t * mask, float black, float slope, uint8_t * pixels, uint32_t total_size);
     extern void image_to_luminance_f32_logarithmic(float * cubeData, uint8_t * mask, float dmin, float dmax, float lmin, float lmax, uint8_t * pixels, uint32_t total_size);
     extern void image_to_luminance_f32_logarithmic_inplace(float * cubeData, uint8_t * mask, float dmin, float dmax, float lmin, float lmax, uint32_t total_size);
@@ -53,9 +73,21 @@ extern "C" {
     extern void image_to_luminance_f32_ratio(float * cubeData, uint8_t * mask, float black, float sensitivity, uint8_t * pixels, uint32_t total_size);
     extern void image_to_luminance_f32_square(float * cubeData, uint8_t * mask, float black, float sensitivity, uint8_t * pixels, uint32_t total_size);
     extern void join_pixels_masks(float * pixels, float * pixels_tid, uint8_t * mask, uint8_t * mask_tid, uint32_t size);
+#if defined(__cplusplus)
     extern void make_image_spectrumF16(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stride, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stride, float &mean, float &integrated);
+#else
+    extern void make_image_spectrumF16(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stride, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stride, float *mean, float *integrated);
+#endif // make_image_spectrumF16 function declaraion
+#if defined(__cplusplus)
     extern void make_image_spectrumF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, float &frame_min, float &frame_max, float &mean, float &integrated, uint32_t total_size);
+#else
+    extern void make_image_spectrumF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, float *frame_min, float *frame_max, float *mean, float *integrated, uint32_t total_size);
+#endif // make_image_spectrumF32 function declaraion
+#if defined(__cplusplus)
     extern void make_image_spectrumF32_ro(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, float &frame_min, float &frame_max, float &mean, float &integrated, uint32_t total_size);
+#else
+    extern void make_image_spectrumF32_ro(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float cdelt3, float * dst_pixels, uint8_t * dst_mask, float *frame_min, float *frame_max, float *mean, float *integrated, uint32_t total_size);
+#endif // make_image_spectrumF32_ro function declaraion
     extern void make_planeF32(int32_t * src, float bzero, float bscale, float ignrval, float datamin, float datamax, float * dst_pixels, uint8_t * dst_mask, uint32_t total_size);
     extern void make_video_frameF16(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stride, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, float * dst_pixels, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stride);
     extern void make_video_frameF16_legacy(uint16_t * src, int32_t dx, int32_t dy, int32_t src_stride, float frame_min, float frame_max, float min16, float max16, float bzero, float bscale, float ignrval, float datamin, float datamax, uint8_t * dst_luma, uint8_t * dst_mask, int32_t offset_x, int32_t offset_y, int32_t dst_stride, float dmin, float dmax, float lmin, float lmax);
