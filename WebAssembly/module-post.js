@@ -1,6 +1,6 @@
 // Module.ready resolves when WASM instantiates. (ready is now a property and not function via @surma fork)
 Module.ready = new Promise(function(resolve, reject) {
-  addOnPreMain(function() {
+  addOnInit(function() {
     resolve("WebAssembly has been initialised.");
   });
 
