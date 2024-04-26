@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := wasm
-VERSION = 20.11.27.2
+#VERSION = 20.11.27.2
+VERSION = 24.04.26.0
 
 OPENEXR = OpenEXR
 FPZIP = fpzip
@@ -9,7 +10,7 @@ SRC := $(OPENEXR_SRC) $(FPZIP_SRC)
 OBJ := $(SRC:.cpp=.o)
 INCLUDE = -I./ -I./$(OPENEXR) -I./$(FPZIP)/include -I./$(FPZIP)/src
 LIBRARY=
-CXXFLAGS=-std=c++11 -O3
+CXXFLAGS=-std=c++11 -Oz
 LDFLAGS=-lz --llvm-lto 1
 
 .PHONY=clean
@@ -39,7 +40,7 @@ DEP = $(OBJ:%.o=%.d)
 -include $(DEP)
 
 %.o: %.c
-	emcc -O3 $(FFMPEG_FLAGS) -o $@ -c $<
+	emcc -Oz $(FFMPEG_FLAGS) -o $@ -c $<
 
 %.o: %.cpp
 	em++ $(EMFLAGS) $(DEFS) $(INCLUDE) $(CXXFLAGS) -MMD -o $@ -c $<
